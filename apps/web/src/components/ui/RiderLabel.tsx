@@ -11,7 +11,7 @@ import { NO_TEAM_LABEL } from '../../domain/labels'
 import { ChampionMark, LeaderJersey } from '../Jersey'
 import { Flag } from './Flag'
 import { LegacyJersey } from './LegacyJersey'
-import { TextLink } from './TextLink'
+import { TextLink, gluedLastWord } from './TextLink'
 
 /**
  * EL CORREDOR, EN UNA LISTA (E3, docs/visual.md §4.6; PR 9b; I-18, O-17, D-00c). «Cada vez que menciones
@@ -21,7 +21,9 @@ import { TextLink } from './TextLink'
  * bot, en cursiva y 400) como `TextLink` `rider` a su ficha, y el maillot a 28 (`KIT_PX.row`). **Segundo
  * renglón**: el equipo en `meta` `ink-3`, cortado con `…` si no cabe (el maillot lleva su nombre), o
  * `Individual` para un agente libre, que lleva el hueco del maillot. **El nombre no se corta nunca**: si
- * parte de línea, el maillot va pegado a su última palabra ([DUEÑO 17]), con un `U+2060` entre los dos.
+ * parte de línea, el maillot va pegado a su última palabra ([DUEÑO 17]): el renglón va en `nowrap` y
+ * solo lo de delante de la última palabra en `normal` (`gluedLastWord`), así que la bandera tampoco se
+ * separa de la primera.
  * En una frase (`inline`), todo en un renglón: `#214`, la bandera, el nombre, el maillot y `(Mistral
  * Racing)`.
  *
@@ -129,11 +131,11 @@ export function RiderLabel(props: RiderLabelProps) {
   const choice = riderJerseyOf(props)
   const peso = rider.human ? 'font-semibold' : 'font-normal italic'
   const nombre: ReactNode = link ? (
-    <TextLink to={`/world/riders/${rider.id}`} variant="rider" inline>
+    <TextLink to={`/world/riders/${rider.id}`} variant="rider" inline glueEnd>
       {rider.name}
     </TextLink>
   ) : (
-    rider.name
+    gluedLastWord(rider.name)
   )
   const primera = (
     <>
@@ -146,7 +148,6 @@ export function RiderLabel(props: RiderLabelProps) {
       </span>
       {choice.kind !== 'unknown' && (
         <>
-          {'⁠'}
           <span className="ml-1 inline-flex align-middle">
             <ChosenJersey choice={choice} size={KIT_PX.row} />
           </span>
@@ -158,14 +159,19 @@ export function RiderLabel(props: RiderLabelProps) {
 
   if (inline)
     return (
-      <span data-ui="RiderLabel" data-variant="inline" data-state="ready">
+      <span
+        data-ui="RiderLabel"
+        data-variant="inline"
+        data-state="ready"
+        className="whitespace-nowrap"
+      >
         {primera}
-        {equipo !== null && ` (${equipo})`}
+        {equipo !== null && <span className="whitespace-normal">{` (${equipo})`}</span>}
       </span>
     )
   return (
     <span data-ui="RiderLabel" data-variant="row" data-state="ready" className="block min-w-0">
-      <span className="block text-row text-ink">{primera}</span>
+      <span className="block text-row whitespace-nowrap text-ink">{primera}</span>
       {teamLine && equipo !== null && (
         <span data-clip-ok="" className="block truncate text-meta text-ink-3">
           {equipo}

@@ -33,8 +33,8 @@ export interface ActionRowProps {
     readonly ariaLabel: string
     readonly onClick: () => void
     readonly variant?: 'primary' | 'secondary' | 'danger'
+    /** ocupado: el indicador y el mismo texto, que cabe en su caja */
     readonly busy?: boolean
-    readonly busyLabel?: string
     readonly disabledReason?: string
   }
   /** lo ya hecho, en lugar del botón: `{ text: 'Called up', tone: 'good' }` */
@@ -88,9 +88,7 @@ export function ActionRow({ title, meta, href, action, done, layout }: ActionRow
         action !== undefined && (
           <button
             type="button"
-            aria-label={
-              busy && action.busyLabel !== undefined ? action.busyLabel : action.ariaLabel
-            }
+            aria-label={action.ariaLabel}
             {...(disabled ? { 'aria-disabled': true as const, 'aria-describedby': reasonId } : {})}
             {...(busy ? { 'aria-busy': true as const } : {})}
             onClick={disabled || busy ? undefined : action.onClick}
@@ -101,7 +99,7 @@ export function ActionRow({ title, meta, href, action, done, layout }: ActionRow
               disabled,
             })}`}
           >
-            <ButtonContent text={action.label} busy={busy} busyLabel={action.busyLabel} />
+            <ButtonContent text={action.label} busy={busy} />
           </button>
         )
       )}

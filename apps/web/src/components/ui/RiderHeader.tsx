@@ -4,6 +4,7 @@ import { ErrorState } from './ErrorState'
 import { Flag } from './Flag'
 import { ChosenJersey, type LegacyTeam, type RiderLabelProps, riderJerseyOf } from './RiderLabel'
 import { withLayout } from './styles'
+import { gluedLastWord } from './TextLink'
 import type { Layout, Tone } from './types'
 
 /**
@@ -14,7 +15,7 @@ import type { Layout, Tone } from './types'
  * nombre si parte de línea. Debajo, un `Chip` de jugador, otro de salud si no está sano y el papel en
  * `meta` `ink-2`: `José Quintáns · Player · Climber`. Cargando, el esqueleto de un `h1` de 32 y una línea
  * de 20 (el de `Skeleton` `header`, en el PR 10); no encontrado, `This rider doesn't exist.`; con un fallo,
- * `ErrorState` con `Try again`.
+ * `ErrorState` con `Try again`. El maillot se pega a la última palabra como en `RiderLabel`.
  *
  * El maillot no se pulsa todavía: abre la `Sheet` con `Front` y `Back` desde el 17c (§8.10), que la trae.
  */
@@ -87,10 +88,9 @@ export function RiderHeader(props: RiderHeaderProps) {
   const choice = riderJerseyOf({ team, champion: champion ?? null })
   return (
     <header {...raiz('ready', player ? 'player' : 'rider')}>
-      <div className="text-page text-ink">
+      <div className="text-page whitespace-nowrap text-ink">
         <Flag country={rider.country} height={24} layout="mr-2" />
-        <h1 className="inline">{rider.name}</h1>
-        {'⁠'}
+        <h1 className="inline">{gluedLastWord(rider.name)}</h1>
         <span className="ml-2 inline-flex align-middle">
           <ChosenJersey choice={choice} size={KIT_PX.card} />
         </span>

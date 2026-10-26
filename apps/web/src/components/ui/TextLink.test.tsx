@@ -39,4 +39,15 @@ describe('TextLink', () => {
     ).toContain('data-inline-link=""')
     expect(html(<TextLink to="/x">the plan</TextLink>)).not.toContain('data-inline-link')
   })
+
+  it('con glueEnd, solo lo de delante de la última palabra parte: lo de detrás no se separa', () => {
+    expect(
+      html(
+        <TextLink to="/x" variant="rider" inline glueEnd>
+          Jean-Baptiste Delacroix-Mény
+        </TextLink>,
+      ),
+    ).toMatch(/><span[^>]*>Jean-Baptiste <\/span>Delacroix-Mény<\/a>$/)
+    expect(html(<TextLink to="/x">Rossi</TextLink>)).toMatch(/>Rossi<\/a>$/)
+  })
 })

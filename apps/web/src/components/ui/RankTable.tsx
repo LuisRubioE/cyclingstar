@@ -134,13 +134,14 @@ function SegundoRenglon<Row>({
   const secundarias = columns.filter((c) => c.priority === 'secondary')
   const opcionales = columns.filter((c) => c.priority === 'optional')
   if (secundarias.length + opcionales.length === 0) return null
+  // el punto cuelga del valor anterior, como una coma: si el renglón parte, no empieza por él; y se
+  // esconde con su valor, así que entre lo que queda a la vista siempre hay uno
   const items = [
-    ...secundarias.map((c, i) => ({ c, punto: i === 0 ? null : '' })),
-    ...opcionales.map((c, i) => ({
+    ...secundarias.map((c, i) => ({
       c,
-      // el primero de las opcionales lleva su punto solo mientras se ven las secundarias
-      punto: i > 0 ? '' : secundarias.length > 0 ? 'sm:hidden' : null,
+      punto: i < secundarias.length - 1 || opcionales.length > 0,
     })),
+    ...opcionales.map((c, i) => ({ c, punto: i < opcionales.length - 1 })),
   ]
   return (
     <span data-second="" className="flex flex-wrap gap-x-1 text-meta font-normal text-ink-3">
@@ -151,11 +152,6 @@ function SegundoRenglon<Row>({
           data-priority={c.priority}
           className={`flex min-w-0 gap-1 ${EN_SEGUNDO[c.priority]}`}
         >
-          {punto !== null && (
-            <span aria-hidden="true" className={punto}>
-              ·
-            </span>
-          )}
           {c.clip === true ? (
             <span data-clip-ok="" className="min-w-0 truncate">
               {c.render(row)}
@@ -163,6 +159,7 @@ function SegundoRenglon<Row>({
           ) : (
             <span>{c.render(row)}</span>
           )}
+          {punto && <span aria-hidden="true">·</span>}
         </span>
       ))}
     </span>
@@ -221,12 +218,11 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
           {velada ? (
             <tr className="border-t border-line">
               <td colSpan={ncols} className="py-2">
-                <span className="flex flex-wrap items-center gap-x-2 text-meta text-ink-2">
-                  <span className="inline-flex text-warn">
+                <span className="flex items-center gap-2 text-meta text-ink-2">
+                  <span className="inline-flex shrink-0 text-warn">
                     <Icon name="warning" size={20} />
                   </span>
-                  <span>{veilText(veil)}</span>
-                  <span aria-hidden="true">·</span>
+                  <span className="min-w-0 flex-1">{veilText(veil)}</span>
                   <Link
                     to={veil.href}
                     className={buttonClass({
@@ -268,7 +264,7 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
                       {puesto ?? ''}
                     </td>
                   )}
-                  <td className={`p-0 align-top ${rank === undefined ? barra : ''}`}>
+                  <td className={`w-full max-w-0 p-0 align-top ${rank === undefined ? barra : ''}`}>
                     <Link
                       to={href(row)}
                       className={`block min-h-11 py-1 ${own ? 'font-semibold' : ''} ${FOCUS_INSET}`}
