@@ -213,7 +213,7 @@ export function Rankings() {
           onChange={setTab}
           panelId={PANEL_RANKING}
         />
-        <TabPanel panelId={PANEL_RANKING} active={tab} className="">
+        <TabPanel panelId={PANEL_RANKING} active={tab}>
           {active === undefined ? (
             <div className="px-3 sm:px-4">
               <QueryView
