@@ -246,8 +246,9 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         day: ctx.day,
         run: snapshot !== null,
       })
+      // Con el horizonte de quien pide también para los títulos de campeón de sus tablas (E3, 17a).
       const body = access.serveResult
-        ? await stageReplayOf(db, ctx, { snapshot, radio: { h, userId } })
+        ? await stageReplayOf(db, ctx, { snapshot, radio: { h, userId }, h })
         : stageShellOf(ctx, snapshot)
       return {
         ...body,

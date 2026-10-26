@@ -41,6 +41,7 @@ import {
   startStateOf,
 } from '@cyclingstar/shared'
 import { leadersThroughStage } from './broadcastSource.js'
+import { tableChampions } from './champions.js'
 import {
   type ChronicleEntry,
   type ChronicleEvent,
@@ -151,6 +152,12 @@ export interface StageReplayOptions {
    * paquete de meta no la lleva (14-b) y no se construye para tirarla.
    */
   readonly radio?: RadioViewer | false
+  /**
+   * EL VELO DE LOS TÍTULOS (E3, docs/visual.md §8.5; 4-l, 17a): el horizonte de quien mira, con el que
+   * `champions` deja fuera el título de un campeonato que no ha visto. Sale de otras carreras, que la
+   * puerta de esta etapa no cubre. Sin él, el del mundo.
+   */
+  readonly h?: Horizon
 }
 
 /** Quién mira la radio de una ficha: su horizonte y su cuenta (null, el visitante). */
@@ -192,6 +199,8 @@ function notRunReplayOf(ctx: StageContext) {
     kind: spec.kind,
     timeTrial: spec.timeTrial,
     altimetry: renderAltimetrySvg(stage.profile),
+    // sin tablas, nadie a quien vestir de campeón (E3, §8.5; 17a)
+    champions: {},
   }
 }
 
@@ -217,8 +226,9 @@ function racedOf(ctx: StageContext, snapshot: StageSnapshotRow) {
  * pantalla no va a enseñar el resultado. Los obligatorios de `StageReplay` (`day`, `name`, `km`, `run` y
  * `altimetry`) y el contexto de siempre, sin los opcionales de resultado (`results`, `chronicle`, `gc`,
  * `kom`, `points`, `teamStage`, `teamGc` y `radio`), sin `leaders` ENTERO (la web de ayer lo lee con
- * `?.`; uno sin `afterStage` no pasaría su esquema) y con la altimetría sin marcas, como la de una etapa
- * sin correr (sup. E7). Ninguno de esos campos depende del desenlace. Pura: el snapshot llega leído.
+ * `?.`; uno sin `afterStage` no pasaría su esquema), sin campeones (no hay tablas; 17a) y con la
+ * altimetría sin marcas, como la de una etapa sin correr (sup. E7). Ninguno de esos campos depende del
+ * desenlace. Pura: el snapshot llega leído.
  */
 export function stageShellOf(ctx: StageContext, snapshot: StageSnapshotRow | null) {
   if (!snapshot) return notRunReplayOf(ctx)
@@ -233,6 +243,7 @@ export function stageShellOf(ctx: StageContext, snapshot: StageSnapshotRow | nul
     kind: head.kind,
     timeTrial: head.timeTrial,
     altimetry: renderAltimetrySvg(profile),
+    champions: {},
   }
 }
 
@@ -244,6 +255,8 @@ export function stageShellOf(ctx: StageContext, snapshot: StageSnapshotRow | nul
  * meta, y solo llegan aquí una etapa que la pantalla va a enseñar o el modo diagnóstico. Sus lecturas,
  * todas de la tabla de §10.6, van con `worldHorizon`: la etapa entera, como la lee el tick. Una etapa
  * conocida no tiene ninguna anterior velada (lo conocido es un prefijo, D-28), así que P no cortaría.
+ * Salvo los títulos de campeón (`champions`, E3, 17a), que salen de los campeonatos y no de esta
+ * carrera: van con el horizonte de quien mira (`opts.h`).
  */
 export async function stageReplayOf(
   db: Database,
@@ -298,6 +311,20 @@ export async function stageReplayOf(
     ? NO_LEADERS
     : raceLeaders({ gc, points, kom, teams: teamGc })
   const leaders = { onRoad, afterStage }
+  // LOS CAMPEONES DE ESAS TABLAS (E3, docs/visual.md §8.5; 4-l, 17a): el título que lleva cada uno el
+  // día de esta etapa, con la disciplina con que se corrió y la categoría de la carrera.
+  const champions = await tableChampions(
+    db,
+    opts.h ?? worldHorizon,
+    ctx.worldId,
+    {
+      raceKey,
+      stageDay: day,
+      timeTrial: racedTimeTrial,
+      category: race.championshipCategory ?? 'elite',
+    },
+    [...results, ...gc, ...kom, ...points].map((r) => r.riderId),
+  )
   // El journal se lee de los eventos CONGELADOS al correr la etapa (no se re-simula): así siempre
   // cuadra con el resultado guardado. Las etapas corridas antes de guardarlos no tienen journal
   // detallado (no lo inventamos re-simulando, que daría una historia distinta al resultado real).
@@ -320,6 +347,7 @@ export async function stageReplayOf(
       teamStage,
       teamGc,
       leaders,
+      champions,
       journalUnavailable: true,
     }
   }
@@ -362,6 +390,7 @@ export async function stageReplayOf(
     teamStage,
     teamGc,
     leaders,
+    champions,
     ...(radio ? { radio } : {}),
   }
 }

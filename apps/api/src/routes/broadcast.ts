@@ -423,10 +423,11 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       const gate = stageGateOf(a.h, a.ctx.raceKey, a.ctx.day)
       if (gate?.k === 'previous_unseen') return sendGate(reply, gate)
       // el acta con las palabras de papel: esta ruta ya exige Watch encendido (§12.6); sin la radio,
-      // que el paquete de meta no lleva (14-b)
+      // que el paquete de meta no lleva (14-b), y con los títulos de campeón que ve quien mira (17a)
       const replay = await stageReplayOf(db, a.ctx, {
         annotate: (stored) => storedWithRoles(tl, stored),
         radio: false,
+        h: a.h,
       })
       if (!replay.run) return notFound(reply)
       await finishWatch(request, a, fromDs(visibilityOf(tl).finishDs), body.data.mode)
@@ -572,12 +573,15 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       const tl = (await request.broadcastOn())
         ? await timelineForStage(db, a.h, a.ctx.raceKey, a.ctx.day)
         : null
-      // la radio desde la línea nombra a los corredores propios de quien pide (11a, R23.7)
+      // la radio desde la línea nombra a los corredores propios de quien pide (11a, R23.7), y los
+      // títulos de campeón de las tablas son los que ve (17a)
       const radio = { h: a.h, userId: (await request.viewer())?.userId ?? null }
       const replay = await stageReplayOf(
         db,
         a.ctx,
-        tl === null ? { radio } : { annotate: (stored) => storedWithRoles(tl, stored), radio },
+        tl === null
+          ? { radio, h: a.h }
+          : { annotate: (stored) => storedWithRoles(tl, stored), radio, h: a.h },
       )
       if (!replay.run) return notFound(reply)
       // tplRev: el de la fila de la línea grabada (6a), sin construir el adaptador; sin fila o con

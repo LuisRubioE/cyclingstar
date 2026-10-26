@@ -376,7 +376,7 @@ const EXCEPCIONES: ReadonlyMap<string, string> = new Map([
   ],
   [
     'titles.ts:palmaresTitleSource.titlesOn',
-    'el tick: los títulos de campeón del día para el reparto; el velo los degrada al servir (B13)',
+    'el tick, para el reparto que el velo degrada al servir (B13), y `titlesSeenOn`, con el velo (17a)',
   ],
   // Dos escrituras del mánager que leen el presupuesto sin devolverlo: la ruta responde `{ ok }`.
   ['teamPlan.ts:draftRace', 'escribe el calendario del equipo; lee el presupuesto sin devolverlo'],

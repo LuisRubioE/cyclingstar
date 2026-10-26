@@ -29,6 +29,7 @@ import {
   veilCast,
   veilDelta,
   veilSql,
+  veilTitles,
   worldHorizon,
 } from './horizon.js'
 import { emitNews } from './news.js'
@@ -231,6 +232,61 @@ describe('veilCast · el reparto bajo el velo (§10.10; 7b)', () => {
   it('un velo de otra carrera o de otra etapa no toca nada', () => {
     const out = veilCast(cast, withVeil([veiled(6, 'race-italy:s0'), veiled(9)]))
     expect(out).toEqual(cast)
+  })
+})
+
+/**
+ * LOS TÍTULOS BAJO EL VELO (E3, docs/visual.md §8.5; 4-l, 17a): `veilTitles` quita el de un campeonato
+ * del velo de quien mira ANTES de que las tablas y la ficha elijan cuál se lleva, con el corte que
+ * `veilCast` hace a la `source` de un título. Las rutas, con un velo de verdad, en
+ * `apps/api/src/routes/champions.test.ts`.
+ */
+describe('veilTitles · los títulos bajo el velo (§8.5; 17a)', () => {
+  const title = (
+    raceId: string,
+    discipline: 'road' | 'itt',
+    category: 'elite' | 'u23' = 'elite',
+  ): ChampionTitle => ({
+    scope: 'national',
+    country: raceId.slice(3, 5).toUpperCase(),
+    discipline,
+    category,
+    season: 0,
+    validFromDay: 179,
+    validToDay: 179 + DAYS_PER_SEASON,
+    source: { raceKey: `${raceId}:s0`, stageDay: 1 },
+    provisional: true,
+  })
+  const ROAD_IT = title('nc-it-road', 'road')
+  const ITT_IT = title('nc-it-itt', 'itt')
+  const U23_IT = title('nc-it-u23-road', 'road', 'u23')
+  const ROAD_FR = title('nc-fr-road', 'road')
+  const titles = new Map<string, readonly ChampionTitle[]>([
+    ['a', [ROAD_IT, ITT_IT]],
+    ['b', [ROAD_FR]],
+    ['c', [U23_IT]],
+  ])
+
+  it('con el velo vacío devuelve el mismo mapa, sin copiarlo', () => {
+    expect(veilTitles(titles, worldHorizon)).toBe(titles)
+    expect(veilTitles(titles, anonHorizon())).toBe(titles)
+  })
+
+  it('el de un campeonato velado se va y los demás se quedan; quien se queda sin ninguno sale del mapa', () => {
+    const out = veilTitles(
+      titles,
+      withVeil([veiled(1, 'nc-it-road:s0'), veiled(1, 'nc-it-u23-road:s0')]),
+    )
+    expect(out).toEqual(
+      new Map([
+        ['a', [ITT_IT]],
+        ['b', [ROAD_FR]],
+      ]),
+    )
+  })
+
+  it('un velo de otra carrera o de otra etapa no quita nada', () => {
+    expect(veilTitles(titles, withVeil([veiled(2, 'nc-it-road:s0'), veiled(1)]))).toEqual(titles)
   })
 })
 

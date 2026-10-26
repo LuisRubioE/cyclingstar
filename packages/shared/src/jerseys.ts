@@ -290,6 +290,21 @@ export function wearableTitles(
     .sort((a, b) => SCOPE_RANK[a.scope] - SCOPE_RANK[b.scope])
 }
 
+/**
+ * EL TÍTULO DE LA FICHA del corredor (E3, docs/visual.md §8.5; 4-l, 17a), que no es de ningún día de
+ * carrera: de sus vigentes, el de mayor alcance y, a igual alcance, el de ruta antes que el de crono y
+ * el de élite antes que el sub-23; null sin ninguno.
+ */
+export function highestTitle(titles: readonly ChampionTitle[]): ChampionTitle | null {
+  const ranked = [...titles].sort(
+    (a, b) =>
+      SCOPE_RANK[a.scope] - SCOPE_RANK[b.scope] ||
+      Number(a.discipline !== 'road') - Number(b.discipline !== 'road') ||
+      Number(a.category !== 'elite') - Number(b.category !== 'elite'),
+  )
+  return ranked[0] ?? null
+}
+
 /** Las tablas de salida por maillot, sin los no clasificados (la general es la única que sabe quién abandonó). */
 function rankedTables(
   input: WornInput,
