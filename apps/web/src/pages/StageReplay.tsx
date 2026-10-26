@@ -123,7 +123,9 @@ function StageClassifications({
         variant="pill"
         panelId={STAGE_CLASS_PANEL}
       />
-      <TabPanel panelId={STAGE_CLASS_PANEL} active={active} className="mt-3">
+      {/* casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1): a 320 el nombre cabe; el
+          margen negativo, en el panel, hijo directo de la tarjeta, no se sale de su caja de relleno */}
+      <TabPanel panelId={STAGE_CLASS_PANEL} active={active} className="mt-3 -mx-4">
         {active === 'gc' &&
           (gc.length > 0 ? (
             <GcRankTable rows={gc} caption="General classification after this stage" {...ctx} />
@@ -158,7 +160,7 @@ function StageClassifications({
             <div className="space-y-5">
               {teamStage.length > 0 && (
                 <div>
-                  <h3 className={head}>Stage</h3>
+                  <h3 className={`${head} px-4`}>Stage</h3>
                   <TeamClassTable
                     rows={teamStage}
                     identity={identity}
@@ -169,7 +171,7 @@ function StageClassifications({
               )}
               {teamGc.length > 0 && (
                 <div>
-                  <h3 className={head}>Overall after this stage</h3>
+                  <h3 className={`${head} px-4`}>Overall after this stage</h3>
                   <TeamClassTable
                     rows={teamGc}
                     identity={identity}
@@ -538,6 +540,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                       leaders={d.leaders?.onRoad}
                       identity={identidad}
                       ownRiderId={propio.riderId}
+                      layout="-mx-4"
                     />
                   </div>
                 ) : (

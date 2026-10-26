@@ -308,6 +308,12 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
       features: { broadcastWatch: watch, spoilerMode: 'on' },
     })
     client.setQueryData(['admin-whoami'], null)
+    // la lista de salida (PR 12b): sin ella, las tablas de la etapa esperan a sus dorsales
+    client.setQueryData(['race-startlist', 'race-france'], {
+      upcoming: false,
+      teams: [],
+      freeAgents: [],
+    })
     client.setQueryData(stageReplayKey('race-france', 7, false, REV), data)
     client.setQueryData(broadcastHeadKey('race-france', 7, undefined, false, REV), broadcastHead)
     return renderToStaticMarkup(

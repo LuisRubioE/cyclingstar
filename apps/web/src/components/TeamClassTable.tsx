@@ -3,8 +3,10 @@ import { formatTime } from '../domain/format'
 import { NO_TABLE_IDENTITY, type TableIdentity } from '../domain/tableIdentity'
 import { plural } from '../domain/words'
 import { LegacyJersey } from './ui/LegacyJersey'
+import { RaceTableWaiting } from './RaceRankTables'
 import { RankTable, type RankTableColumn } from './ui/RankTable'
 import { gluedLastWord } from './ui/TextLink'
+import type { Layout } from './ui/types'
 
 /** Un equipo con su puesto: null, fuera de clasificación. */
 interface Fila {
@@ -30,6 +32,7 @@ export function TeamClassTable({
   ownTeamId = null,
   cumulative = false,
   answer = false,
+  layout,
 }: {
   readonly rows: readonly TeamClassEntry[]
   /** la semilla del dibujo de cada equipo (`useRaceIdentity`); sin ella, el nombre sin maillot */
@@ -40,7 +43,11 @@ export function TeamClassTable({
   readonly cumulative?: boolean
   /** la tabla que contesta a la pantalla (§7.3) */
   readonly answer?: boolean
+  /** en una tarjeta de 20 de relleno, `-mx-4`: casi de borde a borde (§6.1) */
+  readonly layout?: Layout
 }) {
+  // mientras llega la lista de salida, espera: el maillot que llega después la movería
+  if (identity.pending) return <RaceTableWaiting />
   const lider = rows.find((r) => !r.out)?.tiempoS ?? 0
   let n = 0
   const filas: Fila[] = rows.map((r) => ({ r, puesto: r.out ? null : ++n }))
@@ -85,14 +92,18 @@ export function TeamClassTable({
       isOwn={({ r }) => ownTeamId !== null && r.teamId === ownTeamId}
       inactiveLabel={() => 'OUT'}
       answer={answer}
+      {...(layout === undefined ? {} : { layout })}
     />
   )
 }
 
-/** Explicación de la regla, para que nadie tenga que adivinar de dónde sale el tiempo. */
+/**
+ * Explicación de la regla, para que nadie tenga que adivinar de dónde sale el tiempo. Va bajo la tabla,
+ * en un panel casi de borde a borde (`-mx-4`, PR 12b): su `px-4` devuelve el texto a su sitio.
+ */
 export function TeamClassNote() {
   return (
-    <p className="mt-2 text-caption text-ink-3">
+    <p className="mt-2 px-4 text-caption text-ink-3">
       Combined finishing times of the three best riders from each team on every stage. Time bonuses
       do not count. A team left with fewer than three riders drops out of the classification.
     </p>

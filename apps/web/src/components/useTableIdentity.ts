@@ -19,7 +19,8 @@ import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
  * El dorsal y el dibujo del equipo de una carrera: su lista de salida, la misma clave que `Race`. Con
- * `enabled` en falso (la ficha de etapa en `Watch`), no la pide.
+ * `enabled` en falso (la ficha de etapa en `Watch`), no la pide. Mientras llega, `pending`: la tabla espera
+ * a ella, porque los dorsales y los maillots que llegan después la moverían.
  */
 export function useRaceIdentity(raceId: string, enabled = true): TableIdentity {
   const startlist = useQuery({
@@ -27,7 +28,8 @@ export function useRaceIdentity(raceId: string, enabled = true): TableIdentity {
     queryFn: () => fetchStartlist(raceId),
     enabled,
   })
-  return useMemo(() => identityFromStartlist(startlist.data), [startlist.data])
+  const pending = enabled && startlist.isPending
+  return useMemo(() => identityFromStartlist(startlist.data, pending), [startlist.data, pending])
 }
 
 /** El dibujo del equipo de hoy, fuera de una carrera: `GET /api/teams`, la misma clave que `Teams`. */
@@ -38,7 +40,9 @@ export function useTeamsIdentity(): TableIdentity {
     queryFn: fetchTeams,
     enabled: rev !== undefined,
   })
-  return useMemo(() => identityFromTeams(teams.data), [teams.data])
+  // mientras llega, el hueco del maillot en cada fila (`rowTeam`): al llegar, nada se mueve
+  const pending = teams.isPending
+  return useMemo(() => identityFromTeams(teams.data, pending), [teams.data, pending])
 }
 
 /**

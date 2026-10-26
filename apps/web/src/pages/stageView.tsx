@@ -122,6 +122,7 @@ export function StageReportView({
             {...(identity === undefined ? {} : { identity })}
             ownRiderId={ownRiderId}
             answer={answer}
+            layout="-mx-4"
           />
         </div>
       ) : (

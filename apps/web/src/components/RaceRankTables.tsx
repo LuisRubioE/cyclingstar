@@ -3,8 +3,10 @@ import type { StageResultEntry } from '../api/results'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
 import { NO_TABLE_IDENTITY, type TableIdentity, rowTeam } from '../domain/tableIdentity'
+import { LoadingState } from './ui/QueryView'
 import { RankTable, type RankTableColumn } from './ui/RankTable'
 import { RiderLabel } from './ui/RiderLabel'
+import type { Layout } from './ui/types'
 
 /**
  * LAS CLASIFICACIONES DE UNA CARRERA (E3, docs/visual.md §6.1; PR 12b). La general, los puntos y la
@@ -13,7 +15,8 @@ import { RiderLabel } from './ui/RiderLabel'
  * enseña o la equipación); el equipo debajo hasta 640; y el tiempo o los puntos. Lo que la fila no trae,
  * el dorsal y el dibujo del equipo (`identity`, de la lista de salida, 17-q) y el corredor del jugador
  * (`ownRiderId`, §6.2), llega de la página: aquí no hay consultas, y las tablas se pintan en un test sin
- * `QueryClientProvider`.
+ * `QueryClientProvider`. Mientras la lista de salida llega, la tabla espera (`pending`): los dorsales y los
+ * maillots que llegan después la moverían, y a 320 la harían otra.
  */
 
 export interface RaceTableContext {
@@ -25,6 +28,13 @@ export interface RaceTableContext {
   readonly ownRiderId?: string | null
   /** la tabla que contesta a la pantalla (§7.3) */
   readonly answer?: boolean
+  /** en una tarjeta de 20 de relleno, `-mx-4`: la tabla casi de borde a borde, como el `Panel` `bleed` (§6.1) */
+  readonly layout?: Layout
+}
+
+/** La tabla, mientras llega la lista de salida: el esqueleto de sus filas, que la prueba espera. */
+export function RaceTableWaiting() {
+  return <LoadingState label="the classification" skeleton={{ kind: 'rows', rowHeight: 56 }} />
 }
 
 /** Lo que tiene toda fila de corredor de una carrera. */
@@ -78,6 +88,7 @@ const comunes = <Row extends RiderRow>(ctx: RaceTableContext) => ({
   href: ({ r }: Puesto<Row>) => `/world/riders/${r.riderId}`,
   isOwn: ({ r }: Puesto<Row>) => ctx.ownRiderId != null && r.riderId === ctx.ownRiderId,
   ...(ctx.answer === true ? { answer: true } : {}),
+  ...(ctx.layout === undefined ? {} : { layout: ctx.layout }),
 })
 
 /** Una fila de una general: la de la carrera (`GcRow`) o la de tras una etapa (`StageGcEntry`). */
@@ -116,6 +127,7 @@ export function GcRankTable({
         puesto === 1 ? formatTime(r.tiempoTotalS) : `+${formatTime(r.tiempoTotalS - lider)}`,
     },
   ]
+  if (ctx.identity?.pending === true) return <RaceTableWaiting />
   return (
     <RankTable
       caption={caption}
@@ -147,6 +159,7 @@ export function PointsRankTable({
       render: ({ r }) => r.puntos,
     },
   ]
+  if (ctx.identity?.pending === true) return <RaceTableWaiting />
   return (
     <RankTable
       caption={caption}
@@ -211,6 +224,7 @@ export function StageResultRankTable({
         puesto === 1 ? formatTime(r.tiempoS) : `+${formatTime(r.tiempoS - ganador)}`,
     },
   ]
+  if (ctx.identity?.pending === true) return <RaceTableWaiting />
   return (
     <RankTable
       caption={caption}

@@ -426,7 +426,9 @@ function ClassificationsTab({
       <div className={card}>
         <h2 className={head}>Result</h2>
         {data.gc.length > 0 ? (
-          <GcRankTable rows={data.gc} caption="Result" {...ctx} />
+          // en la tarjeta, casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1): a 320 el
+          // nombre cabe; y el margen negativo, en un hijo directo, no se sale de su caja
+          <GcRankTable rows={data.gc} caption="Result" {...ctx} layout="-mx-4" />
         ) : (
           <EmptyState text="No result yet." />
         )}
@@ -443,7 +445,9 @@ function ClassificationsTab({
         variant="pill"
         panelId={CLASS_PANEL}
       />
-      <TabPanel panelId={CLASS_PANEL} active={active} className="mt-4">
+      {/* casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1), el panel y no la tabla: el
+          margen negativo, en un hijo directo de la tarjeta, no se sale de su caja de relleno */}
+      <TabPanel panelId={CLASS_PANEL} active={active} className="mt-4 -mx-4">
         {active === 'gc' &&
           (data.gc.length > 0 ? (
             <GcRankTable
@@ -687,7 +691,10 @@ export function Race() {
   })
   // Lo que las clasificaciones no traen (E3, PR 12b): el dorsal y el dibujo del equipo, de esta misma
   // lista, que tras la salida sirve la escuadra congelada; y lo propio.
-  const identidad = useMemo(() => identityFromStartlist(startlist.data), [startlist.data])
+  const identidad = useMemo(
+    () => identityFromStartlist(startlist.data, startlist.isPending),
+    [startlist.data, startlist.isPending],
+  )
   const propio = useOwnIds()
   // Objetivos del jugador: si su ciclista puede marcar esta carrera como objetivo (influye en la
   // convocatoria y en la moral). Vacío si no ha iniciado sesión o no tiene ciclista.

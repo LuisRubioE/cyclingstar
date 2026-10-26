@@ -59,7 +59,7 @@ describe('identityFromStartlist', () => {
     expect(id.seedOf('t2')).toBeNull()
   })
 
-  it('sin lista todavía, ni dorsal ni semilla', () => {
+  it('sin lista, ni dorsal ni semilla', () => {
     expect(identityFromStartlist(undefined)).toBe(NO_TABLE_IDENTITY)
   })
 })
@@ -91,5 +91,14 @@ describe('rowTeam', () => {
   it('sin la semilla de su equipo, undefined: ni maillot ni hueco', () => {
     expect(rowTeam('t2', 'Otro', id)).toBeUndefined()
     expect(rowTeam(undefined, 'Sin id', id)).toBeUndefined()
+  })
+
+  it('mientras llega la lista, el hueco del maillot (null): al llegar, la fila no se mueve', () => {
+    const esperando = identityFromTeams(undefined, true)
+    expect(esperando.pending).toBe(true)
+    expect(rowTeam('t1', 'Mistral Racing', esperando)).toBeNull()
+    expect(identityFromTeams(undefined).pending).toBe(false)
+    expect(identityFromStartlist(undefined, true).pending).toBe(true)
+    expect(NO_TABLE_IDENTITY.pending).toBe(false)
   })
 })
