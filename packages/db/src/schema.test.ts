@@ -1,11 +1,14 @@
 import type { SpoilerScope } from '@cyclingstar/shared'
 import { getTableName } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
+import { BIB_STYLES } from '@cyclingstar/shared'
 import {
   gameState,
+  kitSetByEnum,
   raceWatch,
   spoilerScopeEnum,
   stageTimelines,
+  teamKits,
   teams,
   tickLog,
   users,
@@ -32,6 +35,16 @@ describe('db: esquema fundacional', () => {
     expect(teams.jerseyStyleSeed.name).toBe('jersey_style_seed')
     expect(teams.jerseyStyleSeed.notNull).toBe(false)
     expect(teams.jerseySeed.notNull).toBe(true)
+  })
+
+  it('el maillot vive en team_kits, con su historia, y teams lleva el canónico, el culote y el día de dueño (E3, §8.5; la 0052)', () => {
+    expect(getTableName(teamKits)).toBe('team_kits')
+    expect([...kitSetByEnum.enumValues]).toEqual(['system', 'manager', 'sponsor', 'moderator'])
+    expect(teams.bib.notNull).toBe(true)
+    expect(teams.bib.default).toBe('black')
+    expect(BIB_STYLES).toContain(teams.bib.default)
+    expect(teams.kitCanonical.notNull).toBe(false)
+    expect(teams.managedSinceDay.notNull).toBe(false)
   })
 
   /**

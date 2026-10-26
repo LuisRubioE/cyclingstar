@@ -382,35 +382,31 @@ interface FieldTeamRow {
   jerseySeed: string
 }
 
+/** Lo mínimo de un equipo para elegirlo para un pelotón: su nivel, su país y si tiene dueño. */
+export interface FieldTeamCandidate {
+  id: string
+  division: Division
+  country: string | null
+  ownerUserId: string | null
+}
+
 /**
- * Resuelve QUÉ equipos forman el pelotón de una carrera (sin elegir aún los corredores): los admitidos
- * por nivel/región (selectFieldTeams) más los overrides de los equipos con dueño (forcedIn/forcedOut).
- * Determinista. Lo comparten la convocatoria real del tick (convokeField) y la previsión de inscritos
- * (predictStartlist), para que la lista provisional coincida con lo que el día de salida ocurrirá.
+ * QUÉ equipos forman el pelotón de una carrera, sin leer nada (E3, docs/visual.md §8.4; PR 16a): los
+ * admitidos por nivel/región (selectFieldTeams) más los overrides de los equipos con dueño
+ * (forcedIn/forcedOut). `eligible` son los equipos del mundo abiertos a la carrera, por presupuesto de
+ * mayor a menor, y `overrides`, las excepciones de `team_race_plan` de esa temporada para esa carrera.
+ * Pura y determinista: la usan el tick (`resolveFieldTeams`) y los rivales de temporada
+ * (`seasonRivals.ts`), que construyen así los mismos pelotones.
  */
-async function resolveFieldTeams(
-  tx: Tx,
-  worldId: string,
+export function fieldTeamsFor<T extends FieldTeamCandidate>(
+  eligible: T[],
   race: CalendarRace,
   raceKey: string,
-  season: number,
-): Promise<{ teamRows: FieldTeamRow[]; forcedOut: Set<string> }> {
+  overrides: ReadonlyMap<string, boolean>,
+): { teamRows: T[]; forcedOut: Set<string> } {
   const { size } = squadFor(race)
   const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
   const cap = Math.max(1, Math.floor(fieldCap / size))
-  const eligible = await tx
-    .select({
-      id: teams.id,
-      name: teams.name,
-      philosophy: teams.philosophy,
-      division: teams.division,
-      country: teams.country,
-      ownerUserId: teams.ownerUserId,
-      jerseySeed: teamDrawSeed,
-    })
-    .from(teams)
-    .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
-    .orderBy(desc(teams.budget))
   // Cupo de wildcards (equipos invitados fuera del núcleo), acotado y variable por carrera de forma
   // determinista. Global (.WT/.Pro): los del núcleo entran garantizados (los 18 WorldTour en una .WT) y
   // solo se invitan unas pocas wildcards —2-4 en una .WT (Down Under ~2), 3-5 en una .Pro—, no medio
@@ -440,12 +436,7 @@ async function resolveFieldTeams(
   // carreras de casa) salvo las excepciones que guarde el manager —saltar una natural o añadir una de
   // fuera—. Se le fuerza dentro de las que le tocan y fuera de las que no. Sin equipos humanos (mundo
   // bot puro) no hay overrides ni dueños, así que esto no cambia nada.
-  const overrideRows = await tx
-    .select({ teamId: teamRacePlan.teamId, attend: teamRacePlan.attend })
-    .from(teamRacePlan)
-    .where(and(eq(teamRacePlan.season, season), eq(teamRacePlan.raceId, race.id)))
-  const overrideByTeam = new Map(overrideRows.map((o) => [o.teamId, o.attend]))
-  const { forcedIn, forcedOut } = ownedTeamAttendance(eligible, race, overrideByTeam)
+  const { forcedIn, forcedOut } = ownedTeamAttendance(eligible, race, new Map(overrides))
   let teamRows = auto
   if (forcedIn.size > 0 || forcedOut.size > 0) {
     teamRows = auto.filter((t) => !forcedOut.has(t.id))
@@ -455,6 +446,40 @@ async function resolveFieldTeams(
     }
   }
   return { teamRows, forcedOut }
+}
+
+/**
+ * Resuelve QUÉ equipos forman el pelotón de una carrera (sin elegir aún los corredores): lee los
+ * admitidos y las excepciones del plan de los equipos con dueño, y elige con `fieldTeamsFor`.
+ * Determinista. Lo comparten la convocatoria real del tick (convokeField) y la previsión de inscritos
+ * (predictStartlist), para que la lista provisional coincida con lo que el día de salida ocurrirá.
+ */
+async function resolveFieldTeams(
+  tx: Tx,
+  worldId: string,
+  race: CalendarRace,
+  raceKey: string,
+  season: number,
+): Promise<{ teamRows: FieldTeamRow[]; forcedOut: Set<string> }> {
+  const eligible = await tx
+    .select({
+      id: teams.id,
+      name: teams.name,
+      philosophy: teams.philosophy,
+      division: teams.division,
+      country: teams.country,
+      ownerUserId: teams.ownerUserId,
+      jerseySeed: teamDrawSeed,
+    })
+    .from(teams)
+    .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
+    .orderBy(desc(teams.budget))
+  const overrideRows = await tx
+    .select({ teamId: teamRacePlan.teamId, attend: teamRacePlan.attend })
+    .from(teamRacePlan)
+    .where(and(eq(teamRacePlan.season, season), eq(teamRacePlan.raceId, race.id)))
+  const overrideByTeam = new Map(overrideRows.map((o) => [o.teamId, o.attend]))
+  return fieldTeamsFor(eligible, race, raceKey, overrideByTeam)
 }
 
 /**

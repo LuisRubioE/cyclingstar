@@ -384,6 +384,11 @@ const EXCEPCIONES: ReadonlyMap<string, string> = new Map([
     'teamPlan.ts:undraftRace',
     'escribe el calendario del equipo; lee el presupuesto sin devolverlo',
   ],
+  // E3, PR 16a: los rivales de temporada eligen los pelotones como el tick, para repartir maillots.
+  [
+    'seasonRivals.ts:seasonFields',
+    'los pelotones que elegirá el tick, para los maillots: el presupuesto ordena y no se devuelve',
+  ],
 ])
 
 /** El programa de `packages/db`, con su `tsconfig.json`, sin los tests (que no exportan lectoras). */

@@ -3,7 +3,7 @@ import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import { isNameBlocked } from './blocklist.js'
 import type { Database } from './client.js'
 import { isBlockedName } from './names.js'
-import { riders, teams, users } from './schema.js'
+import { gameState, riders, teams, users } from './schema.js'
 
 /**
  * Control de equipos por jugadores (SPEC 7). Un jugador con cuenta premium que corre en un equipo
@@ -94,10 +94,13 @@ export async function takeOverBotTeam(db: Database, userId: string): Promise<Tak
     if (!rider) return { ok: false, reason: 'sin_ciclista' as const }
     if (!rider.teamId) return { ok: false, reason: 'sin_equipo' as const }
 
-    // Solo reclama si sigue siendo bot (owner nulo): UPDATE condicional para cerrar la carrera.
+    // Solo reclama si sigue siendo bot (owner nulo): UPDATE condicional para cerrar la carrera. Apunta el
+    // día en que el equipo pasa a tener dueño, para el primer cambio de maillot libre (E3, docs/visual.md
+    // §8.7; D-00k, 8-g); tomarlo ya no escribe nada en `team_kits`.
+    const [clock] = await tx.select({ currentDay: gameState.currentDay }).from(gameState).limit(1)
     const claimed = await tx
       .update(teams)
-      .set({ ownerUserId: userId })
+      .set({ ownerUserId: userId, managedSinceDay: clock?.currentDay ?? null })
       .where(and(eq(teams.id, rider.teamId), isNull(teams.ownerUserId)))
       .returning({ id: teams.id, name: teams.name })
     const team = claimed[0]
@@ -206,6 +209,9 @@ export async function updateOwnedTeam(
 export async function releaseUserToWorld(db: Database, userId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.update(riders).set({ userId: null }).where(eq(riders.userId, userId))
-    await tx.update(teams).set({ ownerUserId: null }).where(eq(teams.ownerUserId, userId))
+    await tx
+      .update(teams)
+      .set({ ownerUserId: null, managedSinceDay: null })
+      .where(eq(teams.ownerUserId, userId))
   })
 }

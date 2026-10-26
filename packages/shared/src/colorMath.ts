@@ -174,21 +174,45 @@ export function viewLab(color: string, view: View): Lab {
   return linearToLab(view === 'gray' ? grayscale(linear) : simulateCvd(linear, view))
 }
 
-const rad = (deg: number) => (deg * Math.PI) / 180
 const deg = (r: number) => (r * 180) / Math.PI
 
 /** CIEDE2000 entre dos Lab, con kL = kC = kH = 1 (Sharma, Wu y Dalal, 2005). */
 export function deltaE00([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
-  const C1 = Math.hypot(a1, b1)
-  const C2 = Math.hypot(a2, b2)
-  const Cm7 = ((C1 + C2) / 2) ** 7
-  const G = 0.5 * (1 - Math.sqrt(Cm7 / (Cm7 + 25 ** 7)))
+  return deltaE00Of(L1, a1, b1, L2, a2, b2)
+}
+
+const hue = (b: number, a: number) => (b === 0 && a === 0 ? 0 : (deg(Math.atan2(b, a)) + 360) % 360)
+
+/** 25⁷, la constante de G y de R_C. */
+const POW25_7 = 6103515625
+const RAD = Math.PI / 180
+/** x⁷ con cuatro productos: `**` llama a `Math.pow`, que en V8 cuesta varias veces más. */
+const pow7 = (x: number) => {
+  const x2 = x * x
+  return x2 * x2 * x2 * x
+}
+
+/**
+ * Lo mismo, con los seis números sueltos y sin crear nada por llamada, para los bucles de la distancia
+ * dibujada del maillot, que la calcula píxel a píxel (`packages/db/src/kitDistance.ts`, §8.4). Las mismas
+ * cuentas, con productos en lugar de potencias y de `Math.hypot`, que son lo que la hacían lenta.
+ */
+export function deltaE00Of(
+  L1: number,
+  a1: number,
+  b1: number,
+  L2: number,
+  a2: number,
+  b2: number,
+): number {
+  const C1 = Math.sqrt(a1 * a1 + b1 * b1)
+  const C2 = Math.sqrt(a2 * a2 + b2 * b2)
+  const Cm7 = pow7((C1 + C2) / 2)
+  const G = 0.5 * (1 - Math.sqrt(Cm7 / (Cm7 + POW25_7)))
   const a1p = (1 + G) * a1
   const a2p = (1 + G) * a2
-  const C1p = Math.hypot(a1p, b1)
-  const C2p = Math.hypot(a2p, b2)
-  const hue = (b: number, a: number) =>
-    b === 0 && a === 0 ? 0 : (deg(Math.atan2(b, a)) + 360) % 360
+  const C1p = Math.sqrt(a1p * a1p + b1 * b1)
+  const C2p = Math.sqrt(a2p * a2p + b2 * b2)
   const h1p = hue(b1, a1p)
   const h2p = hue(b2, a2p)
   const neutro = C1p * C2p === 0
@@ -197,7 +221,7 @@ export function deltaE00([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
   else if (dh < -180) dh += 360
   const dL = L2 - L1
   const dC = C2p - C1p
-  const dH = 2 * Math.sqrt(C1p * C2p) * Math.sin(rad(dh / 2))
+  const dH = 2 * Math.sqrt(C1p * C2p) * Math.sin(dh * 0.5 * RAD)
   const Lm = (L1 + L2) / 2
   const Cm = (C1p + C2p) / 2
   const hm = neutro
@@ -207,17 +231,23 @@ export function deltaE00([L1, a1, b1]: Lab, [L2, a2, b2]: Lab): number {
       : (h1p + h2p + (h1p + h2p < 360 ? 360 : -360)) / 2
   const T =
     1 -
-    0.17 * Math.cos(rad(hm - 30)) +
-    0.24 * Math.cos(rad(2 * hm)) +
-    0.32 * Math.cos(rad(3 * hm + 6)) -
-    0.2 * Math.cos(rad(4 * hm - 63))
-  const dTheta = 30 * Math.exp(-(((hm - 275) / 25) ** 2))
-  const RC = 2 * Math.sqrt(Cm ** 7 / (Cm ** 7 + 25 ** 7))
-  const SL = 1 + (0.015 * (Lm - 50) ** 2) / Math.sqrt(20 + (Lm - 50) ** 2)
+    0.17 * Math.cos((hm - 30) * RAD) +
+    0.24 * Math.cos(2 * hm * RAD) +
+    0.32 * Math.cos((3 * hm + 6) * RAD) -
+    0.2 * Math.cos((4 * hm - 63) * RAD)
+  const t = (hm - 275) / 25
+  const dTheta = 30 * Math.exp(-(t * t))
+  const Cm7p = pow7(Cm)
+  const RC = 2 * Math.sqrt(Cm7p / (Cm7p + POW25_7))
+  const l50 = (Lm - 50) * (Lm - 50)
+  const SL = 1 + (0.015 * l50) / Math.sqrt(20 + l50)
   const SC = 1 + 0.045 * Cm
   const SH = 1 + 0.015 * Cm * T
-  const RT = -Math.sin(rad(2 * dTheta)) * RC
-  return Math.sqrt((dL / SL) ** 2 + (dC / SC) ** 2 + (dH / SH) ** 2 + RT * (dC / SC) * (dH / SH))
+  const RT = -Math.sin(2 * dTheta * RAD) * RC
+  const l = dL / SL
+  const c = dC / SC
+  const h = dH / SH
+  return Math.sqrt(l * l + c * c + h * h + RT * c * h)
 }
 
 /** El ΔE00 entre dos colores opacos tal como los ve una visión, o en grises. */

@@ -55,6 +55,8 @@ describe('db: migraciones desde cero', () => {
       'stage_timelines',
       // 0048_lo_visto (§13.4): lo que ha visto cada espectador de cada carrera.
       'race_watch',
+      // 0052_equipaciones (docs/visual.md §8.5): el maillot de cada equipo, con su historia.
+      'team_kits',
     ]) {
       expect(names.has(table), `falta la tabla ${table}`).toBe(true)
     }
@@ -211,6 +213,97 @@ describe('db: migraciones desde cero', () => {
       select data_type, is_nullable, column_default from information_schema.columns
       where table_schema = 'public' and table_name = 'teams' and column_name = 'jersey_style_seed'`
     expect(cols).toEqual([{ data_type: 'text', is_nullable: 'YES', column_default: null }])
+  })
+
+  /**
+   * LAS EQUIPACIONES (E3, docs/visual.md §8.5; la 0052): `teams` gana tres columnas y ninguna es `NOT NULL`
+   * sin `DEFAULT` (el reparto no se escribe en SQL y `seedWorld` inserta sin ellas); el índice único deja
+   * a un solo equipo por maillot canónico en cada mundo, y no compara los nulos, los de los equipos aún sin
+   * traducir; `team_kits` guarda la historia, con su código y el contrato solo del patrocinador.
+   */
+  it('las columnas de la 0052: teams.bib, kit_canonical y managed_since_day, con su tipo, su nulo y su defecto', async () => {
+    const cols = await t.client<
+      {
+        column_name: string
+        data_type: string
+        is_nullable: string
+        column_default: string | null
+      }[]
+    >`
+      select column_name, data_type, is_nullable, column_default from information_schema.columns
+      where table_schema = 'public' and table_name = 'teams'
+        and column_name in ('bib', 'kit_canonical', 'managed_since_day')
+      order by column_name`
+    expect(cols).toEqual([
+      { column_name: 'bib', data_type: 'text', is_nullable: 'NO', column_default: "'black'::text" },
+      { column_name: 'kit_canonical', data_type: 'text', is_nullable: 'YES', column_default: null },
+      {
+        column_name: 'managed_since_day',
+        data_type: 'integer',
+        is_nullable: 'YES',
+        column_default: null,
+      },
+    ])
+  })
+
+  it('la 0052: un maillot canónico por mundo, el culote de BIB_STYLES y team_kits con sus restricciones', async () => {
+    const [w1] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('equipaciones-1', 1) returning id`
+    const [w2] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('equipaciones-2', 1) returning id`
+    let n = 0
+    const team = async (worldId: string, cols: Record<string, unknown> = {}) => {
+      const [row] = await t.client<{ id: string }[]>`
+        insert into teams ${t.client({
+          world_id: worldId,
+          name: `Equipo ${++n}`,
+          division: 'CON',
+          philosophy: 'equilibrado',
+          jersey_seed: `equipaciones:${n}`,
+          ...cols,
+        })} returning id`
+      return row!.id
+    }
+    // sin maillot, los que haga falta; con el mismo, solo uno por mundo
+    await team(w1!.id)
+    await team(w1!.id)
+    await team(w1!.id, { kit_canonical: 'hoops.navy.yellow' })
+    await team(w2!.id, { kit_canonical: 'hoops.navy.yellow' })
+    await expect(team(w1!.id, { kit_canonical: 'hoops.navy.yellow' })).rejects.toMatchObject({
+      code: '23505',
+      constraint_name: 'teams_world_kit_uidx',
+    })
+    // el culote, de los cuatro
+    await team(w1!.id, { bib: 'base.panel' })
+    await expect(team(w1!.id, { bib: 'red' })).rejects.toMatchObject({
+      code: '23514',
+      constraint_name: 'teams_bib_style',
+    })
+    // team_kits: la clave es (equipo, día); el código, en minúsculas y con uno o dos puntos; el contrato,
+    // solo con set_by = 'sponsor'; y se borra con su equipo
+    const id = await team(w1!.id)
+    const kit = (cols: Record<string, unknown>) =>
+      t.client`insert into team_kits ${t.client({ team_id: id, valid_from_day: 51, kit: 'plain.red', set_by: 'system', ...cols })}`
+    await kit({})
+    await kit({ valid_from_day: 52, kit: 'hoops.navy.yellow', set_by: 'manager' })
+    await kit({ valid_from_day: 53, set_by: 'sponsor', sponsor_deal_id: 'trato-1' })
+    await expect(kit({})).rejects.toMatchObject({ code: '23505' })
+    for (const [caso, cols] of [
+      ['un código con mayúsculas', { valid_from_day: 60, kit: 'Plain.red' }],
+      ['un código sin punto', { valid_from_day: 61, kit: 'plain' }],
+      ['un código con tres puntos', { valid_from_day: 62, kit: 'a.b.c.d' }],
+      ['un patrocinio sin contrato', { valid_from_day: 63, set_by: 'sponsor' }],
+      ['un contrato sin patrocinio', { valid_from_day: 64, sponsor_deal_id: 'trato-2' }],
+    ] as const) {
+      await expect(kit(cols), caso).rejects.toMatchObject({ code: '23514' })
+    }
+    await expect(kit({ valid_from_day: 65, set_by: 'jugador' })).rejects.toMatchObject({
+      code: '22P02',
+    })
+    await t.client`delete from teams where id = ${id}`
+    const [left] = await t.client<{ n: number }[]>`
+      select count(*)::int as n from team_kits where team_id = ${id}`
+    expect(left!.n).toBe(0)
   })
 
   it('users: las cuatro columnas de la 0048 nacen con su defecto (guarded, 0, null, true)', async () => {
@@ -822,5 +915,39 @@ describe('db: la 0051 deja un solo plan vivo por corredor', () => {
     const sentencia = readFileSync(join(DRIZZLE, '0051_un_plan_vivo.sql'), 'utf8')
     await t.client.unsafe(sentencia)
     expect(await planes()).toEqual(casos.map((c) => c.quedan))
+  }, 120_000)
+})
+
+/**
+ * LA 0052, LAS EQUIPACIONES (E3, docs/visual.md §8.5; PR 16a), sobre un mundo vivo: con el journal cortado
+ * en la 0051 se siembra un equipo como los de hoy, sin las columnas nuevas, y al migrar la carpeta entera
+ * sigue entero, con el culote negro y sin maillot ni día de dueño. Nadie escribe en `team_kits` hasta el 17b.
+ */
+describe('db: la 0052 no toca los equipos que ya hay', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('los equipos de antes quedan con bib black, kit_canonical y managed_since_day nulos', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0051_un_plan_vivo')))
+    const [world] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('equipaciones-vivo', 91) returning id`
+    await t.client`
+      insert into teams (world_id, name, division, philosophy, jersey_seed)
+      values (${world!.id}, 'Noord Cycling', 'WT', 'equilibrado', 'equipaciones-vivo:team:WT:0:jersey')`
+    await t.detached((url) => runMigrations(url))
+    const rows = await t.client`
+      select name, bib, kit_canonical, managed_since_day from teams where world_id = ${world!.id}`
+    expect(rows).toEqual([
+      { name: 'Noord Cycling', bib: 'black', kit_canonical: null, managed_since_day: null },
+    ])
+    const [kits] = await t.client<{ n: number }[]>`select count(*)::int as n from team_kits`
+    expect(kits!.n).toBe(0)
   }, 120_000)
 })

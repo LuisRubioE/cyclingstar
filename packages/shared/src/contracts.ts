@@ -930,6 +930,38 @@ export const freeAgentSchema = z.object({
 export type FreeAgent = z.infer<typeof freeAgentSchema>
 export const freeAgentsResponseSchema = z.object({ riders: z.array(freeAgentSchema) })
 
+// --- El veredicto de un maillot (E3, docs/visual.md §8.1 y §8.7; PR 16a) ------------------------
+// Lo da `checkKit` (`packages/db/src/kits.ts`); las rutas del editor lo sirven desde el 18a.
+
+/** Los porqués de un maillot que no vale, en el orden en que se comprueban. */
+export const kitCheckCodeSchema = z.enum([
+  'kit_reciente',
+  'kit_igual',
+  'kit_contraste',
+  'kit_reservado',
+  'kit_ocupado',
+  'kit_se_confunde',
+])
+export type KitCheckCode = z.infer<typeof kitCheckCodeSchema>
+// Respuestas: z.object, nunca strict (una clave de más daría un 500 en el serializador, §13.3)
+const kitTeamRefSchema = z.object({ teamId: z.string(), teamName: z.string() })
+const kitConflictSchema = kitTeamRefSchema.extend({
+  vision: z.enum(['normal', 'protan', 'deutan', 'tritan']),
+})
+export const kitVerdictSchema = z.object({
+  ok: z.boolean(),
+  code: kitCheckCodeSchema.nullable(),
+  /** el rival que más carreras comparte de los que chocan: el que nombra la pantalla (§8.7) */
+  conflict: kitConflictSchema.nullable(),
+  /** la señal que estorba: 'leader:gc' | 'leader:points' | 'leader:kom' | 'champion:world' | 'champion:continental' | 'champion:<ISO-2>' */
+  reserved: z.string().nullable(),
+  /** el equipo que ya lo lleva, con kit_ocupado */
+  takenBy: kitTeamRefSchema.nullable(),
+  /** con kit_reciente: el primer día en que vale otro cambio, el primero de la temporada siguiente */
+  nextChangeDay: z.number().int().nullable(),
+})
+export type KitVerdict = z.infer<typeof kitVerdictSchema>
+
 // --- /api/news -----------------------------------------------------------------------------
 
 export const newsItemSchema = z.object({

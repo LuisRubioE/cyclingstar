@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { COUNTRIES } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
+import { FLAG_CELL_PIXELS } from '../../../../../packages/db/src/flagCells.generated'
 import { FLAG_CELLS, FLAG_SPRITE } from './flagSprite.generated'
 import { ICONS } from './icons'
 import type { IconName } from './types'
@@ -15,7 +16,8 @@ import type { IconName } from './types'
  * escribirla (la copia de los SVG de las banderas y, desde el PR 20, `og-default.png`) la lleva en
  * `apps/web/scripts/huellas.json`. Si algo falla, se regenera:
  *
- *   node apps/web/scripts/flag-sprite.mjs    el sprite de las banderas y su copia de SVG (PR 6)
+ *   node apps/web/scripts/flag-sprite.mjs    el sprite de las banderas y su copia de SVG (PR 6), y las
+ *                                            celdas para medir de packages/db (PR 16a)
  *   node apps/web/scripts/tokens-json.mjs    packages/shared/tokens.json (PR 7)
  *   node apps/web/scripts/ui-icons.mjs       los iconos de la interfaz (PR 9a)
  *
@@ -64,6 +66,32 @@ describe('el sprite de las banderas (generado)', () => {
       sitios.add(`${col},${row}`)
     }
     expect(sitios.size).toBe(codes.length)
+  })
+})
+
+describe('las celdas de las banderas para medir (generadas, PR 16a)', () => {
+  const DB_SRC = join(WEB, '..', '..', 'packages', 'db', 'src')
+
+  it('flagCells.generated.bin es el que escribió el generador: 133 celdas de 32 × 24 en RGB', () => {
+    const bin = readFileSync(join(DB_SRC, 'flagCells.generated.bin'))
+    expect(sha256(bin)).toBe(FLAG_CELL_PIXELS.sha256)
+    expect(bin.length).toBe(codes.length * FLAG_CELL_PIXELS.width * FLAG_CELL_PIXELS.height * 3)
+    expect([...FLAG_CELL_PIXELS.codes]).toEqual(codes)
+  })
+
+  it('se hizo con los SVG de hoy, los países de hoy y el script de hoy', () => {
+    const version = (
+      JSON.parse(readFileSync(join(FLAG_ICONS, 'package.json'), 'utf8')) as { version: string }
+    ).version
+    const { width, height } = FLAG_CELL_PIXELS
+    const hash = createHash('sha256').update(
+      JSON.stringify({ flagIcons: version, width, height, codes }),
+    )
+    for (const code of codes) hash.update(`\n${code}\n`).update(fuente(code))
+    hash.update('\nflag-sprite.mjs\n').update(readFileSync(join(WEB, 'scripts', 'flag-sprite.mjs')))
+    expect(hash.digest('hex'), 'node apps/web/scripts/flag-sprite.mjs').toBe(
+      FLAG_CELL_PIXELS.sourceSha256,
+    )
   })
 })
 

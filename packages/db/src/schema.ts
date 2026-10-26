@@ -5,7 +5,7 @@ import type {
   StageProfile,
   TriggerCond,
 } from '@cyclingstar/engine'
-import type { NewsPayload } from '@cyclingstar/shared'
+import { BIB_STYLES, type NewsPayload } from '@cyclingstar/shared'
 import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
@@ -282,8 +282,56 @@ export const teams = pgTable(
      */
     staffLevel: integer('staff_level').notNull().default(0),
     pointsSeason: integer('points_season').notNull().default(0),
+    /** EL CULOTE (E3, docs/visual.md §8.10; la 0052): uno de `BIB_STYLES`, sin historia ni límite de cambios, porque nunca se ve en carrera. */
+    bib: text('bib').notNull().default('black'),
+    /**
+     * EL MAILLOT CANÓNICO DEL ÚLTIMO GUARDADO (E3, §8.5; D-00e, la 0052): el `canonicalKit` del vigente o
+     * del programado para mañana, que escribe `setKit`. Con `teams_world_kit_uidx`, dos equipos del mismo
+     * mundo no llevan nunca el mismo maillot. Nula hasta que la traducción le da uno (el 17b).
+     */
+    kitCanonical: text('kit_canonical'),
+    /** El día en que el equipo pasó a tener dueño, para el primer cambio de maillot libre (D-00k; la 0052). */
+    managedSinceDay: integer('managed_since_day'),
   },
-  (t) => [index('teams_world_division_idx').on(t.worldId, t.division)],
+  (t) => [
+    index('teams_world_division_idx').on(t.worldId, t.division),
+    uniqueIndex('teams_world_kit_uidx').on(t.worldId, t.kitCanonical),
+    check(
+      'teams_bib_style',
+      sql`${t.bib} in (${sql.raw(BIB_STYLES.map((b) => `'${b}'`).join(', '))})`,
+    ),
+  ],
+)
+
+/** Quién puso un maillot (D-22): la traducción o un NPC que cede, el mánager, un patrocinador (E8) o un moderador (E9). */
+export const kitSetByEnum = pgEnum('kit_set_by', ['system', 'manager', 'sponsor', 'moderator'])
+
+/**
+ * EL MAILLOT DE CADA EQUIPO CON SU HISTORIA (E3, docs/visual.md §8.5; D-22, la 0052): una fila por
+ * cambio, que vale desde `valid_from_day` (siempre el día siguiente al de guardarla, para que una etapa
+ * en curso no cambie de maillot). La de mañana la sustituye otro guardado del mismo día (8-t), y la que
+ * ya está en vigor no se toca: así una etapa vieja enseña el maillot de aquel día. Solo la escribe
+ * `setKit` (`kits.ts`).
+ */
+export const teamKits = pgTable(
+  'team_kits',
+  {
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    validFromDay: integer('valid_from_day').notNull(),
+    /** el `KitCode` */
+    kit: text('kit').notNull(),
+    setBy: kitSetByEnum('set_by').notNull(),
+    /** el contrato de E8; solo con set_by = 'sponsor' */
+    sponsorDealId: text('sponsor_deal_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.teamId, t.validFromDay] }),
+    check('team_kits_code', sql`${t.kit} ~ '^[a-z]+([.][a-z]+){1,2}$'`),
+    check('team_kits_sponsor', sql`(${t.setBy} = 'sponsor') = (${t.sponsorDealId} is not null)`),
+  ],
 )
 
 /**

@@ -7,7 +7,11 @@
  *
  * - `src/assets/flags.webp`, que Vite sirve con huella en `assets/`;
  * - `src/components/ui/flagSprite.generated.ts`, con la celda de cada país y las huellas;
- * - `src/assets/flags/<país>.svg`, la copia de sus SVG, que `ChampionJersey` pinta desde 72 px (§9.5).
+ * - `src/assets/flags/<país>.svg`, la copia de sus SVG, que `ChampionJersey` pinta desde 72 px (§9.5);
+ * - y, desde el PR 16a, las celdas para medir (§9.5): `packages/db` no decodifica el WebP, así que cada
+ *   bandera va también a 32 × 24 en RGB, que basta para el maillot de 28 px (la caja de la bandera mide
+ *   26,4 px de ancho), en `packages/db/src/flagCells.generated.bin`, y `flagCells.generated.ts` dice el
+ *   orden de los países y las huellas. La distancia dibujada (`kitDistance.ts`) las muestrea.
  *
  * Pinta con el Chromium de Playwright, que ya está para la prueba del teléfono, y codifica con su WebP:
  * la calidad 0,8 da unos 47 KB, y el tope de `peso.test.mjs` es 60.
@@ -24,6 +28,10 @@
  * compilado (`pnpm build`):
  *
  *   node apps/web/scripts/flag-sprite.mjs
+ *
+ * Con `--hoja <datos.json> <hoja.html>` no genera nada y escribe la hoja de revisión de los maillots de
+ * campeón (§9.5; D-00f), con los datos de `KIT_HOJA=<datos.json> pnpm exec vitest run
+ * packages/db/src/champion.test.ts` (`flag-sheet.mjs`).
  */
 
 /* global document, Image -- el pintor corre dentro de Chromium (page.evaluate) */
@@ -35,10 +43,15 @@ import { fileURLToPath } from 'node:url'
 import { COUNTRIES } from '@cyclingstar/shared'
 import { chromium } from '@playwright/test'
 
-const WEB = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const SCRIPT = fileURLToPath(import.meta.url)
+const WEB = resolve(dirname(SCRIPT), '..')
 const FLAG_ICONS = join(WEB, 'node_modules', 'flag-icons')
 const ASSETS = join(WEB, 'src', 'assets')
 const GENERATED = join(WEB, 'src', 'components', 'ui', 'flagSprite.generated.ts')
+/** Las celdas para medir, junto a quien las mide (§9.5). */
+const DB_SRC = join(WEB, '..', '..', 'packages', 'db', 'src')
+const CELLS_BIN = join(DB_SRC, 'flagCells.generated.bin')
+const CELLS_TS = join(DB_SRC, 'flagCells.generated.ts')
 /** Las huellas de lo generado que no tiene cabecera donde escribirla (§16.2; 16-e). */
 const HUELLAS = join(WEB, 'scripts', 'huellas.json')
 
@@ -49,12 +62,27 @@ const HEIGHT = 48
 /** el anillo que repite el borde de cada bandera, dentro de su celda */
 const MARGIN = 2
 const QUALITY = 0.8
+/** Las celdas para medir: 32 × 24 en RGB, sobre blanco y sin anillo. */
+const CELL_WIDTH = 32
+const CELL_HEIGHT = 24
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex')
 const codes = COUNTRIES.map((c) => c.code).sort()
 const rows = Math.ceil(codes.length / COLS)
 const fuente = (code) => readFileSync(join(FLAG_ICONS, 'flags', '4x3', `${code.toLowerCase()}.svg`))
 const version = JSON.parse(readFileSync(join(FLAG_ICONS, 'package.json'), 'utf8')).version
+
+const hoja = process.argv.indexOf('--hoja')
+if (hoja >= 0) {
+  const { writeSheet } = await import('./flag-sheet.mjs')
+  const out = process.argv[hoja + 2]
+  const { bytes, twins } = writeSheet(process.argv[hoja + 1], out, {
+    flagIcons: FLAG_ICONS,
+    repo: join(WEB, '..', '..'),
+  })
+  console.log(`la hoja de revisión, ${(bytes / 1000).toFixed(0)} KB, con ${twins} parejas: ${out}`)
+  process.exit(0)
+}
 
 // La huella de lo que hace el sprite: los parámetros, los países y sus SVG, en orden. `generados.test.ts`
 // la calcula igual.
@@ -72,8 +100,17 @@ const origen = createHash('sha256').update(
 for (const code of codes) origen.update(`\n${code}\n`).update(fuente(code))
 const sourceSha256 = origen.digest('hex')
 
+// La de las celdas para medir: sus medidas, los países, sus SVG y este script, que las pinta.
+const origenCeldas = createHash('sha256').update(
+  JSON.stringify({ flagIcons: version, width: CELL_WIDTH, height: CELL_HEIGHT, codes }),
+)
+for (const code of codes) origenCeldas.update(`\n${code}\n`).update(fuente(code))
+origenCeldas.update('\nflag-sprite.mjs\n').update(readFileSync(SCRIPT))
+const cellsSourceSha256 = origenCeldas.digest('hex')
+
 const browser = await chromium.launch()
 let webp
+let cells
 try {
   const page = await browser.newPage()
   const dataUrl = await page.evaluate(
@@ -115,6 +152,39 @@ try {
   if (!dataUrl.startsWith('data:image/webp;base64,'))
     throw new Error('Chromium no ha codificado el sprite en WebP')
   webp = Buffer.from(dataUrl.slice('data:image/webp;base64,'.length), 'base64')
+
+  // Las celdas para medir: cada bandera entera en su lienzo de 32 × 24, sobre blanco, en RGB.
+  const celdas = await page.evaluate(
+    async ({ svgs, width, height }) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      const out = []
+      for (const svg of svgs) {
+        const img = new Image()
+        img.src = `data:image/svg+xml;base64,${svg}`
+        await img.decode()
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(0, 0, width, height)
+        ctx.drawImage(img, 0, 0, width, height)
+        const rgba = ctx.getImageData(0, 0, width, height).data
+        let rgb = ''
+        for (let k = 0; k < rgba.length; k += 4)
+          rgb += String.fromCharCode(rgba[k], rgba[k + 1], rgba[k + 2])
+        out.push(btoa(rgb))
+      }
+      return out
+    },
+    {
+      svgs: codes.map((code) => fuente(code).toString('base64')),
+      width: CELL_WIDTH,
+      height: CELL_HEIGHT,
+    },
+  )
+  cells = Buffer.concat(celdas.map((b64) => Buffer.from(b64, 'base64')))
+  if (cells.length !== codes.length * CELL_WIDTH * CELL_HEIGHT * 3)
+    throw new Error(`las celdas para medir miden ${cells.length} bytes`)
 } finally {
   await browser.close()
 }
@@ -178,7 +248,32 @@ try {
 huellas['src/assets/flags'] = copias.digest('hex')
 writeFileSync(HUELLAS, `${JSON.stringify(huellas, null, 2)}\n`)
 
+writeFileSync(CELLS_BIN, cells)
+writeFileSync(
+  CELLS_TS,
+  `/**
+ * GENERADO por \`apps/web/scripts/flag-sprite.mjs\`: no se edita a mano (E3, docs/visual.md §9.5; PR 16a).
+ * Las ${codes.length} banderas del juego (\`COUNTRIES\`), de \`flag-icons\` ${version}, a ${CELL_WIDTH} × ${CELL_HEIGHT} en RGB y en este orden,
+ * en \`flagCells.generated.bin\`: las muestrea la distancia dibujada del maillot nacional (\`kitDistance.ts\`).
+ * \`apps/web/src/components/ui/generados.test.ts\` mira que está al día.
+ */
+
+export const FLAG_CELL_PIXELS = {
+  /** cada celda, en píxeles */
+  width: ${CELL_WIDTH},
+  height: ${CELL_HEIGHT},
+  /** los países, en el orden de sus celdas en el .bin */
+  codes: [${codes.map((c) => `'${c}'`).join(', ')}],
+  /** el sha256 de \`flagCells.generated.bin\` */
+  sha256: '${sha256(cells)}',
+  /** el sha256 de lo que lo hace: las medidas, los países, sus SVG y el script, en orden */
+  sourceSha256: '${cellsSourceSha256}',
+} as const
+`,
+)
+
 console.log(
   `${codes.length} banderas en ${COLS} × ${rows}: flags.webp, ${(webp.length / 1000).toFixed(1)} KB; ` +
-    `${codes.length} SVG copiados; ${GENERATED.slice(WEB.length + 1)}`,
+    `${codes.length} SVG copiados; ${GENERATED.slice(WEB.length + 1)}; ` +
+    `las celdas para medir, ${cells.length} bytes`,
 )

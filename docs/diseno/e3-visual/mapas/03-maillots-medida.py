@@ -38,6 +38,15 @@ Uso (el mundo lo genera el código del juego, en Node, desde un clon compilado d
   node <dir>/mundo.mjs --root <clon> --out <dir>              # deja <dir>/mundo03.json (1 min)
   $PY 03-maillots-medida.py --repo <repositorio> --mundo <dir>/mundo03.json [--json <salida>]
                                                               # unos 2,5 min; el informe, por stdout
+  $PY 03-maillots-medida.py --golden <repositorio>             # E3, PR 16a: escribe el dorado de
+                                                              # packages/db/src/kitDistance.ts
+
+Desde el PR 16a (docs/visual.md §8.4), `--golden` dibuja el vocabulario de D-00e, los tres líderes de
+§9.7, el mundial y el continental de §9.1, el nacional, que viste su bandera (de las celdas de
+`packages/db/src/flagCells.generated.bin`), y el maillot de hoy, a 28 px, con supermuestreo de 8 × 8 y la
+cobertura del dibujo sobre transparente (su alfa, como la midió el diseño en Chromium), y escribe 50 pares
+con sus cinco distancias en `packages/db/src/__fixtures__/kitDistance.golden.json`, con la huella del
+script y la geometría que usó en la cabecera. `kitDistance.test.ts` los compara con el port a 0,5.
 
 El generador (`GENERADOR_MJS`, al final) levanta PGlite con todas las migraciones, crea el mundo
 con `runTick` y `GENESIS_WORLD_SEED`, lee los equipos, pide a `predictStartlist` el pelotón de cada
@@ -451,7 +460,11 @@ def main():
     ap.add_argument("--json", type=Path)
     ap.add_argument("--carrera", default="race-france")
     ap.add_argument("--generador", type=Path, help="escribe el generador del mundo y sale")
+    ap.add_argument("--golden", type=Path, help="E3, PR 16a: escribe el dorado de kitDistance.ts y sale")
     args = ap.parse_args()
+    if args.golden:
+        golden(args.golden)
+        return
     if args.generador:
         args.generador.write_text(GENERADOR_MJS, encoding="utf-8")
         print(f"generador escrito en {args.generador}")
@@ -776,6 +789,272 @@ def main():
     if args.json:
         args.json.write_text(json.dumps(out, indent=1, default=lambda o: dict(o) if isinstance(o, Counter) else str(o)), encoding="utf-8")
         p(f"\n(json en {args.json})")
+
+
+# ---------------------------------------------------------- E3, PR 16a: el dorado de kitDistance.ts
+
+# La geometría de packages/shared/src/kit.ts, literal: kitDistance.test.ts mira que es la de hoy.
+G_COLORS = {
+    "black": "#1b1d21", "navy": "#172a5b", "blue": "#0f6de9", "sky": "#4cc3ff", "teal": "#0f9e8f",
+    "green": "#236102", "orange": "#f48d32", "red": "#c62639", "pink": "#f7418a", "purple": "#4e2cae",
+    "taupe": "#876969", "brown": "#4b1e0f", "plum": "#5a4b5a", "yellow": "#ffd60a", "white": "#ffffff",
+}
+G_FIGURES = {
+    "plain": None,
+    "band": "M0 23H48V33H0Z",
+    "hoops": "M0 17H48V24H0Z M0 30H48V37H0Z",
+    "halves": "M24 0H48V48H24Z",
+    "yoke": "M0 0H48V19H0Z M16 8 L14 18 L12 23 L7 20 L10 12 Z M32 8 L38 12 L41 20 L36 23 L34 18 Z",
+    "sides": "M0 0H21V48H0Z M27 0H48V48H27Z",
+    "sash": "M13.76 6.71 L41.76 38.71 L34.24 45.29 L6.24 13.29 Z",
+}
+G_LEADERS = {"gc": ("#facc15", None), "points": ("#16a34a", "band"), "kom": ("#2563eb", "dots")}
+G_LEADER_DOT_R = 4.0
+G_LOGO_STAR = "M36 2 L39.2 9.2 L47 10 L41.2 15.3 L42.9 23 L36 19.1 L29.1 23 L30.8 15.3 L25 10 L32.8 9.2 Z"
+G_WORLD_STAR = {"widthU": 18, "cx": 24, "cy": 28.5, "edgeU": 1.5}
+G_RAINBOW = ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#5e35b1"]
+G_STAR_EDGE = "#0b2740"
+G_SILVER = "#c0c7d2"
+G_FLAG_BOX = (4 / 3, 8.0, 136 / 3, 34.0)
+G_KIT_EDGE = ("#000000", 0.3, 1.0)
+G_LEADER_EDGE = ("#000000", 0.35, 1.5)
+G_LEGACY_EDGE = ("#000000", 0.18, 1.0)
+G_COLLAR = ("#ffffff", 0.85)
+G_LEGACY = {
+    "solid": [],
+    "band": ["M14 24 H34 V30 H14 Z"],
+    "stripes": ["M14 18 H34 V21 H14 Z", "M14 26 H34 V29 H14 Z", "M14 34 H34 V37 H14 Z"],
+    "panels": [PANEL_L, PANEL_R],
+    "shoulders": [SHOULDER_L, SHOULDER_R],
+}
+G_SUPERSAMPLE = 8
+G_SIZE = 28
+
+# Los 50 pares: treinta de equipo, seis contra un líder, cuatro contra el mundial o el continental, siete
+# contra un nacional y tres contra el maillot de hoy (base, segundo y patrón de `legacyJerseyStyle`).
+G_PAIRS = [
+    ("kit:plain.red", "kit:plain.blue"), ("kit:plain.navy", "kit:plain.black"),
+    ("kit:band.navy.yellow", "kit:band.navy.white"), ("kit:hoops.navy.yellow", "kit:hoops.blue.yellow"),
+    ("kit:halves.red.blue", "kit:halves.blue.red"), ("kit:yoke.green.white", "kit:yoke.teal.white"),
+    ("kit:sides.black.orange", "kit:sides.brown.orange"), ("kit:sash.purple.yellow", "kit:sash.plum.yellow"),
+    ("kit:plain.taupe", "kit:plain.plum"), ("kit:band.red.white", "kit:hoops.red.white"),
+    ("kit:halves.sky.navy", "kit:sides.sky.navy"), ("kit:yoke.orange.black", "kit:band.orange.black"),
+    ("kit:sash.pink.white", "kit:plain.pink"), ("kit:hoops.green.yellow", "kit:hoops.green.white"),
+    ("kit:plain.sky", "kit:plain.teal"), ("kit:sides.navy.sky", "kit:sides.navy.white"),
+    ("kit:band.brown.orange", "kit:band.red.orange"), ("kit:halves.black.white", "kit:halves.navy.white"),
+    ("kit:yoke.purple.yellow", "kit:yoke.blue.yellow"), ("kit:sash.green.white", "kit:sash.teal.white"),
+    ("kit:plain.green", "kit:band.green.white"), ("kit:hoops.black.red", "kit:sides.black.red"),
+    ("kit:halves.orange.navy", "kit:halves.navy.orange"), ("kit:plain.brown", "kit:plain.black"),
+    ("kit:band.sky.navy", "kit:yoke.sky.navy"), ("kit:sash.red.yellow", "kit:sash.orange.yellow"),
+    ("kit:sides.teal.black", "kit:halves.teal.black"), ("kit:hoops.plum.white", "kit:hoops.taupe.white"),
+    ("kit:yoke.red.white", "kit:plain.red"), ("kit:band.blue.white", "kit:band.blue.yellow"),
+    ("kit:plain.orange", "leader:gc"), ("kit:plain.sky", "leader:gc"),
+    ("kit:band.green.white", "leader:points"), ("kit:band.teal.white", "leader:points"),
+    ("kit:plain.blue", "leader:kom"), ("kit:hoops.blue.white", "leader:kom"),
+    ("kit:plain.red", "world"), ("kit:halves.red.white", "world"),
+    ("kit:plain.navy", "continental"), ("kit:yoke.navy.white", "continental"),
+    ("kit:plain.red", "national:MA"), ("kit:plain.green", "national:SA"),
+    ("kit:band.red.black", "national:DE"), ("kit:halves.red.white", "national:PL"),
+    ("kit:sides.orange.green", "national:IE"), ("kit:halves.green.white", "national:IT"),
+    ("kit:yoke.red.yellow", "national:ES"),
+    ("kit:plain.red", "legacy:solid:#dc2626:#2563eb"),
+    ("kit:hoops.navy.yellow", "legacy:stripes:#4f46e5:#f59e0b"),
+    ("kit:band.green.white", "legacy:band:#16a34a:#ffffff"),
+]
+
+
+def g_flatten(d):
+    """Como `flatten`, con H y V: los `path` del vocabulario los usan."""
+    toks = re.findall(r"[MLHVQZ]|-?\d+(?:\.\d+)?", d)
+    polys, cur, i, cmd = [], [], 0, None
+    while i < len(toks):
+        t = toks[i]
+        if t in "MLHVQZ":
+            cmd = t
+            i += 1
+            if cmd in "ZM" and cur:
+                polys.append(cur)
+                cur = []
+            continue
+        if cmd in ("M", "L"):
+            cur.append((float(toks[i]), float(toks[i + 1])))
+            i += 2
+        elif cmd == "H":
+            cur.append((float(toks[i]), cur[-1][1]))
+            i += 1
+        elif cmd == "V":
+            cur.append((cur[-1][0], float(toks[i])))
+            i += 1
+        elif cmd == "Q":
+            cx, cy, x, y = (float(v) for v in toks[i : i + 4])
+            x0, y0 = cur[-1]
+            for s_ in range(1, 13):
+                u = s_ / 12
+                cur.append(((1 - u) ** 2 * x0 + 2 * (1 - u) * u * cx + u * u * x,
+                            (1 - u) ** 2 * y0 + 2 * (1 - u) * u * cy + u * u * y))
+            i += 4
+    if cur:
+        polys.append(cur)
+    return polys
+
+
+def g_layers(key):
+    """Las capas de un dibujo: (modo, forma, recorte, ancho del trazo, pintura); `kitDistance.ts`, drawingLayers."""
+    torso = ("path", TORSO, None)
+    collar = ("fill", ("path", COLLAR, None), None, None, ("solid", G_COLLAR[0], G_COLLAR[1]))
+
+    def body(base, edge):
+        return [("fill", torso, None, None, ("solid", base, 1.0)),
+                ("stroke", torso, None, edge[2], ("solid", edge[0], edge[1]))]
+
+    kind, _, rest = key.partition(":")
+    if kind == "kit":
+        parts = rest.split(".")
+        fig, base = parts[0], G_COLORS[parts[1]]
+        b, e = body(base, G_KIT_EDGE)
+        layers = [b]
+        if fig != "plain":
+            layers.append(("fill", ("path", G_FIGURES[fig], None), torso, None, ("solid", G_COLORS[parts[2]], 1.0)))
+        return layers + [e, collar]
+    if kind == "leader":
+        base, mark = G_LEADERS[rest]
+        b, e = body(base, G_LEADER_EDGE)
+        layers = [b]
+        if mark == "band":
+            layers.append(("fill", ("path", G_FIGURES["band"], None), torso, None, ("solid", "#ffffff", 1.0)))
+        if mark == "dots":
+            layers.append(("fill", ("circles", DOTS, G_LEADER_DOT_R), None, None, ("solid", "#ffffff", 1.0)))
+        return layers + [e]
+    if kind in ("world", "continental"):
+        b, e = body("#ffffff", G_LEADER_EDGE)
+        star = ("path", G_LOGO_STAR, (G_WORLD_STAR["cx"], G_WORLD_STAR["cy"], G_WORLD_STAR["widthU"] / 22))
+        paint = ("rainbow",) if kind == "world" else ("solid", G_SILVER, 1.0)
+        return [b, e, collar, ("fill", star, None, None, paint),
+                ("stroke", star, None, G_WORLD_STAR["edgeU"], ("solid", G_STAR_EDGE, 1.0))]
+    if kind == "national":
+        b, e = body("#ffffff", G_LEADER_EDGE)
+        return [b, ("fill", ("rect", G_FLAG_BOX, None), torso, None, ("flag", rest)), e, collar]
+    if kind == "legacy":
+        pattern, base, sec = rest.split(":")
+        b, e = body(base, G_LEGACY_EDGE)
+        pats = [("fill", ("path", d, None), None, None, ("solid", sec, 1.0)) for d in G_LEGACY[pattern]]
+        return [b, e] + pats + [("fill", ("path", COLLAR, None), None, None, ("solid", "#ffffff", G_COLLAR[1]))]
+    raise ValueError(key)
+
+
+def g_mask(shape, X, Y, stroke=None):
+    kind = shape[0]
+    if kind == "circles":
+        _, centers, r = shape
+        m = np.zeros(X.shape, bool)
+        for cx, cy in centers:
+            m |= (X - cx) ** 2 + (Y - cy) ** 2 <= r * r
+        return m
+    if kind == "rect":
+        x, y, w, h = shape[1]
+        return (X >= x) & (X < x + w) & (Y >= y) & (Y < y + h)
+    _, d, tr = shape
+    polys = g_flatten(d)
+    if tr is not None:
+        cx, cy, s_ = tr
+        polys = [[(cx + (x - 36) * s_, cy + (y - 12.5) * s_) for x, y in p] for p in polys]
+    if stroke is not None:
+        return near_outline(polys, X, Y, stroke / 2)
+    return inside(polys, X, Y)
+
+
+def g_render(key, cells, codes, size=G_SIZE):
+    n = size * G_SUPERSAMPLE
+    u = (np.arange(n) + 0.5) / n * 48.0
+    X, Y = np.meshgrid(u, u)
+    img = np.ones((n, n, 3))
+    alpha = np.zeros((n, n))
+    for mode, shape, clip, width, paint in g_layers(key):
+        mask = g_mask(shape, X, Y, width if mode == "stroke" else None)
+        if clip is not None:
+            mask &= g_mask(clip, X, Y)
+        if paint[0] == "solid":
+            col = np.broadcast_to(hex_rgb(paint[1]), (n, n, 3))
+            a = paint[2]
+        elif paint[0] == "rainbow":
+            s_ = G_WORLD_STAR["widthU"] / 22
+            lx = (X - G_WORLD_STAR["cx"]) / s_ + 36
+            ly = (Y - G_WORLD_STAR["cy"]) / s_ + 12.5
+            pts = g_flatten(G_LOGO_STAR)[0]
+            x0, x1 = min(p[0] for p in pts), max(p[0] for p in pts)
+            y0, y1 = min(p[1] for p in pts), max(p[1] for p in pts)
+            t = np.clip(((lx - x0) / (x1 - x0) + (ly - y0) / (y1 - y0)) / 2, 0, 1)
+            stops = np.array([hex_rgb(c) for c in G_RAINBOW])
+            f = t * (len(stops) - 1)
+            k = np.minimum(len(stops) - 2, np.floor(f)).astype(int)
+            w = (f - k)[..., None]
+            col = stops[k] * (1 - w) + stops[k + 1] * w
+            a = 1.0
+        else:
+            idx = codes.index(paint[1])
+            bx, by, bw, bh = G_FLAG_BOX
+            cx = np.clip(np.floor((X - bx) / bw * 32), 0, 31).astype(int)
+            cy = np.clip(np.floor((Y - by) / bh * 24), 0, 23).astype(int)
+            col = cells[idx][cy, cx] / 255.0
+            a = 1.0
+        img[mask] = img[mask] * (1 - a) + col[mask] * a
+        alpha[mask] = a + alpha[mask] * (1 - a)
+    img = img.reshape(size, G_SUPERSAMPLE, size, G_SUPERSAMPLE, 3).mean(axis=(1, 3))
+    alpha = alpha.reshape(size, G_SUPERSAMPLE, size, G_SUPERSAMPLE).mean(axis=(1, 3))
+    return img, alpha
+
+
+def g_distance(a, b, view):
+    (ia, wa), (ib, wb) = a, b
+    la = lab_of_srgb(ia, view).reshape(-1, 3)
+    lb = lab_of_srgb(ib, view).reshape(-1, 3)
+    w = np.maximum(wa, wb).reshape(-1)
+    d = colour.delta_E(la, lb, method="CIE 2000")
+    return float((d * w).sum() / w.sum())
+
+
+def golden(repo):
+    """Escribe packages/db/src/__fixtures__/kitDistance.golden.json (E3, PR 16a, §8.4)."""
+    import hashlib
+
+    db = repo / "packages/db/src"
+    ts = (db / "flagCells.generated.ts").read_text(encoding="utf-8")
+    codes = re.findall(r"'([A-Z]{2})'", re.search(r"codes: \[([^\]]*)\]", ts).group(1))
+    raw = (db / "flagCells.generated.bin").read_bytes()
+    cells = np.frombuffer(raw, dtype=np.uint8).reshape(len(codes), 24, 32, 3).astype(float)
+    cache = {}
+
+    def drawn(key):
+        if key not in cache:
+            cache[key] = g_render(key, cells, codes)
+        return cache[key]
+
+    pairs = []
+    for a, b in G_PAIRS:
+        da, db_ = drawn(a), drawn(b)
+        pairs.append({"a": a, "b": b, "d": {v: round(g_distance(da, db_, v), 4) for v in VIEWS}})
+    out = {
+        "script": "docs/diseno/e3-visual/mapas/03-maillots-medida.py --golden",
+        "scriptSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "colourScience": colour.__version__,
+        "numpy": np.__version__,
+        "flagCellsSha256": hashlib.sha256(raw).hexdigest(),
+        "geometry": {
+            "size": G_SIZE, "supersample": G_SUPERSAMPLE, "torso": TORSO, "collar": COLLAR,
+            "colors": G_COLORS, "figures": G_FIGURES, "logoStar": G_LOGO_STAR, "worldStar": G_WORLD_STAR,
+            "rainbow": G_RAINBOW, "starEdge": G_STAR_EDGE, "silver": G_SILVER,
+            "leaders": {k: {"base": v[0], "mark": v[1]} for k, v in G_LEADERS.items()},
+            "leaderDotRadius": G_LEADER_DOT_R, "leaderDots": DOTS, "flagBox": G_FLAG_BOX,
+            "kitEdge": G_KIT_EDGE, "leaderEdge": G_LEADER_EDGE, "legacyEdge": G_LEGACY_EDGE,
+            "collarPaint": G_COLLAR, "legacy": G_LEGACY,
+        },
+        "views": {"normal": "normal", "protan": "protan", "deutan": "deutan", "tritan": "tritan", "gris": "gray"},
+        "pairs": pairs,
+    }
+    path = db / "__fixtures__/kitDistance.golden.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    print(f"{len(pairs)} pares en {path}")
 
 
 GENERADOR_MJS = r'''#!/usr/bin/env node

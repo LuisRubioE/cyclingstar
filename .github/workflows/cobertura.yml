@@ -99,8 +99,11 @@ jobs:
   # llegan a su umbral (16-j), que en el tramo de un PR solo se imprimen
   # (`packages/engine/src/sim/timeline.test.ts`); y, desde el 11a, B16 largo (la radio desde la línea
   # contra la guardada en las 22 en línea del banco por dos semillas y las dos cronos,
-  # `apps/api/src/broadcastFixtures.test.ts`, §17.14). En su propio runner y sin instrumentar, para no
-  # robarle la CPU a la cobertura; un fallo aquí sigue siendo rojo.
+  # `apps/api/src/broadcastFixtures.test.ts`, §17.14); y, desde el E3 16a, los maillots: la tabla de
+  # choques regenerada entera, que tiene que salir igual que la del repositorio
+  # (`packages/db/src/kitConflicts.test.ts`), y la cuenta de cuántas carreras fallarían sin cada color y
+  # cada figura (`kits.test.ts`, DD-24, docs/visual.md §16.5). En su propio runner y sin instrumentar,
+  # para no robarle la CPU a la cobertura; un fallo aquí sigue siendo rojo.
   bancos:
     name: Bancos de noche (E2)
     runs-on: ubuntu-latest
@@ -119,6 +122,13 @@ jobs:
           CS_BANCOS: '1'
       - name: B16 largo, la radio desde la línea contra la guardada
         run: pnpm exec vitest run apps/api/src/broadcastFixtures.test.ts
+        env:
+          CS_BANCOS: '1'
+      - name: Los maillots, la tabla de choques entera y la cuenta de DD-24
+        run: >-
+          pnpm exec vitest run
+          packages/db/src/kitConflicts.test.ts
+          packages/db/src/kits.test.ts
         env:
           CS_BANCOS: '1'
 
