@@ -775,6 +775,22 @@ function Filas() {
             href="/_ui"
             done={{ text: 'Called up', tone: 'good' }}
           />
+          <ActionRow
+            title={
+              <>
+                Race Sardegna{' '}
+                <span className="text-caption font-semibold text-ink-3">.1 · 5 stages</span>
+              </>
+            }
+            meta="Bib 225 · Racing now · IT"
+            href="/_ui"
+            action={{ label: 'Set orders', ariaLabel: 'Set orders for Race Sardegna', to: '/_ui' }}
+            extra={
+              <Button variant="quiet" onClick={nada}>
+                Abandon
+              </Button>
+            }
+          />
         </ul>
       </Demo>
       <Demo name="TripRow">

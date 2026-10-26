@@ -1,8 +1,8 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2497,
-    "arbitrarios": 40,
+    "tema": 2370,
+    "arbitrarios": 36,
     "espaciado": 35,
     "layout": 0
   },
@@ -356,8 +356,8 @@
       "layout": 0
     },
     "apps/web/src/pages/MyRaces.tsx": {
-      "tema": 122,
-      "arbitrarios": 3,
+      "tema": 48,
+      "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
     },
@@ -446,8 +446,8 @@
       "layout": 0
     },
     "apps/web/src/pages/TeamCalendar.tsx": {
-      "tema": 95,
-      "arbitrarios": 5,
+      "tema": 42,
+      "arbitrarios": 3,
       "espaciado": 0,
       "layout": 0
     },

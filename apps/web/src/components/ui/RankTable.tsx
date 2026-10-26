@@ -5,6 +5,7 @@ import { DNF_WORD } from '../../domain/words'
 import { TOP_ROWS } from '../ShowAll'
 import { ButtonContent, buttonClass } from './Button'
 import { Icon } from './Icon'
+import { ShowAllRows } from './ShowAllRows'
 import { FOCUS_INSET, withLayout } from './styles'
 import type { ColumnPriority, Layout } from './types'
 
@@ -297,18 +298,8 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
           )}
         </tbody>
       </table>
-      {!velada && total > TOP_ROWS && (
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((e) => !e)}
-          className={`w-full ${buttonClass({ variant: 'secondary', size: 'default', iconOnly: false, disabled: false })}`}
-        >
-          <ButtonContent
-            text={expanded ? `Show top ${TOP_ROWS}` : `Show all ${total}`}
-            busy={false}
-          />
-        </button>
+      {!velada && (
+        <ShowAllRows total={total} expanded={expanded} onToggle={() => setExpanded((e) => !e)} />
       )}
     </div>
   )

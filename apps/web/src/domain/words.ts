@@ -51,3 +51,14 @@ export function worldClock(
     label: `Day ${dayOfSeason} of season ${season}. Next update ${largo}.`,
   }
 }
+
+/**
+ * UN DÍA (§4.10; PR 12a): el de la temporada, `Day 56`, y a siete días o menos, cuánto falta
+ * (`Day 56 · in 6 days`, `Day 50 · today`). Nunca `GD 56` ni el día absoluto. `today`, el día de hoy en la
+ * temporada; sin él, solo el día.
+ */
+export function formatGameDay(day: number, today: number | null): string {
+  const n = today === null ? -1 : day - today
+  if (n < 0 || n > 7) return `Day ${day}`
+  return `Day ${day} · ${n === 0 ? 'today' : `in ${plural(n, 'day')}`}`
+}
