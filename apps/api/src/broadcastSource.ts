@@ -41,6 +41,7 @@ import {
   type GroupOrigin,
   JERSEY_PRIORITY,
   type JerseyKind,
+  type KitCode,
   NO_LEADERS,
   type NameResolver,
   type ProfileStrip,
@@ -1357,6 +1358,11 @@ export interface ServeCastContext {
   readonly own: ReadonlySet<RiderIx>
   /** la categoría del día (`championshipCategory` de la carrera, o élite): la de los títulos que se llevan */
   readonly dayCategory: 'elite' | 'u23'
+  /**
+   * el maillot de cada equipo el día de la etapa (`kitsOn`; E3, docs/visual.md §8.5, paso 16b): se
+   * resuelve al servir, como los nombres, y el reparto grabado no cambia; sin fila, null
+   */
+  readonly kits: ReadonlyMap<string, KitCode>
 }
 
 /**
@@ -1373,7 +1379,7 @@ export function serveCast(
   names: Pick<NameResolver, 'rider' | 'team'>,
   ctx: ServeCastContext,
 ): RiderCard[] {
-  return riderCardsOf(veilCast(cast, h), names, ctx.own, ctx.dayCategory)
+  return riderCardsOf(veilCast(cast, h), names, ctx.own, ctx.dayCategory, ctx.kits)
 }
 
 // ======================================================= LA FUENTE: timelineForStage y su LRU (3a)

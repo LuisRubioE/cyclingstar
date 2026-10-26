@@ -401,12 +401,11 @@ export {
   KitTakenError,
   checkKit,
   ensureKits,
-  kitOn,
-  kitsOn,
   revertKit,
   setKit,
   type EnsureKitsReport,
   type KitSetBy,
 } from './kits.js'
+export { kitOn, kitsOn } from './kitsOn.js'
 export { seasonRivals, type SeasonRivals } from './seasonRivals.js'
 export { backfillArchetypes, type BackfillResult } from './scripts/backfillArchetypes.js'

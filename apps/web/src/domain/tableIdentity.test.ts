@@ -24,6 +24,7 @@ const LISTA: RaceStartlist = {
       country: 'FR',
       division: 'WT',
       jerseySeed: 'seed-t1',
+      kit: null,
       riders: [
         { id: 'r1', name: 'Luc Martin', country: 'FR', isBot: true, bib: 11 },
         { id: 'r2', name: 'Paul Roux', country: 'FR', isBot: true, bib: null },
@@ -41,6 +42,7 @@ const EQUIPO = (id: string, jerseySeed: string): TeamListItem => ({
   budget: 0,
   pointsSeason: 0,
   jerseySeed,
+  kit: null,
   riderCount: 12,
 })
 

@@ -283,7 +283,7 @@ export const teams = pgTable(
     staffLevel: integer('staff_level').notNull().default(0),
     pointsSeason: integer('points_season').notNull().default(0),
     /** EL CULOTE (E3, docs/visual.md §8.10; la 0052): uno de `BIB_STYLES`, sin historia ni límite de cambios, porque nunca se ve en carrera. */
-    bib: text('bib').notNull().default('black'),
+    bib: text('bib', { enum: BIB_STYLES }).notNull().default('black'),
     /**
      * EL MAILLOT CANÓNICO DEL ÚLTIMO GUARDADO (E3, §8.5; D-00e, la 0052): el `canonicalKit` del vigente o
      * del programado para mañana, que escribe `setKit`. Con `teams_world_kit_uidx`, dos equipos del mismo

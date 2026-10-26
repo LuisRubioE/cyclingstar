@@ -23,8 +23,10 @@ import {
   raceViewSchema,
   rankingResponseSchema,
   stageReplaySchema,
+  startlistTeamSchema,
   teamControlResponseSchema,
   teamResponseSchema,
+  teamsResponseSchema,
   worldHealthResponseSchema,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
@@ -384,12 +386,33 @@ describe('contratos: calendario y carrera', () => {
           country: 'ES',
           division: 'WT',
           jerseySeed: 'seed',
+          kit: null,
           riders: [{ id: 'r1', name: 'Ana', country: 'ES', isBot: false, bib: 11 }],
         },
       ],
       freeAgents: [],
     }
     expect(raceStartlistSchema.parse(congelada)).toEqual(congelada)
+  })
+
+  it('el maillot de un equipo (E3, §8.5; 16b): un código del vocabulario o null, y null si la API no lo trae', () => {
+    const team = {
+      id: 't1',
+      name: 'Equipo',
+      country: 'ES',
+      division: 'WT',
+      jerseySeed: 's',
+      riders: [],
+    }
+    expect(startlistTeamSchema.parse({ ...team, kit: 'halves.red.blue' }).kit).toBe(
+      'halves.red.blue',
+    )
+    expect(startlistTeamSchema.parse({ ...team, kit: null }).kit).toBeNull()
+    // una API que vaya por detrás de la web
+    expect(startlistTeamSchema.parse(team).kit).toBeNull()
+    // el amarillo no es base, y una figura que no existe no es un maillot
+    for (const kit of ['halves.yellow.blue', 'zigzag.red.blue', 'plain', 'red'])
+      expect(startlistTeamSchema.safeParse({ ...team, kit }).success, kit).toBe(false)
   })
 })
 
@@ -474,6 +497,8 @@ describe('contratos: mundo, equipo y dinero', () => {
         budget: 100,
         pointsSeason: 0,
         jerseySeed: 'seed',
+        kit: 'plain.navy',
+        bib: 'black.panel',
         human: false,
         roster: [
           {
@@ -490,6 +515,47 @@ describe('contratos: mundo, equipo y dinero', () => {
       },
     }
     expect(teamResponseSchema.parse(payload)).toEqual(payload)
+    // sin el maillot ni el culote (una API que vaya por detrás): null y el negro
+    const before = Object.fromEntries(
+      Object.entries(payload.team).filter(([key]) => key !== 'kit' && key !== 'bib'),
+    )
+    expect(teamResponseSchema.parse({ team: before }).team).toMatchObject({
+      kit: null,
+      bib: 'black',
+    })
+    expect(teamResponseSchema.safeParse({ team: { ...payload.team, bib: 'red' } }).success).toBe(
+      false,
+    )
+  })
+
+  it('acepta la lista de equipos, con el maillot de cada uno', () => {
+    const payload = {
+      teams: [
+        {
+          id: 't1',
+          name: 'Equipo',
+          country: 'ES',
+          division: 'WT',
+          budget: 100,
+          pointsSeason: 0,
+          jerseySeed: 'seed',
+          kit: null,
+          riderCount: 12,
+        },
+        {
+          id: 't2',
+          name: 'Otro',
+          country: null,
+          division: 'CON',
+          budget: 50,
+          pointsSeason: 3,
+          jerseySeed: 'seed-2',
+          kit: 'sash.navy.orange',
+          riderCount: 10,
+        },
+      ],
+    }
+    expect(teamsResponseSchema.parse(payload)).toEqual(payload)
   })
 
   it('acepta la ficha pública de corredor CON su salud (es pública, §3.6)', () => {

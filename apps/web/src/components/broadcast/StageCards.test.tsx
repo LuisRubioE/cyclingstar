@@ -58,7 +58,11 @@ const cast = castOf(40, {
   0: { name: 'Sam Carter', bib: 11, worn: leaderWorn('gc') },
   4: { name: 'Rafael Díaz', bib: 7, worn: leaderWorn('points') },
   5: { name: 'Jonas Verhoeven', bib: 45 },
-  6: { name: 'Nicolás Moreno', bib: 15, team: { id: 'ta', name: 'Team Alpha', jerseySeed: 's' } },
+  6: {
+    name: 'Nicolás Moreno',
+    bib: 15,
+    team: { id: 'ta', name: 'Team Alpha', jerseySeed: 's', kit: null },
+  },
   9: { name: 'Jules Moreau', bib: 46 },
   20: { name: 'Pelle Ekdal', own: true },
 })

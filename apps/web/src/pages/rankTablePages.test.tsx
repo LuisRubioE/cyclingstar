@@ -50,6 +50,7 @@ const equipo = (id: string, name: string): TeamListItem => ({
   budget: 1_000_000,
   pointsSeason: 900,
   jerseySeed: `cyclingstar-2:team:WT:${id}:jersey`,
+  kit: null,
   riderCount: 25,
 })
 const MISTRAL = equipo('t1', 'Mistral Racing')
@@ -298,6 +299,8 @@ describe('la plantilla (§6.1)', () => {
     budget: 1_000_000,
     pointsSeason: 900,
     jerseySeed: MISTRAL.jerseySeed,
+    kit: null,
+    bib: 'black',
     human: false,
     roster: ROSTER,
   }

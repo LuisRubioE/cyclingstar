@@ -10,9 +10,11 @@ import {
   getStageNews,
   getStageNonFinishers,
   getStageResults,
+  kitsOn,
   readStageTemplateRev,
   readWatch,
   recordProgress,
+  stageGameDay,
   stageGateOf,
   teamsOfTheDay,
   veilCast,
@@ -296,12 +298,15 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       // La puerta de la cabecera es solo `previous_unseen` (D-37, 10-j): ver la N sin conocer la N − 1
       // destripa la N − 1. Se sirve igual, con el reparto degradado, y la pantalla pinta la puerta.
       const gate = stageGateOf(a.h, ctx.raceKey, ctx.day)
+      const teamIds = tl.cast.teams.map((t) => t.teamId)
       const identities = await getCastIdentities(
         db,
         tl.cast.riders.map((c) => c.riderId),
-        tl.cast.teams.map((t) => t.teamId),
+        teamIds,
       )
-      // El reparto, las cartas y la salida, degradados por el velo de quien mira (§10.10; B13).
+      // El reparto, las cartas y la salida, degradados por el velo de quien mira (§10.10; B13). El
+      // maillot de cada equipo es el del día de la etapa (E3, §8.5; 16b): `team_kits` no se reescribe,
+      // así que una etapa vieja enseña el de aquel día.
       const cast = serveCast(
         tl.cast,
         a.h,
@@ -309,7 +314,11 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           rider: (id) => identities.riders.get(id)?.name ?? id,
           team: (id) => identities.teams.get(id)?.name ?? id,
         },
-        { own: await ownOf(request, tl), dayCategory: ctx.race.championshipCategory ?? 'elite' },
+        {
+          own: await ownOf(request, tl),
+          dayCategory: ctx.race.championshipCategory ?? 'elite',
+          kits: await kitsOn(db, teamIds, stageGameDay(ctx.raceKey, ctx.day)),
+        },
       )
       const startState = startStateOf(veilCast(tl.cast, a.h), tl.riderIds.length)
       // El nombre, la etiqueta y el tipo, como la ruta de etapa para una etapa corrida (stageHead).

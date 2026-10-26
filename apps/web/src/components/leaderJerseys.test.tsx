@@ -70,6 +70,7 @@ const team = (teamId: string, teamName: string, over: Partial<{ out: boolean }> 
   teamId,
   teamName,
   country: 'ES',
+  kit: null,
   tiempoS: 100,
   sumaPuestos: 6,
   stagesScored: 1,

@@ -7,20 +7,22 @@ import {
   seededRng,
 } from '@cyclingstar/shared'
 import { type LegacyJerseyStyle, legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
-import { and, desc, eq, inArray, lte, ne, sql } from 'drizzle-orm'
+import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import type { drizzle } from 'drizzle-orm/postgres-js'
 import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
+import { kitOn, kitsOn } from './kitsOn.js'
 import { gameState, teamKits, teams } from './schema.js'
 import { type SeasonRivals, seasonRivals } from './seasonRivals.js'
 import type { Queryable } from './titles.js'
 
 /**
  * EL MAILLOT DE CADA EQUIPO, CON SU HISTORIA (E3, docs/visual.md §8.5 a §8.8; D-22, D-23, D-00e; PR 16a).
- * Lo único que escribe maillots es `setKit`; lo demás los lee (`kitOn`, `kitsOn`), los juzga (`checkKit`,
- * contra la tabla de choques, sin rasterizar nunca en una petición) o los reparte: `assignKits` es la
- * traducción del mundo de hoy y la regla de los equipos que nacen después, pura, y `ensureKits` la
- * aplica en la base. El tick no la llama hasta el 17b; nadie escribe en `team_kits` antes.
+ * Lo único que escribe maillots es `setKit`; lo demás los lee (`kitOn`, `kitsOn`, en `kitsOn.ts`),
+ * los juzga (`checkKit`, contra la tabla de choques, sin rasterizar nunca en una petición) o los
+ * reparte: `assignKits` es la traducción del mundo de hoy y la regla de los equipos que nacen después,
+ * pura, y `ensureKits` la aplica en la base. El tick no la llama hasta el 17b; nadie escribe en
+ * `team_kits` antes.
  *
  * Todo maillot nuevo vale desde el día siguiente al de guardarlo, para que una etapa en curso no cambie
  * de maillot, y dos equipos del mismo mundo no llevan nunca el mismo canónico: lo impide el índice
@@ -104,26 +106,6 @@ export async function setKit(
       .limit(1)
     throw new KitTakenError(kit, holder ?? { teamId: '', teamName: '' })
   }
-}
-
-/** El maillot de cada equipo un día: la fila de mayor `valid_from_day` que no pase de ese día. */
-export async function kitsOn(
-  q: Queryable,
-  teamIds: readonly string[],
-  day: number,
-): Promise<ReadonlyMap<string, KitCode>> {
-  if (teamIds.length === 0) return new Map()
-  const rows = await q
-    .selectDistinctOn([teamKits.teamId], { teamId: teamKits.teamId, kit: teamKits.kit })
-    .from(teamKits)
-    .where(and(inArray(teamKits.teamId, [...teamIds]), lte(teamKits.validFromDay, day)))
-    .orderBy(teamKits.teamId, desc(teamKits.validFromDay))
-  return new Map(rows.map((r) => [r.teamId, r.kit as KitCode]))
-}
-
-/** El maillot de un equipo un día, o `null` si aún no tenía ninguno guardado y se dibuja con su semilla. */
-export async function kitOn(q: Queryable, teamId: string, day: number): Promise<KitCode | null> {
-  return (await kitsOn(q, [teamId], day)).get(teamId) ?? null
 }
 
 // ---------------------------------------------------------------------------------- el reparto

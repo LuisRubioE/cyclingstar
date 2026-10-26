@@ -66,7 +66,13 @@ function lineOf(name: Road): StageTimeline {
 
 /** La cabecera que arma la ruta, en lo que la cola lee: el reparto servido y la salida (§7.8, §4.11). */
 function headOf(tl: StageTimeline): { cast: RiderCard[]; ctx: InstantContext } {
-  const cast = riderCardsOf(tl.cast, { rider: (id) => id, team: (id) => id }, new Set(), 'elite')
+  const cast = riderCardsOf(
+    tl.cast,
+    { rider: (id) => id, team: (id) => id },
+    new Set(),
+    'elite',
+    new Map(),
+  )
   const start = startStateOf(tl.cast, tl.riderIds.length)
   return {
     cast,

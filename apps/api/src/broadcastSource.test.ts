@@ -1,6 +1,7 @@
 import { worldHorizon } from '@cyclingstar/db'
 import {
   BROADCAST,
+  type KitCode,
   NO_LEADERS,
   type StageTimeline,
   cutTimeline,
@@ -522,14 +523,21 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
       rider: (id: string) => identities.riders.get(id)?.name ?? '?',
       team: (id: string) => identities.teams.get(id)?.name ?? '?',
     }
-    const ctx = { own: new Set([2]), dayCategory: 'elite' as const }
+    // el maillot de cada equipo, el que la ruta resuelve con el día de la etapa (E3, §8.5; 16b)
+    const kits = new Map<string, KitCode>([['sol', 'plain.navy']])
+    const ctx = { own: new Set([2]), dayCategory: 'elite' as const, kits }
     const cards = serveCast(cast, worldHorizon, names, ctx)
     expect(cards.map((c) => [c.ix, c.name, c.team?.name ?? null, c.notoriety, c.own])).toEqual([
       [0, 'Ana Solis', 'Team Sol', 0, false],
       [1, 'Bea Roca', 'Team Sol', 3, false],
       [2, 'Caro Ruiz', null, 8, true],
     ])
-    expect(cards[0]!.team).toEqual({ id: 'sol', name: 'Team Sol', jerseySeed: 'j-sol' })
+    expect(cards[0]!.team).toEqual({
+      id: 'sol',
+      name: 'Team Sol',
+      jerseySeed: 'j-sol',
+      kit: 'plain.navy',
+    })
     for (const c of cards) expect(c.lines).toEqual([])
 
     // Con el reparto congelado: las líneas cortadas a cardLinesMax, y la notoriedad con las que quedan.
@@ -587,7 +595,11 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
       rider: (id: string) => identities.riders.get(id)?.name ?? '?',
       team: (id: string) => identities.teams.get(id)?.name ?? '?',
     }
-    const ctx = { own: new Set<number>(), dayCategory: 'elite' as const }
+    const ctx = {
+      own: new Set<number>(),
+      dayCategory: 'elite' as const,
+      kits: new Map<string, KitCode>(),
+    }
     const nc = { raceKey: 'nc-it-road:s0', stageDay: 1 }
     const title = {
       scope: 'national',

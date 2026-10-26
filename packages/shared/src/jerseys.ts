@@ -16,6 +16,7 @@
  */
 // Ciclo solo de tipos con la línea temporal (E2, §4.8): `import type` se borra al compilar.
 import type { GroupNow } from './broadcast/instant.js'
+import type { KitCode } from './kit.js'
 import type { RiderIx, StageRef } from './broadcast/timeline.js'
 
 /** Los tres maillots que lleva un CORREDOR, en orden de prioridad. */
@@ -247,8 +248,17 @@ export interface RiderCard {
   readonly country: string
   /** CastRider.gender: la concordancia de E10 se hace en la web, que recibe esto y no el reparto (D-62) */
   readonly gender: 'M' | 'F'
-  /** el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy (NameResolver.team al servir) */
-  readonly team: { readonly id: string; readonly name: string; readonly jerseySeed: string } | null
+  /**
+   * el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy (NameResolver.team al
+   * servir); `kit`, su maillot del día de la etapa (E3, §8.5; PR 16b), o null hasta la traducción, y
+   * entonces se dibuja con `jerseySeed`
+   */
+  readonly team: {
+    readonly id: string
+    readonly name: string
+    readonly jerseySeed: string
+    readonly kit: KitCode | null
+  } | null
   /** degradado: un `leader` cuyo `from` está velado pasa a { kind: 'team' } */
   readonly worn: WornJersey
   /** como mucho cardLinesMax; sin las de `from` velado */

@@ -19,13 +19,12 @@ import {
   assignKits,
   checkKit,
   ensureKits,
-  kitOn,
   kitsBySeed,
   kitsClash,
-  kitsOn,
   revertKit,
   setKit,
 } from './kits.js'
+import { kitOn, kitsOn } from './kitsOn.js'
 import { gameState, riders, teamKits, teams, users, worlds } from './schema.js'
 import { type SeasonRivals, rivalsOf, seasonFields } from './seasonRivals.js'
 import { releaseUserToWorld, takeOverBotTeam } from './teamControl.js'

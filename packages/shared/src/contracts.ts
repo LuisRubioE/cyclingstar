@@ -17,12 +17,22 @@ import { z } from 'zod'
 // Solo tipos (14-a): `import type` se borra al compilar y este fichero no carga nada de broadcast/.
 import type { PreStageInfo, StageGate, SwitchMode, WatchState } from './broadcast/wire.js'
 import type { RaceLeaders } from './jerseys.js'
+import { BIB_STYLES, kitCodeSchema } from './kit.js'
 import { newsPayloadSchema } from './news.js'
 import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
 import { INTENSITIES, SESSIONS } from './training.js'
 import { TRAINING_DAY_SOURCES } from './trainingDay.js'
 
 // --- Piezas comunes ------------------------------------------------------------------------
+
+/**
+ * EL MAILLOT DE UN EQUIPO UN DÍA (E3, docs/visual.md §8.5; PR 16b): su código, o `null` mientras la
+ * traducción no le ha dado uno (hasta el 17b), y entonces se dibuja con su `jerseySeed`. Cada contrato
+ * dice de qué día: el de la salida en la lista de salida, el de mañana en la lista y la ficha de los
+ * equipos, y el de la etapa en las tablas por equipos y en la retransmisión. Con defecto, para una web
+ * que vaya por delante de la API.
+ */
+export const teamKitSchema = kitCodeSchema.nullable().default(null)
 
 /** Respuesta de una mutación sin cuerpo relevante. */
 export const okResponseSchema = z.object({ ok: z.boolean() })
@@ -623,6 +633,8 @@ export const teamClassEntrySchema = z.object({
   teamName: z.string(),
   /** País del equipo (ISO alpha-2); null si no lo tiene asignado. */
   country: z.string().nullable(),
+  /** su maillot del día de la etapa que se enseña (la última que entra en la tabla) */
+  kit: teamKitSchema,
   /** Suma de tiempos: la de la etapa, o la acumulada de la carrera. */
   tiempoS: z.number(),
   /** Suma de los puestos de los corredores que puntúan (primer desempate). */
@@ -743,6 +755,8 @@ export const startlistTeamSchema = z.object({
   division: z.string(),
   /** Semilla del maillot del equipo (para pintar su kit). */
   jerseySeed: z.string(),
+  /** su maillot del día de la salida */
+  kit: teamKitSchema,
   /** Corredores de la escuadra; lleno solo cuando ya está congelada (`frozen`). */
   riders: z.array(startlistRiderSchema),
 })
@@ -776,6 +790,8 @@ export const teamListItemSchema = z.object({
   budget: z.number(),
   pointsSeason: z.number(),
   jerseySeed: z.string(),
+  /** su maillot de mañana, el de su próxima carrera */
+  kit: teamKitSchema,
   riderCount: z.number().int(),
 })
 export type TeamListItem = z.infer<typeof teamListItemSchema>
@@ -802,6 +818,10 @@ export const teamDetailSchema = z.object({
   budget: z.number(),
   pointsSeason: z.number(),
   jerseySeed: z.string(),
+  /** su maillot de mañana, el de su próxima carrera */
+  kit: teamKitSchema,
+  /** su culote (§8.10), que no se ve en carrera */
+  bib: z.enum(BIB_STYLES).default('black'),
   human: z.boolean(),
   roster: z.array(teamRiderSchema),
 })
