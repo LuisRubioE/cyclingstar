@@ -55,8 +55,7 @@ export type ButtonProps = ButtonBase &
 
 const VARIANTES: Readonly<Record<ButtonVariant, string>> = {
   primary: 'bg-accent text-on-accent hover:bg-accent-strong active:bg-accent-strong',
-  secondary:
-    'border border-line-strong bg-surface text-ink hover:bg-surface-2 active:bg-surface-2',
+  secondary: 'border border-line-strong bg-surface text-ink hover:bg-surface-2 active:bg-surface-2',
   quiet: 'text-accent hover:bg-surface-2 active:bg-surface-2',
   danger: 'bg-bad text-on-bad hover:brightness-90 active:brightness-90',
 }

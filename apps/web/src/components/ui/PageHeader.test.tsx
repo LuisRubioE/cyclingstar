@@ -13,9 +13,7 @@ const html = (node: ReactElement) => renderToStaticMarkup(<MemoryRouter>{node}</
 
 describe('PageHeader', () => {
   it('el h1 y la línea de estado, un p', () => {
-    const s = html(
-      <PageHeader title="Training" status="Mixed · your plan runs Day 51 to Day 78" />,
-    )
+    const s = html(<PageHeader title="Training" status="Mixed · your plan runs Day 51 to Day 78" />)
     expect(s).toMatch(/^<header data-ui="PageHeader" data-variant="default" data-state="ready"/)
     expect(s.match(/<h1/g)).toHaveLength(1)
     expect(s).toContain('>Training</h1>')
@@ -24,7 +22,9 @@ describe('PageHeader', () => {
   })
 
   it('la vuelta: un enlace al padre con su chevron, que no se lee', () => {
-    const s = html(<PageHeader title="Race Valencia" back={{ to: '/world/races', label: 'Races' }} />)
+    const s = html(
+      <PageHeader title="Race Valencia" back={{ to: '/world/races', label: 'Races' }} />,
+    )
     expect(s).toContain('data-variant="back"')
     expect(s).toMatch(/<a [^>]*href="\/world\/races"[^>]*>.*Races<\/a>/)
     expect(s).toMatch(/data-variant="chevron-left"[^>]*aria-hidden="true"/)

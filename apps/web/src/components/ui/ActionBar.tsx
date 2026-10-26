@@ -32,13 +32,7 @@ export interface ActionBarProps {
 }
 
 export type ActionBarState =
-  | 'hidden'
-  | 'dirty'
-  | 'saving'
-  | 'saved'
-  | 'failed'
-  | 'offline'
-  | 'disabled'
+  'hidden' | 'dirty' | 'saving' | 'saved' | 'failed' | 'offline' | 'disabled'
 
 /** Lo que dura `Saved`. */
 export const SAVED_MS = 2000
@@ -86,7 +80,11 @@ export function ActionBarView({
   const bloqueado = state === 'offline' || state === 'disabled'
   const texto =
     state === 'saved' ? (
-      <p id={textId} role="status" className="flex min-w-0 flex-1 items-center gap-2 text-meta text-ink">
+      <p
+        id={textId}
+        role="status"
+        className="flex min-w-0 flex-1 items-center gap-2 text-meta text-ink"
+      >
         <span className="inline-flex text-good">
           <Icon name="check" size={20} />
         </span>

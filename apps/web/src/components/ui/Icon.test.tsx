@@ -12,7 +12,9 @@ import type { IconName } from './types'
 describe('Icon', () => {
   it('sin label, no se lee', () => {
     const s = renderToStaticMarkup(<Icon name="home" />)
-    expect(s).toMatch(/^<svg data-ui="Icon" data-variant="home" data-state="ready" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"/)
+    expect(s).toMatch(
+      /^<svg data-ui="Icon" data-variant="home" data-state="ready" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"/,
+    )
     expect(s).toContain('aria-hidden="true"')
     expect(s).not.toContain('role=')
   })
@@ -25,7 +27,9 @@ describe('Icon', () => {
   })
 
   it('trend, girada en pasos de 45° sobre su centro', () => {
-    expect(renderToStaticMarkup(<Icon name="trend" turn={-45} />)).toContain('<g transform="rotate(-45 12 12)">')
+    expect(renderToStaticMarkup(<Icon name="trend" turn={-45} />)).toContain(
+      '<g transform="rotate(-45 12 12)">',
+    )
     expect(renderToStaticMarkup(<Icon name="trend" />)).not.toContain('<g transform')
   })
 

@@ -21,7 +21,10 @@ export interface StatProps {
 }
 
 /** Lo que se lee y su color. */
-export function statFigure(value: string | number, signed: boolean): { text: string; tone: string } {
+export function statFigure(
+  value: string | number,
+  signed: boolean,
+): { text: string; tone: string } {
   if (typeof value === 'string') return { text: value, tone: 'text-ink' }
   if (!signed) return { text: value.toLocaleString('en-US'), tone: 'text-ink' }
   return { text: money(value), tone: value > 0 ? 'text-good' : value < 0 ? 'text-bad' : 'text-ink' }

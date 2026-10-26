@@ -7,8 +7,9 @@ import type { Layout } from './types'
  * LAS PESTAÑAS (E3, docs/visual.md §4.4 y §6.3; PR 9a). Un carril de 44 que se desplaza de lado sin barra
  * a la vista, con un desvanecido de 24 px en el borde mientras haya más (hoy, en `My Rider`, `Contract`
  * y `Finances` quedan fuera de los 360 px sin ningún indicio, mapa 05 §9), y la activa centrada al entrar
- * con `scrollIntoView({ inline: 'center', block: 'nearest' })`, que no mueve la página: con solo
- * `inline`, el `block` por defecto la bajaba 48 px (Ruso-005).
+ * sin mover la página (Ruso-005). Se centra moviendo solo el carril (`scrollLeft`) y no con
+ * `scrollIntoView`: con `block: 'nearest'`, unas pestañas que no están a la vista al cargar bajan la
+ * página hasta ellas (medido en `/_ui`, donde la prueba del teléfono lo vio).
  *
  * Dos aspectos: `nav`, bajo la cabecera, en `navy-dark` y en el ámbito oscuro (la activa en blanco con su
  * raya `gold` de 3 px); y `page`, en el contenido (la activa en `ink` con su raya `accent`). Y dos
@@ -69,7 +70,7 @@ const PESTANA = `flex min-h-11 shrink-0 items-center border-b-3 px-3 text-meta f
 const DESVANECIDO = '[mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)]'
 
 /** Si al carril le queda algo a la derecha, con el desplazamiento y el tamaño. */
-function useHayMas(): [(el: HTMLDivElement | null) => void, boolean] {
+function useHayMas(): [(el: HTMLDivElement | null) => void, boolean, HTMLDivElement | null] {
   const [el, setEl] = useState<HTMLDivElement | null>(null)
   const [hayMas, setHayMas] = useState(false)
   useEffect(() => {
@@ -84,7 +85,7 @@ function useHayMas(): [(el: HTMLDivElement | null) => void, boolean] {
       ro?.disconnect()
     }
   }, [el])
-  return [useCallback((x: HTMLDivElement | null) => setEl(x), []), hayMas]
+  return [useCallback((x: HTMLDivElement | null) => setEl(x), []), hayMas, el]
 }
 
 /** Una pestaña enlace: activa si la ruta es la suya, como `NavLink`, y con `aria-current="page"`. */
@@ -115,15 +116,19 @@ function NavTab({
 
 export function Tabs<K extends string>(props: TabsProps<K>) {
   const { label, variant = 'page', layout } = props
-  const [carril, hayMas] = useHayMas()
+  const [carril, hayMas, carrilEl] = useHayMas()
   const activa = useRef<HTMLElement | null>(null)
   const botones = useRef<(HTMLButtonElement | null)[]>([])
   const aspecto = ASPECTO[variant]
 
-  // la activa, centrada al entrar, sin mover la página (Ruso-005)
+  // la activa, centrada al entrar, moviendo solo el carril: la página no se mueve (Ruso-005)
   useEffect(() => {
-    activa.current?.scrollIntoView({ inline: 'center', block: 'nearest' })
-  }, [])
+    const tab = activa.current
+    if (carrilEl === null || tab === null) return
+    const c = carrilEl.getBoundingClientRect()
+    const t = tab.getBoundingClientRect()
+    carrilEl.scrollLeft += t.left - c.left - (c.width - t.width) / 2
+  }, [carrilEl])
 
   const clasesCarril = `flex overflow-x-auto scrollbar-none${hayMas ? ` ${DESVANECIDO}` : ''}`
   const raiz = {
@@ -131,7 +136,8 @@ export function Tabs<K extends string>(props: TabsProps<K>) {
     'data-variant': variant,
     'data-state': 'ready',
     ...(variant === 'nav' ? { 'data-surface': 'dark' } : {}),
-    className: withLayout(aspecto.carril, layout),
+    // `min-w-0`: el carril se desplaza, y no ensancha lo que lo lleva
+    className: withLayout(`min-w-0 ${aspecto.carril}`, layout),
   }
 
   if ('items' in props)
@@ -192,7 +198,9 @@ export function Tabs<K extends string>(props: TabsProps<K>) {
               aria-selected={es}
               tabIndex={es ? 0 : -1}
               data-state={es ? 'active' : 'inactive'}
-              {...(panelId !== undefined ? { id: tabId(panelId, o.key), 'aria-controls': panelId } : {})}
+              {...(panelId !== undefined
+                ? { id: tabId(panelId, o.key), 'aria-controls': panelId }
+                : {})}
               onClick={() => onChange(o.key)}
               className={`${PESTANA} ${es ? aspecto.activa : aspecto.otra}`}
             >

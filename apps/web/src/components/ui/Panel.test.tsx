@@ -14,7 +14,9 @@ describe('Panel', () => {
         <p>body</p>
       </Panel>,
     )
-    expect(s).toMatch(/^<section data-ui="Panel" data-variant="default" data-state="ready" aria-labelledby="([^"]+)"/)
+    expect(s).toMatch(
+      /^<section data-ui="Panel" data-variant="default" data-state="ready" aria-labelledby="([^"]+)"/,
+    )
     const id = /aria-labelledby="([^"]+)"/.exec(s)?.[1] ?? ''
     expect(s).toContain(`<h2 id="${id}"`)
     expect(s).toContain('>Your month</h2>')

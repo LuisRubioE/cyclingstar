@@ -19,7 +19,13 @@ const change = () => undefined
 
 describe('Tabs con options: el tablist', () => {
   const s = renderToStaticMarkup(
-    <Tabs label="Rider sections" options={OPCIONES} value="training" onChange={change} panelId="rider" />,
+    <Tabs
+      label="Rider sections"
+      options={OPCIONES}
+      value="training"
+      onChange={change}
+      panelId="rider"
+    />,
   )
 
   it('un tablist con su nombre, en el aspecto page por defecto', () => {
@@ -28,7 +34,9 @@ describe('Tabs con options: el tablist', () => {
   })
 
   it('la activa: aria-selected, la única en el orden de tabulación', () => {
-    expect(s).toMatch(/role="tab" aria-selected="true" tabindex="0" data-state="active" id="rider-tab-training" aria-controls="rider"/)
+    expect(s).toMatch(
+      /role="tab" aria-selected="true" tabindex="0" data-state="active" id="rider-tab-training" aria-controls="rider"/,
+    )
     expect(s.match(/aria-selected="false" tabindex="-1" data-state="inactive"/g)).toHaveLength(2)
   })
 
@@ -52,7 +60,9 @@ describe('Tabs con items: los enlaces', () => {
   )
 
   it('una nav con su nombre, en el ámbito oscuro', () => {
-    expect(s).toMatch(/^<nav aria-label="My Rider" data-ui="Tabs" data-variant="nav" data-state="ready" data-surface="dark"/)
+    expect(s).toMatch(
+      /^<nav aria-label="My Rider" data-ui="Tabs" data-variant="nav" data-state="ready" data-surface="dark"/,
+    )
   })
 
   it('la activa, la de la ruta, con aria-current="page"', () => {

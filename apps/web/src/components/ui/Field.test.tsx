@@ -10,12 +10,21 @@ import { Field, type FieldProps } from './Field'
 const change = () => undefined
 const html = (props: FieldProps) => renderToStaticMarkup(<Field {...props} />)
 const input = (extra: Partial<FieldProps> = {}) =>
-  html({ kind: 'input', id: 'team-name', label: 'Name', value: 'Mistral', onChange: change, ...extra } as FieldProps)
+  html({
+    kind: 'input',
+    id: 'team-name',
+    label: 'Name',
+    value: 'Mistral',
+    onChange: change,
+    ...extra,
+  } as FieldProps)
 /** Los ids de `aria-describedby` del control. */
 const describedBy = (s: string) =>
   (/<(?:input|select|textarea) [^>]*aria-describedby="([^"]+)"/.exec(s)?.[1] ?? '').split(' ')
 const textoDe = (s: string, id: string) =>
-  new RegExp(`id="${id.replace(/[^\w]/g, '\\$&')}"[^>]*>(.*?)</p>`).exec(s)?.[1]?.replace(/<[^>]+>/g, '')
+  new RegExp(`id="${id.replace(/[^\w]/g, '\\$&')}"[^>]*>(.*?)</p>`)
+    .exec(s)?.[1]
+    ?.replace(/<[^>]+>/g, '')
 
 describe('Field', () => {
   it('input: el rótulo encima, enlazado con for, y el control con su id', () => {

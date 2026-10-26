@@ -7,7 +7,9 @@ import type { Layout } from './types'
  * de 2 px encima; visitado, igual. `default`, en `accent`; `rider`, el nombre de un corredor, en el color
  * de su texto con el subrayado punteado (`[DUEÑO 6]`). En una frase (`inline`) lleva `data-inline-link`:
  * la prueba del teléfono le pide 24 px de objetivo, o su círculo de 24 sin tocar otro (WCAG 2.5.8; la
- * comprobación 5), y no los 44 de un control. Nunca solo color: el subrayado no se quita.
+ * comprobación 5), y no los 44 de un control. Fuera de una frase es un control, como la acción de un
+ * `Panel` o el `Go to Dashboard` de `ErrorState`, y mide 44 de alto. Nunca solo color: el subrayado no
+ * se quita.
  */
 
 export interface TextLinkProps {
@@ -24,7 +26,13 @@ const VARIANTES = {
   rider: 'decoration-line-strong decoration-dotted decoration-1',
 } as const
 
-export function TextLink({ to, children, variant = 'default', inline = false, layout }: TextLinkProps) {
+export function TextLink({
+  to,
+  children,
+  variant = 'default',
+  inline = false,
+  layout,
+}: TextLinkProps) {
   return (
     <Link
       to={to}
@@ -33,7 +41,9 @@ export function TextLink({ to, children, variant = 'default', inline = false, la
       data-state="ready"
       {...(inline ? { 'data-inline-link': '' } : {})}
       className={withLayout(
-        `rounded-ui underline underline-offset-2 hover:decoration-2 ${VARIANTES[variant]} ${FOCUS}`,
+        `rounded-ui underline underline-offset-2 hover:decoration-2 ${VARIANTES[variant]} ${FOCUS}${
+          inline ? '' : ' inline-flex min-h-11 items-center'
+        }`,
         layout,
       )}
     >

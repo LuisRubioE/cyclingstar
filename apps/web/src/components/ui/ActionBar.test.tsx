@@ -133,9 +133,7 @@ describe('ActionBarView', () => {
     const b = bar('offline')
     expect(text(b).replace(/&#x27;/g, "'")).toBe(`${ACTION_BAR_OFFLINE} Save plan`)
     const id = describedBy(b)
-    expect(b).toMatch(
-      new RegExp(`<button [^>]*aria-disabled="true" aria-describedby="${esc(id)}"`),
-    )
+    expect(b).toMatch(new RegExp(`<button [^>]*aria-disabled="true" aria-describedby="${esc(id)}"`))
   })
 
   it('disabled: el porqué en el sitio de lo que cambia, enlazado al botón', () => {

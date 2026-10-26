@@ -18,10 +18,13 @@ describe('Disclosure', () => {
   it('closed: Show, aria-expanded false y la región oculta, nombrada por el botón', () => {
     const s = html(false)
     expect(s).toMatch(/^<div data-ui="Disclosure" data-variant="default" data-state="closed"/)
-    const boton = /<button type="button" id="([^"]+)" aria-expanded="false" aria-controls="([^"]+)"/.exec(s)
+    const boton =
+      /<button type="button" id="([^"]+)" aria-expanded="false" aria-controls="([^"]+)"/.exec(s)
     expect(boton).not.toBeNull()
     const [, buttonId, regionId] = boton ?? []
-    expect(s).toContain(`<div id="${regionId}" role="region" aria-labelledby="${buttonId}" hidden="">`)
+    expect(s).toContain(
+      `<div id="${regionId}" role="region" aria-labelledby="${buttonId}" hidden="">`,
+    )
     expect(s).toContain('Show the 28 days')
   })
 

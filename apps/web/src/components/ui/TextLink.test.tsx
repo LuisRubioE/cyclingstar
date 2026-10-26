@@ -14,16 +14,29 @@ const html = (node: ReactElement) => renderToStaticMarkup(<MemoryRouter>{node}</
 describe('TextLink', () => {
   it('un enlace, en default por defecto', () => {
     const s = html(<TextLink to="/world/races/race-sardegna">Race Sardegna</TextLink>)
-    expect(s).toMatch(/^<a [^>]*href="\/world\/races\/race-sardegna" data-ui="TextLink" data-variant="default" data-state="ready"/)
+    expect(s).toMatch(/^<a [^>]*data-ui="TextLink" data-variant="default" data-state="ready"/)
+    expect(s).toMatch(/^<a [^>]*href="\/world\/races\/race-sardegna"/)
     expect(s).toMatch(/>Race Sardegna<\/a>$/)
   })
 
   it('rider: el nombre de un corredor', () => {
-    expect(html(<TextLink to="/world/riders/x" variant="rider">José Quintáns</TextLink>)).toContain('data-variant="rider"')
+    expect(
+      html(
+        <TextLink to="/world/riders/x" variant="rider">
+          José Quintáns
+        </TextLink>,
+      ),
+    ).toContain('data-variant="rider"')
   })
 
   it('en una frase, data-inline-link; fuera de ella, no', () => {
-    expect(html(<TextLink to="/x" inline>the plan</TextLink>)).toContain('data-inline-link=""')
+    expect(
+      html(
+        <TextLink to="/x" inline>
+          the plan
+        </TextLink>,
+      ),
+    ).toContain('data-inline-link=""')
     expect(html(<TextLink to="/x">the plan</TextLink>)).not.toContain('data-inline-link')
   })
 })

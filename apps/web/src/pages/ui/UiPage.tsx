@@ -18,13 +18,7 @@ import { Stat } from '../../components/ui/Stat'
 import { Tabs } from '../../components/ui/Tabs'
 import { TextLink } from '../../components/ui/TextLink'
 import type { IconName, Tone } from '../../components/ui/types'
-import {
-  LONG_CONSEQUENCE,
-  MANY_TABS,
-  PLAN_MODES,
-  SEEN_AT,
-  SHORT_CONSEQUENCE,
-} from './fixtures'
+import { LONG_CONSEQUENCE, MANY_TABS, PLAN_MODES, SEEN_AT, SHORT_CONSEQUENCE } from './fixtures'
 
 /**
  * `/_ui` (E3, docs/visual.md §5.4; PR 9a, I-03 y D-10). Cada componente del catálogo en cada uno de sus
@@ -35,14 +29,16 @@ import {
  * de bloque contenedor (`transform-gpu`), uno por estado (5-g). Es la primera página de la prueba del
  * teléfono (§7.4), que la quiere a cero; desde el 23, también con `?theme=dark` (5-h).
  *
- * Cómo se añade un componente: su `ui/<Nombre>.tsx`, su test por estado y su sección aquí (§5.4).
+ * Cómo se añade un componente: su `ui/<Nombre>.tsx`, su test por estado y su sección aquí (§5.4). Los
+ * bloques son columnas flexibles y no rejillas: una rejilla crece con lo más ancho que lleve dentro, y el
+ * carril de las pestañas, que se desplaza, ensanchaba la página entera (598 px a 360).
  */
 
 /** Una sección por componente. */
 function Demo({ name, children }: { readonly name: string; readonly children: ReactNode }) {
   const id = useId()
   return (
-    <section data-ui-demo={name} aria-labelledby={id} className="grid gap-4">
+    <section data-ui-demo={name} aria-labelledby={id} className="flex flex-col gap-4">
       <h2 id={id} className="text-title text-ink">
         {name}
       </h2>
@@ -54,7 +50,7 @@ function Demo({ name, children }: { readonly name: string; readonly children: Re
 /** Un estado, con su nombre encima. */
 function Estado({ name, children }: { readonly name: string; readonly children: ReactNode }) {
   return (
-    <div className="grid gap-2">
+    <div className="flex flex-col gap-2">
       <p className="text-caption font-semibold tracking-caps text-ink-3 uppercase">{name}</p>
       {children}
     </div>
@@ -64,7 +60,7 @@ function Estado({ name, children }: { readonly name: string; readonly children: 
 /** El ámbito oscuro (§3.3): lo que vive bajo la cabecera, con sus tokens. */
 function Oscuro({ children }: { readonly children: ReactNode }) {
   return (
-    <div data-surface="dark" className="grid gap-4 rounded-ui bg-surface p-3">
+    <div data-surface="dark" className="flex flex-col gap-4 rounded-ui bg-surface p-3">
       {children}
     </div>
   )
@@ -153,8 +149,11 @@ function Enlaces() {
       </Estado>
       <Estado name="inline, in a sentence">
         <p className="text-body text-ink">
-          Your plan runs to Day 78. Open <TextLink to="/_ui" inline>the training plan</TextLink> to change
-          a day.
+          Your plan runs to Day 78. Open{' '}
+          <TextLink to="/_ui" inline>
+            the training plan
+          </TextLink>{' '}
+          to change a day.
         </p>
       </Estado>
     </Demo>
@@ -173,10 +172,24 @@ function Campos() {
   return (
     <Demo name="Field">
       <Estado name="input · ready, with help">
-        <Field kind="input" id="ui-name" label="Name" value={nombre} onChange={setNombre} help="Up to 40 characters." />
+        <Field
+          kind="input"
+          id="ui-name"
+          label="Name"
+          value={nombre}
+          onChange={setNombre}
+          help="Up to 40 characters."
+        />
       </Estado>
       <Estado name="input · error">
-        <Field kind="input" id="ui-name-error" label="Name" value="M" onChange={nada} error="Must be 2 to 40 characters." />
+        <Field
+          kind="input"
+          id="ui-name-error"
+          label="Name"
+          value="M"
+          onChange={nada}
+          error="Must be 2 to 40 characters."
+        />
       </Estado>
       <Estado name="input · disabled">
         <Field
@@ -189,10 +202,25 @@ function Campos() {
         />
       </Estado>
       <Estado name="select">
-        <Field kind="select" id="ui-week" label="Week 1" value={semana} onChange={setSemana} options={semanas} />
+        <Field
+          kind="select"
+          id="ui-week"
+          label="Week 1"
+          value={semana}
+          onChange={setSemana}
+          options={semanas}
+        />
       </Estado>
       <Estado name="select · inline">
-        <Field kind="select" id="ui-week-inline" label="Emphasis" inline value={semana} onChange={setSemana} options={semanas} />
+        <Field
+          kind="select"
+          id="ui-week-inline"
+          label="Emphasis"
+          inline
+          value={semana}
+          onChange={setSemana}
+          options={semanas}
+        />
       </Estado>
       <Estado name="textarea">
         <Field kind="textarea" id="ui-note" label="Note" value={nota} onChange={setNota} rows={3} />
@@ -206,7 +234,12 @@ function Elecciones() {
   return (
     <Demo name="Segmented">
       <Estado name="ready">
-        <Segmented label="Who decides your training" options={PLAN_MODES} value={modo} onChange={setModo} />
+        <Segmented
+          label="Who decides your training"
+          options={PLAN_MODES}
+          value={modo}
+          onChange={setModo}
+        />
       </Estado>
       <Estado name="disabled">
         <Segmented
@@ -228,7 +261,9 @@ function Porques() {
         <Estado name="closed">
           <div className="flex flex-wrap items-center gap-x-1 text-body text-ink">
             <span>2 travel days</span>
-            <InfoButton label="About travel days">You don&apos;t train on travel days: 1 out, 1 back.</InfoButton>
+            <InfoButton label="About travel days">
+              You don&apos;t train on travel days: 1 out, 1 back.
+            </InfoButton>
           </div>
         </Estado>
         <Estado name="open">
@@ -309,11 +344,17 @@ function Estructura() {
           <Tabs label="Rider sections" options={MANY_TABS} value={pestana} onChange={setPestana} />
         </Estado>
         <Estado name="nav, under the header">
-          <Tabs label="Rider sections (nav)" variant="nav" options={MANY_TABS} value={pestana} onChange={setPestana} />
+          <Tabs
+            label="Rider sections (nav)"
+            variant="nav"
+            options={MANY_TABS}
+            value={pestana}
+            onChange={setPestana}
+          />
         </Estado>
       </Demo>
       <Demo name="Stat">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Stat label="Balance" value={6173210} />
           <Stat label="Weekly net" value={780} signed />
           <Stat label="Weekly net" value={-80} signed />
@@ -329,13 +370,21 @@ function Avisos() {
   return (
     <>
       <Demo name="Notice">
-        <Notice tone="info" title="Coach mode: nothing you set here is used." action={{ label: 'Switch to Mixed', onClick: nada }}>
+        <Notice
+          tone="info"
+          title="Coach mode: nothing you set here is used."
+          action={{ label: 'Switch to Mixed', onClick: nada }}
+        >
           Switch to Mixed to edit your days.
         </Notice>
         <Notice tone="good" title="Your plan is saved." role="status" onDismiss={nada}>
           It runs from Day 51 to Day 78.
         </Notice>
-        <Notice tone="warn" title="Results from 3 stages you haven't watched are hidden" action={{ label: 'Manage', onClick: nada }} />
+        <Notice
+          tone="warn"
+          title="Results from 3 stages you haven't watched are hidden"
+          action={{ label: 'Manage', onClick: nada }}
+        />
         <Notice tone="bad" title="Could not save your orders." role="alert">
           Nothing changed. Try again in a moment.
         </Notice>
@@ -383,7 +432,11 @@ function Avisos() {
           <ErrorState kind="outdated" />
         </Estado>
         <Estado name="notFound">
-          <ErrorState kind="notFound" message="This rider doesn't exist." action={<TextLink to="/_ui">Go to Dashboard</TextLink>} />
+          <ErrorState
+            kind="notFound"
+            message="This rider doesn't exist."
+            action={<TextLink to="/_ui">Go to Dashboard</TextLink>}
+          />
         </Estado>
       </Demo>
     </>
@@ -422,7 +475,13 @@ function AmbitoOscuro() {
   return (
     <Demo name="In the dark scope">
       <Oscuro>
-        <Tabs label="Rider sections (dark scope)" variant="nav" options={MANY_TABS} value={pestana} onChange={setPestana} />
+        <Tabs
+          label="Rider sections (dark scope)"
+          variant="nav"
+          options={MANY_TABS}
+          value={pestana}
+          onChange={setPestana}
+        />
         <div className="flex flex-wrap items-start gap-3">
           {VARIANTES.map((v) => (
             <Button key={v} variant={v}>
@@ -444,10 +503,13 @@ function AmbitoOscuro() {
 
 export function UiPage() {
   return (
-    <main className="mx-auto grid max-w-page gap-8 px-3 py-6 sm:px-4">
+    <main className="mx-auto flex max-w-page flex-col gap-8 px-3 py-6 sm:px-4">
       <meta name="robots" content="noindex" />
       <title>UI catalog · Cycling Star</title>
-      <PageHeader title="UI catalog" status="Every component of the system, in each of its states." />
+      <PageHeader
+        title="UI catalog"
+        status="Every component of the system, in each of its states."
+      />
       <Botones />
       <Enlaces />
       <Campos />

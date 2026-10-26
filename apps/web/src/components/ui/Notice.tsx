@@ -61,7 +61,13 @@ export function Notice({ tone, title, children, role = 'note', action, onDismiss
         )}
       </div>
       {onDismiss !== undefined && (
-        <Button variant="quiet" icon="close" ariaLabel="Dismiss" onClick={onDismiss} layout="-my-2 -mr-2" />
+        <Button
+          variant="quiet"
+          icon="close"
+          ariaLabel="Dismiss"
+          onClick={onDismiss}
+          layout="-my-2 -mr-2"
+        />
       )}
     </div>
   )

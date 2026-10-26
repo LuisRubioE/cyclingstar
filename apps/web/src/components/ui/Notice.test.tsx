@@ -16,7 +16,9 @@ describe('Notice', () => {
     const iconos = { info: 'info', good: 'check', warn: 'warning', bad: 'error' } as const
     for (const tone of ['info', 'good', 'warn', 'bad'] as const) {
       const s = html(<Notice tone={tone} title="Title" />)
-      expect(s).toMatch(new RegExp(`^<div data-ui="Notice" data-variant="${tone}" data-state="ready" role="note"`))
+      expect(s).toMatch(
+        new RegExp(`^<div data-ui="Notice" data-variant="${tone}" data-state="ready" role="note"`),
+      )
       expect(s).toMatch(new RegExp(`data-variant="${iconos[tone]}"[^>]*aria-hidden="true"`))
     }
   })
@@ -37,16 +39,20 @@ describe('Notice', () => {
   })
 
   it('la acción, un botón quiet o un enlace', () => {
-    expect(html(<Notice tone="info" title="T" action={{ label: 'Manage', to: '/account' }} />)).toMatch(
-      /<a [^>]*href="\/account"[^>]*data-ui="Button" data-variant="quiet"/,
+    const enlace = html(
+      <Notice tone="info" title="T" action={{ label: 'Manage', to: '/account' }} />,
     )
-    expect(html(<Notice tone="warn" title="T" action={{ label: 'Retry', onClick: () => undefined }} />)).toMatch(
-      /<button type="button" data-ui="Button" data-variant="quiet"/,
-    )
+    expect(enlace).toMatch(/<a [^>]*data-ui="Button" data-variant="quiet"/)
+    expect(enlace).toMatch(/<a [^>]*href="\/account"/)
+    expect(
+      html(<Notice tone="warn" title="T" action={{ label: 'Retry', onClick: () => undefined }} />),
+    ).toMatch(/<button type="button" data-ui="Button" data-variant="quiet"/)
   })
 
   it('cerrar, solo en info y good', () => {
-    expect(html(<Notice tone="good" title="T" onDismiss={() => undefined} />)).toContain('aria-label="Dismiss"')
+    expect(html(<Notice tone="good" title="T" onDismiss={() => undefined} />)).toContain(
+      'aria-label="Dismiss"',
+    )
     expect(() => html(<Notice tone="warn" title="T" onDismiss={() => undefined} />)).toThrow()
     expect(() => html(<Notice tone="bad" title="T" onDismiss={() => undefined} />)).toThrow()
   })

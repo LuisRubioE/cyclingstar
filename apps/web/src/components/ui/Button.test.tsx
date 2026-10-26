@@ -56,9 +56,9 @@ describe('Button', () => {
   })
 
   it('con to, un enlace con aspecto de botón', () => {
-    expect(html(<Button to="/me/training">Open the plan</Button>)).toMatch(
-      /^<a [^>]*href="\/me\/training"[^>]*data-ui="Button"/,
-    )
+    const b = html(<Button to="/me/training">Open the plan</Button>)
+    expect(b).toMatch(/^<a [^>]*data-ui="Button"/)
+    expect(b).toMatch(/^<a [^>]*href="\/me\/training"/)
   })
 
   it('ocupado: aria-busy, data-state busy, el indicador y busyLabel; el texto en reposo, invisible', () => {
@@ -79,7 +79,13 @@ describe('Button', () => {
   })
 
   it('ocupado no es un enlace: no navega mientras trabaja', () => {
-    expect(html(<Button to="/x" busy>Go</Button>)).toMatch(/^<button /)
+    expect(
+      html(
+        <Button to="/x" busy>
+          Go
+        </Button>,
+      ),
+    ).toMatch(/^<button /)
   })
 
   it('deshabilitado: aria-disabled y nunca disabled, con el porqué debajo, enlazado', () => {

@@ -146,7 +146,10 @@ export function Field(props: FieldProps) {
       data-ui="Field"
       data-variant={props.kind}
       data-state={estado}
-      className={withLayout(inline ? 'flex flex-wrap items-center gap-x-3 gap-y-1' : 'grid gap-1', layout)}
+      className={withLayout(
+        inline ? 'flex flex-wrap items-center gap-x-3 gap-y-1' : 'grid gap-1',
+        layout,
+      )}
     >
       {rotulo}
       <div className={inline ? 'min-w-0 flex-1' : ''}>{control}</div>
