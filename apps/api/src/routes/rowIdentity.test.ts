@@ -68,7 +68,9 @@ const TEAM_OF: ReadonlyMap<string, { teamId: string | null; teamName: string | n
     const k = teamIndexOf(i)
     return [
       idDe(i),
-      k === null ? { teamId: null, teamName: null } : { teamId: TEAM_IDS[k]!, teamName: `Team ${k}` },
+      k === null
+        ? { teamId: null, teamName: null }
+        : { teamId: TEAM_IDS[k]!, teamName: `Team ${k}` },
     ] as const
   }),
 )
@@ -191,11 +193,13 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
       })),
     )
     // La escuadra congelada, con dorsal: sin él el campo entra al motor en el orden que Postgres decida.
-    await t.db
-      .insert(raceRosters)
-      .values(
-        Array.from({ length: FIELD }, (_, i) => ({ raceId: RACE_KEY, riderId: idDe(i), bib: i + 1 })),
-      )
+    await t.db.insert(raceRosters).values(
+      Array.from({ length: FIELD }, (_, i) => ({
+        raceId: RACE_KEY,
+        riderId: idDe(i),
+        bib: i + 1,
+      })),
+    )
     await t.db.transaction((tx) => runOneStage(tx, worldId, dayOf(1), SEED, specOf(1)))
     // El abandono, como lo escribe el tick en su fila de la lista (`stageRun.ts`): el día y el motivo.
     // Escrito antes de correr la 2, que sale sin él.
@@ -291,16 +295,28 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
     })
 
     // El último de la lista: dentro de la ventana la ruta congela la escuadra si puede, y escribe.
-    it('dentro de la ventana de cierre, la de antes: upcoming, con lo que da predictStartlist', async () => {
+    it('dentro de la ventana de cierre, la de antes: upcoming, y aquí la previsión de equipos', async () => {
       const { json } = await get(startlistUrl(SOON.id))
-      console.log('DEPURA', SOON.id, JSON.stringify(json))
-      const startlist = raceStartlistSchema.parse(json)
-      expect(startlist.upcoming).toBe(true)
-      expect(startlist.daysUntil).toBe(SOON.startDay - TODAY)
-      expect(startlist.teams.length).toBeGreaterThan(0)
+      const daysUntil = SOON.startDay - TODAY
+      // Los corredores de los dos equipos corren `race-france`, que se solapa con ella: la ruta no puede
+      // congelar a ninguno y sirve la previsión, los equipos sin corredores.
       expect(json).toEqual({
         upcoming: true,
-        daysUntil: SOON.startDay - TODAY,
+        daysUntil,
+        frozen: false,
+        teams: TEAM_IDS.map((id, k) => ({
+          id,
+          name: `Team ${k}`,
+          country: 'ES',
+          division: 'WT',
+          jerseySeed: `j${k}`,
+          riders: [],
+        })),
+        freeAgents: [],
+      })
+      expect(json).toEqual({
+        upcoming: true,
+        daysUntil,
         ...(await predictStartlist(t.db, worldHorizon, worldId, SOON, 0)),
       })
     })
