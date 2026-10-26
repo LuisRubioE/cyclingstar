@@ -35,6 +35,8 @@ import type { PageKind } from '@cyclingstar/shared'
 
 // Carga diferida por página. Las páginas exportan componentes con nombre, de ahí el `.then(…)`.
 const Account = lazyPage(() => import('./pages/Account').then((m) => ({ default: m.Account })))
+// El catálogo (E3, docs/visual.md §5.4; PR 9a): fuera del marco, sin enlace desde ningún sitio.
+const UiPage = lazyPage(() => import('./pages/ui/UiPage').then((m) => ({ default: m.UiPage })))
 const AdminNames = lazyPage(() =>
   import('./pages/AdminNames').then((m) => ({ default: m.AdminNames })),
 )
@@ -167,6 +169,15 @@ function NotFound() {
 
 export function App() {
   const { pathname } = useLocation()
+  // `/_ui` va sin la cabecera ni la barra de hoy: es el catálogo, y la prueba del teléfono lo quiere a cero.
+  if (pathname === '/_ui')
+    return (
+      <RouteBoundary resetKey={pathname}>
+        <Suspense fallback={null}>
+          <UiPage />
+        </Suspense>
+      </RouteBoundary>
+    )
   return (
     /*
       El hueco de abajo es para la barra inferior del teléfono (§5): la barra es fija y taparía el

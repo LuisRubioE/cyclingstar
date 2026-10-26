@@ -112,6 +112,17 @@
 
 :root {
   color-scheme: light;
+  /* El sitio de la ActionBar (§4.9): lo escribe el marco con lo que mide (PR 11); hasta entonces, y en
+     `/_ui`, abajo del todo de su bloque contenedor. */
+  --action-bar-bottom: 0px;
+}
+
+/* Un carril que se desplaza de lado sin barra a la vista (Tabs, §4.4). */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* EL ÁMBITO OSCURO (I-10, §3.3), el mismo en los dos modos: un token de tinta nunca es un fondo aquí

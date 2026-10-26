@@ -23,7 +23,8 @@ import { PHONE_REF } from './telefono.config'
  *   (captura 50);
  * - un trozo cargado con sus datos sin pedir pinta `OfflineState` y se rehace solo al volver (captura 51);
  * - la sesión que no llega (`get-session` cortado) da la página y la cabecera del jugador, nunca `/login`;
- * - y una mutación en pausa sigue en la `ActionBar`, que nace en el 9a.
+ * - y una mutación en pausa sigue en la `ActionBar`: la barra nace en el 9a, pero la primera página que
+ *   guarda con ella es la del plan, en el 14 (`/_ui` no llama a la API).
  *
  * Corre en el trabajo `Teléfono` de `ci.yml`. Cada caso abre su contexto: ninguno depende de otro.
  */
@@ -312,7 +313,8 @@ test('y la sesión que dice que no hay sesión sí lleva a /login y quita la mar
   }
 })
 
-test.fixme('una mutación en pausa sigue en la ActionBar (nace en el 9a)', async () => {
-  // `You're offline. Your changes stay here until you reconnect.` (§12.1): la `ActionBar` del 9a guarda
-  // en memoria la mutación que React Query deja en pausa sin red y la manda al volver.
+test.fixme('una mutación en pausa sigue en la ActionBar (nace en el 14, con el plan)', async () => {
+  // `You're offline. Your changes stay here until you reconnect.` (§12.1): la `ActionBar` guarda en
+  // memoria la mutación que React Query deja en pausa sin red y la manda al volver. La barra es del 9a;
+  // la primera página que guarda con ella, la del plan, del 14.
 })

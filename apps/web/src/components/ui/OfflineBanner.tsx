@@ -1,7 +1,7 @@
 import { type QueryClient, type QueryKey, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useOnline } from '../../net'
-import { OfflineIcon } from './OfflineState'
+import { Icon } from './Icon'
 
 /**
  * EL AVISO DE QUE NO HAY RED (E3, docs/visual.md §4.7 y §12.1; PR 4, D-47 e I-29). Una franja de 32 px
@@ -9,7 +9,8 @@ import { OfflineIcon } from './OfflineState'
  * de lo que la página enseña, porque en el teléfono no se distingue una general de esta mañana de una de
  * ayer; al volver la red, `Back online` dos segundos. Sin red y sin nada visto, `You're offline.`
  *
- * Nace con las clases de hoy y pasa a los tokens en el PR 9a (17-c); su test mira `data-*` y ARIA.
+ * Con los tokens desde el PR 9a (17-c): `warn-bg`, el icono `offline` de 16 en `warn` y el texto en `meta`
+ * `ink`; al volver, `good-bg` con `check`.
  */
 
 /** Lo que pinta la franja: nada, sin red (con la hora de lo visto, si la hay) o de vuelta. */
@@ -62,9 +63,11 @@ export function OfflineBannerView({ state }: { state: OfflineBannerState }) {
         role="status"
         data-ui="OfflineBanner"
         data-state="ready"
-        className="flex min-h-8 items-center gap-2 bg-emerald-50 px-4 text-sm text-slate-900"
+        className="flex min-h-8 items-center gap-2 bg-good-bg px-3 text-meta text-ink"
       >
-        <CheckIcon />
+        <span className="inline-flex text-good">
+          <Icon name="check" size={16} />
+        </span>
         <span>Back online</span>
       </div>
     )
@@ -73,9 +76,11 @@ export function OfflineBannerView({ state }: { state: OfflineBannerState }) {
       role="status"
       data-ui="OfflineBanner"
       data-state="offline"
-      className="flex min-h-8 items-center gap-2 bg-amber-50 px-4 text-sm text-slate-900"
+      className="flex min-h-8 items-center gap-2 bg-warn-bg px-3 text-meta text-ink"
     >
-      <OfflineIcon size={16} className="shrink-0 text-amber-700" />
+      <span className="inline-flex text-warn">
+        <Icon name="offline" size={16} />
+      </span>
       <span>
         You&apos;re offline.
         {state.seenAt !== null && <> Showing what you saw at {clockTime(state.seenAt)}.</>}
@@ -120,24 +125,4 @@ export function OfflineBanner() {
       ? { kind: 'ready' }
       : { kind: 'hidden' }
   return <OfflineBannerView state={state} />
-}
-
-/** El icono `check` hasta los iconos del catálogo, en el 9a. */
-function CheckIcon() {
-  return (
-    <svg
-      width={16}
-      height={16}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="shrink-0 text-emerald-700"
-    >
-      <path d="M5 12.5l4.5 4.5L19 7" />
-    </svg>
-  )
 }

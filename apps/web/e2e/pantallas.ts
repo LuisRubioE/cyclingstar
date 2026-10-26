@@ -9,6 +9,9 @@ import type { Page } from '@playwright/test'
  *
  * El `data-answer` es de §7.3: dice qué contesta cada pantalla, y lo pone la sección que la rediseña. Hoy
  * no lo lleva ninguna, así que la 7 falla en todas, y la línea base lo apunta.
+ *
+ * Delante, desde el PR 9a, `/_ui`, el catálogo (§5.4 y §7.4): no necesita el mundo, no contesta nada ni
+ * tiene nada que editar (ni la 7 ni la 8 corren) y nace a cero.
  */
 
 export type CuentaDePrueba = 'jugador' | 'manager' | 'visitante' | 'nuevo'
@@ -31,8 +34,8 @@ export interface TelefonoPantalla {
   readonly id: string
   readonly path: string | ((world: MundoDePrueba) => string)
   readonly account: CuentaDePrueba
-  /** el `data-ui` del elemento con `data-answer` */
-  readonly answer: string
+  /** el `data-ui` del elemento con `data-answer`; `null` en `/_ui`, donde la 7 no corre */
+  readonly answer: string | null
   /** corre la comprobación 9 */
   readonly tool: boolean
   /** deja cambios sin guardar; sin ella, la 8 no corre */
@@ -78,6 +81,7 @@ async function cambiaElPapel(page: Page): Promise<void> {
 }
 
 export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
+  { id: '_ui', path: '/_ui', account: 'visitante', answer: null, tool: false },
   { id: '01-me-training', path: '/me/training', account: 'jugador', answer: 'Panel', tool: true },
   { id: '02-me-races', path: '/me/races', account: 'jugador', answer: 'Panel', tool: true },
   {

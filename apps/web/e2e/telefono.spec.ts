@@ -25,9 +25,9 @@ import {
 
 /**
  * «SE JUEGA BIEN EN UN TELÉFONO», COMO PRUEBA (E3, docs/visual.md §7; PR 2b, D-18). Las diez
- * comprobaciones de §7.1 en las 46 pantallas de `pantallas.ts`, a 360 × 800 y a 320 × 640. Cada cifra
- * es un número de faltas; `telefono-baseline.json` guarda las de cada pantalla y ancho, y E3 está
- * terminado cuando está a cero (o a `null` donde una comprobación no corre).
+ * comprobaciones de §7.1 en `/_ui` y en las 46 pantallas de `pantallas.ts`, a 360 × 800 y a 320 × 640.
+ * Cada cifra es un número de faltas; `telefono-baseline.json` guarda las de cada pantalla y ancho, y E3
+ * está terminado cuando está a cero (o a `null` donde una comprobación no corre).
  *
  * Antes de medir, el instrumento se prueba a sí mismo (17-b): la letra con que Chromium pinta el `h1`
  * de `control.html` tiene que ser `PHONE_FONT`, leída por CDP (Ruso-021; 7-k), y `control.html`, que
