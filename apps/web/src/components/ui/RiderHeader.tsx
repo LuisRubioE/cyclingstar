@@ -3,6 +3,7 @@ import { Chip } from './Chip'
 import { ErrorState } from './ErrorState'
 import { Flag } from './Flag'
 import { ChosenJersey, type LegacyTeam, type RiderLabelProps, riderJerseyOf } from './RiderLabel'
+import { Skeleton } from './Skeleton'
 import { withLayout } from './styles'
 import { gluedLastWord } from './TextLink'
 import type { Layout, Tone } from './types'
@@ -13,9 +14,9 @@ import type { Layout, Tone } from './types'
  * lleva a 40 (`KIT_PX.card`): el de campeón si tiene un título vigente (`champion` de `GET
  * /api/riders/:id`, desde el 17a; decisión 4-l), si no la equipación; pegado a la última palabra del
  * nombre si parte de línea. Debajo, un `Chip` de jugador, otro de salud si no está sano y el papel en
- * `meta` `ink-2`: `José Quintáns · Player · Climber`. Cargando, el esqueleto de un `h1` de 32 y una línea
- * de 20 (el de `Skeleton` `header`, en el PR 10); no encontrado, `This rider doesn't exist.`; con un fallo,
- * `ErrorState` con `Try again`. El maillot se pega a la última palabra como en `RiderLabel`.
+ * `meta` `ink-2`: `José Quintáns · Player · Climber`. Cargando, el `Skeleton` `header`, un `h1` de 32 y una
+ * línea de 20 (PR 10); no encontrado, `This rider doesn't exist.`; con un fallo, `ErrorState` con
+ * `Try again`. El maillot se pega a la última palabra como en `RiderLabel`.
  *
  * El maillot no se pulsa todavía: abre la `Sheet` con `Front` y `Back` desde el 17c (§8.10), que la trae.
  */
@@ -49,8 +50,6 @@ export type RiderHeaderProps =
       readonly layout?: Layout
     }
 
-const BARRA = 'block max-w-full animate-pulse rounded-ui bg-surface-2 motion-reduce:animate-none'
-
 export function RiderHeader(props: RiderHeaderProps) {
   const raiz = (state: string, variant = 'default') => ({
     'data-ui': 'RiderHeader',
@@ -62,8 +61,7 @@ export function RiderHeader(props: RiderHeaderProps) {
   if (props.state === 'loading')
     return (
       <header {...raiz('loading')} role="status" aria-label="Loading the rider">
-        <span aria-hidden="true" className={`h-8 w-56 ${BARRA}`} />
-        <span aria-hidden="true" className={`h-5 w-40 ${BARRA}`} />
+        <Skeleton shape={{ kind: 'header' }} />
       </header>
     )
   if (props.state === 'notFound')

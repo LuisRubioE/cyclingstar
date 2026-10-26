@@ -1,16 +1,16 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2740,
+    "tema": 2517,
     "arbitrarios": 46,
-    "espaciado": 38,
+    "espaciado": 35,
     "layout": 0
   },
   "ficheros": {
     "apps/web/src/App.tsx": {
-      "tema": 23,
+      "tema": 10,
       "arbitrarios": 1,
-      "espaciado": 3,
+      "espaciado": 1,
       "layout": 0
     },
     "apps/web/src/components/AttributeList.tsx": {
@@ -74,7 +74,7 @@
       "layout": 0
     },
     "apps/web/src/components/PaintedRaceRadio.tsx": {
-      "tema": 14,
+      "tema": 6,
       "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0
@@ -87,12 +87,6 @@
     },
     "apps/web/src/components/PlanLadder.tsx": {
       "tema": 72,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/ProtectedRoute.tsx": {
-      "tema": 1,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
@@ -302,25 +296,25 @@
       "layout": 0
     },
     "apps/web/src/pages/AdminNames.tsx": {
-      "tema": 104,
+      "tema": 96,
       "arbitrarios": 2,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/AdminPanel.tsx": {
-      "tema": 76,
+      "tema": 69,
       "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/Countries.tsx": {
-      "tema": 14,
+      "tema": 12,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/Country.tsx": {
-      "tema": 27,
+      "tema": 23,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
@@ -332,7 +326,7 @@
       "layout": 0
     },
     "apps/web/src/pages/Finances.tsx": {
-      "tema": 41,
+      "tema": 35,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
@@ -344,13 +338,13 @@
       "layout": 0
     },
     "apps/web/src/pages/HallOfFame.tsx": {
-      "tema": 30,
+      "tema": 26,
       "arbitrarios": 2,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/Home.tsx": {
-      "tema": 86,
+      "tema": 72,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
@@ -368,25 +362,25 @@
       "layout": 0
     },
     "apps/web/src/pages/Market.tsx": {
-      "tema": 35,
+      "tema": 29,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/MyRaces.tsx": {
-      "tema": 132,
+      "tema": 122,
       "arbitrarios": 3,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/News.tsx": {
-      "tema": 39,
+      "tema": 33,
       "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/OneDayRace.tsx": {
-      "tema": 15,
+      "tema": 8,
       "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0
@@ -398,25 +392,25 @@
       "layout": 0
     },
     "apps/web/src/pages/Race.tsx": {
-      "tema": 187,
+      "tema": 166,
       "arbitrarios": 1,
       "espaciado": 4,
       "layout": 0
     },
     "apps/web/src/pages/RaceOrders.tsx": {
-      "tema": 80,
+      "tema": 73,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/RacesIndex.tsx": {
-      "tema": 100,
+      "tema": 92,
       "arbitrarios": 3,
       "espaciado": 1,
       "layout": 0
     },
     "apps/web/src/pages/Rankings.tsx": {
-      "tema": 33,
+      "tema": 29,
       "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
@@ -434,21 +428,21 @@
       "layout": 0
     },
     "apps/web/src/pages/RiderProfile.tsx": {
-      "tema": 82,
+      "tema": 72,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/StageReplay.tsx": {
-      "tema": 69,
+      "tema": 46,
       "arbitrarios": 0,
       "espaciado": 2,
       "layout": 0
     },
     "apps/web/src/pages/StageReport.tsx": {
-      "tema": 21,
+      "tema": 14,
       "arbitrarios": 0,
-      "espaciado": 1,
+      "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/StageWatch.tsx": {
@@ -458,37 +452,37 @@
       "layout": 0
     },
     "apps/web/src/pages/Team.tsx": {
-      "tema": 40,
+      "tema": 38,
       "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0
     },
     "apps/web/src/pages/TeamCalendar.tsx": {
-      "tema": 110,
+      "tema": 95,
       "arbitrarios": 5,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/TeamIdentity.tsx": {
-      "tema": 22,
+      "tema": 11,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/TeamSquad.tsx": {
-      "tema": 72,
+      "tema": 59,
       "arbitrarios": 1,
       "espaciado": 2,
       "layout": 0
     },
     "apps/web/src/pages/Teams.tsx": {
-      "tema": 20,
+      "tema": 18,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/Training.tsx": {
-      "tema": 80,
+      "tema": 78,
       "arbitrarios": 0,
       "espaciado": 2,
       "layout": 0
@@ -500,7 +494,7 @@
       "layout": 0
     },
     "apps/web/src/pages/stageView.tsx": {
-      "tema": 22,
+      "tema": 20,
       "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0

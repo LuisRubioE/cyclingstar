@@ -2,7 +2,8 @@ import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ChunkLoadError, pageLoader } from '../../lazyPage'
-import { RouteBoundary, chunkErrorKind } from '../RouteBoundary'
+import { RouteBoundary } from '../RouteBoundary'
+import { errorKindOf } from './QueryView'
 import { ErrorState, type ErrorStateProps } from './ErrorState'
 
 /**
@@ -103,9 +104,9 @@ describe('la barrera por ruta, ante un trozo que no carga (12-c)', () => {
   }
   const failed = new TypeError('Failed to fetch dynamically imported module')
 
-  it('la regla: lo que falló sin red es network; con red, outdated', () => {
-    expect(chunkErrorKind(true)).toBe('network')
-    expect(chunkErrorKind(false)).toBe('outdated')
+  it('la regla, desde el PR 10 en errorKindOf (17-v): lo que falló sin red es network; con red, outdated', () => {
+    expect(errorKindOf(new ChunkLoadError(failed, true))).toBe('network')
+    expect(errorKindOf(new ChunkLoadError(failed, false))).toBe('outdated')
   })
 
   it('lo que falló sin red pinta en su sitio el ErrorState network con Try again, aunque la red haya vuelto', () => {

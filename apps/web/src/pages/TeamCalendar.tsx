@@ -18,6 +18,9 @@ import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { formatLabel, raceClassLabel, travelDaysLabel } from '../domain/labels'
 import { finalVeiled, raceKeyOn, raceVeil } from '../domain/veil'
+import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient'
 
 /**
@@ -189,9 +192,7 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
       </p>
 
       {data.races.length === 0 ? (
-        <p className="rounded-md border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          No upcoming races left to plan this season.
-        </p>
+        <EmptyState icon="race" text="No upcoming races left to plan this season." />
       ) : (
         <Panel bodyClassName="p-0">
           <table className="w-full text-sm">
@@ -313,9 +314,15 @@ function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
   const horizon = useHorizon()
   const health = useHealth()
 
-  if (calendar.isPending) return <p className="text-slate-500">Loading…</p>
-  if (calendar.isError)
-    return <p className="text-red-600">Could not load your team&apos;s calendar.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (calendar.data === undefined)
+    return (
+      <QueryView
+        query={calendar}
+        label="your team's calendar"
+        skeleton={{ kind: 'rows', rowHeight: 44 }}
+      />
+    )
 
   const attending = plan.races.filter((r) => r.attending)
   const winnerOf = new Map(calendar.data.races.map((r) => [r.id, r.winner]))
@@ -344,9 +351,9 @@ function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
 
       <Panel title={`Still to come (${ahead.length})`} bodyClassName="p-0">
         {ahead.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-slate-500">
-            The season is over — no races left.
-          </p>
+          <div className="px-4">
+            <EmptyState icon="race" text="The season is over — no races left." />
+          </div>
         ) : (
           <ul className="divide-y divide-slate-100">
             {ahead.map((race) => (
@@ -403,22 +410,37 @@ export function TeamCalendar() {
   // Devuelve null si ni siquiera pertenezco a un equipo (agente libre).
   const plan = useQuery({ queryKey: ['team-race-plan'], queryFn: fetchTeamRacePlan })
 
-  if (draft.isPending || plan.isPending) return <p className="text-slate-500">Loading…</p>
+  // Los estados, con `QueryView` (E3, PR 10): un fallo del plan ya no se pinta como «sin equipo», ni
+  // uno del draft como la vista de miembro.
+  if (draft.data === undefined)
+    return (
+      <QueryView
+        query={draft}
+        label="your team calendar"
+        skeleton={{ kind: 'rows', rowHeight: 44 }}
+      />
+    )
 
   if (draft.data) return <ManagerPlanner data={draft.data} />
+
+  if (plan.data === undefined)
+    return (
+      <QueryView
+        query={plan}
+        label="your team's race plan"
+        skeleton={{ kind: 'rows', rowHeight: 44 }}
+      />
+    )
 
   if (!plan.data) {
     return (
       <section className="space-y-4">
         <SectionBar>Race calendar</SectionBar>
-        <p className="rounded-md border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          You do not belong to a team, so there is no team calendar. As a free agent you enter races
-          yourself from{' '}
-          <Link to="/me/races" className="font-medium text-indigo-600 hover:underline">
-            My Rider → My races
-          </Link>
-          .
-        </p>
+        <EmptyState
+          icon="team"
+          text="You do not belong to a team, so there is no team calendar. As a free agent you enter races yourself from My Rider, under My races."
+          action={<Button to="/me/races">See your races</Button>}
+        />
       </section>
     )
   }

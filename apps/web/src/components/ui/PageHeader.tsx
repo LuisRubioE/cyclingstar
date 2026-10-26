@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from './Icon'
+import { SkeletonBar } from './Skeleton'
 import { FOCUS } from './styles'
 
 /**
@@ -8,7 +9,7 @@ import { FOCUS } from './styles'
  * `chevron-left` y el nombre del padre, de 44); el `h1` en `text-page`, uno por página; debajo, la línea
  * de estado en `meta` `ink-2`: lo permanente de la página, como la capa fija de la televisión (el modo y
  * el estado del plan se leen sin bajar), y lo eventual va en `Notice`. La línea es un `<p>`, no una región
- * viva. Cargando, la línea es un esqueleto de 20 px (el de `Skeleton`, que llega en el PR 10).
+ * viva. Cargando, la línea es un esqueleto de 20 px (`SkeletonBar`, PR 10).
  */
 
 export interface PageHeaderProps {
@@ -42,10 +43,7 @@ export function PageHeader({ title, back, status, loading = false, action }: Pag
         {action}
       </div>
       {loading ? (
-        <span
-          aria-hidden="true"
-          className="block h-5 w-48 max-w-full animate-pulse rounded-ui bg-surface-2 motion-reduce:animate-none"
-        />
+        <SkeletonBar size="line" />
       ) : (
         status !== undefined && <p className="text-meta text-ink-2">{status}</p>
       )}

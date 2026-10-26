@@ -12,6 +12,9 @@ import { Panel, SectionBar } from '../components/Panel'
 import { RaceResultList } from '../components/RaceResults'
 import { RiderName } from '../components/RiderName'
 import { palmaresLabel, archetypeLabel } from '../domain/labels'
+import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 
@@ -58,9 +61,13 @@ function TeammateDetail({ riderId }: { riderId: string }) {
     enabled: rev !== undefined,
   })
 
-  if (rider.isPending) return <p className="px-4 py-3 text-sm text-slate-500">Loading…</p>
-  if (rider.isError)
-    return <p className="px-4 py-3 text-sm text-red-600">Could not load this rider.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (rider.data === undefined)
+    return (
+      <div className="px-4">
+        <QueryView query={rider} label="this rider" skeleton={{ kind: 'panel' }} />
+      </div>
+    )
 
   return (
     <div className="grid gap-5 border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:grid-cols-2">
@@ -170,28 +177,31 @@ export function TeamSquad() {
     enabled: teamId != null && rev !== undefined,
   })
 
-  if (summary.isPending) return <p className="text-slate-500">Loading…</p>
+  // Los estados, con `QueryView` (E3, PR 10): un fallo del resumen ya no se pinta como «agente libre».
+  if (summary.data === undefined)
+    return (
+      <QueryView query={summary} label="your rider" skeleton={{ kind: 'rows', rowHeight: 56 }} />
+    )
 
   // Sin equipo no hay plantilla que enseñar. Las ofertas viven en My Rider → Contract, siempre en
-  // el mismo sitio tenga equipo o no (principio 7 de docs/navegacion.md).
+  // el mismo sitio tenga equipo o no (principio 7 de docs/navegacion.md). Es la respuesta de la
+  // pantalla 43.
   if (!teamId) {
     return (
       <section className="space-y-4">
         <SectionBar>Squad</SectionBar>
-        <p className="rounded-md border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          You are a free agent, so you have no teammates yet. Any contract offer you receive shows
-          up in{' '}
-          <Link to="/me/contract" className="font-medium text-indigo-600 hover:underline">
-            My Rider → Contract
-          </Link>
-          .
-        </p>
+        <EmptyState
+          icon="team"
+          text="You are a free agent, so you have no teammates yet. Any contract offer you receive shows up in My Rider, under Contract."
+          action={<Button to="/me/contract">See your contract offers</Button>}
+          answer
+        />
       </section>
     )
   }
 
-  if (team.isPending) return <p className="text-slate-500">Loading…</p>
-  if (team.isError || !team.data) return <p className="text-red-600">Could not load your team.</p>
+  if (team.data === undefined)
+    return <QueryView query={team} label="your team" skeleton={{ kind: 'rows', rowHeight: 56 }} />
 
   const roster = [...team.data.roster].sort((a, b) => b.seasonPoints - a.seasonPoints)
   const country = COUNTRIES.find((c) => c.code === team.data.country)

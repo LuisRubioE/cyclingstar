@@ -6,6 +6,8 @@ import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { StageRoute } from '../components/StageRoute'
 import { Tabs } from '../components/Tabs'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { formatLabel, raceClassLabel } from '../domain/labels'
 import {
   type ClassFilter,
@@ -246,7 +248,7 @@ function NationalChampsBlock({
   if (nations.length === 0) {
     return (
       <Panel title="National championships">
-        <p className="text-sm text-slate-500">No national championships match that search.</p>
+        <EmptyState text="No national championships match that search." />
       </Panel>
     )
   }
@@ -271,11 +273,12 @@ function NationalChampsBlock({
 
 export function RacesIndex() {
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const calendar = useQuery({
     queryKey: horizonKey(['calendar'], rev),
     queryFn: fetchCalendar,
     enabled: rev !== undefined,
   })
+  const { data } = calendar
   // Bajo el velo (E2, §11.3; sups. I1 e I2; 9b): la carrera de final velado llega sin ganador (P, 8a), y la
   // fila dice que está por ver. Solo del horizonte de quien mira (I-39).
   const horizon = useHorizon()
@@ -311,8 +314,11 @@ export function RacesIndex() {
     [nationals],
   )
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the races.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (data === undefined)
+    return (
+      <QueryView query={calendar} label="the races" skeleton={{ kind: 'rows', rowHeight: 64 }} />
+    )
 
   const baseRaces = races.length - nationals.length
   const showingChamps = classFilter === 'NC'
@@ -360,9 +366,7 @@ export function RacesIndex() {
       {showingChamps ? (
         <NationalChampsBlock races={champs} hidden={hidden} />
       ) : timeline.total === 0 ? (
-        <p className="rounded-md border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          No race matches that search.
-        </p>
+        <EmptyState text="No race matches that search." />
       ) : (
         <Panel title={`Season timeline (${timeline.total})`} bodyClassName="p-0">
           {/* El pasado lejano, plegado: así "hoy" y lo que viene entran en la primera pantalla. */}

@@ -12,6 +12,8 @@ import {
   removeBlocked,
   setPremium,
 } from '../api/admin'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 
 /**
  * Base secreta de admins (no enlazada en la navegación): lista de bloqueo de nombres de equipos
@@ -44,7 +46,11 @@ export function AdminNames() {
     setToken('')
   }
 
-  if (!token && whoami.isPending) return <p className="text-slate-500">Loading…</p>
+  // Mientras llega `whoami`, su carga (o su pausa sin red) con `QueryView` (E3, PR 10). Si falla, el
+  // token sigue a mano: es la vía de quien no puede entrar con su sesión (y el 401 de quien no es admin
+  // llega como `null`).
+  if (!token && whoami.isPending)
+    return <QueryView query={whoami} label="your admin access" skeleton={{ kind: 'panel' }} />
 
   if (key === undefined) {
     return (
@@ -210,8 +216,9 @@ function HealthPanel({ token, onExpired }: { token: AdminKey; onExpired: () => v
     retry: false,
   })
   if (query.isError && query.error instanceof AdminAuthError) onExpired()
-  if (query.isPending) return <p className="text-sm text-slate-500">Loading world health…</p>
-  if (query.isError) return null
+  // Los estados, con `QueryView` (E3, PR 10): un fallo ya no se pinta como nada.
+  if (query.data === undefined)
+    return <QueryView query={query} label="world health" skeleton={{ kind: 'panel' }} />
   const h = query.data
   return (
     <div className="space-y-3">
@@ -234,7 +241,9 @@ function HealthPanel({ token, onExpired }: { token: AdminKey; onExpired: () => v
         </p>
         <ul className="divide-y divide-slate-100 text-xs">
           {h.recentTicks.length === 0 && (
-            <li className="px-3 py-2 text-slate-400">No ticks yet.</li>
+            <li className="px-3">
+              <EmptyState text="No ticks yet." />
+            </li>
           )}
           {h.recentTicks.map((t, i) => (
             <li key={i} className="flex items-center justify-between gap-3 px-3 py-1.5">
@@ -340,27 +349,31 @@ function BlocklistPanel({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      {query.isPending ? (
-        <p className="text-sm text-slate-500">Loading…</p>
-      ) : (
-        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
-          {(query.data ?? []).length === 0 && (
-            <li className="px-3 py-3 text-sm text-slate-400">Nothing blocked yet.</li>
-          )}
-          {(query.data ?? []).map((item) => (
-            <li key={item.id} className="flex items-center justify-between gap-3 px-3 py-2">
-              <span className="text-sm text-slate-700">{item.value}</span>
-              <button
-                type="button"
-                onClick={() => remove(item.id)}
-                className="text-xs font-medium text-slate-400 transition hover:text-red-600"
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Los estados, con `QueryView` (E3, PR 10): un fallo ya no se pinta como «nada bloqueado». */}
+      <QueryView
+        query={query}
+        label={title.toLowerCase()}
+        skeleton={{ kind: 'rows', rowHeight: 44 }}
+        isEmpty={(items) => items.length === 0}
+        empty={{ text: 'Nothing blocked yet.' }}
+      >
+        {(items) => (
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+            {items.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="text-sm text-slate-700">{item.value}</span>
+                <button
+                  type="button"
+                  onClick={() => remove(item.id)}
+                  className="text-xs font-medium text-slate-400 transition hover:text-red-600"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </QueryView>
     </div>
   )
 }

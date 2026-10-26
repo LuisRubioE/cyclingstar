@@ -1,5 +1,11 @@
 import type { HorizonSummary, RaceLeaders, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  type UseQueryResult,
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { Fragment, Suspense, lazy, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { RaceClass, RaceFormat } from '../api/calendar'
@@ -28,6 +34,8 @@ import { StageRoute } from '../components/StageRoute'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
+import { EmptyState } from '../components/ui/EmptyState'
+import { LoadingState, QueryView } from '../components/ui/QueryView'
 import {
   ROUTE_SOURCE_LABEL,
   editionLabel,
@@ -121,7 +129,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
         )}
       </div>
       {data.teams.length === 0 && data.freeAgents.length === 0 ? (
-        <p className="text-sm text-slate-400">No entries yet.</p>
+        <EmptyState text="No entries yet." />
       ) : (
         <div className="space-y-3">
           {byDivision.map((g) => (
@@ -491,7 +499,7 @@ function ClassificationsTab({ data }: { data: RaceView }) {
         {data.gc.length > 0 ? (
           <GcTable rows={data.gc} leaders={data.leaders} />
         ) : (
-          <p className="text-sm text-slate-400">No result yet.</p>
+          <EmptyState text="No result yet." />
         )}
       </div>
     )
@@ -511,19 +519,19 @@ function ClassificationsTab({ data }: { data: RaceView }) {
           (data.gc.length > 0 ? (
             <GcTable rows={data.gc} leaders={data.leaders} />
           ) : (
-            <p className="text-sm text-slate-400">No general classification yet.</p>
+            <EmptyState text="No general classification yet." />
           ))}
         {active === 'points' &&
           (data.points.length > 0 ? (
             <PointsTable rows={data.points} leaders={data.leaders} />
           ) : (
-            <p className="text-sm text-slate-400">No sprint points awarded yet.</p>
+            <EmptyState text="No sprint points awarded yet." />
           ))}
         {active === 'kom' &&
           (data.kom.length > 0 ? (
             <PointsTable rows={data.kom} leaders={data.leaders} />
           ) : (
-            <p className="text-sm text-slate-400">No mountain points awarded yet.</p>
+            <EmptyState text="No mountain points awarded yet." />
           ))}
         {active === 'teams' &&
           (data.teamGc.length > 0 ? (
@@ -532,7 +540,7 @@ function ClassificationsTab({ data }: { data: RaceView }) {
               <TeamClassNote />
             </>
           ) : (
-            <p className="text-sm text-slate-400">No team classification yet.</p>
+            <EmptyState text="No team classification yet." />
           ))}
       </TabPanel>
     </div>
@@ -545,7 +553,7 @@ function HonoursTab({ data }: { data: RaceView }) {
     <div className={card}>
       <h2 className={head}>Roll of honour</h2>
       {data.history.length === 0 ? (
-        <p className="text-sm text-slate-400">Nobody has won this race yet — it is a new one.</p>
+        <EmptyState text="Nobody has won this race yet — it is a new one." />
       ) : (
         <ol className="space-y-1.5">
           {data.history.map((h) => (
@@ -569,28 +577,30 @@ const STATUS_BADGE: Record<RaceStatus, { label: string; className: string }> = {
 
 const RACE_PANEL = 'race-section'
 
-/** La pestaña `Startlist`: la lista provisional, o por qué no la hay. */
+/**
+ * La pestaña `Startlist`: la lista provisional, o por qué no la hay. Sus estados, con `QueryView` (E3,
+ * PR 10): mientras llega, o si falla, ya no dice que la lista aún no se ha publicado.
+ */
 function StartlistTab({
   status,
   startlist,
 }: {
   status: RaceStatus
-  startlist: RaceStartlist | undefined
+  startlist: UseQueryResult<RaceStartlist>
 }) {
-  if (startlist?.upcoming) return <Startlist data={startlist} />
+  if (startlist.data === undefined)
+    return <QueryView query={startlist} label="the startlist" skeleton={{ kind: 'panel' }} />
+  if (startlist.data.upcoming) return <Startlist data={startlist.data} />
   return (
     <div className={card}>
       <h2 className={head}>Startlist</h2>
-      {status === 'racing' ? (
-        <p className="text-sm text-slate-500">
-          Entries are closed and the race is under way — everyone on the road is in the general
-          classification.
-        </p>
-      ) : (
-        <p className="text-sm text-slate-500">
-          The startlist is published about two weeks before the start, when teams name their squads.
-        </p>
-      )}
+      <EmptyState
+        text={
+          status === 'racing'
+            ? 'Entries are closed and the race is under way — everyone on the road is in the general classification.'
+            : 'The startlist is published about two weeks before the start, when teams name their squads.'
+        }
+      />
     </div>
   )
 }
@@ -624,7 +634,7 @@ function RaceSections({
   data: RaceView
   raceId: string
   status: RaceStatus
-  startlist: RaceStartlist | undefined
+  startlist: UseQueryResult<RaceStartlist>
   watchOn: boolean
   veil: ReadyRace | null
 }) {
@@ -717,15 +727,16 @@ export function Race() {
   // La ficha, a horizonte (P, F; 8a): con etapas veladas, las clasificaciones y los ganadores de tras la
   // última conocida. Con `?diag=1`, la del mundo para un administrador (§11.15). Con otro `rev` se queda la
   // de antes mientras llega la nueva.
-  const { data, isPending, isError } = useQuery({
+  const raceView = useQuery({
     queryKey: raceViewKey(raceId, diag, rev),
     queryFn: () => fetchRace(raceId, { diag }),
     enabled: rev !== undefined,
     placeholderData: keepPreviousData,
   })
+  const { data } = raceView
   // Lista provisional de inscritos (solo devuelve algo si la carrera está próxima y no se ha corrido). Es
   // L (se congela antes de la salida): no depende de lo visto y no espera al horizonte.
-  const { data: startlist } = useQuery({
+  const startlist = useQuery({
     queryKey: ['race-startlist', raceId],
     queryFn: () => fetchStartlist(raceId),
   })
@@ -757,8 +768,9 @@ export function Race() {
     'race',
   )
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the race.</p>
+  // Los estados de la ficha, con `QueryView` (E3, PR 10).
+  if (data === undefined)
+    return <QueryView query={raceView} label="the race" skeleton={{ kind: 'header' }} />
 
   const status = data.status
   const untilStart = daysUntilStart(data)
@@ -902,7 +914,7 @@ export function Race() {
       {diagOn && <DiagnosticStrip exitHref={hrefWith(pagePath, params, { diag: null })} />}
 
       {stageCount === 1 && status === 'finished' ? (
-        <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
+        <Suspense fallback={<LoadingState label="the race" />}>
           <OneDaySections
             raceId={raceId}
             watchOn={sw.watchOn}

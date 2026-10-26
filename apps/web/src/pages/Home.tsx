@@ -18,6 +18,9 @@ import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
 import { WatchBlocks } from '../components/WatchBlocks'
 import { WorldClock } from '../components/WorldClock'
+import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { type DashboardAction, buildDashboard } from '../domain/dashboard'
 import { raceVerdict } from '../domain/narration'
 import { horizonKey, useHorizonRev, veilApplies } from '../queryClient'
@@ -26,20 +29,16 @@ function SystemStatus() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   return (
     <Panel title="System status">
-      {health.isPending && <p className="text-slate-500">Checking…</p>}
-      {health.isError && <p className="text-red-600">Could not reach the server.</p>}
-      {health.data && (
-        <div>
-          <InfoRow label="Server">{health.data.ok ? 'Online' : 'Degraded'}</InfoRow>
-          <InfoRow label="Engine version">{health.data.engineVersion}</InfoRow>
-          <InfoRow label="Game day">
-            {health.data.gameDay ?? 'the game has not started yet'}
-          </InfoRow>
-          <InfoRow label="Database">
-            {health.data.migrationsApplied ? 'ready' : 'not migrated'}
-          </InfoRow>
-        </div>
-      )}
+      <QueryView query={health} label="the server status" skeleton={{ kind: 'panel' }}>
+        {(h) => (
+          <div>
+            <InfoRow label="Server">{h.ok ? 'Online' : 'Degraded'}</InfoRow>
+            <InfoRow label="Engine version">{h.engineVersion}</InfoRow>
+            <InfoRow label="Game day">{h.gameDay ?? 'the game has not started yet'}</InfoRow>
+            <InfoRow label="Database">{h.migrationsApplied ? 'ready' : 'not migrated'}</InfoRow>
+          </div>
+        )}
+      </QueryView>
     </Panel>
   )
 }
@@ -106,24 +105,20 @@ function NewPlayerHome() {
       <div className="space-y-4">
         <Logo size={80} className="mb-2" />
         <SectionBar>Welcome to Cycling Star</SectionBar>
-        <p className="max-w-xl text-slate-600">
-          You don't have a rider yet. Create one to enter the world — pick a specialty and a name,
-          and you're on the start line.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to="/create"
-            className="rounded-md bg-brand-cyan px-4 py-2.5 font-medium text-white transition hover:bg-brand-cyan-light"
-          >
-            Create your rider
-          </Link>
-          <Link
-            to="/how-to-play"
-            className="rounded-md border border-slate-300 px-4 py-2.5 font-medium text-slate-700 transition hover:bg-slate-100"
-          >
-            How to play
-          </Link>
-        </div>
+        {/* Sin corredor, el vacío dice por qué y qué hacer (E3, PR 10): la respuesta de la pantalla 44. */}
+        <EmptyState
+          icon="rider"
+          text="You don't have a rider yet. Create one to enter the world — pick a specialty and a name, and you're on the start line."
+          action={
+            <div className="flex flex-wrap gap-3">
+              <Button to="/create" variant="primary">
+                Create your rider
+              </Button>
+              <Button to="/how-to-play">How to play</Button>
+            </div>
+          }
+          answer
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -397,7 +392,9 @@ export function Home() {
   })
 
   if (!session) return <GuestHome />
-  if (riderQuery.isPending) return <p className="text-slate-500">Loading…</p>
-  if (!riderQuery.data) return <NewPlayerHome />
+  // Los estados, con `QueryView` (E3, PR 10): un fallo ya no se pinta como «no tienes corredor».
+  if (riderQuery.data === undefined)
+    return <QueryView query={riderQuery} label="your rider" skeleton={{ kind: 'panel' }} />
+  if (riderQuery.data === null) return <NewPlayerHome />
   return <PlayerHome name={riderQuery.data.name} />
 }

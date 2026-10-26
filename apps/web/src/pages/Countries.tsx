@@ -6,6 +6,7 @@ import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { QueryView } from '../components/ui/QueryView'
 
 const CONTINENT_LABEL: Record<Continent, string> = {
   Europe: 'Europe',
@@ -40,14 +41,16 @@ function NationCard({ c }: { c: CountrySummary }) {
 /** Naciones (#7): países con corredores en activo, agrupados por continente. */
 export function Countries() {
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const query = useQuery({
     queryKey: horizonKey(['countries'], rev),
     queryFn: fetchCountries,
     enabled: rev !== undefined,
   })
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load countries.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (query.data === undefined)
+    return <QueryView query={query} label="countries" skeleton={{ kind: 'rows', rowHeight: 44 }} />
+  const data = query.data
 
   const byContinent = new Map<Continent, CountrySummary[]>()
   for (const c of data) {

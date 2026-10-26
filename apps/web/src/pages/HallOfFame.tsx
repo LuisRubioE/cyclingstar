@@ -6,6 +6,8 @@ import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 
 function RecordCard({
   title,
@@ -42,7 +44,7 @@ function RecordCard({
 /** Salón de la fama (#58/#62): corredores por palmarés total de todas las temporadas. */
 export function HallOfFame() {
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const query = useQuery({
     queryKey: horizonKey(['hall-of-fame'], rev),
     queryFn: fetchHallOfFame,
     enabled: rev !== undefined,
@@ -53,8 +55,16 @@ export function HallOfFame() {
     enabled: rev !== undefined,
   })
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the hall of fame.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (query.data === undefined)
+    return (
+      <QueryView
+        query={query}
+        label="the hall of fame"
+        skeleton={{ kind: 'rows', rowHeight: 56 }}
+      />
+    )
+  const data = query.data
 
   const rec = records.data
   const hasRecords = rec && (rec.mostWins || rec.mostGcWins || rec.youngestWinner)
@@ -81,11 +91,7 @@ export function HallOfFame() {
       )}
 
       {data.length === 0 ? (
-        <Panel>
-          <p className="text-center text-sm text-slate-500">
-            No honours yet — win a race and you'll be the first name here.
-          </p>
-        </Panel>
+        <EmptyState text="No honours yet — win a race and you'll be the first name here." />
       ) : (
         <Panel title="All-time honours" bodyClassName="p-0">
           <div className="overflow-x-auto">

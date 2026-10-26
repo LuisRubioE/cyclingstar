@@ -30,6 +30,7 @@ import { RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageStory } from '../components/StageStory'
+import { EmptyState } from '../components/ui/EmptyState'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
 import { diagOf, useHealth, useHorizonRev, useWatchOn } from '../queryClient'
@@ -177,7 +178,7 @@ export function StageReportView({
         </div>
       ) : (
         <div className={card}>
-          <p className="text-sm text-slate-400">No result for this stage.</p>
+          <EmptyState text="No result for this stage." />
         </div>
       )}
       <StageStory data={data} podium={false} />
@@ -206,9 +207,9 @@ const gateKey = (g: StageGate | null): string =>
  * quien mira, la cabecera de la retransmisión y si quien mira lee con `cs_viewer` sin sesión.
  */
 export interface StageFacts {
+  /** la consulta de la ficha, para sus estados (`QueryView`; E3, PR 10) */
+  readonly stage: UseQueryResult<StageReplayData>
   readonly data: StageReplayData | undefined
-  readonly isPending: boolean
-  readonly isError: boolean
   /** `?diag=1` en la URL */
   readonly diag: boolean
   /** el modo diagnóstico de verdad: `?diag=1` de un administrador (11-h) */
@@ -276,13 +277,14 @@ export function useStageFacts(
   const session = authClient.useSession()
   const enabled = opts.enabled ?? true
   // Con otro `rev` (lo visto en otra pestaña, la meta, el día nuevo) la clave cambia: mientras llega la
-  // ficha nueva se queda la de antes, para que la página no vuelva a «Loading…» y `Watch` siga montado.
-  const { data, isPending, isError } = useQuery({
+  // ficha nueva se queda la de antes, para que la página no vuelva a cargar y `Watch` siga montado.
+  const stage = useQuery({
     queryKey: stageReplayKey(raceId, day, diag, rev),
     queryFn: () => fetchCalendarStage(raceId, day, { diag }),
     enabled: enabled && rev !== undefined,
     placeholderData: keepPreviousData,
   })
+  const { data } = stage
   const health = useHealth()
   const dataGate = data?.watch?.gate ?? null
   // ¿Es un administrador con sesión? Lo que decide `BROADCAST_WATCH=admins` y el modo diagnóstico.
@@ -310,9 +312,8 @@ export function useStageFacts(
     broadcastHead.error instanceof ApiError &&
     broadcastHead.error.code === 'broadcast_unavailable'
   return {
+    stage,
     data,
-    isPending,
-    isError,
     diag,
     // para quien no es administrador `?diag=1` no existe, en la API (11-h) y aquí
     diagOn: diag && sw.isAdmin,
@@ -343,7 +344,8 @@ export function useStageFacts(
 export interface StageResult {
   readonly full: StageReplayData | null
   readonly gate: StageGate | null
-  readonly actaError: boolean
+  /** la consulta del acta, para sus estados (`QueryView`; E3, PR 10) */
+  readonly acta: UseQueryResult<StageReplayData>
 }
 
 /**
@@ -369,7 +371,7 @@ export function useStageResult(
   return {
     full: served && f.data !== undefined ? f.data : (acta.data ?? null),
     gate: f.dataGate ?? (acta.error instanceof GateError ? acta.error.gate : null),
-    actaError: acta.isError,
+    acta,
   }
 }
 

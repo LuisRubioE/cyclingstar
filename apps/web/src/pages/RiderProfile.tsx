@@ -37,6 +37,10 @@ import { HEALTH_LOOK, healthNote, healthUntilLabel } from '../domain/health'
 import { palmaresLabel, archetypeLabel } from '../domain/labels'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
+import { RIDER_NOT_FOUND } from '../components/ui/RiderHeader'
 
 /**
  * LAS FRASES POR REGLA (docs/entrenamiento.md §2.3). El servidor manda códigos y el texto vive aquí,
@@ -384,26 +388,38 @@ export function RiderProfile() {
     enabled: owner,
   })
 
-  // Sin `:id` y sin corredor propio: el jugador aún no ha creado el suyo.
-  if (!routeId && mine.isPending) return <p className="text-slate-500">Loading…</p>
-  if (!routeId && !mine.data) {
+  // Los estados, con `QueryView` (E3, PR 10). Sin `:id` y sin corredor propio, el jugador aún no ha
+  // creado el suyo; y un fallo de `mine` ya no se pinta como «no tienes corredor».
+  if (!routeId && mine.data === undefined)
+    return <QueryView query={mine} label="your rider" skeleton={{ kind: 'header' }} />
+  if (!routeId && mine.data === null) {
     return (
-      <section className="mx-auto max-w-md space-y-4 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">No rider yet</h1>
-        <p className="text-slate-600">Create your rider to enter the world.</p>
-        <Link
-          to="/create"
-          className="inline-block rounded-md bg-brand-cyan px-4 py-2.5 font-medium text-white transition hover:bg-brand-cyan-light"
-        >
-          Create your rider
-        </Link>
+      <section className="mx-auto max-w-md space-y-4">
+        <h1 className="text-page text-ink">No rider yet</h1>
+        <EmptyState
+          icon="rider"
+          text="Create your rider to enter the world."
+          action={
+            <Button to="/create" variant="primary">
+              Create your rider
+            </Button>
+          }
+        />
       </section>
     )
   }
 
-  if (riderQuery.isPending) return <p className="text-slate-500">Loading…</p>
-  if (riderQuery.isError || !riderQuery.data)
-    return <p className="text-red-600">Could not load the rider.</p>
+  // Un corredor que no existe dice que no existe: la respuesta de la pantalla 47.
+  if (riderQuery.data === undefined)
+    return (
+      <QueryView
+        query={riderQuery}
+        label="the rider"
+        notFound={RIDER_NOT_FOUND}
+        skeleton={{ kind: 'header' }}
+        answer
+      />
+    )
 
   const rider = riderQuery.data
   const attributes = Object.fromEntries(

@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
 import { ErrorState } from '../../components/ui/ErrorState'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { Field } from '../../components/ui/Field'
 import { Flag } from '../../components/ui/Flag'
 import { Icon } from '../../components/ui/Icon'
@@ -18,11 +19,13 @@ import { OfflineBannerView } from '../../components/ui/OfflineBanner'
 import { OfflineState } from '../../components/ui/OfflineState'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Panel } from '../../components/ui/Panel'
+import { QueryView } from '../../components/ui/QueryView'
 import { RankTable, type RankTableColumn } from '../../components/ui/RankTable'
 import { RiderHeader } from '../../components/ui/RiderHeader'
 import { type LegacyTeam, RiderLabel } from '../../components/ui/RiderLabel'
 import { Scale5 } from '../../components/ui/Scale5'
 import { Segmented } from '../../components/ui/Segmented'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { StarRating } from '../../components/ui/StarRating'
 import { Stat } from '../../components/ui/Stat'
 import { Tabs } from '../../components/ui/Tabs'
@@ -44,6 +47,7 @@ import {
   SHORT_CONSEQUENCE,
   TEAM_ROWS,
   UI_TEAMS,
+  UI_QUERIES,
   type UiGcRow,
 } from './fixtures'
 
@@ -835,6 +839,60 @@ function Escalas() {
   )
 }
 
+/* ── El 10: los estados de una consulta ──────────────────────────────────────────────────────── */
+
+function Consultas() {
+  return (
+    <>
+      <Demo name="QueryView">
+        {UI_QUERIES.map(([nombre, q]) => (
+          <Estado key={nombre} name={nombre}>
+            <QueryView
+              query={q}
+              label="your race calendar"
+              skeleton={{ kind: 'rows', rows: 2, rowHeight: 64 }}
+              isEmpty={(d) => d.length === 0}
+              empty={{ text: 'No races in the next four weeks. This month is for building.' }}
+            >
+              {(d) => <p className="text-body text-ink">{d.join(' · ')}</p>}
+            </QueryView>
+          </Estado>
+        ))}
+      </Demo>
+      <Demo name="Skeleton">
+        <Estado name="rows · 56, a classification of riders">
+          <Skeleton shape={{ kind: 'rows', rows: 2 }} />
+        </Estado>
+        <Estado name="panel">
+          <Skeleton shape={{ kind: 'panel' }} />
+        </Estado>
+        <Estado name="stat">
+          <Skeleton shape={{ kind: 'stat' }} />
+        </Estado>
+        <Estado name="header">
+          <Skeleton shape={{ kind: 'header' }} />
+        </Estado>
+      </Demo>
+      <Demo name="EmptyState">
+        <Estado name="with its reason">
+          <EmptyState text="No races in the next four weeks. This month is for building." />
+        </Estado>
+        <Estado name="with an action">
+          <EmptyState
+            icon="rider"
+            text="You don't have a rider yet. Create one, and plan their training here."
+            action={
+              <Button to="/_ui" variant="primary">
+                Create your rider
+              </Button>
+            }
+          />
+        </Estado>
+      </Demo>
+    </>
+  )
+}
+
 function Iconos() {
   const nombres = Object.keys(ICONS) as IconName[]
   return (
@@ -918,6 +976,7 @@ export function UiPage() {
       <Clasificaciones />
       <Filas />
       <Escalas />
+      <Consultas />
       <Iconos />
       <AmbitoOscuro />
     </main>

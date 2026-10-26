@@ -7,6 +7,8 @@ import { ShareStage } from '../components/ShareStage'
 import { StageGateCard, TwoDeviceNotice } from '../components/StageGate'
 import { StageStory } from '../components/StageStory'
 import { TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { EmptyState } from '../components/ui/EmptyState'
+import { LoadingState, QueryView } from '../components/ui/QueryView'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
 import type { ReadyRace } from '../domain/veil'
 import { useRevealActions } from '../queryClient'
@@ -101,10 +103,18 @@ export function OneDaySections({
     f.readingWithCookie ? null : raceKeyOf(raceId, f.broadcastHead.data, f.gameDay),
     () => setRevealedHere(true),
   )
-  const { full, gate, actaError } = useStageResult(f, raceId, 1, RESULT_TABS.has(active))
+  const { full, gate, acta } = useStageResult(f, raceId, 1, RESULT_TABS.has(active))
   const watchHead = usePinnedHead(f.broadcastHead.data)
 
-  if (!tabsKnown) return <p className="text-slate-500">Loading…</p>
+  // Los estados, con `QueryView` (E3, PR 10): con `Watch` encendido las pestañas esperan a la ruta de la
+  // etapa, y un fallo suyo ya no se queda cargando para siempre; lo demás que esperan (quién mira, la
+  // cabecera) siempre llega.
+  if (!tabsKnown)
+    return watchSettled && watchOn && f.data === undefined ? (
+      <QueryView query={f.stage} label="the race" skeleton={{ kind: 'panel' }} />
+    ) : (
+      <LoadingState label="the race" />
+    )
 
   const options = tabIds.map((id) => ({ key: id, label: raceTabLabel(id, watchOn) }))
   const pagePath = `/world/races/${raceId}`
@@ -132,17 +142,16 @@ export function OneDaySections({
       diagHref={diagHref}
     />
   )
-  /** Lo que enseña el resultado: la puerta, o lo que trae la ruta de la etapa o el acta. */
+  /**
+   * Lo que enseña el resultado: la puerta, o lo que trae la ruta de la etapa o el acta. Mientras no llegan,
+   * los estados de la que falta, con `QueryView` (E3, PR 10); el 403 del acta ya es la puerta.
+   */
   const withResult = (render: (d: StageReplayData) => ReactNode): ReactNode => {
     if (gate !== null) return gateCard(gate)
     if (full !== null) return render(full)
-    if (actaError || f.isError)
-      return (
-        <div className={card}>
-          <p className="text-sm text-red-600">Could not load the race.</p>
-        </div>
-      )
-    return <p className="text-slate-500">Loading…</p>
+    if (f.data === undefined)
+      return <QueryView query={f.stage} label="the race" skeleton={{ kind: 'panel' }} />
+    return <QueryView query={acta} label="the race" skeleton={{ kind: 'panel' }} />
   }
   const radioHead = f.broadcastHead.data
   const paintedRadio = paintedRadioWanted(gate, f.watchable, radioHead)
@@ -196,7 +205,7 @@ export function OneDaySections({
               onReached={(s) => setReachedHere((x) => Math.max(x, s))}
             />
           ) : (
-            <p className="text-slate-500">Loading…</p>
+            <QueryView query={f.broadcastHead} label="the broadcast" skeleton={{ kind: 'panel' }} />
           ))}
 
         {active === 'report' && (
@@ -238,10 +247,7 @@ export function OneDaySections({
             ) : (
               <div className={card}>
                 <h2 className={head}>Race Radio</h2>
-                <p className="text-sm text-slate-500">
-                  This race was run before the race radio was recorded, so there is nothing to
-                  replay.
-                </p>
+                <EmptyState text="This race was run before the race radio was recorded, so there is nothing to replay." />
               </div>
             ),
           )}

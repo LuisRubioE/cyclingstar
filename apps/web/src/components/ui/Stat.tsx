@@ -1,4 +1,5 @@
 import { money } from '../../domain/format'
+import { SkeletonBar } from './Skeleton'
 import { withLayout } from './styles'
 import type { Layout } from './types'
 
@@ -7,7 +8,7 @@ import type { Layout } from './types'
  * `ink-3`; la cifra en `text-display` con `tabular-nums`. El dinero con signo (`signed`) va en `good` o
  * `bad` y siempre con su signo (`+780`, `−80`, D-13); el cero, sin signo y en `ink` (hoy, `−0` en rosa,
  * captura 03). Un `<dl>` con su `<dt>` y su `<dd>`: hoy fallan `dlitem` y `definition-list` en las
- * fichas (mapa 05 §11). Cargando, la cifra es un esqueleto de 40 (el de `Skeleton`, en el PR 10).
+ * fichas (mapa 05 §11). Cargando, la cifra es un esqueleto de 40 (`SkeletonBar`, PR 10).
  */
 
 export interface StatProps {
@@ -41,14 +42,7 @@ export function Stat({ label, value, signed = false, loading = false, layout }: 
     >
       <dt className="text-caption font-semibold tracking-caps text-ink-3 uppercase">{label}</dt>
       <dd className={`text-display tabular-nums ${tone}`}>
-        {loading ? (
-          <span
-            aria-hidden="true"
-            className="block h-10 w-32 animate-pulse rounded-ui bg-surface-2 motion-reduce:animate-none"
-          />
-        ) : (
-          text
-        )}
+        {loading ? <SkeletonBar size="figure" /> : text}
       </dd>
     </dl>
   )

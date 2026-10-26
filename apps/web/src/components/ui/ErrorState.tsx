@@ -32,6 +32,8 @@ export interface ErrorStateProps {
   readonly retrying?: boolean
   /** lo que va en lugar del botón, en `notFound` (`Go to Dashboard`) */
   readonly action?: ReactNode
+  /** la respuesta de la pantalla (§7.3; desde el PR 10, la pasa `QueryView`) */
+  readonly answer?: boolean
 }
 
 /** La frase de cada tipo (pantalla). */
@@ -43,13 +45,14 @@ export function errorTitle({ kind, label, chunk, message }: ErrorStateProps): st
 }
 
 export function ErrorState(props: ErrorStateProps) {
-  const { kind, status, onRetry, retrying = false, action } = props
+  const { kind, status, onRetry, retrying = false, action, answer = false } = props
   return (
     <div
       role="alert"
       data-ui="ErrorState"
       data-state="error"
       data-kind={kind}
+      {...(answer ? { 'data-answer': '' } : {})}
       className="grid justify-items-start gap-2 py-6"
     >
       <span className="inline-flex text-bad">

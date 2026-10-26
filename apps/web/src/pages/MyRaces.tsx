@@ -1,6 +1,6 @@
 import { raceIdFromKey } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { RaceClass } from '../api/calendar'
 import { type EnterableRace, enterRace, fetchEnterableRaces, withdrawRace } from '../api/raceEntry'
@@ -11,6 +11,8 @@ import { Panel, SectionBar } from '../components/Panel'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageRoute } from '../components/StageRoute'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { raceClassLabel, travelDaysLabel } from '../domain/labels'
 import {
   hasStageBreakdown,
@@ -32,15 +34,6 @@ const TAB_LABEL: Record<TabId, string> = {
   results: 'Results',
 }
 const MY_RACES_PANEL = 'my-races-section'
-
-/** Fila vacía con el mismo aire en las tres pestañas. */
-function Empty({ children }: { children: ReactNode }) {
-  return (
-    <p className="rounded-md border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-      {children}
-    </p>
-  )
-}
 
 /** Cuándo empieza (o si ya está en marcha), en una frase corta. */
 function whenLabel(daysUntil: number, ongoing: boolean): string {
@@ -74,19 +67,20 @@ function UpcomingTab() {
     },
   })
 
-  if (upcoming.isPending) return <p className="text-slate-500">Loading…</p>
-  if (upcoming.isError) return <p className="text-red-600">Could not load your races.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (upcoming.data === undefined)
+    return (
+      <QueryView query={upcoming} label="your races" skeleton={{ kind: 'rows', rowHeight: 64 }} />
+    )
 
   const races = upcoming.data ?? []
   // Lo que pedí y todavía no es una convocatoria: la carrera aún no ha cerrado su lista de salida.
   const pending = (entries.data ?? []).filter((r) => r.entered && !r.enrolled)
 
-  if (races.length === 0 && pending.length === 0) {
+  // El vacío, con las inscripciones ya en la mano: mientras llegan, o si fallan, no se dice que no hay nada.
+  if (races.length === 0 && pending.length === 0 && entries.data !== undefined) {
     return (
-      <Empty>
-        No races on your programme yet. Your team enters you about two weeks before the start — and
-        as a free agent you can enter races yourself.
-      </Empty>
+      <EmptyState text="No races on your programme yet. Your team enters you about two weeks before the start — and as a free agent you can enter races yourself." />
     )
   }
 
@@ -189,6 +183,14 @@ function UpcomingTab() {
         </Panel>
       )}
 
+      {/* las inscripciones que esperan la lista de salida, con sus estados (E3, PR 10) */}
+      {entries.data === undefined && (
+        <QueryView
+          query={entries}
+          label="your race entries"
+          skeleton={{ kind: 'rows', rowHeight: 64 }}
+        />
+      )}
       {pending.length > 0 && (
         <Panel title="Entered — waiting for the start list">
           <ul className="divide-y divide-slate-100">
@@ -286,10 +288,11 @@ function EnterableRow({
 /** Pestaña "Available to enter" (solo agente libre): auto-inscripción con su coste de viaje. */
 function EnterTab({ money }: { money: number | null }) {
   const queryClient = useQueryClient()
-  const { data, isPending, isError } = useQuery({
+  const entries = useQuery({
     queryKey: ['race-entries'],
     queryFn: fetchEnterableRaces,
   })
+  const { data } = entries
 
   const mutation = useMutation({
     mutationFn: ({ id, action }: { id: string; action: 'enter' | 'withdraw' }) =>
@@ -300,8 +303,15 @@ function EnterTab({ money }: { money: number | null }) {
     },
   })
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the races you can enter.</p>
+  // Los estados, con `QueryView` (E3, PR 10).
+  if (data === undefined)
+    return (
+      <QueryView
+        query={entries}
+        label="the races you can enter"
+        skeleton={{ kind: 'rows', rowHeight: 64 }}
+      />
+    )
 
   const committed = data
     .filter((r) => r.entered && !r.enrolled)
@@ -333,7 +343,7 @@ function EnterTab({ money }: { money: number | null }) {
       </div>
 
       {data.length === 0 ? (
-        <Empty>No continental races left to enter this season.</Empty>
+        <EmptyState text="No continental races left to enter this season." />
       ) : (
         <Panel title="Still open" bodyClassName="p-0">
           <div className="overflow-x-auto">
@@ -384,16 +394,23 @@ function EnterTab({ money }: { money: number | null }) {
  */
 function ResultsTab({ riderId }: { riderId: string | null }) {
   const rev = useHorizonRev()
-  const { data, isPending, isError } = useQuery({
+  const results = useQuery({
     queryKey: horizonKey(['rider', 'results', riderId], rev),
     queryFn: () => fetchRiderResults(riderId!),
     enabled: !!riderId && rev !== undefined,
   })
+  const { data } = results
   const [expanded, setExpanded] = useState(false)
 
-  if (!riderId || isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load your results.</p>
-  if (data.length === 0) return <Empty>You haven't raced yet. Your results will land here.</Empty>
+  // Los estados, con `QueryView` (E3, PR 10). El corredor ya llegó (`MyRaces`): sin él, la consulta no
+  // corre, y no se queda cargando para siempre.
+  const empty = <EmptyState text="You haven't raced yet. Your results will land here." />
+  if (!riderId) return empty
+  if (data === undefined)
+    return (
+      <QueryView query={results} label="your results" skeleton={{ kind: 'rows', rowHeight: 64 }} />
+    )
+  if (data.length === 0) return empty
 
   // Regla común de tablas (§7.3): 20 filas y salida para ver el resto.
   const visible = expanded ? data : data.slice(0, TOP_ROWS)
@@ -543,7 +560,17 @@ export function MyRaces() {
       <TabPanel panelId={MY_RACES_PANEL} active={active}>
         {active === 'upcoming' && <UpcomingTab />}
         {active === 'enter' && <EnterTab money={summary.data?.money ?? null} />}
-        {active === 'results' && <ResultsTab riderId={rider.data?.id ?? null} />}
+        {/* los resultados esperan al corredor: si falla, su error, y ya no cargan para siempre (E3, PR 10) */}
+        {active === 'results' &&
+          (rider.data === undefined ? (
+            <QueryView
+              query={rider}
+              label="your rider"
+              skeleton={{ kind: 'rows', rowHeight: 64 }}
+            />
+          ) : (
+            <ResultsTab riderId={rider.data?.id ?? null} />
+          ))}
       </TabPanel>
     </section>
   )

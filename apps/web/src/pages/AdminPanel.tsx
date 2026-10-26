@@ -10,6 +10,7 @@ import {
   updateAdminUser,
 } from '../api/admin'
 import { ApiError } from '../api/request'
+import { QueryView } from '../components/ui/QueryView'
 
 /**
  * Panel de administración (cuentas). Sólo entra quien la API reconoce como admin por su SESIÓN:
@@ -42,7 +43,10 @@ const USERS_KEY = 'admin-users'
 export function AdminPanel() {
   const whoami = useQuery({ queryKey: ['admin-whoami'], queryFn: fetchAdminWhoami, retry: false })
 
-  if (whoami.isPending) return <p className="text-slate-500">Loading…</p>
+  // Los estados, con `QueryView` (E3, PR 10): un fallo de `whoami` ya no se pinta como «sin acceso» (el
+  // 401 de quien no es admin llega como `null`).
+  if (whoami.data === undefined)
+    return <QueryView query={whoami} label="your admin access" skeleton={{ kind: 'panel' }} />
   if (!whoami.data || whoami.data.via !== 'session') {
     return (
       <section className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -89,18 +93,22 @@ function Panel({ me }: { me: string | null }) {
         className="w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
       />
 
-      {users.isPending && <p className="text-sm text-slate-500">Loading accounts…</p>}
-      {users.isError && <p className="text-sm text-red-600">{adminErrorMessage(users.error)}</p>}
-      {users.data && users.data.length === 0 && (
-        <p className="text-sm text-slate-500">No accounts match.</p>
-      )}
-      {users.data && users.data.length > 0 && (
-        <ul className="space-y-3">
-          {users.data.map((u) => (
-            <UserCard key={u.id} user={u} isMe={u.id === me} />
-          ))}
-        </ul>
-      )}
+      {/* Los estados, con `QueryView` (E3, PR 10). */}
+      <QueryView
+        query={users}
+        label="accounts"
+        skeleton={{ kind: 'rows', rowHeight: 64 }}
+        isEmpty={(list) => list.length === 0}
+        empty={{ text: 'No accounts match.' }}
+      >
+        {(list) => (
+          <ul className="space-y-3">
+            {list.map((u) => (
+              <UserCard key={u.id} user={u} isMe={u.id === me} />
+            ))}
+          </ul>
+        )}
+      </QueryView>
     </section>
   )
 }

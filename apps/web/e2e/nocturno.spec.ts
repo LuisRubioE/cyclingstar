@@ -96,7 +96,8 @@ async function emula(context: BrowserContext, page: Page, perfil: Perfil) {
 
 /**
  * Una página está lista cuando su `[data-answer]` está en `data-state="ready"` y nada de `main` sigue en
- * `loading` (§7.5); hasta que la página lleve su `data-answer`, cuando `main` ya no dice `Loading…`.
+ * `loading` (§7.5); hasta que la página lleve su `data-answer`, cuando `main` ya no dice `Loading…` ni
+ * tiene un `QueryView` cargando (PR 10).
  */
 async function esperaLista(page: Page) {
   await page.waitForFunction(
@@ -109,7 +110,11 @@ async function esperaLista(page: Page) {
           answer.getAttribute('data-state') === 'ready' &&
           main.querySelector('[data-state="loading"]') === null
         )
-      return !/Loading…/.test(main.innerText) && main.innerText.trim().length > 40
+      return (
+        !/Loading…/.test(main.innerText) &&
+        main.querySelector('[data-ui="QueryView"][data-state="loading"]') === null &&
+        main.innerText.trim().length > 40
+      )
     },
     null,
     { timeout: 120_000, polling: 50 },
