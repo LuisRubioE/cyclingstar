@@ -910,6 +910,36 @@ function Consultas() {
 /** El reloj más ancho: el último día de la temporada 12, con 23 h 59 min por delante (Ruso-006). */
 const RELOJ_ANCHO = worldClock(12 * 364, (23 * 60 + 59) * 60_000)
 
+/**
+ * Una sección para lo que en la web va de borde a borde (la cabecera): por debajo de 640, a todo lo ancho
+ * de la ventana, sin el margen de `/_ui`, que se queda en su título y sus rótulos. Es hija de `main`, y
+ * con su margen negativo no sale de su caja de relleno (la comprobación 2 la mira).
+ */
+function DemoAncho({
+  name,
+  estados,
+}: {
+  readonly name: string
+  readonly estados: readonly (readonly [string, ReactNode])[]
+}) {
+  const id = useId()
+  return (
+    <section data-ui-demo={name} aria-labelledby={id} className="-mx-3 flex flex-col gap-4 sm:mx-0">
+      <h2 id={id} className="px-3 text-title text-ink sm:px-0">
+        {name}
+      </h2>
+      {estados.map(([nombre, contenido]) => (
+        <div key={nombre} className="flex flex-col gap-2">
+          <p className="px-3 text-caption font-semibold tracking-caps text-ink-3 uppercase sm:px-0">
+            {nombre}
+          </p>
+          {contenido}
+        </div>
+      ))}
+    </section>
+  )
+}
+
 const destino = (l: MainLink): BottomNavItem => ({
   key: l.section,
   to: '/_ui',
@@ -921,17 +951,23 @@ const destino = (l: MainLink): BottomNavItem => ({
 function Marcos() {
   return (
     <>
-      <Demo name="AppHeader">
-        <Estado name="signed in · the widest clock">
-          <AppHeader state="signed-in" clock={RELOJ_ANCHO} />
-        </Estado>
-        <Estado name="signed out · the clock only from 640">
-          <AppHeader state="signed-out" clock={RELOJ_ANCHO} />
-        </Estado>
-        <Estado name="unknown · offline, the player's (D-47)">
-          <AppHeader state="unknown" clock={null} />
-        </Estado>
-      </Demo>
+      <DemoAncho
+        name="AppHeader"
+        estados={[
+          [
+            'signed in · the widest clock',
+            <AppHeader key="in" state="signed-in" clock={RELOJ_ANCHO} />,
+          ],
+          [
+            'signed out · the clock only from 640',
+            <AppHeader key="out" state="signed-out" clock={RELOJ_ANCHO} />,
+          ],
+          [
+            "unknown · offline, the player's (D-47)",
+            <AppHeader key="unknown" state="unknown" clock={null} />,
+          ],
+        ]}
+      />
       <Demo name="BottomNav">
         <Estado name="five · the short labels below 76 px a cell">
           <Marco>
