@@ -27,7 +27,7 @@ function Tarjeta({
   readonly today: number
 }) {
   return (
-    <li className="grid gap-2 py-3">
+    <li className="grid gap-2 py-3 first:pt-0">
       <div>
         <p className="flex flex-wrap items-center gap-x-2 text-row text-ink">
           <TextLink to={`/world/races/${race.raceId}`}>{race.name}</TextLink>

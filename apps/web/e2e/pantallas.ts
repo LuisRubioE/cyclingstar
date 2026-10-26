@@ -80,9 +80,36 @@ async function cambiaElPapel(page: Page): Promise<void> {
   await papel.selectOption(otro)
 }
 
+/**
+ * La 01 y la 29 (PR 14): otro bloque en la semana 1 del plan, sin guardar (§10.2). El `select` de la semana
+ * se nombra con su título (`Week 1 · Days 51 to 57`); la web de antes del 14 no lo nombra, y en ella es el
+ * primero de la página, así que el CI también puede medir con esta edición la web de la base.
+ */
+async function cambiaElBloque(page: Page): Promise<void> {
+  const nombrado = page.getByRole('combobox', { name: /^Week 1 · / })
+  const bloque = (await nombrado.count()) > 0 ? nombrado.first() : page.locator('select').first()
+  const actual = await bloque.inputValue()
+  const otro = await bloque
+    .locator('option')
+    .evaluateAll(
+      (opciones, valor) =>
+        opciones.map((o) => (o as HTMLOptionElement).value).find((v) => v !== valor) ?? null,
+      actual,
+    )
+  if (otro === null) throw new Error('la semana 1 no tiene otro bloque que elegir')
+  await bloque.selectOption(otro)
+}
+
 export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
   { id: '_ui', path: '/_ui', account: 'visitante', answer: null, tool: false },
-  { id: '01-me-training', path: '/me/training', account: 'jugador', answer: 'Panel', tool: true },
+  {
+    id: '01-me-training',
+    path: '/me/training',
+    account: 'jugador',
+    answer: 'Panel',
+    tool: true,
+    edit: cambiaElBloque,
+  },
   { id: '02-me-races', path: '/me/races', account: 'jugador', answer: 'Panel', tool: true },
   {
     id: '03-me-races-enter',
@@ -221,13 +248,13 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
   { id: '26-me-contract', path: '/me/contract', account: 'jugador', answer: 'Panel', tool: true },
   { id: '27-me-finances', path: '/me/finances', account: 'jugador', answer: 'Stat', tool: false },
   { id: '28-account', path: '/account', account: 'jugador', answer: 'Panel', tool: true },
-  // La 01 y la 29 ganan su edición (cambiar el bloque de la semana 1) con el cuadro de §10, en el 14.
   {
     id: '29-me-training-manager',
     path: '/me/training',
     account: 'manager',
     answer: 'Panel',
     tool: true,
+    edit: cambiaElBloque,
   },
   { id: '30-home-manager', path: '/', account: 'manager', answer: 'Panel', tool: false },
   { id: '31-login', path: '/login', account: 'visitante', answer: 'Panel', tool: true },

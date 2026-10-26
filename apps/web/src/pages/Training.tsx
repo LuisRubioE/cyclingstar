@@ -238,7 +238,7 @@ function Cuadro({
       <Panel title="How you'll arrive" answer>
         <QueryView
           query={preview}
-          label="your arrivals"
+          label="your training plan"
           skeleton={{ kind: 'rows', rows: 3, rowHeight: 64 }}
         >
           {(p) => <ArrivalCards races={p.races} days={days ?? p.days} today={orders.currentDay} />}

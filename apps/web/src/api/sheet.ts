@@ -7,9 +7,9 @@ import {
   type CoachView,
   type PlanPreview,
   type PlanPreviewRequest,
-  type PutTrainingPlanRequest,
   type TrainingMode,
   type TrainingPlanInput,
+  type putTrainingPlanSchema,
   blockReportResponseSchema,
   coachViewResponseSchema,
   okResponseSchema,
@@ -17,7 +17,11 @@ import {
   trainingPlanResponseSchema,
   trendResponseSchema,
 } from '@cyclingstar/shared'
+import type { z } from 'zod'
 import { request } from './request'
+
+/** Lo que manda la pantalla (PR 14): el modo, los bloques, el énfasis y la intensidad, y empezar de cero. */
+export type PutTrainingPlanRequest = z.input<typeof putTrainingPlanSchema>
 
 export type {
   AttrLogSource,
