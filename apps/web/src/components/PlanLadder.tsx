@@ -8,6 +8,7 @@ import {
   type Intensity,
   type PlanPreviewDay,
   type TrainingMode,
+  seasonPosition,
 } from '@cyclingstar/shared'
 import { Fragment, type ReactNode, useId } from 'react'
 import {
@@ -145,11 +146,15 @@ export interface PlanLadderProps {
   readonly direction: ReadonlyMap<number, 'out' | 'back'>
   /** hay un plan vivo empezado antes de mañana */
   readonly canStartFresh: boolean
+  /** el día en que empezó el plan vivo, para volver a él tras empezar de cero sin guardar */
+  readonly livePlanStart: number | null
   readonly onMode: (mode: TrainingMode) => void
   readonly onBlock: (index: number, block: CoachBlock | null) => void
   readonly onFocus: (attr: Attribute | null) => void
   readonly onIntensity: (intensity: Intensity) => void
   readonly onStartFresh: () => void
+  /** deshace `Start a new plan tomorrow` sin guardar */
+  readonly onKeepPlan: () => void
 }
 
 export function PlanLadder({
@@ -158,11 +163,13 @@ export function PlanLadder({
   days,
   direction,
   canStartFresh,
+  livePlanStart,
   onMode,
   onBlock,
   onFocus,
   onIntensity,
   onStartFresh,
+  onKeepPlan,
 }: PlanLadderProps) {
   const focusId = useId()
   const intensityId = useId()
@@ -267,6 +274,12 @@ export function PlanLadder({
       {elige && canStartFresh && !draft.startFresh && (
         <Button variant="quiet" onClick={onStartFresh} layout="-ml-4 self-start">
           Start a new plan tomorrow
+        </Button>
+      )}
+      {/* Empezar de cero se deshace como cualquier otro cambio sin guardar. */}
+      {elige && draft.startFresh && livePlanStart !== null && (
+        <Button variant="quiet" onClick={onKeepPlan} layout="-ml-4 self-start">
+          {`Keep your plan from Day ${seasonPosition(livePlanStart).dayOfSeason}`}
         </Button>
       )}
     </div>

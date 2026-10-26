@@ -284,5 +284,8 @@ describe('el cuadro de entrenamiento (§10)', () => {
     expect(t).toContain('Coach mode: nothing you set here is used. Switch to Mixed to edit.')
     expect(t).toContain('Switch to Mixed')
     expect(s).toContain('aria-label="Week 1, days 51 to 57"')
+    // los bloques no se usan: la semana es del entrenador
+    expect(t).toContain('Week 1 · Days 51 to 57 · Coach')
+    expect(t).not.toContain('Days 51 to 57 · Build')
   })
 })

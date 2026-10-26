@@ -142,8 +142,7 @@ test('Try again sin red espera ocupado, y al volver la red recarga sola', async 
     await context.setOffline(true)
     await navega(page, '/news')
     const boton = errorState(page).getByRole('button', { name: 'Try again' })
-    // Pulsarlo no guarda: sin red no tiene acción (Playwright no pulsa lo que está `aria-disabled`).
-    await boton.dispatchEvent('click')
+    await boton.click()
     // recargar sin red daría la página de error del navegador (D-00p): espera, ocupado
     const ocupado = errorState(page).getByRole('button', { name: 'Trying again…' })
     await expect(ocupado).toHaveAttribute('aria-busy', 'true')

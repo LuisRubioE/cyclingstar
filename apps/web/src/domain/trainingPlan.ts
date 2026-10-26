@@ -199,17 +199,75 @@ export function ordersWindow(saved: readonly TrainingOrder[], edits: DayEdits): 
   return [...out.values()].sort((a, b) => a.gameDay - b.gameDay)
 }
 
-/** La petición de la vista previa: el modo, el plan y la ventana de órdenes (§11.2). */
+/**
+ * La petición de la vista previa: el modo, el plan y la ventana de órdenes (§11.2). `fromTomorrow`: las semanas
+ * desde mañana aunque no se empiece de cero, cuando no hay un plan vivo con bloques (`livePlan`), como las
+ * pinta la pantalla.
+ */
 export function previewRequest(
   draft: PlanDraft,
   window: readonly TrainingOrder[],
+  fromTomorrow = false,
 ): PlanPreviewRequest {
   return {
     mode: draft.mode,
     plan: { blocks: [...draft.blocks], focusAttr: draft.focusAttr, intensity: draft.intensity },
     edits: [...window],
-    startFresh: draft.startFresh,
+    startFresh: draft.startFresh || fromTomorrow,
   }
+}
+
+/** La intensidad sin elegir es `Normal` (`blockWeek`): `null` y `normal` son la misma. */
+const intensidad = (i: Intensity | null): Intensity => i ?? 'normal'
+
+type Cambios = { -readonly [K in keyof PlanDraft]?: PlanDraft[K] }
+const CLAVES = ['mode', 'blocks', 'focusAttr', 'intensity', 'startFresh'] as const
+
+/** Si un valor tocado del plan es el guardado. */
+function esLoGuardado<K extends keyof PlanDraft>(saved: PlanDraft, k: K, v: PlanDraft[K]): boolean {
+  if (k === 'blocks') {
+    const b = v as Blocks
+    return saved.blocks.every((x, i) => x === (b[i] ?? null))
+  }
+  if (k === 'intensity') return intensidad(v as Intensity | null) === intensidad(saved.intensity)
+  if (k === 'startFresh') return v === false
+  return v === saved[k]
+}
+
+/**
+ * Lo tocado del plan, sin lo que vuelve a ser lo guardado: un cambio deshecho deja de contar y de pedir
+ * `PUT /plan`, y la vista previa de la pantalla vuelve a ser la de lo guardado.
+ */
+export function pruneChanges(saved: PlanDraft, cambios: Partial<PlanDraft>): Partial<PlanDraft> {
+  const out: Cambios = {}
+  for (const k of CLAVES) {
+    const v = cambios[k]
+    if (v !== undefined && !esLoGuardado(saved, k, v)) Object.assign(out, { [k]: v })
+  }
+  return out
+}
+
+/** Lo tocado sin guardar: el plan y los días. */
+export interface Unsaved {
+  readonly cambios: Partial<PlanDraft>
+  readonly edits: DayEdits
+}
+
+/**
+ * LO QUE QUEDA AL ACABAR UN GUARDADO: lo que se tocó mientras se guardaba. Lo mandado se suelta entrada a
+ * entrada (el modo, los bloques, cada día…), y lo tocado después se queda: soltarlo todo perdería lo nuevo, y
+ * no soltar nada volvería a mandar lo ya guardado (un `startFresh` que reanclaría el plan otro día).
+ */
+export function afterSave(sent: Unsaved, now: Unsaved): Unsaved {
+  const cambios: Cambios = {}
+  for (const k of CLAVES) {
+    const v = now.cambios[k]
+    if (v !== undefined && v !== sent.cambios[k]) Object.assign(cambios, { [k]: v })
+  }
+  const edits = Object.fromEntries(
+    Object.entries(now.edits).filter(([k, e]) => e !== sent.edits[Number(k)]),
+  )
+  return { cambios, edits }
 }
 
 /** El plan cambia (y hay que llamar a `PUT /plan`): el modo, un bloque, el énfasis, la intensidad o empezar de cero. */
@@ -219,7 +277,7 @@ export function planChanges(saved: PlanDraft, draft: PlanDraft): number {
     Number(draft.mode !== saved.mode) +
     bloques +
     Number(draft.focusAttr !== saved.focusAttr) +
-    Number(draft.intensity !== saved.intensity) +
+    Number(intensidad(draft.intensity) !== intensidad(saved.intensity)) +
     Number(draft.startFresh)
   )
 }
@@ -231,27 +289,35 @@ export function changeCount(saved: PlanDraft, draft: PlanDraft, edits: DayEdits)
 
 /**
  * LO QUE CAMBIA AL GUARDAR (§10.9), sin el recuento, que pone la `ActionBar`: empezar de cero, con el día de
- * mañana; si no, la primera carrera cuya llegada cambia; si no, el modo, si es lo único que cambió; y si no,
- * que las llegadas no cambian. Compara la vista previa de la pantalla con la de lo guardado.
+ * mañana; si no, la primera carrera cuya llegada cambia; si no, el modo, si es lo único que cambió (ni el plan
+ * ni un día); y si no, que las llegadas no cambian. Compara la vista previa de la pantalla con la de lo
+ * guardado; sin una de las dos (llegando, o en error), no dice nada de las llegadas.
  */
 export function consequenceText(o: {
   readonly saved: PlanDraft
   readonly draft: PlanDraft
-  readonly savedRaces: readonly PlanPreviewRace[]
-  readonly draftRaces: readonly PlanPreviewRace[]
+  readonly edits: DayEdits
+  /** null mientras llega o si falló */
+  readonly savedRaces: readonly PlanPreviewRace[] | null
+  readonly draftRaces: readonly PlanPreviewRace[] | null
   readonly tomorrow: number
 }): string {
   if (o.draft.startFresh) return `New plan from ${unDia(o.tomorrow)}`
-  const antes = new Map(o.savedRaces.map((r) => [r.raceKey, r.arrival]))
-  for (const r of o.draftRaces) {
-    const era = antes.get(r.raceKey)
-    if (r.arrival !== null && era !== undefined && era !== null && era !== r.arrival)
-      return `${r.name}: ${ARRIVAL_WORD[r.arrival]} (was ${ARRIVAL_WORD[era]})`
+  const conLlegadas = o.savedRaces !== null && o.draftRaces !== null
+  if (o.savedRaces !== null && o.draftRaces !== null) {
+    const antes = new Map(o.savedRaces.map((r) => [r.raceKey, r.arrival]))
+    for (const r of o.draftRaces) {
+      const era = antes.get(r.raceKey)
+      if (r.arrival !== null && era !== undefined && era !== null && era !== r.arrival)
+        return `${r.name}: ${ARRIVAL_WORD[r.arrival]} (was ${ARRIVAL_WORD[era]})`
+    }
   }
   const soloElModo =
-    o.draft.mode !== o.saved.mode && planChanges(o.saved, { ...o.draft, mode: o.saved.mode }) === 0
+    o.draft.mode !== o.saved.mode &&
+    planChanges(o.saved, { ...o.draft, mode: o.saved.mode }) === 0 &&
+    Object.keys(o.edits).length === 0
   if (soloElModo) return `Mode: ${MODE_WORD[o.draft.mode]} (was ${MODE_WORD[o.saved.mode]})`
-  return 'arrivals stay the same'
+  return conLlegadas ? 'arrivals stay the same' : ''
 }
 
 // --- Las semanas y la tira -----------------------------------------------------------------------
@@ -401,8 +467,14 @@ export function monthLoad(days: readonly Pick<PlanPreviewDay, 'load'>[]): LoadLe
 
 // --- La línea de estado, la regla y el origen de cada día -----------------------------------------
 
-/** Un plan con las cuatro semanas para el entrenador no es un plan. */
-const tieneBloques = (blocks: Blocks) => blocks.some((b) => b !== null)
+/**
+ * EL PLAN VIVO, SI TIENE ALGÚN BLOQUE: uno con las cuatro semanas para el entrenador no es un plan (§10.1), y
+ * lo deja guardado cambiar solo el modo sin plan (`PUT /plan` lleva el plan entero). La pantalla cuenta sus
+ * semanas desde mañana y lo guarda desde mañana, como si no hubiera.
+ */
+export function livePlan<P extends { readonly blocks: Blocks }>(plan: P | null): P | null {
+  return plan !== null && plan.blocks.some((b) => b !== null) ? plan : null
+}
 
 /** La línea de estado del `PageHeader` (I-32): el modo y hasta cuándo dura el plan, lo guardado. */
 export function statusLine(o: {
@@ -410,7 +482,7 @@ export function statusLine(o: {
   readonly plan: { readonly startDay: number; readonly blocks: Blocks } | null
 }): string {
   if (o.mode === 'entrenador') return 'Coach decides · your coach picks every day'
-  if (o.plan !== null && tieneBloques(o.plan.blocks))
+  if (livePlan(o.plan) !== null && o.plan !== null)
     return `${MODE_WORD[o.mode]} · your plan runs ${unDia(o.plan.startDay)} to ${unDia(o.plan.startDay + DIAS_DEL_PLAN - 1)}`
   return o.mode === 'manual'
     ? 'I decide · no plan: days you leave empty are rest'
@@ -545,6 +617,17 @@ export function stageOfRaceDay(
   return Math.min(race.stageCount, Math.max(1, n))
 }
 
+/**
+ * Las carreras de las tarjetas: las de `races[]`, sin la que está en curso y ya no tiene días de carrera en el
+ * horizonte, la que acaba hoy o de la que se retiró hoy: no queda nada que pronosticar ni que correr.
+ */
+export function arrivalRaces(
+  races: readonly PlanPreviewRace[],
+  days: readonly OrdersDay[],
+): PlanPreviewRace[] {
+  return races.filter((r) => !r.ongoing || diasDeCarrera(r, days).length > 0)
+}
+
 /** En curso: la etapa que toca mañana, de cuántas (`Racing now · stage 3 of 5`). */
 export function racingNow(
   race: PlanPreviewRace,
@@ -588,7 +671,10 @@ export interface TripPlan {
   readonly meta: string
   readonly firstDay: number
   readonly legs: readonly TripPlanLeg[]
-  /** en curso: la carrera ya empezó, o la ida ya se hizo */
+  /**
+   * en curso: la carrera ya empezó. Un viaje cuya ida fue hoy no lo dice: el horizonte empieza mañana, y una
+   * ida que no está en él puede ser de hoy o caer en el último día de otra carrera, que le gana.
+   */
   readonly active: boolean
   /** los días que pinta el viaje, que el día a día no repite */
   readonly covers: ReadonlySet<number>
@@ -653,7 +739,7 @@ export function tripsOf(o: {
       meta: `${dayRange(first, last)} · ${plural(sinEntrenar, 'day')} off training`,
       firstDay: first,
       legs,
-      active: race?.ongoing === true || ida.length === 0,
+      active: race?.ongoing === true,
       covers: new Set(todos),
     })
   }

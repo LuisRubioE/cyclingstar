@@ -294,7 +294,13 @@ export function DayByDay({
   const grupos = [
     ...calendar.weeks.map((w) => {
       const block = blocks[w.index] ?? null
-      const quien = block === null ? (mode === 'manual' ? 'Rest' : 'Coach') : BLOCK_WORD[block]
+      // En `Coach decides` los bloques no se usan: la semana es del entrenador.
+      const quien =
+        mode === 'entrenador' || block === null
+          ? mode === 'manual'
+            ? 'Rest'
+            : 'Coach'
+          : BLOCK_WORD[block]
       return { key: `w${w.index}`, title: `${weekTitle(w)} · ${quien}`, days: w.days }
     }),
     ...(calendar.after === null

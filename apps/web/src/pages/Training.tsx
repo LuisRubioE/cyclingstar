@@ -1,6 +1,14 @@
 import type { TrainingOrder } from '@cyclingstar/shared'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { fetchMyRider } from '../api/rider'
 import {
   type TrainingPlanResponse,
@@ -29,17 +37,22 @@ import { Skeleton } from '../components/ui/Skeleton'
 import {
   type DayEdits,
   type PlanDraft,
+  type Unsaved,
   adoptTeamSuggestions,
+  afterSave,
   applyEdits,
+  arrivalRaces,
   backTarget,
   backToLabel,
   buildServerPlan,
   changeCount,
   consequenceText,
+  livePlan,
   ordersWindow,
   planChanges,
   planWeeks,
   previewRequest,
+  pruneChanges,
   savedDraft,
   statusLine,
   tripsOf,
@@ -77,6 +90,9 @@ export function Training() {
   })
   const stored = useQuery({ queryKey: ['training-plan'], queryFn: fetchTrainingPlan })
   const team = useQuery({ queryKey: ['team-training'], queryFn: fetchTeamTraining })
+  // Lo tocado vive aquí, encima de los estados: cuando cambia el horizonte (el jugador ve una etapa, o
+  // cambia el día), las consultas vuelven a cargar y el cuadro se desmonta, y lo tocado no se pierde.
+  const unsaved = useUnsaved()
 
   // Los estados, con `QueryView` (E3, PR 10): la respuesta de las pantallas 40, 41 y 45.
   if (mine.data === undefined)
@@ -102,7 +118,35 @@ export function Training() {
     return (
       <QueryView query={stored} label="your training plan" skeleton={{ kind: 'panel' }} answer />
     )
-  return <Cuadro orders={orders.data} stored={stored.data} team={team.data ?? null} />
+  return (
+    <Cuadro orders={orders.data} stored={stored.data} team={team.data ?? null} unsaved={unsaved} />
+  )
+}
+
+interface UnsavedState {
+  readonly cambios: Partial<PlanDraft>
+  readonly setCambios: Dispatch<SetStateAction<Partial<PlanDraft>>>
+  readonly edits: DayEdits
+  readonly setEdits: Dispatch<SetStateAction<DayEdits>>
+  readonly status: ActionBarStatus
+  readonly setStatus: Dispatch<SetStateAction<ActionBarStatus>>
+  /** lo último en pantalla: el guardado sabe al acabar qué se tocó mientras tanto */
+  readonly enPantalla: MutableRefObject<Unsaved>
+  /** un guardado en marcha: el segundo no sale hasta que acaba el primero */
+  readonly guardando: MutableRefObject<boolean>
+}
+
+/** Lo tocado sin guardar, APARTE de lo guardado: un refetch cambia la base, nunca esto. */
+function useUnsaved(): UnsavedState {
+  const [cambios, setCambios] = useState<Partial<PlanDraft>>({})
+  const [edits, setEdits] = useState<DayEdits>({})
+  const [status, setStatus] = useState<ActionBarStatus>('idle')
+  const enPantalla = useRef<Unsaved>({ cambios, edits })
+  useEffect(() => {
+    enPantalla.current = { cambios, edits }
+  }, [cambios, edits])
+  const guardando = useRef(false)
+  return { cambios, setCambios, edits, setEdits, status, setStatus, enPantalla, guardando }
 }
 
 /** El horizonte, que manda el servidor (`horizonDays`); este es el respaldo. */
@@ -112,30 +156,27 @@ function Cuadro({
   orders,
   stored,
   team,
+  unsaved,
 }: {
   readonly orders: OrdersResponse
   readonly stored: TrainingPlanResponse
   readonly team: TeamTraining | null
+  readonly unsaved: UnsavedState
 }) {
   const qc = useQueryClient()
   const rev = useHorizonRev()
   const saved = useMemo(() => savedDraft(stored), [stored])
-  // Lo tocado sin guardar, APARTE de lo guardado: un refetch cambia la base, nunca esto.
-  const [cambios, setCambios] = useState<Partial<PlanDraft>>({})
-  const [edits, setEdits] = useState<DayEdits>({})
-  const [status, setStatus] = useState<ActionBarStatus>('idle')
+  const { cambios, edits, status } = unsaved
   const [teamMessage, setTeamMessage] = useState<string | null>(null)
   const draft: PlanDraft = { ...saved, ...cambios }
-  // Lo último en pantalla, para que el guardado sepa al acabar si se tocó algo mientras tanto.
-  const enPantalla = useRef({ cambios, edits })
-  useEffect(() => {
-    enPantalla.current = { cambios, edits }
-  }, [cambios, edits])
+  // Sin un plan vivo con bloques, las semanas cuentan desde mañana, y así se guardan (`livePlan`).
+  const vivo = livePlan(stored.plan)
+  const desdeManana = vivo === null
 
   const tomorrow = orders.currentDay + 1
   const ventana = ordersWindow(orders.orders, edits)
-  const savedReq = previewRequest(saved, orders.orders)
-  const draftReq = previewRequest(draft, ventana)
+  const savedReq = previewRequest(saved, orders.orders, desdeManana)
+  const draftReq = previewRequest(draft, ventana, desdeManana)
   const savedPreview = useQuery({
     queryKey: horizonKey(['plan-preview', JSON.stringify(savedReq)], rev),
     queryFn: () => previewTrainingPlan(savedReq),
@@ -152,7 +193,7 @@ function Cuadro({
   const calendar = planWeeks({
     tomorrow,
     horizonDays: orders.horizonDays || HORIZONTE,
-    startDay: draft.startFresh ? null : (stored.plan?.startDay ?? null),
+    startDay: draft.startFresh || vivo === null ? null : vivo.startDay,
   })
   const teamByDay = new Map((team?.plan ?? []).map((o) => [o.gameDay, o]))
   const fallback = (gameDay: number) => {
@@ -176,27 +217,32 @@ function Cuadro({
   const trips = days === null ? [] : tripsOf({ races, days, travelDays: orders.travelDays })
 
   const changes = changeCount(saved, draft, edits)
+  // Sin las dos vistas previas al día (la de lo tocado llegando, o en error), nada sobre las llegadas.
   const consequence = consequenceText({
     saved,
     draft,
-    savedRaces: savedPreview.data?.races ?? races,
-    draftRaces: races,
+    edits,
+    savedRaces: savedPreview.data?.races ?? null,
+    draftRaces: preview.isPlaceholderData ? null : (preview.data?.races ?? null),
     tomorrow,
   })
 
+  // Mientras se guarda, la barra sigue `saving`: lo tocado entonces espera a que acabe.
+  const tocado = () => unsaved.setStatus((s) => (s === 'saving' ? s : 'idle'))
   function cambia(patch: Partial<PlanDraft>) {
-    setStatus('idle')
-    setCambios((c) => ({ ...c, ...patch }))
+    tocado()
+    unsaved.setCambios((c) => pruneChanges(saved, { ...c, ...patch }))
   }
   function tocaDias(f: (e: DayEdits) => DayEdits) {
-    setStatus('idle')
-    setEdits(f)
+    tocado()
+    unsaved.setEdits(f)
   }
 
   async function guardar() {
-    // Lo que se manda; lo que se toque mientras se guarda no se suelta al acabar.
-    const enviado = { cambios, edits }
-    setStatus('saving')
+    if (unsaved.guardando.current) return
+    unsaved.guardando.current = true
+    const enviado: Unsaved = { cambios, edits }
+    unsaved.setStatus('saving')
     try {
       if (planChanges(saved, draft) > 0)
         await saveTrainingPlan({
@@ -206,7 +252,7 @@ function Cuadro({
             focusAttr: draft.focusAttr,
             intensity: draft.intensity,
           },
-          startFresh: draft.startFresh,
+          startFresh: draft.startFresh || desdeManana,
         })
       if (Object.keys(edits).length > 0) await saveOrders(ventana)
       // Lo guardado, de nuevo, antes de soltar lo tocado: la pantalla no vuelve a lo de antes un momento.
@@ -215,14 +261,16 @@ function Cuadro({
         qc.invalidateQueries({ queryKey: ['orders'] }),
         qc.invalidateQueries({ queryKey: ['plan-preview'] }),
       ])
-      const intacto =
-        enPantalla.current.cambios === enviado.cambios && enPantalla.current.edits === enviado.edits
-      setCambios((c) => (c === enviado.cambios ? {} : c))
-      setEdits((e) => (e === enviado.edits ? {} : e))
-      // Con algo tocado durante el guardado, la barra sigue con ello en lugar de decir `Saved` y esconderse.
-      setStatus(intacto ? 'saved' : 'idle')
+      // Se suelta lo mandado; lo tocado mientras tanto se queda, y la barra sigue con ello.
+      const resto = afterSave(enviado, unsaved.enPantalla.current)
+      unsaved.setCambios(resto.cambios)
+      unsaved.setEdits(resto.edits)
+      const quedan = Object.keys(resto.cambios).length + Object.keys(resto.edits).length
+      unsaved.setStatus(quedan === 0 ? 'saved' : 'idle')
     } catch {
-      setStatus('failed')
+      unsaved.setStatus('failed')
+    } finally {
+      unsaved.guardando.current = false
     }
   }
 
@@ -254,7 +302,13 @@ function Cuadro({
           label="your training plan"
           skeleton={{ kind: 'rows', rows: 3, rowHeight: 64 }}
         >
-          {(p) => <ArrivalCards races={p.races} days={days ?? p.days} today={orders.currentDay} />}
+          {(p) => (
+            <ArrivalCards
+              races={arrivalRaces(p.races, days ?? p.days)}
+              days={days ?? p.days}
+              today={orders.currentDay}
+            />
+          )}
         </QueryView>
       </Panel>
 
@@ -264,12 +318,14 @@ function Cuadro({
           calendar={calendar}
           days={days}
           direction={direction}
-          canStartFresh={stored.plan !== null && stored.plan.startDay < tomorrow}
+          canStartFresh={vivo !== null && vivo.startDay < tomorrow}
+          livePlanStart={vivo?.startDay ?? null}
           onMode={(mode) => cambia({ mode })}
           onBlock={(i, b) => cambia({ blocks: draft.blocks.map((x, j) => (j === i ? b : x)) })}
           onFocus={(focusAttr) => cambia({ focusAttr })}
           onIntensity={(intensity) => cambia({ intensity })}
           onStartFresh={() => cambia({ startFresh: true })}
+          onKeepPlan={() => cambia({ startFresh: false })}
         />
       </Panel>
 

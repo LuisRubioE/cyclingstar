@@ -11,18 +11,23 @@ import {
   ARRIVAL_ADVICE,
   type PlanDraft,
   adoptTeamSuggestions,
+  afterSave,
   afterStripLabel,
   afterTitle,
   applyEdits,
+  arrivalRaces,
   backToLabel,
   buildServerPlan,
   changeCount,
   consequenceText,
   dayChip,
+  livePlan,
   monthLoad,
   ordersWindow,
+  planChanges,
   planWeeks,
   previewRequest,
+  pruneChanges,
   raceMeta,
   raceWhen,
   racingNow,
@@ -278,6 +283,47 @@ describe('web: lo que manda el guardado (§10.9; 11-c)', () => {
     )
   })
 
+  it('un cambio deshecho deja de contar: la intensidad sin elegir es Normal, y empezar de cero se quita', () => {
+    const sinIntensidad = { ...GUARDADO, intensity: null }
+    expect(pruneChanges(sinIntensidad, { intensity: 'normal' })).toEqual({})
+    expect(planChanges(sinIntensidad, { ...sinIntensidad, intensity: 'normal' })).toBe(0)
+    expect(pruneChanges(GUARDADO, { blocks: [...GUARDADO.blocks] })).toEqual({})
+    expect(pruneChanges(GUARDADO, { startFresh: false, mode: 'mixto' })).toEqual({})
+    expect(
+      pruneChanges(GUARDADO, { blocks: ['base', null, null, null], focusAttr: 'MON' }),
+    ).toEqual({
+      blocks: ['base', null, null, null],
+      focusAttr: 'MON',
+    })
+  })
+
+  it('al acabar un guardado se suelta lo mandado y se queda lo tocado mientras tanto', () => {
+    const e54 = { kind: 'set', session: 'crono', intensity: 'normal' } as const
+    const e55 = { kind: 'set', session: 'muros', intensity: 'normal' } as const
+    const enviado = { cambios: { startFresh: true, focusAttr: 'MON' as const }, edits: { 54: e54 } }
+    expect(afterSave(enviado, enviado)).toEqual({ cambios: {}, edits: {} })
+    const despues = {
+      cambios: { ...enviado.cambios, intensity: 'fuerte' as const },
+      edits: { 54: e54, 55: e55 },
+    }
+    // `startFresh` ya está guardado: no se vuelve a mandar
+    expect(afterSave(enviado, despues)).toEqual({
+      cambios: { intensity: 'fuerte' },
+      edits: { 55: e55 },
+    })
+    // un día vuelto a tocar mientras se guardaba se queda
+    const otra = { kind: 'set', session: 'fondo', intensity: 'fuerte' } as const
+    expect(afterSave(enviado, { cambios: {}, edits: { 54: otra } }).edits).toEqual({ 54: otra })
+  })
+
+  it('sin un plan vivo con bloques, la vista previa cuenta desde mañana, como la pantalla', () => {
+    expect(previewRequest(GUARDADO, [], true).startFresh).toBe(true)
+    expect(livePlan({ startDay: 41, blocks: [null, null, null, null] })).toBeNull()
+    const plan = { startDay: 41, blocks: [null, 'base', null, null] as const }
+    expect(livePlan(plan)).toBe(plan)
+    expect(livePlan(null)).toBeNull()
+  })
+
   it('cuenta un cambio por cada cosa tocada: el modo, cada bloque, el énfasis, la intensidad, empezar de cero y cada día', () => {
     const draft: PlanDraft = {
       mode: 'manual',
@@ -299,6 +345,7 @@ describe('web: lo que manda el guardado (§10.9; 11-c)', () => {
 describe('web: la consecuencia de la ActionBar (§10.9)', () => {
   const base = {
     saved: GUARDADO,
+    edits: {},
     savedRaces: [VAR, SARDEGNA],
     tomorrow: 51,
   }
@@ -326,6 +373,28 @@ describe('web: la consecuencia de la ActionBar (§10.9)', () => {
     expect(consequenceText({ ...base, saved, draft: GUARDADO, draftRaces: [VAR, SARDEGNA] })).toBe(
       'Mode: Mixed (was Coach decides)',
     )
+  })
+
+  it('el modo solo se dice si es lo único: con un día tocado, se habla de las llegadas', () => {
+    const saved = { ...GUARDADO, mode: 'entrenador' as const }
+    const edits = withDayEdit({}, [], 54, { session: 'crono', intensity: 'normal' })
+    expect(
+      consequenceText({ ...base, saved, draft: GUARDADO, edits, draftRaces: [VAR, SARDEGNA] }),
+    ).toBe('arrivals stay the same')
+  })
+
+  it('sin una de las dos vistas previas, llegando o en error, no dice nada de las llegadas', () => {
+    const draft = { ...GUARDADO, intensity: 'fuerte' as const }
+    expect(consequenceText({ ...base, draft, draftRaces: null })).toBe('')
+    expect(consequenceText({ ...base, draft, savedRaces: null, draftRaces: [VAR] })).toBe('')
+    // lo que no necesita la vista previa sí se dice
+    const saved = { ...GUARDADO, mode: 'entrenador' as const }
+    expect(consequenceText({ ...base, saved, draft: GUARDADO, draftRaces: null })).toBe(
+      'Mode: Mixed (was Coach decides)',
+    )
+    expect(
+      consequenceText({ ...base, draft: { ...GUARDADO, startFresh: true }, draftRaces: null }),
+    ).toBe('New plan from Day 51')
   })
 
   it('empezar de cero lo dice, con el día de mañana', () => {
@@ -533,6 +602,13 @@ describe('web: las tarjetas de llegada (§10.3, §10.4)', () => {
     expect(stageOfRaceDay(SARDEGNA, days2, 58)).toBe(3)
   })
 
+  it('una carrera en curso sin días de carrera en el horizonte no tiene tarjeta: acaba hoy, o se retiró hoy', () => {
+    const enCurso = { ...SARDEGNA, startDay: 48, ongoing: true, arrival: null }
+    const otra = { ...VAR, raceKey: 'race-z:s0' }
+    expect(arrivalRaces([enCurso, otra], [dia(51), dia(52)])).toEqual([otra])
+    expect(arrivalRaces([enCurso], [carrera(51, enCurso.raceKey)])).toEqual([enCurso])
+  })
+
   it('la instrucción de cada tramo, que empieza por la causa', () => {
     expect(ARRIVAL_ADVICE).toEqual({
       fundido:
@@ -615,6 +691,40 @@ describe('web: el viaje, en un bloque (§11.6)', () => {
     const [trip] = tripsOf({ races: [], days: [viaje(78, 'race-japan:s0')], travelDays: travel })
     expect(trip).toMatchObject({ race: 'Race Japan (JP)', meta: 'Day 78 · 1 day off training' })
     expect(trip?.legs.map((l) => [l.days, l.what])).toEqual([['Day 78', 'Out']])
+  })
+
+  it('Now, solo con la carrera en curso: la ida que cae en otra carrera no lo dice', () => {
+    // A del 52 al 56 y B del 57 al 60: la ida de B, el 56, la pisa la última etapa de A.
+    const a = {
+      ...SARDEGNA,
+      raceKey: 'race-a:s0',
+      name: 'Race A',
+      startDay: 52,
+      endDay: 56,
+      travelOut: [51],
+      travelBack: [],
+    }
+    const b = {
+      ...SARDEGNA,
+      raceKey: 'race-b:s0',
+      name: 'Race B',
+      startDay: 57,
+      endDay: 60,
+      travelOut: [],
+      travelBack: [61],
+    }
+    const days = [
+      viaje(51, a.raceKey),
+      ...[52, 53, 54, 55, 56].map((d) => carrera(d, a.raceKey)),
+      ...[57, 58, 59, 60].map((d) => carrera(d, b.raceKey)),
+      viaje(61, b.raceKey),
+    ]
+    const travel = [ida(51, a.raceKey, 'Race A', 'it'), vuelta(61, b.raceKey, 'Race B', 'it')]
+    const trips = tripsOf({ races: [a, b], days, travelDays: travel })
+    expect(trips.map((t) => [t.raceKey, t.active])).toEqual([
+      ['race-a:s0', false],
+      ['race-b:s0', false],
+    ])
   })
 
   it('una carrera en casa, sin viaje, no es un viaje', () => {
