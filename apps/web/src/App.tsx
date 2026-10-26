@@ -2,11 +2,13 @@ import { type ReactNode, Suspense } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { Header } from './components/Header'
-import { PausedOffline } from './components/PausedOffline'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RouteBoundary } from './components/RouteBoundary'
 import { SessionExpiryWatcher } from './components/SessionExpiryWatcher'
 import { OfflineBanner } from './components/ui/OfflineBanner'
+import { Button } from './components/ui/Button'
+import { ErrorState } from './components/ui/ErrorState'
+import { LoadingState } from './components/ui/QueryView'
 import { isStagePagePath } from './domain/firstPaint'
 import { pageKindOfPath, usePageTitle } from './domain/pageTitle'
 import { lazyPage } from './lazyPage'
@@ -147,23 +149,30 @@ function Private({ children }: { children: ReactNode }) {
   return <ProtectedRoute>{children}</ProtectedRoute>
 }
 
-/** URL que no existe (ni siquiera como ruta vieja): se dice, no se deja la página en blanco. */
+/**
+ * URL que no existe (ni siquiera como ruta vieja): se dice, no se deja la página en blanco. Desde el PR 10,
+ * un `ErrorState` `notFound` (E3, §4.2), la respuesta de la pantalla 46.
+ */
 function NotFound() {
   return (
-    <section className="py-10 text-center">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-800">Page not found</h1>
-      <p className="mt-2 text-sm text-slate-500">
-        That page does not exist — it may have moved. Try the season races or your dashboard.
-      </p>
-      <div className="mt-5 flex justify-center gap-3 text-sm font-medium">
-        <Link to="/" className="rounded-xl bg-brand-navy px-4 py-2 text-white">
-          Dashboard
-        </Link>
-        <Link to="/world/races" className="rounded-xl bg-slate-100 px-4 py-2 text-slate-700">
-          Races
-        </Link>
-      </div>
-    </section>
+    <ErrorState
+      kind="notFound"
+      message="Page not found"
+      answer
+      action={
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-meta text-ink-2">
+            That page does not exist — it may have moved. Try the season races or your dashboard.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button to="/" variant="primary">
+              Dashboard
+            </Button>
+            <Button to="/world/races">Races</Button>
+          </div>
+        </div>
+      }
+    />
   )
 }
 
@@ -191,9 +200,8 @@ export function App() {
       {/* Sin red, la franja que lo dice, con la hora de lo que se ve (§12.1; PR 4). */}
       <OfflineBanner />
       <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4">
-        <PausedOffline />
         <RouteBoundary resetKey={pathname}>
-          <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
+          <Suspense fallback={<LoadingState label="the page" />}>
             <Routes>
               {/* Dashboard y feed global */}
               <Route path="/" element={<Home />} />

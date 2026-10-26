@@ -85,7 +85,9 @@ export async function sesionesDe(baseURL: string, world: MundoDePrueba): Promise
 
 /**
  * Espera a que la página acabe de cargar: la red quieta (cinco segundos como mucho: `Watch` y el
- * horizonte sondean), ningún `Loading…` en `main`, la letra cargada y medio segundo para que se asiente.
+ * horizonte sondean), ningún `Loading…` en `main` ni, desde el PR 10, ningún `QueryView` cargando (su
+ * esqueleto no dice `Loading…`: lo dice oculto, `Loading your training plan`), la letra cargada y medio
+ * segundo para que se asiente.
  */
 export async function asienta(page: Page, id: string): Promise<void> {
   await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {})
@@ -93,13 +95,20 @@ export async function asienta(page: Page, id: string): Promise<void> {
     .waitForFunction(
       () => {
         const main = document.querySelector('main')
-        return main !== null && !/Loading…/.test(main.innerText)
+        return (
+          main !== null &&
+          !/Loading…/.test(main.innerText) &&
+          // los de `/_ui` cargan para siempre a propósito: son el catálogo, no la página
+          main.querySelector(
+            '[data-ui="QueryView"]:is([data-state="loading"], [data-state="slow"]):not([data-ui-demo] *)',
+          ) === null
+        )
       },
       null,
       { timeout: 30_000, polling: 100 },
     )
     .catch(() => {
-      throw new Error(`${id}: la pantalla no acaba de cargar (sigue en «Loading…» a los 30 s)`)
+      throw new Error(`${id}: la pantalla no acaba de cargar (sigue cargando a los 30 s)`)
     })
   await page.evaluate(() => document.fonts.ready.then(() => undefined))
   await page.waitForTimeout(500)

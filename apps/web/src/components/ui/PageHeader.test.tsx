@@ -34,7 +34,9 @@ describe('PageHeader', () => {
     const s = html(<PageHeader title="Training" status="Mixed" loading />)
     expect(s).toContain('data-state="loading"')
     expect(s).not.toContain('>Mixed<')
-    expect(s).toMatch(/<span aria-hidden="true"/)
+    expect(s).toContain(
+      'data-ui="Skeleton" data-variant="line" data-state="loading" aria-hidden="true"',
+    )
   })
 
   it('sin línea de estado, solo el título', () => {

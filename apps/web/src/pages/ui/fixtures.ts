@@ -1,4 +1,6 @@
 import type { ChampionTitle, JerseyKind } from '@cyclingstar/shared'
+import { ApiError } from '../../api/request'
+import type { QueryViewProps } from '../../components/ui/QueryView'
 import type { LegacyTeam } from '../../components/ui/RiderLabel'
 
 /**
@@ -207,3 +209,45 @@ export const TEAM_ROWS: readonly UiTeamRow[] = UI_TEAMS.slice(0, 6).map((team, i
   rank: i + 1,
   gap: i * 47,
 }))
+
+/* ── LO DEL 10: una consulta en cada uno de sus seis estados (§5.4) ─────────────────────────────── */
+
+/** La consulta de mentira de `QueryView`, sin React Query: lo que mira y un `refetch` que no hace nada. */
+export type UiQuery = QueryViewProps<readonly string[]>['query']
+
+const sinRefetch = (() => Promise.resolve()) as unknown as UiQuery['refetch']
+const consulta = (o: Partial<UiQuery>): UiQuery => ({
+  data: undefined,
+  error: null,
+  status: 'pending',
+  fetchStatus: 'fetching',
+  refetch: sinRefetch,
+  ...o,
+})
+
+/** Los seis estados, con su nombre: la lenta, por un 429, que lo es desde el primer instante. */
+export const UI_QUERIES: readonly (readonly [string, UiQuery])[] = [
+  ['loading · the skeleton, after 300 ms', consulta({})],
+  [
+    'slow · a 429, or 8 s loading',
+    consulta({
+      status: 'error',
+      fetchStatus: 'idle',
+      error: new ApiError('Too many requests', 429, 'demasiadas_peticiones', 30),
+    }),
+  ],
+  ['offline · paused by React Query', consulta({ fetchStatus: 'paused' })],
+  [
+    'error',
+    consulta({
+      status: 'error',
+      fetchStatus: 'idle',
+      error: new ApiError('Server error', 500, null),
+    }),
+  ],
+  ['empty', consulta({ status: 'success', fetchStatus: 'idle', data: [] })],
+  [
+    'ready',
+    consulta({ status: 'success', fetchStatus: 'idle', data: ['Race Var', 'Race Sardegna'] }),
+  ],
+]

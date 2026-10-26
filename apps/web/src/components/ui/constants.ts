@@ -18,3 +18,13 @@ export const MIN_TARGET_PX = 44
  * (WCAG 2.5.8; la comprobación 5).
  */
 export const MIN_INLINE_TARGET_PX = 24
+
+/**
+ * EL ESQUELETO QUE NO PARPADEA (§4.2; PR 10): `QueryView` lo pinta invisible y lo enseña con su pulso a los
+ * 300 ms. En caliente la web contesta en 1,07 a 1,18 s (telefono §8.2), y uno pintado desde el primer
+ * instante destellaría en cada respuesta rápida; invisible, ya ocupa el alto de lo que viene.
+ */
+export const LOADING_DELAY_MS = 300
+
+/** A los 8 s cargando, o con un 429, el aviso de red lenta: `Still loading. Slow connection?` · `Retry`. */
+export const SLOW_HINT_MS = 8_000

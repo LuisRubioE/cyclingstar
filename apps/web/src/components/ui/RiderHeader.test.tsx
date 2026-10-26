@@ -79,6 +79,7 @@ describe('RiderHeader', () => {
     expect(s).toMatch(
       /^<header data-ui="RiderHeader" data-variant="default" data-state="loading"[^>]*role="status" aria-label="Loading the rider"/,
     )
+    expect(s).toContain('data-ui="Skeleton" data-variant="header"')
     expect(texto(s)).toBe('')
   })
 

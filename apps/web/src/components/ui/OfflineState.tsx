@@ -6,13 +6,15 @@ import { Icon } from './Icon'
  * sola al volver la red (`refetchOnReconnect`). Antes, `Loading…` sin fin.
  *
  * Con los tokens desde el PR 9a (17-c): el icono `offline` de 24 en `ink-3` y una línea `meta` `ink-2`.
+ * Desde el PR 10 lo pinta `QueryView`, que le pasa `answer` cuando es la respuesta de la pantalla (§7.3).
  */
-export function OfflineState() {
+export function OfflineState({ answer = false }: { readonly answer?: boolean } = {}) {
   return (
     <div
       role="status"
       data-ui="OfflineState"
       data-state="offline"
+      {...(answer ? { 'data-answer': '' } : {})}
       className="flex items-center gap-3 py-6"
     >
       <span className="inline-flex text-ink-3">

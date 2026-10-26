@@ -16,6 +16,7 @@ import { TeamLink } from '../components/TeamLink'
 import { archetypeLabel } from '../domain/labels'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { QueryView } from '../components/ui/QueryView'
 
 function RankingTable({ rows }: { rows: RankingRow[] }) {
   if (rows.length === 0) {
@@ -127,8 +128,16 @@ export function Rankings() {
     enabled: rev !== undefined,
   })
 
-  if (ranking.isPending) return <p className="text-slate-500">Loading…</p>
-  if (ranking.isError) return <p className="text-red-600">Could not load the rankings.</p>
+  // Los estados, con `QueryView` (E3, PR 10): con toda la API en 500, la respuesta de la pantalla 42.
+  if (ranking.data === undefined)
+    return (
+      <QueryView
+        query={ranking}
+        label="the rankings"
+        skeleton={{ kind: 'rows', rowHeight: 56 }}
+        answer
+      />
+    )
 
   const active = tab === 'young' ? young.data : ranking.data
   const tabClass = (t: 'overall' | 'young') =>
@@ -160,8 +169,14 @@ export function Rankings() {
       {awards.data && <AwardsPanel awards={awards.data} />}
 
       <Panel title="Ranking" action={rankingTabs} bodyClassName="p-0">
-        {tab === 'young' && young.isPending ? (
-          <p className="p-6 text-center text-sm text-slate-500">Loading…</p>
+        {tab === 'young' && young.data === undefined ? (
+          <div className="p-4">
+            <QueryView
+              query={young}
+              label="the young riders ranking"
+              skeleton={{ kind: 'rows', rowHeight: 56 }}
+            />
+          </div>
         ) : (
           <RankingTable rows={active ?? []} />
         )}

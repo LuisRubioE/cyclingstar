@@ -11,6 +11,7 @@ import {
 } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { fetchMyRider } from '../api/rider'
 import { fetchOrders, fetchTeamTraining, saveOrders, saveTeamTraining } from '../api/training'
 import { Panel, SectionBar } from '../components/Panel'
 import { PlanLadder } from '../components/PlanLadder'
@@ -23,6 +24,9 @@ import {
   onlyEdited,
   withEdit,
 } from '../domain/trainingPlan'
+import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
@@ -64,6 +68,12 @@ export function Training() {
     enabled: rev !== undefined,
   })
   const team = useQuery({ queryKey: ['team-training'], queryFn: fetchTeamTraining })
+  // Sin corredor no hay plan que enseñar: la API da uno vacío, y el vacío lo dice (E3, PR 10).
+  const mine = useQuery({
+    queryKey: horizonKey(['rider', 'me'], rev),
+    queryFn: fetchMyRider,
+    enabled: rev !== undefined,
+  })
   // Ediciones sin guardar, por día de juego. Viven APARTE de los datos del servidor: un refetch en
   // segundo plano actualiza la base pero jamás pisa lo que el jugador ha tocado.
   const [edits, setEdits] = useState<Record<number, DayEdit>>({})
@@ -120,8 +130,26 @@ export function Training() {
     }
   }
 
-  if (query.isPending) return <p className="text-slate-500">Loading…</p>
-  if (query.isError) return <p className="text-red-600">Could not load your training plan.</p>
+  // Los estados, con `QueryView` (E3, PR 10): la respuesta de las pantallas 40, 41 y 45.
+  if (mine.data === undefined)
+    return <QueryView query={mine} label="your rider" skeleton={{ kind: 'panel' }} answer />
+  if (mine.data === null)
+    return (
+      <EmptyState
+        icon="rider"
+        text="You don't have a rider yet. Create one, and plan their training here."
+        action={
+          <Button to="/create" variant="primary">
+            Create your rider
+          </Button>
+        }
+        answer
+      />
+    )
+  if (query.data === undefined)
+    return (
+      <QueryView query={query} label="your training plan" skeleton={{ kind: 'panel' }} answer />
+    )
 
   const currentDay = query.data.currentDay
   const horizonte = query.data.horizonDays || HORIZON_POR_DEFECTO

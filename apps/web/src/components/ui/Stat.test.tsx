@@ -49,6 +49,8 @@ describe('Stat', () => {
     const s = renderToStaticMarkup(<Stat label="Balance" value={10} loading />)
     expect(s).toContain('data-state="loading"')
     expect(text(s)).toBe('Balance')
-    expect(s).toContain('aria-hidden="true"')
+    expect(s).toContain(
+      'data-ui="Skeleton" data-variant="figure" data-state="loading" aria-hidden="true"',
+    )
   })
 })
