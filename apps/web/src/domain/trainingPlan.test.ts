@@ -11,6 +11,7 @@ import {
   ARRIVAL_ADVICE,
   type PlanDraft,
   adoptTeamSuggestions,
+  afterStripLabel,
   afterTitle,
   applyEdits,
   backToLabel,
@@ -32,6 +33,7 @@ import {
   stripCell,
   stripSummary,
   tripsOf,
+  weekStripLabel,
   weekTitle,
   withDayEdit,
   withoutOrder,
@@ -361,6 +363,8 @@ describe('web: las semanas del plan vivo y su tira (§10.6)', () => {
     ])
     expect(c.after?.days).toEqual([69, 70, 71, 72, 73, 74, 75, 76, 77, 78])
     expect(afterTitle(c.after!, 'mixto')).toBe('After your plan · Days 69 to 78 · Coach')
+    expect(weekStripLabel(c.weeks[0]!)).toBe('Week 2, days 48 to 54')
+    expect(afterStripLabel(c.after!)).toBe('After your plan, days 69 to 78')
     expect(afterTitle(c.after!, 'manual')).toBe('After your plan · Days 69 to 78 · Rest')
   })
 

@@ -1,6 +1,6 @@
 import type { TrainingOrder } from '@cyclingstar/shared'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchMyRider } from '../api/rider'
 import {
   type TrainingPlanResponse,
@@ -105,6 +105,9 @@ export function Training() {
   return <Cuadro orders={orders.data} stored={stored.data} team={team.data ?? null} />
 }
 
+/** El horizonte, que manda el servidor (`horizonDays`); este es el respaldo. */
+const HORIZONTE = 28
+
 function Cuadro({
   orders,
   stored,
@@ -123,6 +126,11 @@ function Cuadro({
   const [status, setStatus] = useState<ActionBarStatus>('idle')
   const [teamMessage, setTeamMessage] = useState<string | null>(null)
   const draft: PlanDraft = { ...saved, ...cambios }
+  // Lo último en pantalla, para que el guardado sepa al acabar si se tocó algo mientras tanto.
+  const enPantalla = useRef({ cambios, edits })
+  useEffect(() => {
+    enPantalla.current = { cambios, edits }
+  }, [cambios, edits])
 
   const tomorrow = orders.currentDay + 1
   const ventana = ordersWindow(orders.orders, edits)
@@ -143,7 +151,7 @@ function Cuadro({
 
   const calendar = planWeeks({
     tomorrow,
-    horizonDays: orders.horizonDays,
+    horizonDays: orders.horizonDays || HORIZONTE,
     startDay: draft.startFresh ? null : (stored.plan?.startDay ?? null),
   })
   const teamByDay = new Map((team?.plan ?? []).map((o) => [o.gameDay, o]))
@@ -186,6 +194,8 @@ function Cuadro({
   }
 
   async function guardar() {
+    // Lo que se manda; lo que se toque mientras se guarda no se suelta al acabar.
+    const enviado = { cambios, edits }
     setStatus('saving')
     try {
       if (planChanges(saved, draft) > 0)
@@ -205,9 +215,12 @@ function Cuadro({
         qc.invalidateQueries({ queryKey: ['orders'] }),
         qc.invalidateQueries({ queryKey: ['plan-preview'] }),
       ])
-      setCambios({})
-      setEdits({})
-      setStatus('saved')
+      const intacto =
+        enPantalla.current.cambios === enviado.cambios && enPantalla.current.edits === enviado.edits
+      setCambios((c) => (c === enviado.cambios ? {} : c))
+      setEdits((e) => (e === enviado.edits ? {} : e))
+      // Con algo tocado durante el guardado, la barra sigue con ello en lugar de decir `Saved` y esconderse.
+      setStatus(intacto ? 'saved' : 'idle')
     } catch {
       setStatus('failed')
     }
