@@ -23,7 +23,7 @@ import { TextLink, gluedLastWord } from './TextLink'
  * `Individual` para un agente libre, que lleva el hueco del maillot. **El nombre no se corta nunca**: si
  * parte de línea, el maillot va pegado a su última palabra ([DUEÑO 17]): el renglón va en `nowrap` y
  * solo lo de delante de la última palabra en `normal` (`gluedLastWord`), así que la bandera tampoco se
- * separa de la primera.
+ * separa de la primera; el dorsal sí, si no cabe con ellas (PR 12b).
  * En una frase (`inline`), todo en un renglón: `#214`, la bandera, el nombre, el maillot y `(Mistral
  * Racing)`.
  *
@@ -140,7 +140,14 @@ export function RiderLabel(props: RiderLabelProps) {
   const primera = (
     <>
       {bib !== undefined && bib !== null && (
-        <span className="mr-1 text-meta font-normal tabular-nums text-ink-2">#{bib}</span>
+        <>
+          <span className="mr-1 text-meta font-normal tabular-nums text-ink-2">#{bib}</span>
+          {/* tras el dorsal, el renglón puede partir (PR 12b): un dorsal de tres cifras, la bandera y una
+              primera palabra larga (`Népomuscène`) no caben juntos en una celda de 171 px a 320 */}
+          <span className="whitespace-normal">
+            <wbr />
+          </span>
+        </>
       )}
       <Flag country={rider.country} layout="mr-1" />
       <span data-rider={rider.human ? 'human' : 'bot'} className={peso}>
