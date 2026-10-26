@@ -10,7 +10,7 @@ import {
 } from '@cyclingstar/shared'
 import { VISIONS } from '@cyclingstar/shared/colorMath'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
@@ -20,6 +20,7 @@ import {
   checkKit,
   ensureKits,
   kitOn,
+  kitsBySeed,
   kitsClash,
   kitsOn,
   revertKit,
@@ -97,6 +98,9 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
   afterAll(async () => {
     await t?.close()
   })
+
+  /** Los rivales de hoy, de la base: un equipo con dueño corre su calendario natural y cambia los suyos. */
+  const currentRivals = async () => rivalsOf(await seasonFields(t.db, worldId, 0))
 
   it('la puerta de D-00e: la génesis traducida, 0 carreras con un par por debajo de 10 y 0 canónicos repetidos', async () => {
     const started = performance.now()
@@ -277,34 +281,38 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
   })
 
   it('el NPC cede: si el maillot de un humano choca con el de un NPC rival, el NPC cambia esa noche', async () => {
+    // un equipo pasa a tener dueño; con dueño corre su calendario natural, así que sus rivales se miran
+    // de nuevo, como los mira ensureKits
+    const [human] = [...rivals.keys()].sort(
+      (a, b) => (rivals.get(b)?.size ?? 0) - (rivals.get(a)?.size ?? 0),
+    )
+    await t.db.insert(users).values({ id: USER, email: 'maillots@example.com', name: 'M' })
+    await t.db.update(teams).set({ ownerUserId: USER }).where(eq(teams.id, human!))
+    const now = await currentRivals()
     const kits = await kitsOn(t.db, teamIds, 1)
     const worn = new Set([...kits.values()].map(canonicalKit))
-    // un equipo con dueño y un maillot libre que choca con el de uno de sus rivales NPC
-    let human = ''
+    // un maillot libre que choca con el de uno de sus rivales, que son todos NPC
     let kit: KitCode | undefined
     let npc = ''
-    for (const [id, of] of rivals) {
-      for (const rival of of.keys()) {
-        const near = KIT_ALLOWED.find(
-          (c) => !worn.has(canonicalKit(c)) && kitsClash(c, kits.get(rival)!),
-        )
-        if (near) {
-          ;[human, kit, npc] = [id, near, rival]
-          break
-        }
+    for (const rival of now.get(human!)?.keys() ?? []) {
+      kit = KIT_ALLOWED.find((c) => !worn.has(canonicalKit(c)) && kitsClash(c, kits.get(rival)!))
+      if (kit) {
+        npc = rival
+        break
       }
-      if (kit) break
     }
-    await t.db.insert(users).values({ id: USER, email: 'maillots@example.com', name: 'M' })
-    await t.db.update(teams).set({ ownerUserId: USER }).where(eq(teams.id, human))
-    await t.db.transaction((tx) => setKit(tx, human, kit!, 'manager', 1))
+    expect(kit).toBeDefined()
+    await t.db.transaction((tx) => setKit(tx, human!, kit!, 'manager', 1))
     const report = await t.db.transaction((tx) => ensureKits(tx, worldId))
     expect(report.ceded).toBeGreaterThanOrEqual(1)
     const after = await kitsOn(t.db, teamIds, 1)
-    expect(after.get(human)).toBe(kit)
+    expect(after.get(human!)).toBe(kit)
     expect(after.get(npc)).not.toBe(kits.get(npc))
-    expect(kitsClash(kit!, after.get(npc)!)).toBe(false)
-    // ningún humano choca con un NPC rival, y una segunda pasada no cambia nada
+    // ningún rival suyo choca ya con él, y nadie lleva el canónico de otro
+    for (const rival of now.get(human!)?.keys() ?? [])
+      expect(kitsClash(kit!, after.get(rival)!), rival).toBe(false)
+    expect(new Set([...after.values()].map(canonicalKit)).size).toBe(after.size)
+    // una segunda pasada no cambia nada
     expect(await t.db.transaction((tx) => ensureKits(tx, worldId))).toEqual({
       translated: 0,
       seeded: 0,
@@ -312,6 +320,39 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       clashes: 0,
     })
     expect(await kitsOn(t.db, teamIds, 1)).toEqual(after)
+  })
+
+  it('un equipo que nace sin maillot en un mundo ya traducido toma el primero libre de su semilla (8-d)', async () => {
+    const before = await kitsOn(t.db, teamIds, 1)
+    // el que no tiene dueño y tiene más rivales, como si acabara de nacer
+    const npcs = await t.db
+      .select({ id: teams.id })
+      .from(teams)
+      .where(and(eq(teams.worldId, worldId), isNull(teams.ownerUserId)))
+    const newcomer = npcs
+      .map((r) => r.id)
+      .sort((a, b) => (rivals.get(b)?.size ?? 0) - (rivals.get(a)?.size ?? 0))[0]!
+    await t.db.delete(teamKits).where(eq(teamKits.teamId, newcomer))
+    await t.db.update(teams).set({ kitCanonical: null }).where(eq(teams.id, newcomer))
+    const report = await t.db.transaction((tx) => ensureKits(tx, worldId))
+    expect(report).toMatchObject({ translated: 0, seeded: 1 })
+    const after = await kitsOn(t.db, teamIds, 1)
+    const kit = after.get(newcomer)!
+    const [seed] = await t.db
+      .select({ seed: teams.jerseySeed })
+      .from(teams)
+      .where(eq(teams.id, newcomer))
+    // el primero de su orden que nadie lleva y no choca con un rival vestido
+    const others = new Map([...after].filter(([id]) => id !== newcomer))
+    const taken = new Set([...others.values()].map(canonicalKit))
+    const now = await currentRivals()
+    const rivalKits = [...(now.get(newcomer)?.keys() ?? [])].map((id) => others.get(id)!)
+    const expected = kitsBySeed(seed!.seed).find(
+      (c) => !taken.has(canonicalKit(c)) && !rivalKits.some((k) => kitsClash(c, k)),
+    )
+    expect(kit).toBe(expected)
+    // los demás, igual que antes
+    for (const [id, k] of others) expect(k, id).toBe(before.get(id))
   })
 
   it('la reversión de E9: una fila moderator para mañana, con el último system o uno nuevo libre', async () => {
@@ -331,8 +372,9 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
     const kits = await kitsOn(t.db, teamIds, 1)
     const others = [...kits].filter(([x]) => x !== id).map(([, k]) => canonicalKit(k))
     expect(others).not.toContain(canonicalKit(kit))
-    for (const rival of rivals.get(id)?.keys() ?? [])
-      expect(kitsClash(kit, kits.get(rival)!)).toBe(false)
+    const now = await currentRivals()
+    for (const rival of now.get(id)?.keys() ?? [])
+      expect(kitsClash(kit, kits.get(rival)!), rival).toBe(false)
     // y con una fila system de hoy en vigor, vuelve a esa
     await t.db.transaction((tx) => setKit(tx, id, kit, 'system', 2))
     expect(await t.db.transaction((tx) => revertKit(tx, id, 'otra vez'))).toBe(kit)
