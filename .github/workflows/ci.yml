@@ -308,6 +308,16 @@ jobs:
       - uses: ./.github/actions/telefono
         id: mundo
         if: steps.toca.outputs.correr == 'si'
+      # EL DIFERENCIAL DEL TICK SOBRE EL MUNDO DE LA PRUEBA (E3, docs/visual.md §11.4; PR 13a): la
+      # elección de `resolveTrainingDay` frente a la cadena de antes, congelada, en los 28 días que
+      # siguen al del mundo y con todos sus corredores. Antes de servir la web de la base, para que no
+      # haya tres copias del mundo en memoria; en la suite rápida corre el mismo test sobre un mundo
+      # sembrado.
+      - name: El tick elige como antes, sobre el mundo de la prueba
+        if: steps.toca.outputs.correr == 'si'
+        env:
+          TELEFONO_MUNDO: ${{ github.workspace }}/apps/web/e2e/world/.mundo/mundo-50.tar.gz
+        run: pnpm exec vitest run packages/db/src/trainingDay.diff.test.ts --reporter=verbose
       - name: La web de la base, sobre el mismo mundo
         id: base
         if: steps.toca.outputs.correr == 'si'

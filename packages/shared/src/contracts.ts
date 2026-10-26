@@ -195,9 +195,17 @@ export const trainingPlanSchema = z.object({
 })
 export type TrainingPlanInput = z.infer<typeof trainingPlanSchema>
 
+/**
+ * El cuerpo de `PUT /api/riders/me/plan` (E3, docs/visual.md §11.5; PR 13a): el modo y lo que el jugador
+ * decide del plan. El plan se guarda sobre el `startDay` del plan vivo, o desde mañana si no hay o con
+ * `startFresh`; ni `startDay` ni `goalRaceId` van en el cuerpo (el primero lo pone la API; el segundo no
+ * tiene control, y el 19c lo saca), y si llegan, como los manda hoy la pantalla, se ignoran. Lo comparte
+ * `POST /api/riders/me/plan/preview`, que solo lee los bloques, el foco y la intensidad.
+ */
 export const putTrainingPlanSchema = z.object({
   mode: trainingModeSchema,
-  plan: trainingPlanSchema,
+  plan: trainingPlanSchema.pick({ blocks: true, focusAttr: true, intensity: true }),
+  startFresh: z.boolean().optional(),
 })
 
 export const trainingPlanResponseSchema = z.object({

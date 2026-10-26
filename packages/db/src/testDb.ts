@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { PGlite } from '@electric-sql/pglite'
 import { citext } from '@electric-sql/pglite/contrib/citext'
@@ -68,8 +69,23 @@ export async function startEmptyTestDb(): Promise<TestDb> {
   return start(false)
 }
 
-async function start(migrar: boolean): Promise<TestDb> {
-  const pg = await PGlite.create({ extensions: { citext } })
+/**
+ * Una base con un MUNDO YA CONSTRUIDO: el volcado de PGlite que deja `apps/web/e2e/world/build.mjs`
+ * (`mundo-50.tar.gz`), cargado en memoria como lo carga `serve.mjs`, y sin migrar, porque el volcado ya
+ * las trae. Lo que se escriba se queda en esa copia. Lo usa el diferencial del tick en el trabajo
+ * `Teléfono` (E3, docs/visual.md §11.4; PR 13a).
+ */
+export async function startTestDbFromDump(file: string): Promise<TestDb> {
+  return start(false, file)
+}
+
+async function start(migrar: boolean, volcado?: string): Promise<TestDb> {
+  const pg = await PGlite.create({
+    extensions: { citext },
+    ...(volcado === undefined
+      ? {}
+      : { loadDataDir: new Blob([readFileSync(volcado)], { type: 'application/x-gzip' }) }),
+  })
   const port = await freePort()
   const server = new PGLiteSocketServer({ db: pg, port, host: '127.0.0.1' })
   await server.start()
