@@ -70,4 +70,21 @@ describe('Tabs con items: los enlaces', () => {
     expect(s.match(/aria-current/g)).toHaveLength(1)
     expect(s).toMatch(/data-state="inactive"[^>]*href="\/me\/profile"/)
   })
+
+  it('con active, la decide quien las pinta: My Rider en /me/training, por su sección (PR 11)', () => {
+    const n = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/me/training']}>
+        <Tabs
+          label="Sections"
+          variant="nav"
+          items={[
+            { to: '/', label: 'Dashboard', active: false },
+            { to: '/me/profile', label: 'My Rider', active: true },
+          ]}
+        />
+      </MemoryRouter>,
+    )
+    expect(n).toMatch(/<a [^>]*aria-current="page" data-state="active"[^>]*href="\/me\/profile"/)
+    expect(n.match(/aria-current/g)).toHaveLength(1)
+  })
 })

@@ -1,24 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { fetchRiderSummary } from '../api/rider'
 import { useSessionState } from '../auth/useSessionState'
 import { bottomBarLinks, sectionOf } from '../domain/nav'
 import { horizonKey, useHorizonRev } from '../queryClient'
+import { BottomNav as BottomNavView } from './ui/BottomNav'
+import { useFixedPiece } from './ui/fixedBottom'
+import { useKeyboardOpen } from './ui/keyboard'
 
 /**
- * Barra inferior fija del teléfono (docs/navegacion.md §5, fase G).
+ * Barra inferior fija del teléfono (docs/navegacion.md §5, fase G), con el aspecto de E3 (`ui/BottomNav`,
+ * docs/visual.md §6.3; PR 11): sus iconos y la regla de los rótulos cortos.
  *
- * En móvil SUSTITUYE al nivel 1 de la cabecera —que se oculta— y deja las pestañas de nivel 2 donde
- * están, desplazables. Es el patrón de app nativa: los destinos principales al alcance del pulgar en
- * vez de arriba del todo. En escritorio no existe (`sm:hidden`, o sea `display:none`: tampoco está
- * en el árbol de accesibilidad, así que no duplica la fila de secciones de la cabecera).
- *
- * Cuidados de teléfono:
- * - Área táctil de 56 px de alto por destino, que supera el mínimo recomendado de 44.
- * - `env(safe-area-inset-bottom)`: en los móviles con muesca la barra se despega del borde y no la
- *   pisa el indicador de inicio. El hueco que deja al final del contenido lo pone `App.tsx`.
- * - El destino activo se marca con `aria-current="page"`, color y una pastilla de fondo: en una
- *   barra sin iconos el estado tiene que verse sin depender solo del color.
+ * En móvil SUSTITUYE al nivel 1 de la cabecera, que se oculta, y deja las pestañas de nivel 2 donde están,
+ * desplazables: los destinos principales al alcance del pulgar. En escritorio no existe (`sm:hidden`, o sea
+ * `display:none`: tampoco está en el árbol de accesibilidad, así que no duplica la fila de la cabecera).
+ * Con el teclado abierto se esconde (§4.9), y se apunta en lo fijo (`useFixedPiece`): su alto medido es el
+ * sitio de la `ActionBar` y parte del relleno de abajo del marco.
  */
 export function BottomNav() {
   // Como la cabecera: con la sesión sin saber y la marca, la barra del jugador (§12.1; PR 4), y el
@@ -33,42 +31,22 @@ export function BottomNav() {
     queryFn: fetchRiderSummary,
     enabled: state === 'signed-in' && rev !== undefined,
   })
+  const teclado = useKeyboardOpen()
+  const ref = useFixedPiece('nav')
 
-  const links = bottomBarLinks({
-    signedIn,
-    hasTeam: Boolean(summary.data?.teamId),
-  })
-  const section = sectionOf(pathname)
-
+  const links = bottomBarLinks({ signedIn, hasTeam: Boolean(summary.data?.teamId) })
   return (
-    <nav
-      aria-label="Sections"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-brand-navy-dark pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_8px_rgba(0,0,0,0.25)] sm:hidden"
-    >
-      <ul className="flex items-stretch">
-        {links.map((link) => {
-          const active = section === link.section
-          return (
-            <li key={link.section} className="min-w-0 flex-1">
-              <Link
-                to={link.to}
-                aria-current={active ? 'page' : undefined}
-                className={`flex h-14 items-center justify-center px-1 text-center text-[11px] font-medium leading-tight transition ${
-                  active ? 'text-white' : 'text-white/70 active:text-white'
-                }`}
-              >
-                <span
-                  className={`truncate rounded-full px-2.5 py-1.5 ${
-                    active ? 'bg-white/15 font-semibold' : ''
-                  }`}
-                >
-                  {link.label}
-                </span>
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
-    </nav>
+    <BottomNavView
+      ref={ref}
+      items={links.map((l) => ({
+        key: l.section,
+        to: l.to,
+        label: l.label,
+        shortLabel: l.shortLabel,
+        icon: l.icon,
+      }))}
+      activeKey={sectionOf(pathname)}
+      hidden={teclado}
+    />
   )
 }

@@ -1,3 +1,5 @@
+import type { IconName } from '../components/ui/types'
+
 /**
  * El NIVEL 1 de la navegación (docs/navegacion.md §3.1, §5), en un solo sitio y sin React.
  *
@@ -15,16 +17,58 @@ export interface MainLink {
   section: Exclude<Section, null>
   to: string
   label: string
+  /** el de las celdas de la barra inferior de menos de 76 px (E3, docs/visual.md §6.3; PR 11) */
+  shortLabel: string
+  /** el de la barra inferior (E3, §4.4) */
+  icon: IconName
 }
 
-// Un destino se llama IGUAL arriba y abajo: cambiar el rótulo según el tamaño de la pantalla es
-// obligar a aprender dos nombres para el mismo sitio.
-export const DASHBOARD: MainLink = { section: 'dashboard', to: '/', label: 'Dashboard' }
-export const MY_RIDER: MainLink = { section: 'me', to: '/me/profile', label: 'My Rider' }
-export const MY_TEAM: MainLink = { section: 'team', to: '/team/squad', label: 'My Team' }
-export const WORLD: MainLink = { section: 'world', to: '/world/races', label: 'World' }
-export const NEWS: MainLink = { section: 'news', to: '/news', label: 'News' }
-export const HOW_TO_PLAY: MainLink = { section: 'help', to: '/how-to-play', label: 'How to play' }
+// Un destino se llama igual arriba y abajo, salvo en una celda de la barra inferior de menos de 76 px
+// (con cinco destinos, toda ventana de menos de 380, la de 360 incluida), donde el rótulo largo no
+// cabe y va el corto (E3, docs/visual.md §6.3, 6-e; Ruso-014): `Dashboard` mide 73 px en `caption` 600
+// con la letra de la prueba. Lo decide una regla de contenedor, no el ancho de la ventana.
+export const DASHBOARD: MainLink = {
+  section: 'dashboard',
+  to: '/',
+  label: 'Dashboard',
+  shortLabel: 'Home',
+  icon: 'home',
+}
+export const MY_RIDER: MainLink = {
+  section: 'me',
+  to: '/me/profile',
+  label: 'My Rider',
+  shortLabel: 'Rider',
+  icon: 'rider',
+}
+export const MY_TEAM: MainLink = {
+  section: 'team',
+  to: '/team/squad',
+  label: 'My Team',
+  shortLabel: 'Team',
+  icon: 'team',
+}
+export const WORLD: MainLink = {
+  section: 'world',
+  to: '/world/races',
+  label: 'World',
+  shortLabel: 'World',
+  icon: 'world',
+}
+export const NEWS: MainLink = {
+  section: 'news',
+  to: '/news',
+  label: 'News',
+  shortLabel: 'News',
+  icon: 'news',
+}
+export const HOW_TO_PLAY: MainLink = {
+  section: 'help',
+  to: '/how-to-play',
+  label: 'How to play',
+  shortLabel: 'Help',
+  icon: 'info',
+}
 
 /** Lo que decide qué destinos existen para este jugador ahora mismo. */
 export interface NavState {

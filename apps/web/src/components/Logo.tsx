@@ -1,5 +1,16 @@
-/** Emblema de Cycling Star (#1): una bicicleta estilizada con una estrella. SVG puro, escalable. */
-export function Logo({ size = 40, className }: { size?: number; className?: string }) {
+/**
+ * Emblema de Cycling Star (#1): una bicicleta estilizada con una estrella. SVG puro, escalable. Con
+ * `decorative`, no se lee: va dentro de un enlace que ya lleva el nombre (la cabecera; E3, PR 11).
+ */
+export function Logo({
+  size = 40,
+  className,
+  decorative = false,
+}: {
+  size?: number
+  className?: string
+  decorative?: boolean
+}) {
   return (
     <svg
       width={size}
@@ -7,8 +18,9 @@ export function Logo({ size = 40, className }: { size?: number; className?: stri
       viewBox="0 0 72 60"
       fill="none"
       className={className}
-      role="img"
-      aria-label="Cycling Star"
+      {...(decorative
+        ? { 'aria-hidden': true, focusable: false }
+        : { role: 'img', 'aria-label': 'Cycling Star' })}
     >
       {/* Ruedas */}
       <circle cx="17" cy="43" r="12" stroke="#4f46e5" strokeWidth="3" />

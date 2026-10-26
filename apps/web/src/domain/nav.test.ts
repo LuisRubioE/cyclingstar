@@ -53,6 +53,15 @@ describe('destinos del nivel 1', () => {
   it('nunca hay más de cinco destinos: caben en un teléfono', () => {
     expect(bottomBarLinks({ signedIn: true, hasTeam: true })).toHaveLength(5)
   })
+
+  it('cada destino lleva su icono y su rótulo corto, el de las celdas de menos de 76 px (E3, §6.3)', () => {
+    const cinco = bottomBarLinks({ signedIn: true, hasTeam: true })
+    expect(cinco.map((l) => l.shortLabel)).toEqual(['Home', 'Rider', 'Team', 'World', 'News'])
+    expect(cinco.map((l) => l.icon)).toEqual(['home', 'rider', 'team', 'world', 'news'])
+    const tres = bottomBarLinks({ signedIn: false, hasTeam: false })
+    expect(tres.map((l) => l.icon)).toEqual(['world', 'info', 'news'])
+    expect(tres.map((l) => l.shortLabel)).toEqual(['World', 'Help', 'News'])
+  })
 })
 
 describe('sección abierta según la URL', () => {

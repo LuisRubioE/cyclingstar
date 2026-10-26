@@ -189,11 +189,12 @@ export function App() {
     )
   return (
     /*
-      El hueco de abajo es para la barra inferior del teléfono (§5): la barra es fija y taparía el
-      final de la página, así que el contenido reserva su alto (56 px) más el `safe-area-inset` de
-      los móviles con muesca. En escritorio no hay barra y no hay hueco.
+      El hueco de abajo es el de lo fijo (E3, docs/visual.md §4.9; PR 11): la barra inferior del teléfono
+      y la `ActionBar` taparían el final de la página, así que el marco reserva la suma de sus altos
+      medidos, con el área segura de los móviles con muesca (`--fixed-bottom`, que escriben ellas al
+      montarse). Va aquí y no en `main` para que tampoco tapen el pie. En escritorio no hay barra inferior.
     */
-    <div className="min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] text-slate-900 sm:pb-0">
+    <div className="min-h-screen pb-[var(--fixed-bottom)] text-slate-900">
       <SessionExpiryWatcher />
       <RouteTitle />
       <Header />

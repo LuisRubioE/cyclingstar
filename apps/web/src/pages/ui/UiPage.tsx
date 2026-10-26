@@ -2,6 +2,8 @@ import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
 import { ActionRow } from '../../components/ui/ActionRow'
+import { AppHeader } from '../../components/ui/AppHeader'
+import { BottomNav, type BottomNavItem } from '../../components/ui/BottomNav'
 import { Button } from '../../components/ui/Button'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
@@ -33,6 +35,16 @@ import { TextLink, gluedLastWord } from '../../components/ui/TextLink'
 import { TripRow } from '../../components/ui/TripRow'
 import type { IconName, Tone } from '../../components/ui/types'
 import { formatTime } from '../../domain/format'
+import {
+  DASHBOARD,
+  HOW_TO_PLAY,
+  type MainLink,
+  MY_RIDER,
+  MY_TEAM,
+  NEWS,
+  WORLD,
+} from '../../domain/nav'
+import { worldClock } from '../../domain/words'
 import { NO_TEAM_LABEL } from '../../domain/labels'
 import {
   GC_ROWS,
@@ -893,6 +905,57 @@ function Consultas() {
   )
 }
 
+/* ── El 11: el marco ─────────────────────────────────────────────────────────────────────────── */
+
+/** El reloj más ancho: el último día de la temporada 12, con 23 h 59 min por delante (Ruso-006). */
+const RELOJ_ANCHO = worldClock(12 * 364, (23 * 60 + 59) * 60_000)
+
+const destino = (l: MainLink): BottomNavItem => ({
+  key: l.section,
+  to: '/_ui',
+  label: l.label,
+  shortLabel: l.shortLabel,
+  icon: l.icon,
+})
+
+function Marcos() {
+  return (
+    <>
+      <Demo name="AppHeader">
+        <Estado name="signed in · the widest clock">
+          <AppHeader state="signed-in" clock={RELOJ_ANCHO} />
+        </Estado>
+        <Estado name="signed out · the clock only from 640">
+          <AppHeader state="signed-out" clock={RELOJ_ANCHO} />
+        </Estado>
+        <Estado name="unknown · offline, the player's (D-47)">
+          <AppHeader state="unknown" clock={null} />
+        </Estado>
+      </Demo>
+      <Demo name="BottomNav">
+        <Estado name="five · the short labels below 76 px a cell">
+          <Marco>
+            <BottomNav
+              items={[DASHBOARD, MY_RIDER, MY_TEAM, WORLD, NEWS].map(destino)}
+              activeKey="me"
+            />
+          </Marco>
+        </Estado>
+        <Estado name="four · a free agent">
+          <Marco>
+            <BottomNav items={[DASHBOARD, MY_RIDER, WORLD, NEWS].map(destino)} activeKey="world" />
+          </Marco>
+        </Estado>
+        <Estado name="three · signed out">
+          <Marco>
+            <BottomNav items={[WORLD, HOW_TO_PLAY, NEWS].map(destino)} activeKey={null} />
+          </Marco>
+        </Estado>
+      </Demo>
+    </>
+  )
+}
+
 function Iconos() {
   const nombres = Object.keys(ICONS) as IconName[]
   return (
@@ -977,6 +1040,7 @@ export function UiPage() {
       <Filas />
       <Escalas />
       <Consultas />
+      <Marcos />
       <Iconos />
       <AmbitoOscuro />
     </main>
