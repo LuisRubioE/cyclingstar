@@ -279,7 +279,9 @@ export async function checkKit(
   const { worldId, teamId, kit, today } = args
   const fromDay = today + 1
   const [current, next] = [await kitOn(q, teamId, today), await kitOn(q, teamId, fromDay)]
-  if (kit === current || kit === next) return { ...okVerdict, ok: false, code: 'kit_igual' }
+  // el mismo maillot es el mismo canónico: el espejo de halves también (8-k)
+  const same = (k: KitCode | null) => k !== null && canonicalKit(k) === canonicalKit(kit)
+  if (same(current) || same(next)) return { ...okVerdict, ok: false, code: 'kit_igual' }
   const entry = KIT_CONFLICTS[kit]
   if (entry === undefined || !entry.contrastOk)
     return { ...okVerdict, ok: false, code: 'kit_contraste' }
@@ -417,7 +419,9 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
         if (c.has(r.id)) clashes++
       } catch (error) {
         if (!(error instanceof KitTakenError)) throw error
-        worn.set(error.takenBy.teamId, kit)
+        // el que lleva de verdad, que puede ser el espejo del que se probó
+        const holder = error.takenBy.teamId
+        worn.set(holder, (await kitOn(tx, holder, fromDay)) ?? kit)
         retry.push(r)
       }
     }
@@ -433,8 +437,12 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
 
 /**
  * La reversión de E9 (§8.8): para mañana, una fila `moderator` con el último maillot `system` del equipo,
- * o uno nuevo por su semilla si ese ya lo lleva otro o choca con un rival. No devuelve el cambio de la
- * temporada al mánager: el suyo, el que se revierte, ya contó (D-00k). El motivo va al registro de la API.
+ * o uno nuevo por su semilla si ese ya lo lleva otro, choca con un rival o es el que se revierte; nunca
+ * el que se revierte ni su espejo. No devuelve el cambio de la temporada al mánager cuando el maillot
+ * revertido ya estaba en vigor: su fila `manager` se queda en la historia y cuenta (D-00k). Si se
+ * revierte el mismo día en que el mánager lo guardó, su fila de mañana se sustituye, como un cambio de
+ * idea (8-t), y ese cambio deja de contar; si E9 quiere que cuente, lo apunta su registro (lo decide el
+ * 18a con `kitChangeAllowed`). El motivo va al registro de la API.
  */
 export async function revertKit(tx: Tx, teamId: string, reason: string): Promise<KitCode> {
   if (reason.trim().length < 3) throw new Error('revertKit: el motivo, de 3 caracteres o más')
@@ -477,13 +485,22 @@ export async function revertKit(tx: Tx, teamId: string, reason: string): Promise
         .limit(1)
     ).length > 0
   const previous = last?.kit as KitCode | undefined
+  // el que se revierte: el que lleva mañana, el último guardado; ni él ni su espejo valen
+  const reverted = await kitOn(tx, teamId, fromDay)
+  const isReverted = (kit: KitCode) =>
+    reverted !== null && canonicalKit(kit) === canonicalKit(reverted)
   const clashesWithRival = (kit: KitCode) =>
     [...(rivals.get(teamId)?.keys() ?? [])].some((id) => {
       const theirs = worn.get(id)
       return theirs !== undefined && kitsClash(kit, theirs)
     })
   let kit: KitCode
-  if (previous !== undefined && !(await takenElsewhere(previous)) && !clashesWithRival(previous))
+  if (
+    previous !== undefined &&
+    !isReverted(previous) &&
+    !(await takenElsewhere(previous)) &&
+    !clashesWithRival(previous)
+  )
     kit = previous
   else {
     const { kits } = assignKits({
@@ -493,6 +510,7 @@ export async function revertKit(tx: Tx, teamId: string, reason: string): Promise
       rivals,
       worn,
       mode: 'seed',
+      allowed: KIT_ALLOWED.filter((c) => !isReverted(c)),
     })
     kit = kits.get(teamId)!
   }

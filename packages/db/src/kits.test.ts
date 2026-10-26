@@ -10,7 +10,7 @@ import {
 } from '@cyclingstar/shared'
 import { VISIONS } from '@cyclingstar/shared/colorMath'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
-import { and, eq, isNull } from 'drizzle-orm'
+import { TransactionRollbackError, and, eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
@@ -26,7 +26,7 @@ import {
   revertKit,
   setKit,
 } from './kits.js'
-import { riders, teamKits, teams, users, worlds } from './schema.js'
+import { gameState, riders, teamKits, teams, users, worlds } from './schema.js'
 import { type SeasonRivals, rivalsOf, seasonFields } from './seasonRivals.js'
 import { releaseUserToWorld, takeOverBotTeam } from './teamControl.js'
 import { type TestDb, startTestDb } from './testDb.js'
@@ -101,6 +101,33 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
 
   /** Los rivales de hoy, de la base: un equipo con dueño corre su calendario natural y cambia los suyos. */
   const currentRivals = async () => rivalsOf(await seasonFields(t.db, worldId, 0))
+
+  type Tx = Parameters<Parameters<TestDb['db']['transaction']>[0]>[0]
+  /** Lo que se prueba dentro y se deshace después, para no tocar el mundo de los demás casos. */
+  const rolledBack = (fn: (tx: Tx) => Promise<void>) =>
+    t.db
+      .transaction(async (tx) => {
+        await fn(tx)
+        tx.rollback()
+      })
+      .catch((e: unknown) => {
+        if (!(e instanceof TransactionRollbackError)) throw e
+      })
+
+  /** Un `halves` de dos bases que nadie lleva, escrito al revés de su canónico. */
+  const mirroredHalves = (worn: ReadonlySet<string>): KitCode => {
+    const code = KIT_CODES.find((c) => {
+      const kit = parseKit(c)
+      return (
+        kit?.figure === 'halves' &&
+        canonicalKit(c) !== c &&
+        !worn.has(canonicalKit(c)) &&
+        !['yellow', 'white'].includes(kit.secondary)
+      )
+    })
+    if (code === undefined) throw new Error('no queda ningún halves libre')
+    return code
+  }
 
   it('la puerta de D-00e: la génesis traducida, 0 carreras con un par por debajo de 10 y 0 canónicos repetidos', async () => {
     const started = performance.now()
@@ -233,14 +260,38 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       const error = await setKit(tx, a!, theirs, 'manager', 1).catch((e: unknown) => e)
       expect(error).toBeInstanceOf(KitTakenError)
       expect((error as KitTakenError).takenBy.teamId).toBe(b)
-      // el espejo de halves también es el mismo maillot
-      if (theirs.startsWith('halves.') && !/(yellow|white)$/.test(theirs)) {
-        const [, x, y] = theirs.split('.')
-        const mirror = `halves.${y}.${x}` as KitCode
-        await expect(setKit(tx, a!, mirror, 'manager', 1)).rejects.toBeInstanceOf(KitTakenError)
-      }
       // el savepoint deja la transacción usable; y el propio maillot no le es ajeno a nadie
       await setKit(tx, b!, theirs, 'system', 1)
+    })
+    expect(await kitOn(t.db, a!, 1)).toBe(kits.get(a!))
+  })
+
+  it('setKit guarda el canónico: el espejo de halves es el mismo maillot, para el índice y para kit_igual', async () => {
+    const kits = await kitsOn(t.db, teamIds, 1)
+    const worn = new Set([...kits.values()].map(canonicalKit))
+    const [a, b] = teamIds
+    const mirrored = mirroredHalves(worn)
+    await rolledBack(async (tx) => {
+      await setKit(tx, a!, mirrored, 'manager', 1)
+      const [row] = await tx
+        .select({ canonical: teams.kitCanonical })
+        .from(teams)
+        .where(eq(teams.id, a!))
+      expect(row!.canonical).toBe(canonicalKit(mirrored))
+      expect(row!.canonical).not.toBe(mirrored)
+      const error = await setKit(tx, b!, canonicalKit(mirrored), 'manager', 1).catch(
+        (e: unknown) => e,
+      )
+      expect(error).toBeInstanceOf(KitTakenError)
+      expect((error as KitTakenError).takenBy.teamId).toBe(a)
+      // el espejo del suyo no es un cambio: kit_igual
+      const verdict = await checkKit(tx, {
+        worldId,
+        teamId: a!,
+        kit: canonicalKit(mirrored),
+        today: 0,
+      })
+      expect(verdict.code).toBe('kit_igual')
     })
     expect(await kitOn(t.db, a!, 1)).toBe(kits.get(a!))
   })
@@ -355,29 +406,50 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
     for (const [id, k] of others) expect(k, id).toBe(before.get(id))
   })
 
-  it('la reversión de E9: una fila moderator para mañana, con el último system o uno nuevo libre', async () => {
+  it('la reversión de E9: una fila moderator para mañana, nunca con el maillot que se revierte', async () => {
     const [team] = await t.db
-      .select({ id: teams.id })
+      .select({ id: teams.id, seed: teams.jerseySeed })
       .from(teams)
       .where(eq(teams.ownerUserId, USER))
     const id = team!.id
-    // el guardado del mánager para mañana sustituyó a la fila de la traducción (8-t): no queda ninguna
-    // system, así que la reversión le da uno nuevo por su semilla, libre y lejos de sus rivales
-    const kit = await t.db.transaction((tx) => revertKit(tx, id, 'un nombre ofensivo'))
-    const [row] = await t.db
-      .select({ kit: teamKits.kit, setBy: teamKits.setBy })
-      .from(teamKits)
-      .where(and(eq(teamKits.teamId, id), eq(teamKits.validFromDay, 1)))
-    expect(row).toEqual({ kit, setBy: 'moderator' })
-    const kits = await kitsOn(t.db, teamIds, 1)
-    const others = [...kits].filter(([x]) => x !== id).map(([, k]) => canonicalKit(k))
-    expect(others).not.toContain(canonicalKit(kit))
     const now = await currentRivals()
-    for (const rival of now.get(id)?.keys() ?? [])
-      expect(kitsClash(kit, kits.get(rival)!), rival).toBe(false)
-    // y con una fila system de hoy en vigor, vuelve a esa
-    await t.db.transaction((tx) => setKit(tx, id, kit, 'system', 2))
-    expect(await t.db.transaction((tx) => revertKit(tx, id, 'otra vez'))).toBe(kit)
+    const kits = await kitsOn(t.db, teamIds, 1)
+    const others = new Map([...kits].filter(([x]) => x !== id))
+    const taken = new Set([...others.values()].map(canonicalKit))
+    const rivalKits = [...(now.get(id)?.keys() ?? [])].map((r) => others.get(r)!)
+    const free = (c: KitCode) =>
+      !taken.has(canonicalKit(c)) && !rivalKits.some((k) => kitsClash(c, k))
+    // sin fila system (el guardado de hoy sustituyó a la de la traducción, 8-t), con el que su semilla
+    // le daría primero: la reversión no puede devolvérselo
+    const first = kitsBySeed(team!.seed).find(free)!
+    await rolledBack(async (tx) => {
+      await setKit(tx, id, first, 'manager', 1)
+      const kit = await revertKit(tx, id, 'un nombre ofensivo')
+      expect(canonicalKit(kit)).not.toBe(canonicalKit(first))
+      expect(free(kit)).toBe(true)
+      const [row] = await tx
+        .select({ kit: teamKits.kit, setBy: teamKits.setBy })
+        .from(teamKits)
+        .where(and(eq(teamKits.teamId, id), eq(teamKits.validFromDay, 1)))
+      expect(row).toEqual({ kit, setBy: 'moderator' })
+    })
+    // con su fila system en vigor y el cambio del mánager para mañana, vuelve a la system
+    const second = kitsBySeed(team!.seed).filter(free)[1]!
+    await rolledBack(async (tx) => {
+      await setKit(tx, id, first, 'system', 1)
+      await tx.update(gameState).set({ currentDay: 1 }).where(eq(gameState.worldId, worldId))
+      await setKit(tx, id, second, 'manager', 2)
+      expect(await revertKit(tx, id, 'otra vez')).toBe(first)
+      const rows = await tx
+        .select({ day: teamKits.validFromDay, kit: teamKits.kit, setBy: teamKits.setBy })
+        .from(teamKits)
+        .where(eq(teamKits.teamId, id))
+        .orderBy(teamKits.validFromDay)
+      expect(rows).toEqual([
+        { day: 1, kit: first, setBy: 'system' },
+        { day: 2, kit: first, setBy: 'moderator' },
+      ])
+    })
   })
 
   it('tomar un equipo escribe managed_since_day, sin tocar team_kits; soltarlo lo vuelve a nulo', async () => {
