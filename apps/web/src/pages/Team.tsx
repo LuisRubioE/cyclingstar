@@ -6,13 +6,13 @@ import { Flag } from '../components/Flag'
 import { DiagnosticStrip } from '../components/StageGate'
 import { Jersey } from '../components/Jersey'
 import { Panel, SectionBar } from '../components/Panel'
+import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager } from '../components/TeamManager'
 import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 import { Panel as UiPanel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
-import { SquadTable } from './TeamSquad'
 
 const DIVISION_LABEL: Record<string, string> = {
   WT: 'World Tour',
