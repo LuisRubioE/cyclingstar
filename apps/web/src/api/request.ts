@@ -17,6 +17,14 @@ import type { ZodType } from 'zod'
 import { REQUEST_TIMEOUT_MS } from '../net'
 
 /** Fallo de red o respuesta de error de la API. `status` es 0 cuando ni siquiera hubo respuesta. */
+/**
+ * Los segundos de un 429 sin `retry-after` legible. @fastify/rate-limit lo manda siempre (en
+ * segundos), así que solo cubre a un intermediario que lo quite. S/E. Lo esperan `Watch`
+ * (`domain/broadcast/player.ts`) y `QueryView`; vive aquí, junto a `retryAfterS`, para que `QueryView`
+ * no cargue el reproductor en el arranque (E3, PR 10).
+ */
+export const RETRY_AFTER_FALLBACK_S = 5
+
 export class ApiError extends Error {
   readonly status: number
   /** Código de error del servidor (`{ ok:false, error:'no_autorizado' }`), si vino. */

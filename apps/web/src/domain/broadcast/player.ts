@@ -91,7 +91,7 @@ import {
   namedCrashesBetween,
   toDs,
 } from '@cyclingstar/shared'
-import { ApiError } from '../../api/request'
+import { ApiError, RETRY_AFTER_FALLBACK_S } from '../../api/request'
 
 // ----------------------------------------------------------------------------------- los tipos (§8.11)
 
@@ -267,11 +267,8 @@ const PREFETCH_DS = BROADCAST.prefetchRaceS * 10
 /** Se pide el tramo siguiente cuando a lo servido le quedan menos de esto por delante de lo pintado (8-d). */
 const LOW_WATER_S = BROADCAST.chunkRaceS / 2
 
-/**
- * Los segundos de un 429 sin `retry-after` legible. @fastify/rate-limit lo manda siempre (en
- * segundos), así que solo cubre a un intermediario que lo quite. S/E.
- */
-export const RETRY_AFTER_FALLBACK_S = 5
+/** Los segundos de un 429 sin `retry-after` legible: desde el PR 10 de E3, en `api/request.ts`. */
+export { RETRY_AFTER_FALLBACK_S }
 
 /** Lo alcanzado en décimas, hacia abajo: un informe nunca dice una décima de más (B18). */
 const floorDs = (s: RaceS): Ds => Math.floor(s * 10 + 1e-6)
