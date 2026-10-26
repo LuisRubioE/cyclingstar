@@ -14,6 +14,7 @@ import {
   getTeamClassifications,
   predictStartlist,
   raceStagesForWorld,
+  readFrozenStartlist,
   worldHorizon,
 } from '@cyclingstar/db'
 import {
@@ -239,10 +240,12 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     },
   )
 
-  // Lista de inscritos de una carrera que está a punto de empezar (dentro de la ventana de cierre de
-  // inscripciones): una vez pasado el cierre (~2 semanas antes) la escuadra está congelada y trae a los
-  // corredores reales; antes, solo se prevén los equipos que acudirán. Vacía si la carrera no está
-  // próxima o ya se corrió esta temporada.
+  // Lista de inscritos de una carrera. Dentro de la ventana de cierre de inscripciones (~2 semanas antes
+  // de la salida) la escuadra está congelada y trae a los corredores reales; si aún no lo está, solo se
+  // prevén los equipos que acudirán. Desde la salida, empezada o terminada, solo la escuadra congelada,
+  // con sus dorsales: de ella toman las tablas de la carrera el dorsal y el maillot de cada fila
+  // (docs/visual.md §6.1, 17-q; E3, paso 12b). Vacía lejos de la salida y en una carrera que salió sin
+  // escuadra congelada.
   app.get<{ Params: { raceId: string } }>(
     '/api/calendar/:raceId/startlist',
     {
@@ -250,7 +253,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
         spoiler: 'horizon',
         veil: {
           by: ['L'],
-          why: 'solo antes de la salida: la lista se congela con el mundo al día (worldHorizon)',
+          why: 'la escuadra se congela antes de la salida y lo corrido no la cambia, ni abandonos ni puestos: se lee con worldHorizon antes y después de la salida',
         },
       },
     },
@@ -263,8 +266,17 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       const season = currentSeason(world.currentDay)
       const dayOfSeason = world.currentDay % DAYS_PER_SEASON
       const daysUntil = race.startDay - dayOfSeason
-      // Solo si aún no ha empezado esta temporada y arranca dentro de la ventana de cierre.
-      if (daysUntil <= 0 || daysUntil > ENROLL_LOCK_DAYS) {
+      // Empezada o terminada esta temporada: la escuadra congelada y nada más. Tras la salida ni se
+      // prevén equipos ni se congela nada, y la lectura no mira lo corrido, así que sigue siendo L con
+      // `worldHorizon`, como antes de la salida.
+      if (daysUntil <= 0) {
+        const frozen = await readFrozenStartlist(db, worldHorizon, race, season)
+        return frozen === null
+          ? { upcoming: false, daysUntil, teams: [], freeAgents: [] }
+          : { upcoming: false, daysUntil, ...frozen }
+      }
+      // Lejos de la salida, fuera de la ventana de cierre: todavía ni escuadra ni previsión.
+      if (daysUntil > ENROLL_LOCK_DAYS) {
         return { upcoming: false, daysUntil, teams: [], freeAgents: [] }
       }
       // ESCRITURA EN UN GET: dentro de la ventana la escuadra ya debería estar congelada por el

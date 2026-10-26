@@ -77,21 +77,21 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // routes/world.ts
   'POST /api/world/advance': ['horizon', ADMIN], // l. 22-23
   // routes/calendar.ts
-  'GET /api/calendar': ['horizon', { by: ['P'] }], // l. 40-41
+  'GET /api/calendar': ['horizon', { by: ['P'] }], // l. 41-42
   'GET /api/calendar/:raceId': [
     'horizon',
     {
       by: ['P', 'F', 'L'],
       why: 'status y runDays son calendario: cuántas etapas se han corrido, no quién las ganó',
     },
-  ], // l. 95-96
+  ], // l. 96-97
   'GET /api/calendar/:raceId/startlist': [
     'horizon',
     {
       by: ['L'],
-      why: 'solo antes de la salida: la lista se congela con el mundo al día (worldHorizon)',
+      why: 'la escuadra se congela antes de la salida y lo corrido no la cambia, ni abandonos ni puestos: se lee con worldHorizon antes y después de la salida',
     },
-  ], // l. 246-247
+  ], // l. 249-250
   // routes/races.ts
   'GET /api/my-orders': ['safe', { by: ['N', 'L'], why: 'rivales por fama, que no se escribe' }], // l. 84-85
   'PUT /api/my-orders': ['safe', N], // l. 176

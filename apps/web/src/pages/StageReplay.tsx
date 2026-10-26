@@ -8,10 +8,8 @@ import { type ReactNode, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { StageClassEntry, StageGcEntry, TeamClassEntry } from '../api/results'
 import { Flag } from '../components/Flag'
-import { RiderJersey } from '../components/Jersey'
-import { RiderName } from '../components/RiderName'
-import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { PaintedRaceRadio } from '../components/PaintedRaceRadio'
+import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { ShareStage } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard, TwoDeviceNotice } from '../components/StageGate'
@@ -19,10 +17,9 @@ import { StageRoute } from '../components/StageRoute'
 import { StageStory } from '../components/StageStory'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
+import { useOwnIds, useRaceIdentity } from '../components/useTableIdentity'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
-import { formatTime } from '../domain/format'
-import { raceTeamLabel } from '../domain/labels'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
 import {
   type StagePageTabId,
@@ -32,6 +29,7 @@ import {
   stageTabLabel,
 } from '../domain/raceTabs'
 import type { GatePlace } from '../domain/stageGate'
+import type { TableIdentity } from '../domain/tableIdentity'
 import { diagOf, useRevealActions } from '../queryClient'
 import {
   RESULT_TABS,
@@ -67,99 +65,15 @@ const STAGE_CLASS_TABS: readonly TabOption<StageClassTabId>[] = [
 ]
 const STAGE_CLASS_PANEL = 'stage-classification'
 
-/** General tal como quedó tras esta etapa, con la misma regla de top 20 + "Show all". */
-export function GcTable({
-  rows,
-  leaders,
-}: {
-  rows: StageGcEntry[]
-  leaders: RaceLeaders | undefined
-}) {
-  const [showAll, setShowAll] = useState(false)
-  // El líder es el primer CLASIFICADO, no la primera fila: los no clasificados van al final, pero si
-  // la general entera fuera de abandonos el `?? 0` de antes daba diferencias contra cero.
-  const leader = (rows.find((r) => !r.dnf) ?? rows[0])?.tiempoTotalS ?? 0
-  const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
-  return (
-    <>
-      <table className="mt-2 w-full text-sm">
-        <caption className="sr-only">
-          General classification: position, country, rider, team and time
-        </caption>
-        <tbody>
-          {visible.map((r, i) => (
-            // Quien no está clasificado —abandonó, o le falta una etapa— sale como DNF y sin
-            // puesto. Su tiempo acumulado no significa nada: enseñarlo fue lo que puso a un
-            // corredor líder por 4h36 por no haber corrido la etapa 8 (ver `getGcThroughStage`).
-            <tr
-              key={r.riderId}
-              className={`border-b border-slate-100 last:border-0${r.dnf ? ' text-slate-300' : ''}`}
-            >
-              <td className="w-7 py-1 text-slate-400 tabular-nums">{r.dnf ? '' : i + 1}</td>
-              <td className="w-6 py-1">
-                <Flag code={r.country} size={16} />
-              </td>
-              <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
-                <RiderJersey leaders={leaders} riderId={r.riderId} />
-                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                <span className="ml-2 text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
-              </td>
-              <td className="py-1 text-right tabular-nums text-slate-500">
-                {r.dnf ? (
-                  <span className="text-amber-500">DNF</span>
-                ) : i === 0 ? (
-                  formatTime(r.tiempoTotalS)
-                ) : (
-                  `+${formatTime(r.tiempoTotalS - leader)}`
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ShowAllButton total={rows.length} expanded={showAll} onToggle={() => setShowAll(!showAll)} />
-    </>
-  )
-}
-
-/** Clasificación por puntos (montaña o metas volantes): puesto, bandera, nombre, puntos. */
-export function PointsTable({
-  rows,
-  unit,
-  leaders,
-}: {
-  rows: StageClassEntry[]
-  unit: string
-  leaders: RaceLeaders | undefined
-}) {
-  const [showAll, setShowAll] = useState(false)
-  const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
-  return (
-    <>
-      <table className="mt-2 w-full text-sm">
-        <caption className="sr-only">Classification: position, country, rider and {unit}</caption>
-        <tbody>
-          {visible.map((r, i) => (
-            <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-              <td className="w-7 py-1 tabular-nums text-slate-400">{i + 1}</td>
-              <td className="w-6 py-1">
-                <Flag code={r.country} size={16} />
-              </td>
-              <td className="py-1 text-slate-700">
-                <RiderJersey leaders={leaders} riderId={r.riderId} />
-                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-              </td>
-              <td className="py-1 text-right font-medium tabular-nums text-slate-600">
-                {r.puntos} {unit}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ShowAllButton total={rows.length} expanded={showAll} onToggle={() => setShowAll(!showAll)} />
-    </>
-  )
-}
+/**
+ * La general, los puntos y la montaña tal como quedaron tras esta etapa, en `RankTable` desde el PR 12b
+ * (E3, docs/visual.md §6.1; `components/RaceRankTables.tsx`), con la misma regla de top 20 y `Show all`.
+ * Se exportan con su nombre de siempre para probarlas sueltas (`stageTables.test.tsx`).
+ */
+export {
+  GcRankTable as GcTable,
+  PointsRankTable as PointsTable,
+} from '../components/RaceRankTables'
 
 /**
  * Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla.
@@ -181,6 +95,8 @@ function StageClassifications({
   teamStage,
   teamGc,
   leaders,
+  identity,
+  own,
 }: {
   gc: StageGcEntry[]
   points: StageClassEntry[]
@@ -188,8 +104,14 @@ function StageClassifications({
   teamStage: TeamClassEntry[]
   teamGc: TeamClassEntry[]
   leaders: RaceLeaders | undefined
+  /** lo que las filas no traen: el dorsal y el dibujo del equipo (PR 12b) */
+  identity: TableIdentity
+  /** el corredor y el equipo del jugador: sus filas (§6.2) */
+  own: { readonly riderId: string | null; readonly teamId: string | null }
 }) {
   const [active, setActive] = useTabParam(STAGE_CLASS_TAB_IDS, 'gc', 'cls')
+  // la tabla a la vista contesta a la pantalla (§7.3; la 36)
+  const ctx = { leaders, identity, ownRiderId: own.riderId, answer: true } as const
   return (
     <div className={card}>
       <p className="mb-3 text-xs text-slate-400">Standings after this stage.</p>
@@ -204,19 +126,27 @@ function StageClassifications({
       <TabPanel panelId={STAGE_CLASS_PANEL} active={active} className="mt-3">
         {active === 'gc' &&
           (gc.length > 0 ? (
-            <GcTable rows={gc} leaders={leaders} />
+            <GcRankTable rows={gc} caption="General classification after this stage" {...ctx} />
           ) : (
             <EmptyState text="No general classification yet." />
           ))}
         {active === 'points' &&
           (points.length > 0 ? (
-            <PointsTable rows={points} unit="pts" leaders={leaders} />
+            <PointsRankTable
+              rows={points}
+              caption="Points classification after this stage"
+              {...ctx}
+            />
           ) : (
             <EmptyState text="No sprint points awarded yet." />
           ))}
         {active === 'kom' &&
           (kom.length > 0 ? (
-            <PointsTable rows={kom} unit="pts" leaders={leaders} />
+            <PointsRankTable
+              rows={kom}
+              caption="Mountains classification after this stage"
+              {...ctx}
+            />
           ) : (
             <EmptyState text="No mountain points awarded yet." />
           ))}
@@ -229,13 +159,24 @@ function StageClassifications({
               {teamStage.length > 0 && (
                 <div>
                   <h3 className={head}>Stage</h3>
-                  <TeamClassTable rows={teamStage} />
+                  <TeamClassTable
+                    rows={teamStage}
+                    identity={identity}
+                    ownTeamId={own.teamId}
+                    answer
+                  />
                 </div>
               )}
               {teamGc.length > 0 && (
                 <div>
                   <h3 className={head}>Overall after this stage</h3>
-                  <TeamClassTable rows={teamGc} />
+                  <TeamClassTable
+                    rows={teamGc}
+                    identity={identity}
+                    ownTeamId={own.teamId}
+                    cumulative
+                    {...(teamStage.length > 0 ? {} : { answer: true })}
+                  />
                 </div>
               )}
               <TeamClassNote />
@@ -342,6 +283,10 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
   // Lo que enseña el resultado: la ficha si lo trae; si no, sin puerta, el acta, a un toque (10-e).
   const { full, gate, acta } = useStageResult(f, raceId, day, RESULT_TABS.has(active))
   const watchHead = usePinnedHead(f.broadcastHead.data)
+  // Lo que las tablas no traen (E3, PR 12b): el dorsal y el dibujo del equipo, de la lista de salida, y
+  // lo propio; solo en las pestañas que las pintan.
+  const identidad = useRaceIdentity(raceId, RESULT_TABS.has(active))
+  const propio = useOwnIds(RESULT_TABS.has(active))
 
   // El título de la etapa (§11.8): el mismo en todas sus pestañas y antes del JavaScript (11-c).
   usePageTitle(stageTitleInfo(data), 'watch')
@@ -572,6 +517,8 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                     <StageReportView
                       data={d}
                       onWatchAnyway={watchable && seen ? () => setActive('watch') : undefined}
+                      identity={identidad}
+                      ownRiderId={propio.riderId}
                     />
                   ) : (
                     <StageStory data={d} onFullResult={() => setActive('result')} />
@@ -586,7 +533,12 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   <div className={card}>
                     <h2 className={head}>Stage result</h2>
                     {/* `onRoad`, no `afterStage`: ver la cabecera de `ResultTable`. */}
-                    <ResultTable rows={d.results} leaders={d.leaders?.onRoad} />
+                    <ResultTable
+                      rows={d.results}
+                      leaders={d.leaders?.onRoad}
+                      identity={identidad}
+                      ownRiderId={propio.riderId}
+                    />
                   </div>
                 ) : (
                   <div className={card}>
@@ -626,6 +578,8 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   teamStage={d.teamStage ?? []}
                   teamGc={d.teamGc ?? []}
                   leaders={d.leaders?.afterStage}
+                  identity={identidad}
+                  own={propio}
                 />
               ))}
 

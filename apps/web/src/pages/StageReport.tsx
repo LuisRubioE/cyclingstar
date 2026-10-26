@@ -9,6 +9,7 @@ import { ShareStage } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard } from '../components/StageGate'
 import { EmptyState } from '../components/ui/EmptyState'
 import { QueryView } from '../components/ui/QueryView'
+import { useOwnIds, useRaceIdentity } from '../components/useTableIdentity'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
 import { diagOf, useHealth, useHorizonRev, useRevealActions, useWatchOn } from '../queryClient'
 // de `stageView.tsx` y no de `StageReplay.tsx`: el acta no carga la página de la etapa ni el reproductor
@@ -70,6 +71,9 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
     () => undefined,
   )
   usePageTitle(stageTitleInfo(stage.data ?? acta.data), 'report')
+  // Lo que la llegada no trae (E3, PR 12b): el dorsal y el dibujo del equipo, y lo propio.
+  const identidad = useRaceIdentity(raceId)
+  const propio = useOwnIds()
 
   const info = stage.data ?? acta.data
   const race = info?.race
@@ -133,7 +137,7 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
           {(d) => (
             <>
               <ShareStage raceId={raceId} day={day} report />
-              <StageReportView data={d} />
+              <StageReportView data={d} identity={identidad} ownRiderId={propio.riderId} answer />
               {watchOn && (
                 <p className="text-sm">
                   <Link to={`${stagePath}?tab=watch`} className="font-medium text-brand-cyan">

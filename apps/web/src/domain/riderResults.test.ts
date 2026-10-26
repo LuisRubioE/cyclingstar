@@ -107,16 +107,18 @@ describe('desglose de etapas', () => {
   })
 })
 
-describe('color del puesto', () => {
-  it('el oro es solo de la victoria y el podio se destaca', () => {
-    expect(placeTone(race({ gcPuesto: 1 }))).toBe('text-amber-500')
-    expect(placeTone(race({ gcPuesto: 3 }))).toBe('text-slate-700')
-    expect(placeTone(race({ gcPuesto: 40 }))).toBe('text-slate-500')
+// Desde el PR 12b (E3, docs/visual.md §16.3), un `Tone` y no una clase: el oro de antes (`amber-500`,
+// 2,15:1 sobre blanco) no es un tono del sistema; la victoria va en `good` y el podio en `info`.
+describe('el tono del puesto', () => {
+  it('la victoria en good, el podio en info y el resto, neutral', () => {
+    expect(placeTone(race({ gcPuesto: 1 }))).toBe('good')
+    expect(placeTone(race({ gcPuesto: 3 }))).toBe('info')
+    expect(placeTone(race({ gcPuesto: 40 }))).toBe('neutral')
   })
 
-  it('un abandono o una general sin calcular se apagan', () => {
-    expect(placeTone(race({ dnf: true, gcPuesto: 1 }))).toBe('text-slate-400')
-    expect(placeTone(race({ gcPuesto: null }))).toBe('text-slate-400')
+  it('un abandono o una general sin calcular, neutral', () => {
+    expect(placeTone(race({ dnf: true, gcPuesto: 1 }))).toBe('neutral')
+    expect(placeTone(race({ gcPuesto: null }))).toBe('neutral')
   })
 })
 

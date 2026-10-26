@@ -12,48 +12,88 @@ import {
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
-import { TeamLink } from '../components/TeamLink'
-import { archetypeLabel } from '../domain/labels'
+import { TabPanel } from '../components/Tabs'
+import { useOwnIds, useTeamsIdentity } from '../components/useTableIdentity'
+import { NO_TEAM_LABEL, archetypeLabel } from '../domain/labels'
+import { type TableIdentity, rowTeam } from '../domain/tableIdentity'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { EmptyState } from '../components/ui/EmptyState'
+import { Panel as UiPanel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { RankTable, type RankTableColumn } from '../components/ui/RankTable'
+import { RiderLabel } from '../components/ui/RiderLabel'
+import { type TabOption, Tabs } from '../components/ui/Tabs'
 
-function RankingTable({ rows }: { rows: RankingRow[] }) {
-  if (rows.length === 0) {
+/** Una fila del ranking con su puesto, que la respuesta no trae: es su orden. */
+interface Puesto {
+  readonly r: RankingRow
+  readonly puesto: number
+}
+
+/** El equipo debajo del nombre hasta 640 y columna desde ahí; los puntos, siempre (§6.1). */
+const COLUMNAS: readonly RankTableColumn<Puesto>[] = [
+  {
+    key: 'team',
+    header: 'Team',
+    priority: 'secondary',
+    clip: true,
+    render: ({ r }) => r.teamName ?? NO_TEAM_LABEL,
+  },
+  {
+    key: 'pts',
+    header: 'Pts',
+    priority: 'primary',
+    numeric: true,
+    render: ({ r }) => r.points.toLocaleString('en-US'),
+  },
+]
+
+/**
+ * EL RANKING (E3, docs/visual.md §6.1 y §6.2; PR 12b). En `RankTable`: el puesto, el corredor con su
+ * bandera y el maillot de su equipo de hoy (`identity`, de `GET /api/teams`), el equipo debajo hasta 640
+ * y los puntos, con sus 12 px de margen (antes, `Northwind Cycling Team178`). Las 20 primeras y `Show
+ * all`, con la fila propia anclada tras ellas.
+ */
+function RankingTable({
+  caption,
+  rows,
+  identity,
+  ownRiderId,
+}: {
+  readonly caption: string
+  readonly rows: readonly RankingRow[]
+  readonly identity: TableIdentity
+  readonly ownRiderId: string | null
+}) {
+  if (rows.length === 0)
     return (
-      <p className="p-6 text-center text-sm text-slate-500">
-        No points yet — they start rolling in once races are run.
-      </p>
+      <div className="px-3 sm:px-4">
+        <EmptyState text="No points yet — they start rolling in once races are run." />
+      </div>
     )
-  }
   return (
-    <table className="w-full text-sm">
-      {/* Sin cabecera visible (el diseño es una lista): la leyenda la anuncian los lectores. */}
-      <caption className="sr-only">Ranking: position, country, rider, team and points</caption>
-      <tbody>
-        {rows.map((r, i) => (
-          <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-            <td className="w-8 py-1.5 pl-4 text-slate-400 tabular-nums">{i + 1}</td>
-            <td className="w-6 py-1.5">
-              <Flag code={r.country} size={16} />
-            </td>
-            <td className="py-1.5 text-slate-700">
-              <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-              {r.teamName && (
-                <TeamLink
-                  teamId={r.teamId}
-                  name={r.teamName}
-                  className="ml-2 text-xs text-slate-400"
-                />
-              )}
-            </td>
-            <td className="py-1.5 pr-4 text-right font-medium tabular-nums text-slate-600">
-              {r.points}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <RankTable
+      caption={caption}
+      rows={rows.map((r, i) => ({ r, puesto: i + 1 }))}
+      rowKey={({ r }) => r.riderId}
+      rank={({ puesto }) => puesto}
+      identity={({ r }) => {
+        const team = rowTeam(r.teamId, r.teamName, identity)
+        return (
+          <RiderLabel
+            rider={{ id: r.riderId, name: r.name, human: !r.isBot, country: r.country || null }}
+            {...(team === undefined ? {} : { team })}
+            link={false}
+            teamLine={false}
+          />
+        )
+      }}
+      href={({ r }) => `/world/riders/${r.riderId}`}
+      columns={COLUMNAS}
+      isOwn={({ r }) => r.riderId === ownRiderId}
+      answer
+    />
   )
 }
 
@@ -109,8 +149,16 @@ function AwardsPanel({ awards }: { awards: SeasonAwards }) {
   )
 }
 
+type Pestana = 'overall' | 'young'
+
+const PESTANAS: readonly TabOption<Pestana>[] = [
+  { key: 'overall', label: 'World ranking' },
+  { key: 'young', label: 'Young riders (U23)' },
+]
+const PANEL_RANKING = 'ranking'
+
 export function Rankings() {
-  const [tab, setTab] = useState<'overall' | 'young'>('overall')
+  const [tab, setTab] = useState<Pestana>('overall')
   const rev = useHorizonRev()
   const ranking = useQuery({
     queryKey: horizonKey(['rankings'], rev),
@@ -127,8 +175,12 @@ export function Rankings() {
     queryFn: fetchSeasonAwards,
     enabled: rev !== undefined,
   })
+  // El maillot del equipo de hoy y la fila propia (§6.1 y §6.2; PR 12b).
+  const identity = useTeamsIdentity()
+  const own = useOwnIds()
 
   // Los estados, con `QueryView` (E3, PR 10): con toda la API en 500, la respuesta de la pantalla 42.
+  // Nunca a la vez que la tabla, que es la respuesta de la 11.
   if (ranking.data === undefined)
     return (
       <QueryView
@@ -139,22 +191,8 @@ export function Rankings() {
       />
     )
 
+  // solo la pestaña joven puede no haber llegado todavía
   const active = tab === 'young' ? young.data : ranking.data
-  const tabClass = (t: 'overall' | 'young') =>
-    `rounded px-2.5 py-1 text-sm font-medium transition ${
-      tab === t ? 'bg-white text-brand-cyan' : 'text-white/80 hover:bg-white/15'
-    }`
-
-  const rankingTabs = (
-    <div className="flex items-center gap-1.5">
-      <button type="button" className={tabClass('overall')} onClick={() => setTab('overall')}>
-        World ranking
-      </button>
-      <button type="button" className={tabClass('young')} onClick={() => setTab('young')}>
-        Young riders (U23)
-      </button>
-    </div>
-  )
 
   return (
     <section className="space-y-4">
@@ -166,21 +204,42 @@ export function Rankings() {
           : 'Points scored over the last 12 months of racing — results drop out a year to the day after they were won.'}
       </p>
 
-      {awards.data && <AwardsPanel awards={awards.data} />}
-
-      <Panel title="Ranking" action={rankingTabs} bodyClassName="p-0">
-        {tab === 'young' && young.data === undefined ? (
-          <div className="p-4">
-            <QueryView
-              query={young}
-              label="the young riders ranking"
-              skeleton={{ kind: 'rows', rowHeight: 56 }}
+      {/* La respuesta, arriba (§2.2): los premios, que no lo son, van debajo. */}
+      <UiPanel title="Ranking" variant="bleed">
+        <Tabs
+          label="Ranking"
+          options={PESTANAS}
+          value={tab}
+          onChange={setTab}
+          panelId={PANEL_RANKING}
+        />
+        <TabPanel panelId={PANEL_RANKING} active={tab} className="">
+          {active === undefined ? (
+            <div className="px-3 sm:px-4">
+              <QueryView
+                query={young}
+                label="the young riders ranking"
+                skeleton={{ kind: 'rows', rowHeight: 56 }}
+                answer
+              />
+            </div>
+          ) : (
+            <RankingTable
+              key={tab}
+              caption={
+                tab === 'young'
+                  ? 'Young riders ranking (U23): position, country, rider, team and points'
+                  : 'World ranking: position, country, rider, team and points'
+              }
+              rows={active}
+              identity={identity}
+              ownRiderId={own.riderId}
             />
-          </div>
-        ) : (
-          <RankingTable rows={active ?? []} />
-        )}
-      </Panel>
+          )}
+        </TabPanel>
+      </UiPanel>
+
+      {awards.data && <AwardsPanel awards={awards.data} />}
     </section>
   )
 }

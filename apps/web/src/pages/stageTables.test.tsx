@@ -35,16 +35,25 @@ function html(node: ReactElement): string {
 const count = (markup: string, label: string): number =>
   markup.split(`aria-label="${label}"`).length - 1
 
+/** El texto sin etiquetas: el nombre de `RiderLabel` deja su última palabra fuera de su `span` (PR 12b). */
+const texto = (markup: string): string => markup.replace(/<[^>]+>/g, '')
+
 /**
  * Quién lleva un maillot, por FILAS: se parte el HTML en `<tr>` y de cada fila que traiga la
- * etiqueta se saca el nombre del corredor (el primer enlace de la fila). Así da igual que el icono
- * vaya antes o después del nombre, que es justo lo que cambia entre el maillot y el dorsal.
+ * etiqueta se saca el nombre del corredor. Desde el PR 12b (E3, docs/visual.md §16.3; Rcodigo-056) la
+ * fila es de `RankTable` y su único enlace es la celda entera, así que el nombre se lee del nodo
+ * `data-ui="RiderLabel"`: el texto de su `data-rider`, que va justo antes del maillot, sin las etiquetas
+ * de dentro (`gluedLastWord` deja la última palabra fuera de su `span`).
  */
 function wearers(markup: string, label: string): string[] {
   return markup
     .split('<tr')
     .filter((row) => row.includes(`aria-label="${label}"`))
-    .map((row) => /<a [^>]*>([^<]+)<\/a>/.exec(row)?.[1] ?? '')
+    .map((row) => {
+      const etiqueta = row.slice(row.indexOf('data-ui="RiderLabel"'))
+      const nombre = /data-rider="(?:human|bot)"[^>]*>(.*?)<\/span><span class="ml-1/.exec(etiqueta)
+      return (nombre?.[1] ?? '').replace(/<[^>]+>/g, '')
+    })
 }
 
 const gcRow = (riderId: string, name: string, over: Partial<StageGcEntry> = {}): StageGcEntry => ({
@@ -83,6 +92,8 @@ const pointsRow = (riderId: string, puntos: number) => ({
   riderId,
   name: `Corredor ${riderId}`,
   country: 'ES',
+  teamId: `team-${riderId}`,
+  teamName: `Equipo ${riderId}`,
   isBot: true,
   puntos,
 })
@@ -136,7 +147,7 @@ describe('la clasificación por puntos', () => {
   it('el verde NO tiene por qué ser la fila 1: por eso se pinta también en su propia tabla', () => {
     // El líder de la general (a) va primero por puntos, así que el verde lo lleva el segundo (b).
     const markup = html(
-      <PointsTable rows={[pointsRow('a', 50), pointsRow('b', 40)]} unit="pts" leaders={leaders} />,
+      <PointsTable rows={[pointsRow('a', 50), pointsRow('b', 40)]} leaders={leaders} />,
     )
     expect(wearers(markup, 'Points leader')).toEqual(['Corredor b'])
     expect(wearers(markup, 'Race leader')).toEqual(['Corredor a'])
@@ -156,7 +167,7 @@ describe('el resultado de la etapa', () => {
 
   it('sin líderes se pinta igual', () => {
     const markup = html(<ResultTable rows={[resultRow('a', 1)]} leaders={undefined} />)
-    expect(markup).toContain('Corredor a')
+    expect(texto(markup)).toContain('Corredor a')
     expect(count(markup, 'Race leader')).toBe(0)
   })
 
@@ -166,16 +177,17 @@ describe('el resultado de la etapa', () => {
    * plegada** —son las filas que uno busca justamente cuando falta alguien— y `fuera de control` se
    * dice distinto de un abandono, porque en una hoja de verdad son cosas distintas.
    */
-  it('el que no acabó sale al final, tachado y sin puesto', () => {
+  // Desde el PR 12b, sin tachar (`RankTable`, §4.5): la fila va al final, `inactive` y sin puesto.
+  it('el que no acabó sale al final, sin puesto y como fila inactiva', () => {
     const markup = html(
       <ResultTable
         rows={[resultRow('a', 1), resultRow('z', 0, { dnf: true, reason: 'colapso' })]}
         leaders={undefined}
       />,
     )
-    const filaDnf = markup.split('<tr').find((row) => row.includes('Corredor z')) ?? ''
+    const filaDnf = markup.split('<tr').find((row) => texto(row).includes('Corredor z')) ?? ''
     expect(filaDnf).toContain('DNF')
-    expect(filaDnf).toContain('line-through')
+    expect(filaDnf).toMatch(/^ data-state="inactive"/)
     // Ni puesto ni tiempo: los ceros de la fila no significan nada y no se enseñan.
     expect(filaDnf).not.toContain('0:00')
   })
@@ -187,7 +199,7 @@ describe('el resultado de la etapa', () => {
         leaders={undefined}
       />,
     )
-    const filaDnf = markup.split('<tr').find((row) => row.includes('Corredor z')) ?? ''
+    const filaDnf = markup.split('<tr').find((row) => texto(row).includes('Corredor z')) ?? ''
     expect(filaDnf).toContain('OTL')
   })
 
@@ -200,9 +212,9 @@ describe('el resultado de la etapa', () => {
         leaders={undefined}
       />,
     )
-    expect(markup).toContain('Corredor z')
+    expect(texto(markup)).toContain('Corredor z')
     // …y el que se queda fuera del corte por ser el 30.º clasificado, no.
-    expect(markup).not.toContain(`Corredor c${TOP_ROWS + 14}`)
+    expect(texto(markup)).not.toContain(`Corredor c${TOP_ROWS + 14}`)
   })
 })
 
@@ -345,7 +357,7 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
       const markup = page('/world/races/race-france/stages/7?tab=result', watch, seen)
       expect(markup).not.toContain(GATE)
       expect(markup).toContain('Stage result')
-      expect(markup).toContain('Corredor a')
+      expect(texto(markup)).toContain('Corredor a')
     }
   })
 

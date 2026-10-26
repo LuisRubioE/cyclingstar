@@ -15,8 +15,9 @@ describe('StageRoute', () => {
     expect(renderToStaticMarkup(<StageRoute from="Tarragona" to="Barcelona" />)).toContain(
       'Tarragona → Barcelona',
     )
-    expect(renderToStaticMarkup(<StageRoute from="Barcelona" to="Barcelona" />)).toBe(
-      '<span class="text-slate-500">Barcelona</span>',
+    // desde el PR 12b (E3, §16.3), su `data-ui` y el texto, no su clase
+    expect(renderToStaticMarkup(<StageRoute from="Barcelona" to="Barcelona" />)).toMatch(
+      /^<span data-ui="StageRoute"[^>]*>Barcelona<\/span>$/,
     )
     expect(renderToStaticMarkup(<StageRoute from={null} to={undefined} />)).toBe('')
   })

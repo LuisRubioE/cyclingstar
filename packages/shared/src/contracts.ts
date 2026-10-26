@@ -518,12 +518,18 @@ export type RaceHonour = z.infer<typeof raceHonourSchema>
 
 /**
  * Fila de una clasificación por puntos: metas volantes (`points`) o montaña (`kom`). La comparten
- * la ficha de carrera y el replay de etapa.
+ * la ficha de carrera y el replay de etapa. Desde el 12b de E3 lleva el equipo del corredor, como la
+ * general (docs/visual.md §6.1, 6-d): la fila pinta su nombre y su maillot, que sale por `teamId` de
+ * la lista de salida de la carrera (17-q).
  */
 export const pointsEntrySchema = z.object({
   riderId: z.string(),
   name: z.string(),
   country: z.string(),
+  /** Id del equipo del corredor, el de hoy como en la general; null en un agente libre. */
+  teamId: z.string().nullable(),
+  /** Nombre de ese equipo; null en un agente libre. */
+  teamName: z.string().nullable(),
   isBot: z.boolean(),
   puntos: z.number(),
 })
@@ -668,12 +674,18 @@ export const startlistTeamSchema = z.object({
 })
 export type StartlistTeam = z.infer<typeof startlistTeamSchema>
 
+/**
+ * La lista de salida de una carrera. Dentro de la ventana de cierre, la escuadra congelada o la
+ * previsión de equipos; desde la salida, empezada o terminada, solo la escuadra congelada, de la que
+ * las tablas de la carrera toman el dorsal y el maillot de cada fila (E3, paso 12b; docs/visual.md
+ * §6.1, 17-q). Vacía lejos de la salida y en una carrera que salió sin escuadra congelada.
+ */
 export const raceStartlistSchema = z.object({
   /** La carrera está próxima a empezar (dentro de la ventana) y aún no se ha corrido. */
   upcoming: z.boolean(),
-  /** Días de juego que faltan para la salida (ausente si no hay mundo). */
+  /** Días de juego que faltan para la salida, cero o menos desde ella (ausente si no hay mundo). */
   daysUntil: z.number().int().optional(),
-  /** La escuadra ya está congelada: se muestran corredores reales. */
+  /** La escuadra ya está congelada: se muestran corredores reales, también tras la salida. */
   frozen: z.boolean().optional(),
   teams: z.array(startlistTeamSchema),
   freeAgents: z.array(startlistRiderSchema),
@@ -896,10 +908,20 @@ export const seasonAwardsSchema = z.object({
 export type SeasonAwards = z.infer<typeof seasonAwardsSchema>
 export const seasonAwardsResponseSchema = z.object({ awards: seasonAwardsSchema.nullable() })
 
+/**
+ * Fila del salón de la fama: el palmarés de todas las temporadas, con su desglose. Desde el 12b de E3
+ * lleva el equipo del corredor, y es el de HOY (docs/visual.md §6.1, 6-d): el palmarés no guarda con
+ * qué equipo se ganó cada honor, y el salón, que no es de ninguna carrera, toma el maillot por
+ * `teamId` de `GET /api/teams` (17-q).
+ */
 export const hallOfFameRowSchema = z.object({
   riderId: z.string(),
   name: z.string(),
   country: z.string(),
+  /** Id del equipo de hoy del corredor; null en un agente libre. */
+  teamId: z.string().nullable(),
+  /** Nombre de ese equipo; null en un agente libre. */
+  teamName: z.string().nullable(),
   isBot: z.boolean(),
   gc: z.number(),
   stage: z.number(),
