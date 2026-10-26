@@ -1,4 +1,4 @@
-import { raceIdFromKey } from '@cyclingstar/shared'
+import { raceIdFromKey, seasonPosition } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -11,8 +11,12 @@ import { Panel, SectionBar } from '../components/Panel'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageRoute } from '../components/StageRoute'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { ActionRow } from '../components/ui/ActionRow'
+import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { QueryView } from '../components/ui/QueryView'
+import { Segmented } from '../components/ui/Segmented'
+import { ShowAllRows } from '../components/ui/ShowAllRows'
 import { raceClassLabel, travelDaysLabel } from '../domain/labels'
 import {
   hasStageBreakdown,
@@ -24,7 +28,8 @@ import {
   stagesSummary,
   stagesToWatchText,
 } from '../domain/riderResults'
-import { horizonKey, useHorizonRev } from '../queryClient'
+import { formatGameDay } from '../domain/words'
+import { horizonKey, useHealth, useHorizonRev } from '../queryClient'
 
 type TabId = 'upcoming' | 'enter' | 'results'
 
@@ -35,11 +40,60 @@ const TAB_LABEL: Record<TabId, string> = {
 }
 const MY_RACES_PANEL = 'my-races-section'
 
-/** Cuándo empieza (o si ya está en marcha), en una frase corta. */
-function whenLabel(daysUntil: number, ongoing: boolean): string {
-  if (ongoing) return 'Racing now'
-  if (daysUntil <= 0) return 'Starts today'
-  return `in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`
+/** El día de la temporada de un día de juego absoluto (el `startGameDay` del programa). */
+const diaDeTemporada = (gameDay: number) => seasonPosition(gameDay).dayOfSeason
+
+/** Hoy, en el día de la temporada; sin `/health` todavía, null. */
+function useHoy(): number | null {
+  const health = useHealth()
+  return health.data?.gameDay ? diaDeTemporada(health.data.gameDay) : null
+}
+
+/** Una carrera y su clase, el primer renglón de una fila (E3, docs/visual.md §4.5; PR 12a). */
+function CarreraYClase({ name, clase }: { readonly name: string; readonly clase: string }) {
+  return (
+    <>
+      {name} <span className="text-caption font-semibold text-ink-3">{clase}</span>
+    </>
+  )
+}
+
+/**
+ * La retirada de una carrera por etapas en curso (docs/motor.md §V.5), debajo de su fila: no se deshace, así
+ * que nunca actúa a la primera; primero pregunta.
+ */
+function Retirada({
+  confirming,
+  busy,
+  onAsk,
+  onCancel,
+  onConfirm,
+}: {
+  readonly confirming: boolean
+  readonly busy: boolean
+  readonly onAsk: () => void
+  readonly onCancel: () => void
+  readonly onConfirm: () => void
+}) {
+  if (!confirming)
+    return (
+      <Button variant="quiet" onClick={onAsk}>
+        Abandon
+      </Button>
+    )
+  return (
+    <>
+      <span className="text-meta text-ink-2">
+        Abandon for good? You pull out of this race to prepare another one. This cannot be undone.
+      </span>
+      <Button variant="danger" busy={busy} onClick={onConfirm}>
+        Yes, abandon
+      </Button>
+      <Button variant="quiet" onClick={onCancel}>
+        Keep racing
+      </Button>
+    </>
+  )
 }
 
 /**
@@ -49,6 +103,7 @@ function whenLabel(daysUntil: number, ongoing: boolean): string {
 function UpcomingTab() {
   const queryClient = useQueryClient()
   const rev = useHorizonRev()
+  const hoy = useHoy()
   const upcoming = useQuery({
     queryKey: horizonKey(['rider', 'upcoming'], rev),
     queryFn: fetchMyUpcomingRaces,
@@ -87,98 +142,50 @@ function UpcomingTab() {
   return (
     <>
       {races.length > 0 && (
-        <Panel title="On your programme" bodyClassName="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <caption className="sr-only">Races you are entered in</caption>
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-xs text-slate-400">
-                  <th scope="col" className="px-3 py-2 font-medium">
-                    Race
-                  </th>
-                  <th scope="col" className="px-2 py-2 font-medium">
-                    Bib
-                  </th>
-                  <th scope="col" className="px-2 py-2 font-medium">
-                    Starts
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-right font-medium">
-                    Orders
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {races.map((r) => (
-                  <tr key={r.raceKey} className="border-b border-slate-100 last:border-0">
-                    <th scope="row" className="px-3 py-2 text-left font-normal">
-                      <Link
-                        to={`/world/races/${raceIdFromKey(r.raceId)}`}
-                        className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
-                      >
-                        {r.country && <Flag code={r.country} size={14} className="mr-1.5" />}
-                        {r.raceName}
-                      </Link>
-                      <span className="ml-2 font-mono text-[11px] text-slate-400">
-                        {raceClassLabel(r.raceClass as RaceClass)}
-                        {r.stageCount > 1 ? ` · ${r.stageCount} stages` : ''}
-                      </span>
-                    </th>
-                    <td className="px-2 py-2 tabular-nums text-slate-500">
-                      {r.bib != null ? `#${r.bib}` : '—'}
-                    </td>
-                    <td className="px-2 py-2 text-slate-600">
-                      {whenLabel(r.daysUntil, r.ongoing)}
-                    </td>
-                    {/* Retirada voluntaria entre etapas (docs/motor.md §V.5): solo en una carrera
-                        POR ETAPAS que ya esté rodando, y siempre con confirmación. */}
-                    <td className="px-3 py-2 text-right">
-                      {r.ongoing && r.stageCount > 1 && (
-                        <span className="mr-3 inline-flex items-center gap-2">
-                          {confirming === r.raceKey ? (
-                            <>
-                              <span className="text-xs text-slate-500">Abandon for good?</span>
-                              <button
-                                type="button"
-                                onClick={() => retire.mutate(r.raceKey)}
-                                disabled={retire.isPending}
-                                className="rounded-md bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-rose-700 disabled:opacity-60"
-                              >
-                                Yes, abandon
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setConfirming(null)}
-                                className="text-xs font-medium text-slate-500 hover:text-slate-700"
-                              >
-                                Keep racing
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setConfirming(r.raceKey)}
-                              title="Pull out of this race and prepare another one. This cannot be undone."
-                              className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-rose-300 hover:text-rose-700"
-                            >
-                              Abandon
-                            </button>
-                          )}
-                        </span>
-                      )}
-                      <Link
-                        to={`/me/orders?race=${encodeURIComponent(r.raceKey)}`}
-                        className="font-medium text-brand-cyan hover:underline"
-                      >
-                        Set orders
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        // las filas con su acción (E3, PR 12a): `Set orders`, y en una carrera por etapas en curso, la
+        // retirada debajo
+        <Panel title="On your programme" bodyClassName="px-3 pb-3">
+          <ul className="divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0">
+            {races.map((r) => (
+              <ActionRow
+                key={r.raceKey}
+                title={
+                  <CarreraYClase
+                    name={r.raceName}
+                    clase={`${raceClassLabel(r.raceClass as RaceClass)}${r.stageCount > 1 ? ` · ${r.stageCount} stages` : ''}`}
+                  />
+                }
+                meta={[
+                  r.bib != null ? `Bib ${r.bib}` : null,
+                  r.ongoing ? 'Racing now' : formatGameDay(diaDeTemporada(r.startGameDay), hoy),
+                  r.country,
+                ]
+                  .filter((p) => p !== null)
+                  .join(' · ')}
+                href={`/world/races/${raceIdFromKey(r.raceId)}`}
+                action={{
+                  label: 'Set orders',
+                  ariaLabel: `Set orders for ${r.raceName}`,
+                  to: `/me/orders?race=${encodeURIComponent(r.raceKey)}`,
+                }}
+                {...(r.ongoing && r.stageCount > 1
+                  ? {
+                      extra: (
+                        <Retirada
+                          confirming={confirming === r.raceKey}
+                          busy={retire.isPending}
+                          onAsk={() => setConfirming(r.raceKey)}
+                          onCancel={() => setConfirming(null)}
+                          onConfirm={() => retire.mutate(r.raceKey)}
+                        />
+                      ),
+                    }
+                  : {})}
+              />
+            ))}
+          </ul>
           {retire.isError && (
-            <p className="px-3 pb-3 text-sm text-red-600">Could not withdraw from the race.</p>
+            <p className="text-meta text-bad">Could not withdraw from the race.</p>
           )}
         </Panel>
       )}
@@ -220,74 +227,78 @@ function UpcomingTab() {
   )
 }
 
-/** Una carrera continental inscribible por un agente libre, con su coste de viaje y estado. */
+/**
+ * Una carrera continental inscribible por un agente libre (E3, docs/visual.md §6.1; PR 12a): la carrera y su
+ * clase, y en el segundo renglón el día, el país y su viaje; `Enter`, `Withdraw` o, convocado, `Called up`.
+ * Sin dinero para el viaje, `Enter` deshabilitado con su porqué (hoy, en un `title`).
+ */
 function EnterableRow({
   race,
+  hoy,
   busy,
   onEnter,
   onWithdraw,
 }: {
   race: EnterableRace
+  hoy: number | null
   busy: boolean
   onEnter: (id: string) => void
   onWithdraw: (id: string) => void
 }) {
+  const dias = travelDaysLabel(race.travelDays)
+  const fila = {
+    title: <CarreraYClase name={race.name} clase={`.${race.raceClass}`} />,
+    meta: [
+      formatGameDay(race.startDay, hoy),
+      race.country,
+      `Travel ${race.travelMoney.toLocaleString('en-US')}`,
+      dias === '' ? null : dias,
+    ]
+      .filter((p) => p !== null)
+      .join(' · '),
+    href: `/world/races/${race.raceId}`,
+  }
+  if (race.enrolled) return <ActionRow {...fila} done={{ text: 'Called up', tone: 'good' }} />
+  if (race.entered)
+    return (
+      <ActionRow
+        {...fila}
+        action={{
+          label: 'Withdraw',
+          ariaLabel: `Withdraw from ${race.name}`,
+          onClick: () => onWithdraw(race.raceId),
+          busy,
+        }}
+      />
+    )
   return (
-    <tr className="border-b border-slate-100 last:border-0">
-      <td className="px-3 py-2 text-xs tabular-nums text-slate-400">GD {race.startDay}</td>
-      <th scope="row" className="px-2 py-2 text-left font-normal">
-        <Link
-          to={`/world/races/${race.raceId}`}
-          className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
-        >
-          {race.country && <Flag code={race.country} size={14} className="mr-1.5" />}
-          {race.name}
-        </Link>
-        <span className="ml-2 font-mono text-[11px] text-slate-400">.{race.raceClass}</span>
-      </th>
-      <td className="px-2 py-2 text-right text-sm tabular-nums">
-        <span className={race.affordable ? 'text-slate-700' : 'text-rose-600'}>
-          {race.travelMoney.toLocaleString('en-US')}
-        </span>
-        {/* Los días se anuncian de ida Y vuelta: `travelDays` es de un trayecto, y pintarlo tal
-            cual anunciaba la mitad del precio en días sin entrenar. */}
-        {race.travelDays > 0 && (
-          <span className="block text-xs text-slate-400">{travelDaysLabel(race.travelDays)}</span>
-        )}
-      </td>
-      <td className="px-3 py-2 text-right">
-        {race.enrolled ? (
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-            Called up
-          </span>
-        ) : race.entered ? (
-          <button
-            type="button"
-            onClick={() => onWithdraw(race.raceId)}
-            disabled={busy}
-            className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-          >
-            Withdraw
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onEnter(race.raceId)}
-            disabled={busy || !race.affordable}
-            title={race.affordable ? 'Enter this race' : 'Not enough money for the trip'}
-            className="rounded-md bg-brand-cyan px-2.5 py-1 text-xs font-medium text-white transition hover:bg-brand-cyan-light disabled:opacity-50"
-          >
-            Enter
-          </button>
-        )}
-      </td>
-    </tr>
+    <ActionRow
+      {...fila}
+      action={{
+        label: 'Enter',
+        ariaLabel: `Enter ${race.name}`,
+        variant: 'primary',
+        onClick: () => onEnter(race.raceId),
+        busy,
+        ...(race.affordable ? {} : { disabledReason: 'Not enough money for the trip' }),
+      }}
+    />
   )
 }
+
+/** Qué inscribibles se ven: todas, o las que se pueden pagar (y las que ya pedí). */
+type Filtro = 'all' | 'affordable'
+const FILTROS = [
+  { key: 'all', label: 'All races' },
+  { key: 'affordable', label: 'Affordable' },
+] as const
 
 /** Pestaña "Available to enter" (solo agente libre): auto-inscripción con su coste de viaje. */
 function EnterTab({ money }: { money: number | null }) {
   const queryClient = useQueryClient()
+  const hoy = useHoy()
+  const [filtro, setFiltro] = useState<Filtro>('all')
+  const [todas, setTodas] = useState(false)
   const entries = useQuery({
     queryKey: ['race-entries'],
     queryFn: fetchEnterableRaces,
@@ -316,6 +327,8 @@ function EnterTab({ money }: { money: number | null }) {
   const committed = data
     .filter((r) => r.entered && !r.enrolled)
     .reduce((s, r) => s + r.travelMoney, 0)
+  const lista =
+    filtro === 'affordable' ? data.filter((r) => r.affordable || r.entered || r.enrolled) : data
 
   return (
     <>
@@ -345,41 +358,34 @@ function EnterTab({ money }: { money: number | null }) {
       {data.length === 0 ? (
         <EmptyState text="No continental races left to enter this season." />
       ) : (
-        <Panel title="Still open" bodyClassName="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <caption className="sr-only">
-                Races you can still enter, with their travel cost
-              </caption>
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-xs text-slate-400">
-                  <th scope="col" className="px-3 py-2 font-medium">
-                    Day
-                  </th>
-                  <th scope="col" className="px-2 py-2 font-medium">
-                    Race
-                  </th>
-                  <th scope="col" className="px-2 py-2 text-right font-medium">
-                    Travel
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-right font-medium">
-                    Entry
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((race) => (
-                  <EnterableRow
-                    key={race.raceId}
-                    race={race}
-                    busy={mutation.isPending}
-                    onEnter={(id) => mutation.mutate({ id, action: 'enter' })}
-                    onWithdraw={(id) => mutation.mutate({ id, action: 'withdraw' })}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+        // las filas con su acción (E3, PR 12a): de 193 filas en 19.914 px, a las 20 primeras
+        <Panel title="Still open" bodyClassName="flex flex-col gap-3 px-3 pt-3 pb-3">
+          <Segmented
+            label="Which races"
+            options={FILTROS}
+            value={filtro}
+            onChange={(f) => {
+              setFiltro(f)
+              setTodas(false)
+            }}
+          />
+          {lista.length === 0 ? (
+            <EmptyState text="You can't pay the trip to any race still open. Your balance grows with your prizes and your salary." />
+          ) : (
+            <ul className="divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0">
+              {(todas ? lista : lista.slice(0, TOP_ROWS)).map((race) => (
+                <EnterableRow
+                  key={race.raceId}
+                  race={race}
+                  hoy={hoy}
+                  busy={mutation.isPending && mutation.variables?.id === race.raceId}
+                  onEnter={(id) => mutation.mutate({ id, action: 'enter' })}
+                  onWithdraw={(id) => mutation.mutate({ id, action: 'withdraw' })}
+                />
+              ))}
+            </ul>
+          )}
+          <ShowAllRows total={lista.length} expanded={todas} onToggle={() => setTodas((t) => !t)} />
         </Panel>
       )}
       {mutation.isError && <p className="text-sm text-red-600">Could not update your entry.</p>}

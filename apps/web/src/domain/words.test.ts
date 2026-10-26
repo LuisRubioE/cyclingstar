@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { worldClock } from './words'
+import { formatGameDay, worldClock } from './words'
 
 /**
  * El reloj del mundo de la cabecera (E3, docs/visual.md §6.3 y §4.10; PR 11): el día de la temporada, la
@@ -50,5 +50,23 @@ describe('worldClock', () => {
       label: 'The world has not started yet. Next update in 5 minutes.',
     })
     expect(worldClock(0, min(5)).text).toBe('Not started · 5m')
+  })
+})
+
+describe('formatGameDay', () => {
+  it('un día de la temporada, Day 56; nunca GD 56', () => {
+    expect(formatGameDay(56, 20)).toBe('Day 56')
+  })
+
+  it('a siete días o menos, cuánto falta', () => {
+    expect(formatGameDay(56, 50)).toBe('Day 56 · in 6 days')
+    expect(formatGameDay(57, 50)).toBe('Day 57 · in 7 days')
+    expect(formatGameDay(51, 50)).toBe('Day 51 · in 1 day')
+    expect(formatGameDay(50, 50)).toBe('Day 50 · today')
+  })
+
+  it('lo pasado, y sin saber hoy, solo el día', () => {
+    expect(formatGameDay(48, 50)).toBe('Day 48')
+    expect(formatGameDay(56, null)).toBe('Day 56')
   })
 })

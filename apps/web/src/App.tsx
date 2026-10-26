@@ -389,11 +389,18 @@ export function App() {
       </main>
       <footer className="mx-auto max-w-6xl px-4 py-8 text-xs text-slate-400">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 pt-4">
+          {/* los dos enlaces, de 44 × 44 (WCAG 2.5.8; E3, PR 12a): medían 16 de alto en todas las pantallas */}
           <div className="flex items-center gap-x-4">
-            <Link to="/how-to-play" className="hover:text-slate-600">
+            <Link
+              to="/how-to-play"
+              className="inline-flex min-h-11 min-w-11 items-center hover:text-slate-600"
+            >
               How to play
             </Link>
-            <Link to="/privacy" className="hover:text-slate-600">
+            <Link
+              to="/privacy"
+              className="inline-flex min-h-11 min-w-11 items-center hover:text-slate-600"
+            >
               Privacy
             </Link>
           </div>

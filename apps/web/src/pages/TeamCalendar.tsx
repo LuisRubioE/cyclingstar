@@ -1,4 +1,4 @@
-import { TRANSPORT_COST } from '@cyclingstar/shared'
+import { TRANSPORT_COST, seasonPosition } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -16,11 +16,15 @@ import {
 } from '../api/teamCalendar'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
+import { TOP_ROWS } from '../components/ShowAll'
 import { formatLabel, raceClassLabel, travelDaysLabel } from '../domain/labels'
 import { finalVeiled, raceKeyOn, raceVeil } from '../domain/veil'
+import { formatGameDay } from '../domain/words'
+import { ActionRow } from '../components/ui/ActionRow'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { QueryView } from '../components/ui/QueryView'
+import { ShowAllRows } from '../components/ui/ShowAllRows'
 import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient'
 
 /**
@@ -39,86 +43,23 @@ import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient
  * endpoint no expone presupuesto ni salarios: eso es cosa de quien gestiona el equipo.
  */
 
-/** Una carrera elegible para el plan del equipo, con su coste de viaje total estimado. */
-function RaceRow({
-  race,
-  busy,
-  onToggle,
-}: {
-  race: TeamCalendarRace
-  busy: boolean
-  onToggle: (race: TeamCalendarRace) => void
-}) {
+/**
+ * El segundo renglón de una carrera del plan (E3, docs/visual.md §6.1; PR 12a): el día, el país, si es de
+ * casa, el viaje del equipo entero y sus días (`Day 59 · FR · Travel 336 · 2 travel days (1 out, 1 back)`).
+ */
+function metaDelPlan(race: TeamCalendarRace, hoy: number | null): string {
   const total = race.travelPerRider * race.squad
-  return (
-    <tr
-      className={`border-b border-slate-100 last:border-0 ${race.drafted ? 'bg-brand-cyan/5' : ''}`}
-    >
-      <td className="px-3 py-2 text-xs tabular-nums text-slate-400">GD {race.startDay}</td>
-      <td className="px-2 py-2">
-        <Link
-          to={`/world/races/${race.raceId}`}
-          className="font-medium text-slate-800 hover:text-indigo-600 hover:underline"
-        >
-          {race.name}
-        </Link>
-        <span className="ml-2 font-mono text-[11px] text-slate-400">.{race.raceClass}</span>
-        {race.natural && (
-          <span
-            className="ml-2 rounded bg-slate-900/5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
-            title="Home race — part of your team's natural calendar"
-          >
-            home
-          </span>
-        )}
-      </td>
-      <td className="px-2 py-2">
-        {race.country && (
-          <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-            <Flag code={race.country} size={14} />
-            {race.country}
-          </span>
-        )}
-      </td>
-      <td className="px-2 py-2 text-right text-sm tabular-nums">
-        <span
-          className={race.travelTier === 'intercontinental' ? 'text-rose-600' : 'text-slate-700'}
-        >
-          {total}
-        </span>
-        <span className="ml-1 text-xs text-slate-400">
-          ({race.travelPerRider}×{race.squad})
-        </span>
-        {race.travelTier === 'intercontinental' && (
-          <span
-            className="ml-1 text-xs font-medium text-rose-500"
-            title="Overseas trip — expensive"
-          >
-            ✈
-          </span>
-        )}
-        {/* El viaje también cuesta DÍAS sin entrenar, y se anuncian de ida y vuelta. */}
-        {TRANSPORT_COST[race.travelTier].days > 0 && (
-          <span className="block text-xs text-slate-400">
-            {travelDaysLabel(TRANSPORT_COST[race.travelTier].days)}
-          </span>
-        )}
-      </td>
-      <td className="px-3 py-2 text-right">
-        <button
-          onClick={() => onToggle(race)}
-          disabled={busy}
-          className={
-            race.drafted
-              ? 'rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60'
-              : 'rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60'
-          }
-        >
-          {race.drafted ? 'Drop' : 'Add'}
-        </button>
-      </td>
-    </tr>
-  )
+  const dias = travelDaysLabel(TRANSPORT_COST[race.travelTier].days)
+  return [
+    formatGameDay(race.startDay, hoy),
+    race.country,
+    race.natural ? 'Home race' : null,
+    total > 0 ? `Travel ${total.toLocaleString('en-US')}` : null,
+    race.travelTier === 'intercontinental' ? 'Overseas' : null,
+    dias === '' ? null : dias,
+  ]
+    .filter((p) => p !== null)
+    .join(' · ')
 }
 
 /** El planificador del mánager: elige a qué carreras va el equipo y paga el viaje. */
@@ -129,6 +70,10 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
       drafted ? undraftRace(id) : draftRace(id),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['team-calendar'] }),
   })
+  const health = useHealth()
+  const hoy = health.data?.gameDay ? seasonPosition(health.data.gameDay).dayOfSeason : null
+  const [todas, setTodas] = useState(false)
+  const vista = todas ? data.races : data.races.slice(0, TOP_ROWS)
 
   const draftedCount = data.races.filter((r) => r.drafted).length
   const plannedCost = data.races
@@ -160,25 +105,27 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
         </Panel>
       </div>
 
+      {/* las cifras en `title` y con sus tokens (E3, PR 12a): en `text-xl`, el presupuesto se salía 3 px de su
+          tarjeta a 320; y en 18 px ya no es letra grande, así que `emerald-600` (3,67:1) no llega: `good` */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Panel title="Budget">
-          <p className="text-xl font-bold tabular-nums text-slate-800">
+          <p className="text-title font-bold tabular-nums text-ink">
             {data.budget.toLocaleString('en-US')}
           </p>
         </Panel>
         <Panel title="Weekly income">
-          <p className="text-xl font-bold tabular-nums text-emerald-600">
+          <p className="text-title font-bold tabular-nums text-good">
             +{data.weeklyIncome.toLocaleString('en-US')}
           </p>
         </Panel>
         <Panel title="Weekly wages">
-          <p className="text-xl font-bold tabular-nums text-rose-600">
+          <p className="text-title font-bold tabular-nums text-bad">
             −{data.weeklyWages.toLocaleString('en-US')}
           </p>
         </Panel>
         <Panel title="Weekly net">
           <p
-            className={`text-xl font-bold tabular-nums ${data.weeklyNet >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+            className={`text-title font-bold tabular-nums ${data.weeklyNet >= 0 ? 'text-good' : 'text-bad'}`}
           >
             {data.weeklyNet >= 0 ? '+' : '−'}
             {Math.abs(data.weeklyNet).toLocaleString('en-US')}
@@ -194,28 +141,39 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
       {data.races.length === 0 ? (
         <EmptyState icon="race" text="No upcoming races left to plan this season." />
       ) : (
-        <Panel bodyClassName="p-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs text-slate-400">
-                <th className="px-3 py-2 font-medium">Day</th>
-                <th className="px-2 py-2 font-medium">Race</th>
-                <th className="px-2 py-2 font-medium">Where</th>
-                <th className="px-2 py-2 text-right font-medium">Travel</th>
-                <th className="px-3 py-2 text-right font-medium">Plan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.races.map((race) => (
-                <RaceRow
+        // las filas con su acción (E3, PR 12a): `Add` y `Drop` vuelven a verse y a tocarse, y las 20 primeras
+        <Panel title="Race plan" bodyClassName="px-3 pb-3">
+          <ul className="divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0">
+            {vista.map((race) => {
+              const verbo = race.drafted ? 'Drop' : 'Add'
+              return (
+                <ActionRow
                   key={race.raceId}
-                  race={race}
-                  busy={mutate.isPending}
-                  onToggle={(r) => mutate.mutate({ id: r.raceId, drafted: r.drafted })}
+                  title={
+                    <>
+                      {race.name}{' '}
+                      <span className="text-caption font-semibold text-ink-3">
+                        .{race.raceClass}
+                      </span>
+                    </>
+                  }
+                  meta={metaDelPlan(race, hoy)}
+                  href={`/world/races/${race.raceId}`}
+                  action={{
+                    label: verbo,
+                    ariaLabel: `${verbo} ${race.name}`,
+                    onClick: () => mutate.mutate({ id: race.raceId, drafted: race.drafted }),
+                    busy: mutate.isPending && mutate.variables?.id === race.raceId,
+                  }}
                 />
-              ))}
-            </tbody>
-          </table>
+              )
+            })}
+          </ul>
+          <ShowAllRows
+            total={data.races.length}
+            expanded={todas}
+            onToggle={() => setTodas((t) => !t)}
+          />
         </Panel>
       )}
     </section>

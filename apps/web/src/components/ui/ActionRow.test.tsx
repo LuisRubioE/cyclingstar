@@ -59,6 +59,26 @@ describe('ActionRow', () => {
     expect(s).toMatch(/<button type="button" aria-label="Add Race Ardèche" aria-busy="true"/)
   })
 
+  it('con to, la acción es un enlace con aspecto de botón: Set orders lleva a las órdenes (PR 12a)', () => {
+    const s = pinta({
+      action: {
+        label: 'Set orders',
+        ariaLabel: 'Set orders for Race Var',
+        to: '/me/orders?race=var',
+      },
+    })
+    expect(s.match(/<a /g)).toHaveLength(2)
+    expect(s).toMatch(
+      /<a [^>]*aria-label="Set orders for Race Var"[^>]*href="\/me\/orders\?race=var"/,
+    )
+    expect(s).not.toContain('<button')
+  })
+
+  it('lo de más, debajo de los dos renglones: la retirada de una carrera en curso (PR 12a)', () => {
+    const s = pinta({ extra: <button type="button">Abandon</button> })
+    expect(s).toMatch(/<\/a><div data-extra=""[^>]*><button type="button">Abandon<\/button><\/div>/)
+  })
+
   it('hecha: un Chip en lugar del botón', () => {
     const s = pinta({ done: { text: 'Called up', tone: 'good' } })
     expect(s).toContain('data-variant="done"')
