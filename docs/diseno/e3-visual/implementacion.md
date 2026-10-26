@@ -784,3 +784,18 @@ Y hasta el 14 la pantalla no puede empezar el plan de cero (no manda `startFresh
 - **`deuda.json`**: `tema`, de 2.190 a 2.188 (`PlanLadder.tsx`, de 72 a 70). **Los avisos `ui/`**: de 1.089 a 1.087, en 82 ficheros; `pnpm lint`, 0 errores.
 - **El peso**, con gzip: la hoja que bloquea, 10,7 KB; el JS de arranque, de 149,5 a 149,6 KB.
 - **Los bancos del motor**: el PR toca `packages/engine/` (las tres constantes), así que el CI corre los ocho tramos.
+
+### Lo que ve el dueño
+
+La lista de llegadas del cuadro dice de qué carrera habla, una fila por carrera con su nombre y su llegada; el tramo más fresco dice `Undertrained` en lugar de `Rusty`; y la cifra de TSS desaparece de la pantalla y de la API (D-00o). El cuadro entero, con la escala, es el 14.
+
+### El riesgo del despliegue
+
+Bajo. Cambia lo que dice la vista previa, no lo que entrena el tick, y `GET /orders` gana un campo. Una pestaña abierta con la web de antes recibe un 400 de la vista previa (la petición estricta no admite `startDay` ni `goalRaceId`) hasta que se recarga, y esa sección no se pinta. Se revierte con un revert; las tres constantes no las lee nadie más.
+
+### Notas para el paso siguiente
+
+- El 14 pinta el cuadro con `days[]` de la vista previa, que trae `kind` y `load`, y con `travelDays[]` de `GET /orders`, que trae el sentido de cada viaje: `days[]` no lo lleva.
+- `raceKey`, en `days[]` y en `races[]`, es la carrera de la temporada (`race-x:s0`) y no la etapa: la etapa de un día de carrera se cuenta con los días de carrera de `days[]`, y en una carrera en curso, hacia atrás desde la última, que siempre cae en el horizonte.
+- `travelOut` y `travelBack` de `races[]` son los del horizonte: en una carrera en curso, la ida ya no sale.
+- La vista previa pide el plan entero (los cuatro bloques, el énfasis y la intensidad); sin plan vivo, los cuatro a `null` dan lo mismo que no tener plan.
