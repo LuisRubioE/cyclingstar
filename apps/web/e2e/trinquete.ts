@@ -36,7 +36,8 @@ export const COMPROBACIONES = [
  *
  * Sin medida de la base (`r` sin definir: una pantalla nueva, o una que la base no pudo abrir) no hay con
  * qué comparar; sin fichero en la base (`b` sin definir: el PR que lo crea), o con `instrumentoCambia`
- * (el PR toca las comprobaciones o las pantallas), el fichero se reescribe y solo cuenta que no suba.
+ * (el PR toca las comprobaciones o las pantallas, o cambia la clave del mundo: §7.4, regla 1), el fichero
+ * se reescribe y solo cuenta que no suba.
  */
 export function faltasDelTrinquete(
   m: Cifras,
