@@ -1,0 +1,1319 @@
+{
+  "fuente": "apps/web/src/components/visuals.ts (jerseyStyle), en a71c673",
+  "semillas": {
+    "cyclingstar-2:team:WT:0:jersey": {
+      "base": "#1e293b",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:WT:1:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:WT:2:jersey": {
+      "base": "#2563eb",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:WT:3:jersey": {
+      "base": "#dc2626",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:WT:4:jersey": {
+      "base": "#ea580c",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:WT:5:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:WT:6:jersey": {
+      "base": "#16a34a",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:WT:7:jersey": {
+      "base": "#dc2626",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:WT:8:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:WT:9:jersey": {
+      "base": "#1e293b",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:WT:10:jersey": {
+      "base": "#ea580c",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:WT:11:jersey": {
+      "base": "#0d9488",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:WT:12:jersey": {
+      "base": "#16a34a",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:WT:13:jersey": {
+      "base": "#ea580c",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:WT:14:jersey": {
+      "base": "#ea580c",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:WT:15:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:WT:16:jersey": {
+      "base": "#1e293b",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:WT:17:jersey": {
+      "base": "#16a34a",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:PRS:0:jersey": {
+      "base": "#dc2626",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:PRS:1:jersey": {
+      "base": "#dc2626",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:PRS:2:jersey": {
+      "base": "#e11d48",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:PRS:3:jersey": {
+      "base": "#e11d48",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:PRS:4:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:PRS:5:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:PRS:6:jersey": {
+      "base": "#db2777",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:PRS:7:jersey": {
+      "base": "#65a30d",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:PRS:8:jersey": {
+      "base": "#1e293b",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:PRS:9:jersey": {
+      "base": "#2563eb",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:PRS:10:jersey": {
+      "base": "#16a34a",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:PRS:11:jersey": {
+      "base": "#2563eb",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:PRS:12:jersey": {
+      "base": "#0d9488",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:PRS:13:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:PRS:14:jersey": {
+      "base": "#db2777",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:PRS:15:jersey": {
+      "base": "#2563eb",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:0:jersey": {
+      "base": "#dc2626",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:1:jersey": {
+      "base": "#db2777",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:2:jersey": {
+      "base": "#2563eb",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:3:jersey": {
+      "base": "#1e293b",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:4:jersey": {
+      "base": "#dc2626",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:5:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:6:jersey": {
+      "base": "#e11d48",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:7:jersey": {
+      "base": "#16a34a",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:8:jersey": {
+      "base": "#0d9488",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:9:jersey": {
+      "base": "#0891b2",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:10:jersey": {
+      "base": "#e11d48",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:11:jersey": {
+      "base": "#ea580c",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:12:jersey": {
+      "base": "#16a34a",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:13:jersey": {
+      "base": "#65a30d",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:14:jersey": {
+      "base": "#2563eb",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:15:jersey": {
+      "base": "#2563eb",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:16:jersey": {
+      "base": "#0891b2",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:17:jersey": {
+      "base": "#65a30d",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:18:jersey": {
+      "base": "#db2777",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:19:jersey": {
+      "base": "#ea580c",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:20:jersey": {
+      "base": "#16a34a",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:21:jersey": {
+      "base": "#e11d48",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:22:jersey": {
+      "base": "#0891b2",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:23:jersey": {
+      "base": "#1e293b",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:24:jersey": {
+      "base": "#ea580c",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:25:jersey": {
+      "base": "#0891b2",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:26:jersey": {
+      "base": "#2563eb",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:27:jersey": {
+      "base": "#1e293b",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:28:jersey": {
+      "base": "#db2777",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:29:jersey": {
+      "base": "#2563eb",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:30:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:31:jersey": {
+      "base": "#e11d48",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:32:jersey": {
+      "base": "#ea580c",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:33:jersey": {
+      "base": "#0891b2",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:34:jersey": {
+      "base": "#db2777",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:35:jersey": {
+      "base": "#ea580c",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:36:jersey": {
+      "base": "#16a34a",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:37:jersey": {
+      "base": "#16a34a",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:38:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:39:jersey": {
+      "base": "#0891b2",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:40:jersey": {
+      "base": "#2563eb",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:41:jersey": {
+      "base": "#0891b2",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:42:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:43:jersey": {
+      "base": "#0d9488",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:44:jersey": {
+      "base": "#2563eb",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:45:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:46:jersey": {
+      "base": "#2563eb",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:47:jersey": {
+      "base": "#2563eb",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:48:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:49:jersey": {
+      "base": "#1e293b",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:50:jersey": {
+      "base": "#0d9488",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:51:jersey": {
+      "base": "#1e293b",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:52:jersey": {
+      "base": "#1e293b",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:53:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:54:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:55:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:56:jersey": {
+      "base": "#e11d48",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:57:jersey": {
+      "base": "#65a30d",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:58:jersey": {
+      "base": "#e11d48",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:59:jersey": {
+      "base": "#16a34a",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:60:jersey": {
+      "base": "#e11d48",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:61:jersey": {
+      "base": "#dc2626",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:62:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:63:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:64:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:65:jersey": {
+      "base": "#65a30d",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:66:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:67:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:68:jersey": {
+      "base": "#db2777",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:69:jersey": {
+      "base": "#dc2626",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:70:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:71:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:72:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:73:jersey": {
+      "base": "#65a30d",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:74:jersey": {
+      "base": "#e11d48",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:75:jersey": {
+      "base": "#0d9488",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:76:jersey": {
+      "base": "#db2777",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:77:jersey": {
+      "base": "#65a30d",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:78:jersey": {
+      "base": "#1e293b",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:79:jersey": {
+      "base": "#ea580c",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:80:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:81:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:82:jersey": {
+      "base": "#e11d48",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:83:jersey": {
+      "base": "#db2777",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:84:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:85:jersey": {
+      "base": "#1e293b",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:86:jersey": {
+      "base": "#16a34a",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:87:jersey": {
+      "base": "#0891b2",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:88:jersey": {
+      "base": "#0d9488",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:89:jersey": {
+      "base": "#16a34a",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:90:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:91:jersey": {
+      "base": "#0d9488",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:92:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:93:jersey": {
+      "base": "#0d9488",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:94:jersey": {
+      "base": "#65a30d",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:95:jersey": {
+      "base": "#db2777",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:96:jersey": {
+      "base": "#db2777",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:97:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:98:jersey": {
+      "base": "#ea580c",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:99:jersey": {
+      "base": "#0d9488",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:100:jersey": {
+      "base": "#0891b2",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:101:jersey": {
+      "base": "#0891b2",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:102:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:103:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:104:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:105:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:106:jersey": {
+      "base": "#16a34a",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:107:jersey": {
+      "base": "#dc2626",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:108:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:109:jersey": {
+      "base": "#db2777",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:110:jersey": {
+      "base": "#db2777",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:111:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:112:jersey": {
+      "base": "#db2777",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:113:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:114:jersey": {
+      "base": "#0d9488",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:115:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:116:jersey": {
+      "base": "#65a30d",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:117:jersey": {
+      "base": "#ea580c",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:118:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:119:jersey": {
+      "base": "#16a34a",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:120:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:121:jersey": {
+      "base": "#2563eb",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:122:jersey": {
+      "base": "#1e293b",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:123:jersey": {
+      "base": "#e11d48",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:124:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:125:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:126:jersey": {
+      "base": "#1e293b",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:127:jersey": {
+      "base": "#0d9488",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:128:jersey": {
+      "base": "#65a30d",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:129:jersey": {
+      "base": "#2563eb",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:130:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:131:jersey": {
+      "base": "#2563eb",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:132:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:133:jersey": {
+      "base": "#2563eb",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:134:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:135:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:136:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:137:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:138:jersey": {
+      "base": "#16a34a",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:139:jersey": {
+      "base": "#2563eb",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:140:jersey": {
+      "base": "#0d9488",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:141:jersey": {
+      "base": "#0891b2",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:142:jersey": {
+      "base": "#db2777",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:143:jersey": {
+      "base": "#1e293b",
+      "secondary": "#65a30d",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:144:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:145:jersey": {
+      "base": "#16a34a",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:146:jersey": {
+      "base": "#ea580c",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:147:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:148:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:149:jersey": {
+      "base": "#0891b2",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:150:jersey": {
+      "base": "#2563eb",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:151:jersey": {
+      "base": "#ea580c",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:152:jersey": {
+      "base": "#2563eb",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:153:jersey": {
+      "base": "#16a34a",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:154:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:155:jersey": {
+      "base": "#ea580c",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:156:jersey": {
+      "base": "#ea580c",
+      "secondary": "#0ea5e9",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:157:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:158:jersey": {
+      "base": "#16a34a",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:159:jersey": {
+      "base": "#4f46e5",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:160:jersey": {
+      "base": "#2563eb",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:161:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:162:jersey": {
+      "base": "#0ea5e9",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:163:jersey": {
+      "base": "#0891b2",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:164:jersey": {
+      "base": "#16a34a",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:165:jersey": {
+      "base": "#0d9488",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:166:jersey": {
+      "base": "#65a30d",
+      "secondary": "#2563eb",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:167:jersey": {
+      "base": "#2563eb",
+      "secondary": "#db2777",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:168:jersey": {
+      "base": "#db2777",
+      "secondary": "#0891b2",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:169:jersey": {
+      "base": "#2563eb",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:170:jersey": {
+      "base": "#1e293b",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:171:jersey": {
+      "base": "#db2777",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:172:jersey": {
+      "base": "#0891b2",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:173:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#4f46e5",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:174:jersey": {
+      "base": "#0891b2",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:175:jersey": {
+      "base": "#1e293b",
+      "secondary": "#ea580c",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    },
+    "cyclingstar-2:team:CON:176:jersey": {
+      "base": "#db2777",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:177:jersey": {
+      "base": "#7c3aed",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:178:jersey": {
+      "base": "#65a30d",
+      "secondary": "#e11d48",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:179:jersey": {
+      "base": "#db2777",
+      "secondary": "#7c3aed",
+      "accent": "#ffffff",
+      "pattern": "panels"
+    },
+    "cyclingstar-2:team:CON:180:jersey": {
+      "base": "#db2777",
+      "secondary": "#f59e0b",
+      "accent": "#ffffff",
+      "pattern": "solid"
+    },
+    "cyclingstar-2:team:CON:181:jersey": {
+      "base": "#0891b2",
+      "secondary": "#16a34a",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:182:jersey": {
+      "base": "#e11d48",
+      "secondary": "#dc2626",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "cyclingstar-2:team:CON:183:jersey": {
+      "base": "#f59e0b",
+      "secondary": "#1e293b",
+      "accent": "#ffffff",
+      "pattern": "band"
+    },
+    "cyclingstar-2:team:CON:184:jersey": {
+      "base": "#db2777",
+      "secondary": "#0d9488",
+      "accent": "#ffffff",
+      "pattern": "shoulders"
+    }
+  }
+}

@@ -193,7 +193,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/components/broadcast/TimeTrialBoard.tsx',
   'apps/web/src/components/broadcast/VoiceTicker.tsx',
   'apps/web/src/components/broadcast/WornJerseyIcon.tsx',
-  'apps/web/src/components/visuals.ts',
   'apps/web/src/domain/broadcast/montage.ts',
   'apps/web/src/domain/broadcast/screen.ts',
   'apps/web/src/domain/health.ts',

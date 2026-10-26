@@ -1,24 +1,51 @@
+import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
+import { ActionRow } from '../../components/ui/ActionRow'
 import { Button } from '../../components/ui/Button'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { Field } from '../../components/ui/Field'
+import { Flag } from '../../components/ui/Flag'
 import { Icon } from '../../components/ui/Icon'
 import { ICONS } from '../../components/ui/icons'
 import { InfoButton } from '../../components/ui/InfoButton'
+import { LegacyJersey } from '../../components/ui/LegacyJersey'
+import { Meter } from '../../components/ui/Meter'
 import { Notice } from '../../components/ui/Notice'
 import { OfflineBannerView } from '../../components/ui/OfflineBanner'
 import { OfflineState } from '../../components/ui/OfflineState'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Panel } from '../../components/ui/Panel'
+import { RankTable, type RankTableColumn } from '../../components/ui/RankTable'
+import { RiderHeader } from '../../components/ui/RiderHeader'
+import { type LegacyTeam, RiderLabel } from '../../components/ui/RiderLabel'
+import { Scale5 } from '../../components/ui/Scale5'
 import { Segmented } from '../../components/ui/Segmented'
+import { StarRating } from '../../components/ui/StarRating'
 import { Stat } from '../../components/ui/Stat'
 import { Tabs } from '../../components/ui/Tabs'
-import { TextLink } from '../../components/ui/TextLink'
+import { TextLink, gluedLastWord } from '../../components/ui/TextLink'
+import { TripRow } from '../../components/ui/TripRow'
 import type { IconName, Tone } from '../../components/ui/types'
-import { LONG_CONSEQUENCE, MANY_TABS, PLAN_MODES, SEEN_AT, SHORT_CONSEQUENCE } from './fixtures'
+import { formatTime } from '../../domain/format'
+import { NO_TEAM_LABEL } from '../../domain/labels'
+import {
+  GC_ROWS,
+  GC_WITH_DNF,
+  ITALY_TITLE,
+  LONG_CONSEQUENCE,
+  LONGEST_TITLE,
+  MANY_TABS,
+  OWN_RIDER_ID,
+  PLAN_MODES,
+  SEEN_AT,
+  SHORT_CONSEQUENCE,
+  TEAM_ROWS,
+  UI_TEAMS,
+  type UiGcRow,
+} from './fixtures'
 
 /**
  * `/_ui` (E3, docs/visual.md §5.4; PR 9a, I-03 y D-10). Cada componente del catálogo en cada uno de sus
@@ -443,6 +470,371 @@ function Avisos() {
   )
 }
 
+/* ── El 9b: la identidad, las tablas y las escalas ─────────────────────────────────────────────── */
+
+const GANDIA = { from: 'Gandia', to: 'Alcoi' } as const
+const PROPIA = GC_ROWS.find((r) => r.id === OWN_RIDER_ID) as UiGcRow
+const LARGO = GC_ROWS[2] as UiGcRow
+const PRIMERO = GC_ROWS[0] as UiGcRow
+const MISTRAL = UI_TEAMS[1] as LegacyTeam
+
+/** Una semilla de la génesis por patrón, para enseñar los cinco dibujos de hoy. */
+const POR_PATRON = (() => {
+  const vistos = new Map<string, string>()
+  for (const div of ['WT', 'PRS', 'CON'] as const)
+    for (let t = 0; t < 40; t++) {
+      const seed = `cyclingstar-2:team:${div}:${t}:jersey`
+      const { pattern } = legacyJerseyStyle(seed)
+      if (!vistos.has(pattern)) vistos.set(pattern, seed)
+    }
+  return [...vistos.entries()]
+})()
+
+/** Las columnas de la general: el equipo debajo hasta 640, el total desde 1.024 y la diferencia. */
+const GC_COLUMNS: readonly RankTableColumn<UiGcRow>[] = [
+  {
+    key: 'team',
+    header: 'Team',
+    priority: 'secondary',
+    clip: true,
+    render: (r) => r.team?.name ?? NO_TEAM_LABEL,
+  },
+  {
+    key: 'total',
+    header: 'Total',
+    priority: 'optional',
+    numeric: true,
+    render: (r) => formatTime(r.total + r.gap),
+  },
+  {
+    key: 'time',
+    header: 'Time',
+    priority: 'primary',
+    numeric: true,
+    render: (r) => (r.gap === 0 ? formatTime(r.total) : `+${formatTime(r.gap)}`),
+  },
+]
+
+function GcTable({ rows }: { readonly rows: readonly UiGcRow[] }) {
+  return (
+    <RankTable
+      caption="General classification after stage 3, Gandia → Alcoi"
+      rows={rows}
+      rowKey={(r) => r.id}
+      rank={(r) => r.rank}
+      identity={(r) => (
+        <RiderLabel
+          rider={r.rider}
+          bib={r.bib}
+          team={r.team}
+          leader={r.leader}
+          link={false}
+          teamLine={false}
+        />
+      )}
+      href={() => '/_ui'}
+      columns={GC_COLUMNS}
+      isOwn={(r) => r.id === OWN_RIDER_ID}
+    />
+  )
+}
+
+function Banderas() {
+  return (
+    <Demo name="Flag">
+      <Estado name="ready · 21 × 16 in a row, and 12 and 24 high">
+        <div className="flex flex-wrap items-center gap-3">
+          <Flag country="ES" />
+          <Flag country="VC" />
+          <Flag country="JP" height={12} />
+          <Flag country="IT" height={24} />
+        </div>
+      </Estado>
+      <Estado name="empty · no country: a gap of its width">
+        <p className="flex items-center gap-2 text-meta text-ink-2">
+          <Flag country={null} />
+          No nation yet
+        </p>
+      </Estado>
+    </Demo>
+  )
+}
+
+function Estrellas() {
+  return (
+    <Demo name="StarRating">
+      <Estado name="in a row, 16">
+        <div className="flex flex-wrap items-center gap-4">
+          <StarRating value={3.5} />
+          <StarRating value={0} />
+          <StarRating value={5} />
+        </div>
+      </Estado>
+      <Estado name="on the rider page, 20">
+        <StarRating value={2} size={20} />
+      </Estado>
+    </Demo>
+  )
+}
+
+function Etiquetas() {
+  return (
+    <Demo name="RiderLabel">
+      <Estado name="a player · bib, flag, name, kit · the team below">
+        <RiderLabel rider={PROPIA.rider} bib={214} team={PROPIA.team} />
+      </Estado>
+      <Estado name="a bot · the leader of the classification">
+        <RiderLabel rider={PRIMERO.rider} bib={PRIMERO.bib} team={PRIMERO.team} leader="gc" />
+      </Estado>
+      <Estado name="the longest name, 28 · the kit stays with its last word">
+        <RiderLabel rider={LARGO.rider} bib={LARGO.bib} team={MISTRAL} />
+      </Estado>
+      <Estado name="a free agent · Individual">
+        <RiderLabel
+          rider={{ id: 'r-free', name: 'Iker Zubizarreta', human: true, country: 'ES' }}
+          team={null}
+        />
+      </Estado>
+      <Estado name="a champion · the longest title, 59, in its name">
+        <RiderLabel
+          rider={{ id: 'r-vc', name: 'Kemar Ollivierre', human: false, country: 'VC' }}
+          team={MISTRAL}
+          champion={LONGEST_TITLE}
+        />
+      </Estado>
+      <Estado name="in a sentence">
+        <p className="text-body text-ink">
+          The attack came from{' '}
+          <RiderLabel rider={PROPIA.rider} bib={214} team={PROPIA.team} inline /> on the last climb.
+        </p>
+      </Estado>
+    </Demo>
+  )
+}
+
+function Cabeceras() {
+  return (
+    <Demo name="RiderHeader">
+      <Estado name="ready · a player">
+        <RiderHeader rider={PROPIA.rider} team={PROPIA.team} player role="Climber" />
+      </Estado>
+      <Estado name="ready · a champion, injured">
+        <RiderHeader
+          rider={{ id: 'r-it', name: 'Marco Rossi', human: false, country: 'IT' }}
+          team={MISTRAL}
+          champion={ITALY_TITLE}
+          player={false}
+          health={{ text: 'Injured', tone: 'bad' }}
+          role="Sprinter"
+        />
+      </Estado>
+      <Estado name="ready · the longest name, a free agent">
+        <RiderHeader rider={LARGO.rider} team={null} player={false} role="All-rounder" />
+      </Estado>
+      <Estado name="loading">
+        <RiderHeader state="loading" />
+      </Estado>
+      <Estado name="not found">
+        <RiderHeader state="notFound" />
+      </Estado>
+      <Estado name="error">
+        <RiderHeader state="error" onRetry={nada} />
+      </Estado>
+    </Demo>
+  )
+}
+
+function Maillots() {
+  return (
+    <Demo name="LegacyJersey">
+      <Estado name="the five drawings of today, at 28 and 40">
+        <div className="flex flex-wrap items-center gap-3">
+          {POR_PATRON.map(([pattern, seed]) => (
+            <span key={pattern} className="flex items-center gap-1">
+              <LegacyJersey seed={seed} size={28} />
+              <LegacyJersey seed={seed} size={40} />
+            </span>
+          ))}
+        </div>
+      </Estado>
+    </Demo>
+  )
+}
+
+function Clasificaciones() {
+  return (
+    <Demo name="RankTable">
+      <Estado name="ready · 140 rows, yours at 34">
+        <Panel title="General classification" variant="bleed">
+          <GcTable rows={GC_ROWS} />
+        </Panel>
+      </Estado>
+      <Estado name="DNF · at the end, without a place">
+        <Panel title="General classification" variant="bleed">
+          <GcTable rows={GC_WITH_DNF} />
+        </Panel>
+      </Estado>
+      <Estado name="teams · the name and its kit">
+        <Panel title="Teams" variant="bleed">
+          <RankTable
+            caption="Teams classification after stage 3, Gandia → Alcoi"
+            rows={TEAM_ROWS}
+            rowKey={(r) => r.team.name}
+            rank={(r) => r.rank}
+            identityHeader="Team"
+            identity={(r) => (
+              <span className="text-row whitespace-nowrap text-ink">
+                {gluedLastWord(r.team.name)}
+                <span className="ml-1 inline-flex align-middle">
+                  <LegacyJersey seed={r.team.legacySeed} size={28} team={r.team.name} />
+                </span>
+              </span>
+            )}
+            href={() => '/_ui'}
+            columns={[
+              {
+                key: 'time',
+                header: 'Time',
+                priority: 'primary',
+                numeric: true,
+                render: (r) => (r.gap === 0 ? formatTime(155_175) : `+${formatTime(r.gap)}`),
+              },
+            ]}
+            isOwn={(r) => r.team.name === PROPIA.team?.name}
+          />
+        </Panel>
+      </Estado>
+      <Estado name="veiled">
+        <Panel title="General classification" variant="bleed">
+          <RankTable
+            caption="General classification after stage 3, Gandia → Alcoi"
+            rows={GC_ROWS}
+            rowKey={(r) => r.id}
+            rank={(r) => r.rank}
+            identity={(r) => r.rider.name}
+            href={() => '/_ui'}
+            columns={GC_COLUMNS}
+            veil={{ stage: 3, route: GANDIA, href: '/_ui' }}
+          />
+        </Panel>
+      </Estado>
+    </Demo>
+  )
+}
+
+function Filas() {
+  const add = { label: 'Add', ariaLabel: 'Add Race Ardèche', onClick: nada } as const
+  return (
+    <>
+      <Demo name="ActionRow">
+        <ul className="divide-y divide-line rounded-ui border border-line bg-surface px-3">
+          <ActionRow
+            title={
+              <>
+                Race Ardèche <span className="text-caption font-semibold text-ink-3">.WT</span>
+              </>
+            }
+            meta="Day 59 · FR · Travel 336 · 2 days out, 2 back"
+            href="/_ui"
+            action={add}
+          />
+          <ActionRow
+            title="Race Sardegna"
+            meta="Day 64 · IT · Travel 512 · 3 days out, 3 back"
+            href="/_ui"
+            action={{
+              ...add,
+              ariaLabel: 'Add Race Sardegna',
+              disabledReason: 'Not enough money for the trip',
+            }}
+          />
+          <ActionRow
+            title="Race Var"
+            meta="Day 51 · FR · Travel 180"
+            action={{ ...add, ariaLabel: 'Add Race Var', busy: true }}
+          />
+          <ActionRow
+            title="Race Murcia"
+            meta="Day 44 · ES · at home"
+            href="/_ui"
+            done={{ text: 'Called up', tone: 'good' }}
+          />
+        </ul>
+      </Demo>
+      <Demo name="TripRow">
+        <ul className="flex flex-col gap-3">
+          <TripRow
+            race="Race Sardegna (IT)"
+            meta="Days 55 to 61 · 7 days off training"
+            legs={[
+              { key: 'out', days: 'Day 55', what: 'Out' },
+              { key: 'race', days: 'Days 56 to 60', what: 'Race' },
+              { key: 'back', days: 'Day 61', what: 'Back' },
+            ]}
+          />
+          <TripRow
+            race="Race Var (FR)"
+            meta="Days 49 to 54 · 6 days off training"
+            active
+            legs={[
+              { key: 'out', days: 'Day 49', what: 'Out' },
+              { key: 'race', days: 'Days 50 to 51', what: 'Race' },
+              {
+                key: 'rest',
+                days: 'Day 52',
+                what: 'Rest (I decide)',
+                action: (
+                  <Button variant="quiet" size="sm">
+                    Edit
+                  </Button>
+                ),
+              },
+              { key: 'race2', days: 'Day 53', what: 'Race' },
+              { key: 'back', days: 'Day 54', what: 'Back' },
+            ]}
+          />
+        </ul>
+      </Demo>
+    </>
+  )
+}
+
+function Escalas() {
+  return (
+    <>
+      <Demo name="Scale5">
+        <Estado name="ready · Loaded">
+          <Scale5 value="cargado" race="Race Var" />
+        </Estado>
+        <Estado name="ready · Spot on, the best">
+          <Scale5 value="perfecto" race="Race Var" />
+        </Estado>
+        <Estado name="ready · Undertrained, in two lines">
+          <Scale5 value="oxidado" race="Race Var" />
+        </Estado>
+        <Estado name="empty">
+          <Scale5 value={null} race="Race Var" />
+        </Estado>
+        <Estado name="inactive · the race has started">
+          <Scale5 value="bien" race="Race Var" racing={{ stage: 3, stages: 5, route: GANDIA }} />
+        </Estado>
+      </Demo>
+      <Demo name="Meter">
+        <Estado name="ready · four steps, a word">
+          <Meter label="Freshness" value={1} valueText="low" />
+          <Meter label="Load this month" value={3} valueText="hard" />
+        </Estado>
+        <Estado name="ready · the matches, five steps">
+          <Meter label="Matches" value={3} steps={5} />
+        </Estado>
+        <Estado name="empty">
+          <Meter label="Freshness" value={null} />
+        </Estado>
+      </Demo>
+    </>
+  )
+}
+
 function Iconos() {
   const nombres = Object.keys(ICONS) as IconName[]
   return (
@@ -518,6 +910,14 @@ export function UiPage() {
       <Barras />
       <Estructura />
       <Avisos />
+      <Banderas />
+      <Estrellas />
+      <Etiquetas />
+      <Cabeceras />
+      <Maillots />
+      <Clasificaciones />
+      <Filas />
+      <Escalas />
       <Iconos />
       <AmbitoOscuro />
     </main>
