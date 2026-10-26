@@ -1,5 +1,5 @@
 import type { Attribute, CoachBlock, Intensity, Session } from '@cyclingstar/shared'
-import { and, eq, gte, inArray, lte } from 'drizzle-orm'
+import { and, desc, eq, gt, gte, inArray, lt, lte, ne } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { riders, teamTrainingOrders, trainingOrders, trainingPlans } from './schema.js'
 
@@ -229,9 +229,13 @@ export async function setTrainingPlan(
 /**
  * El plan vigente para un día: el que empieza en la ventana de 28 días que lo contiene. Devuelve
  * también el ÍNDICE de semana dentro del plan, que es lo que dice qué bloque toca.
+ *
+ * Y de dos de la misma ventana, el de `start_day` mayor, el mismo que entrena el tick (E3, docs/visual.md
+ * §11.5; PR 13a): sin orden, `.limit(1)` daba el primero que devolviera el SQL. Desde la `0051` y
+ * `saveLiveTrainingPlan` no hay dos, pero la lectura no lo supone.
  */
 export async function getPlanForDay(
-  db: Database,
+  db: Pick<Database, 'select'>,
   riderId: string,
   gameDay: number,
 ): Promise<{ plan: TrainingPlanRow; week: number } | null> {
@@ -245,6 +249,7 @@ export async function getPlanForDay(
         gte(trainingPlans.startDay, gameDay - 27),
       ),
     )
+    .orderBy(desc(trainingPlans.startDay))
     .limit(1)
   const r = rows[0]
   if (!r) return null
@@ -258,4 +263,64 @@ export async function getPlanForDay(
     },
     week: Math.floor((gameDay - r.startDay) / 7),
   }
+}
+
+/** Lo que el jugador guarda de su plan: los bloques, el foco y la intensidad. El resto lo pone la API. */
+export interface LiveTrainingPlanInput {
+  readonly blocks: readonly (CoachBlock | null)[]
+  readonly focusAttr: Attribute | null
+  readonly intensity: Intensity | null
+}
+
+/**
+ * GUARDAR EL PLAN VIVO (E3, docs/visual.md §11.5; D-39, H-04; PR 13a). El plan se guarda sobre el
+ * `startDay` del plan vivo (el que `getPlanForDay` lee para mañana), o desde mañana si no hay o si el
+ * jugador empieza de cero (`startFresh`); y en la misma transacción, con el modo, se borra todo plan del
+ * corredor que empiece a menos de 28 días del guardado. Hasta el 13a cada guardado empezaba cuatro
+ * semanas desde mañana, y dos guardados en la misma ventana dejaban dos filas: la pantalla leía una y
+ * el tick entrenaba otra.
+ *
+ * `goalRaceId` ya no llega en el cuerpo (no tiene control ni lector, y el 19c lo saca): al guardar sobre
+ * el plan vivo se conserva el que tuviera, y un plan nuevo nace sin él.
+ */
+export async function saveLiveTrainingPlan(
+  db: Database,
+  riderId: string,
+  opts: {
+    /** el día de hoy: el plan nuevo empieza mañana */
+    readonly currentDay: number
+    readonly mode: TrainingMode
+    readonly plan: LiveTrainingPlanInput
+    readonly startFresh?: boolean
+  },
+): Promise<{ readonly startDay: number }> {
+  return db.transaction(async (tx) => {
+    await tx.update(riders).set({ trainingMode: opts.mode }).where(eq(riders.id, riderId))
+    const manana = opts.currentDay + 1
+    const vivo = opts.startFresh === true ? null : await getPlanForDay(tx, riderId, manana)
+    const startDay = vivo?.plan.startDay ?? manana
+    const bloques = {
+      block1: opts.plan.blocks[0] ?? null,
+      block2: opts.plan.blocks[1] ?? null,
+      block3: opts.plan.blocks[2] ?? null,
+      block4: opts.plan.blocks[3] ?? null,
+      focusAttr: opts.plan.focusAttr,
+      intensity: opts.plan.intensity,
+    }
+    await tx
+      .insert(trainingPlans)
+      .values({ riderId, startDay, ...bloques, goalRaceId: null })
+      .onConflictDoUpdate({ target: [trainingPlans.riderId, trainingPlans.startDay], set: bloques })
+    await tx
+      .delete(trainingPlans)
+      .where(
+        and(
+          eq(trainingPlans.riderId, riderId),
+          ne(trainingPlans.startDay, startDay),
+          gt(trainingPlans.startDay, startDay - 28),
+          lt(trainingPlans.startDay, startDay + 28),
+        ),
+      )
+    return { startDay }
+  })
 }

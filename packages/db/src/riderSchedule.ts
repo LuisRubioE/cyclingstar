@@ -228,21 +228,22 @@ export async function getRiderTravelDays(
 /**
  * Igual, pero para el MUNDO entero y un solo día: quién está hoy de camino a una carrera. Lo usa el
  * tick de entrenamiento, que no puede permitirse una consulta por corredor. Recibe la residencia ya
- * leída (el tick tiene los corredores en memoria) y devuelve solo los ids que viajan hoy.
+ * leída (el tick tiene los corredores en memoria) y devuelve quién viaja hoy y a qué carrera (su
+ * `raceKey`, que `resolveTrainingDay` lleva en el día de viaje: E3, paso 13a).
  */
 export async function ridersTravellingOutbound(
   db: Pick<Database, 'select'>,
   homeByRider: Map<string, string | null>,
   gameDay: number,
-): Promise<Set<string>> {
+): Promise<Map<string, string>> {
   const ids = [...homeByRider.keys()]
-  if (ids.length === 0) return new Set()
+  if (ids.length === 0) return new Map()
   const rosters = await db
     .select({ raceId: raceRosters.raceId, riderId: raceRosters.riderId })
     .from(raceRosters)
     .where(inArray(raceRosters.riderId, ids))
 
-  const travelling = new Set<string>()
+  const travelling = new Map<string, string>()
   for (const { raceId, riderId } of rosters) {
     if (travelling.has(riderId)) continue
     const m = /^(.*):s(\d+)$/.exec(raceId)
@@ -258,7 +259,7 @@ export async function ridersTravellingOutbound(
       homeByRider.get(riderId) ?? null,
       race.country ?? null,
     )
-    if (days.includes(gameDay)) travelling.add(riderId)
+    if (days.includes(gameDay)) travelling.set(riderId, raceId)
   }
   return travelling
 }
@@ -275,16 +276,16 @@ export async function ridersTravellingBack(
   homeByRider: Map<string, string | null>,
   travelUntilByRider: Map<string, number | null>,
   gameDay: number,
-): Promise<Set<string>> {
+): Promise<Map<string, string>> {
   const ids = [...homeByRider.keys()]
-  if (ids.length === 0) return new Set()
+  if (ids.length === 0) return new Map()
   const rosters = await db
     .select({ raceId: raceRosters.raceId, riderId: raceRosters.riderId })
     .from(raceRosters)
     .where(inArray(raceRosters.riderId, ids))
 
   const longestTrip = TRANSPORT_COST.intercontinental.days
-  const travelling = new Set<string>()
+  const travelling = new Map<string, string>()
   for (const { raceId, riderId } of rosters) {
     if (travelling.has(riderId)) continue
     const m = /^(.*):s(\d+)$/.exec(raceId)
@@ -300,7 +301,7 @@ export async function ridersTravellingBack(
       race.country ?? null,
       travelUntilByRider.get(riderId) ?? null,
     )
-    if (days.includes(gameDay)) travelling.add(riderId)
+    if (days.includes(gameDay)) travelling.set(riderId, raceId)
   }
   return travelling
 }

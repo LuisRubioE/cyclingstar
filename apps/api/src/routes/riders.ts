@@ -22,8 +22,7 @@ import {
   getAttrTrend,
   getPlanForDay,
   getTrainingMode,
-  setTrainingMode,
-  setTrainingPlan,
+  saveLiveTrainingPlan,
   getBlockReport,
   getCoachView,
   getRiderHealth,
@@ -407,10 +406,16 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     const rider = await getRiderForUser(db, userId)
     const world = await getCurrentWorld(db)
     if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
-    await setTrainingMode(db, rider.id, parsed.data.mode)
-    // El plan siempre arranca MAÑANA: hoy ya se entrenó (o se está entrenando) y reescribirlo sería
-    // prometer un cambio que el tick no va a aplicar.
-    await setTrainingPlan(db, rider.id, { ...parsed.data.plan, startDay: world.currentDay + 1 })
+    // UN SOLO PLAN VIVO (E3, docs/visual.md §11.5; PR 13a): sobre el `startDay` del plan vivo, o desde
+    // mañana si no hay o si el jugador empieza de cero; nunca hoy, que ya se entrenó (o se está
+    // entrenando) y reescribirlo sería prometer un cambio que el tick no va a aplicar. El modo, el plan y
+    // el borrado de los planes que pisa, en una transacción.
+    await saveLiveTrainingPlan(db, rider.id, {
+      currentDay: world.currentDay,
+      mode: parsed.data.mode,
+      plan: parsed.data.plan,
+      startFresh: parsed.data.startFresh === true,
+    })
     return { ok: true }
   })
 

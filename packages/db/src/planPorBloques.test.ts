@@ -1,15 +1,18 @@
 import { ATTRIBUTES, type Attribute, birthSeasonForAge } from '@cyclingstar/shared'
+import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   getPlanForDay,
   getTrainingMode,
+  saveLiveTrainingPlan,
   setTrainingMode,
   setTrainingOrders,
   setTrainingPlan,
   getTrainingOrders,
 } from './training.js'
-import { riderAttrs, riderHidden, riders, worlds } from './schema.js'
+import { riderAttrs, riderHidden, riders, trainingPlans, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
+import { readTrainingDayInputs } from './train.js'
 
 /**
  * EL PLAN POR BLOQUES Y EL MODO (D0-D4, docs/entrenamiento.md §5.3, paso 11).
@@ -150,5 +153,181 @@ describe('db: el plan por bloques', () => {
     expect(await getTrainingMode(t.db, riderId)).toBe('entrenador')
     await setTrainingMode(t.db, riderId, 'manual')
     expect(await getTrainingMode(t.db, riderId)).toBe('manual')
+  })
+})
+
+/**
+ * UN SOLO PLAN VIVO (E3, docs/visual.md §11.5; D-39, H-04; PR 13a). Hasta el 13a cada guardado empezaba
+ * cuatro semanas desde mañana: guardar dos veces en la misma ventana dejaba dos filas, la pantalla leía
+ * una (`getPlanForDay`, sin orden) y el tick entrenaba otra (la última de su `Map`). Ahora el guardado va
+ * sobre el `startDay` del plan vivo, o desde mañana si no hay o si el jugador empieza de cero
+ * (`startFresh`), y en la misma transacción se borra todo plan suyo a menos de 28 días del guardado.
+ */
+describe('db: un solo plan vivo (§11.5)', () => {
+  let t: TestDb
+  let worldId: string
+  const corredores: string[] = []
+  /** El día de hoy: el plan nuevo empieza mañana, el 101. */
+  const D = SEASON * 364
+
+  const P1 = {
+    blocks: ['base', 'construccion', null, 'afinado'],
+    focusAttr: 'MON',
+    intensity: 'fuerte',
+  } as const
+  const P2 = {
+    blocks: ['especifico', null, 'recuperacion', 'base'],
+    focusAttr: null,
+    intensity: null,
+  } as const
+
+  const filas = async (riderId: string) =>
+    t.db
+      .select()
+      .from(trainingPlans)
+      .where(eq(trainingPlans.riderId, riderId))
+      .orderBy(asc(trainingPlans.startDay))
+  /** El plan que lee el tick ese día: el de `readTrainingDayInputs`, la misma lectura que entrena. */
+  const delTick = async (riderId: string, gameDay: number) =>
+    (
+      await t.db.transaction((tx) => readTrainingDayInputs(tx, worldId, gameDay, new Set()))
+    ).planByRider.get(riderId)
+
+  beforeAll(async () => {
+    t = await startTestDb()
+    const [w] = await t.db
+      .insert(worlds)
+      .values({ worldSeed: 'semilla-plan-vivo', engineVersion: 1 })
+      .returning({ id: worlds.id })
+    worldId = w!.id
+    for (let i = 0; i < 6; i++) {
+      const [r] = await t.db
+        .insert(riders)
+        .values({
+          worldId,
+          name: `Planificador ${i}`,
+          country: 'ES',
+          gender: 'M' as const,
+          archetype: 'escalada' as const,
+          birthSeason: birthSeasonForAge(25, SEASON),
+          faceSeed: `cara-${i}`,
+        })
+        .returning({ id: riders.id })
+      corredores.push(r!.id)
+    }
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('guardar el día 100 y otra vez el 110 deja una sola fila, con el startDay 101', async () => {
+    const id = corredores[0]!
+    expect(
+      await saveLiveTrainingPlan(t.db, id, { currentDay: D + 100, mode: 'mixto', plan: P1 }),
+    ).toEqual({
+      startDay: D + 101,
+    })
+    expect(
+      await saveLiveTrainingPlan(t.db, id, { currentDay: D + 110, mode: 'mixto', plan: P2 }),
+    ).toEqual({
+      startDay: D + 101,
+    })
+    const quedan = await filas(id)
+    expect(quedan.map((f) => f.startDay)).toEqual([D + 101])
+    expect([quedan[0]!.block1, quedan[0]!.block2, quedan[0]!.block3, quedan[0]!.block4]).toEqual(
+      P2.blocks,
+    )
+    expect(quedan[0]!.focusAttr).toBeNull()
+    expect(quedan[0]!.intensity).toBeNull()
+  })
+
+  it('con startFresh, el del 110 deja solo la del 111', async () => {
+    const id = corredores[1]!
+    await saveLiveTrainingPlan(t.db, id, { currentDay: D + 100, mode: 'mixto', plan: P1 })
+    expect(
+      await saveLiveTrainingPlan(t.db, id, {
+        currentDay: D + 110,
+        mode: 'mixto',
+        plan: P2,
+        startFresh: true,
+      }),
+    ).toEqual({ startDay: D + 111 })
+    expect((await filas(id)).map((f) => f.startDay)).toEqual([D + 111])
+  })
+
+  it('la pantalla y el tick leen el mismo plan, en los dos casos', async () => {
+    for (const [id, startDay] of [
+      [corredores[0]!, D + 101],
+      [corredores[1]!, D + 111],
+    ] as const) {
+      for (const dia of [D + 111, D + 120]) {
+        expect((await getPlanForDay(t.db, id, dia))!.plan.startDay).toBe(startDay)
+        expect((await delTick(id, dia))!.startDay).toBe(startDay)
+      }
+    }
+  })
+
+  it('con dos filas solapadas, las de antes de la 0051, los dos leen la de start_day mayor', async () => {
+    const id = corredores[2]!
+    for (const startDay of [D + 111, D + 101]) {
+      await setTrainingPlan(t.db, id, { startDay, ...P1, blocks: [...P1.blocks], goalRaceId: null })
+    }
+    expect((await getPlanForDay(t.db, id, D + 115))!.plan.startDay).toBe(D + 111)
+    expect((await delTick(id, D + 115))!.startDay).toBe(D + 111)
+    // …y guardar encima deja solo esa: la del 101 estaba a menos de 28 días
+    expect(
+      await saveLiveTrainingPlan(t.db, id, { currentDay: D + 114, mode: 'mixto', plan: P2 }),
+    ).toEqual({
+      startDay: D + 111,
+    })
+    expect((await filas(id)).map((f) => f.startDay)).toEqual([D + 111])
+  })
+
+  it('un plan que ya acabó no es el vivo: el nuevo empieza mañana y el viejo, a 28 días o más, se queda', async () => {
+    const id = corredores[3]!
+    await setTrainingPlan(t.db, id, {
+      startDay: D + 70,
+      ...P1,
+      blocks: [...P1.blocks],
+      goalRaceId: null,
+    })
+    expect(
+      await saveLiveTrainingPlan(t.db, id, { currentDay: D + 100, mode: 'mixto', plan: P2 }),
+    ).toEqual({
+      startDay: D + 101,
+    })
+    expect((await filas(id)).map((f) => f.startDay)).toEqual([D + 70, D + 101])
+  })
+
+  it('el modo se guarda con el plan, y el objetivo guardado se conserva al guardar encima', async () => {
+    const id = corredores[4]!
+    await setTrainingPlan(t.db, id, {
+      startDay: D + 101,
+      ...P1,
+      blocks: [...P1.blocks],
+      goalRaceId: 'race-france',
+    })
+    await saveLiveTrainingPlan(t.db, id, { currentDay: D + 105, mode: 'manual', plan: P2 })
+    expect(await getTrainingMode(t.db, id)).toBe('manual')
+    const [fila] = await filas(id)
+    expect(fila!.startDay).toBe(D + 101)
+    expect(fila!.goalRaceId).toBe('race-france')
+  })
+
+  it('si algo falla, no se guarda nada: el modo, el plan y el borrado van en la misma transacción', async () => {
+    const id = corredores[5]!
+    await saveLiveTrainingPlan(t.db, id, { currentDay: D + 100, mode: 'mixto', plan: P1 })
+    await expect(
+      saveLiveTrainingPlan(t.db, id, {
+        currentDay: D + 110,
+        mode: 'manual',
+        // un bloque que no existe: Postgres rechaza el enum y la transacción entera se deshace
+        plan: { ...P2, blocks: ['inventado' as 'base', null, null, null] },
+        startFresh: true,
+      }),
+    ).rejects.toThrow()
+    expect(await getTrainingMode(t.db, id)).toBe('mixto')
+    expect((await filas(id)).map((f) => f.startDay)).toEqual([D + 101])
   })
 })

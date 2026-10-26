@@ -766,3 +766,61 @@ describe.skipIf(REAL_URL == null)('db: la migración nunca coincide con un día 
     await larga
   }, 60_000)
 })
+
+/**
+ * LA 0051, UN SOLO PLAN VIVO (E3, docs/visual.md §11.5; PR 13a), sobre un mundo vivo: con el journal
+ * cortado en la 0050 se siembran los solapes que dejaba el guardado de antes, se migra la carpeta entera
+ * y queda, de cada corredor, el plan de `start_day` mayor de cada ventana de 28 días. Y otra pasada no
+ * cambia nada.
+ */
+describe('db: la 0051 deja un solo plan vivo por corredor', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('borra el plan que pisa otro posterior a menos de 28 días, y nada más', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0050_semilla_del_dibujo')))
+    const [world] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('plan-vivo', 91) returning id`
+    /** Los planes de cada corredor (por su `start_day`), y los que tienen que quedar. */
+    const casos: readonly { antes: readonly number[]; quedan: readonly number[] }[] = [
+      { antes: [101, 111], quedan: [111] }, // dos guardados en la misma ventana
+      { antes: [101, 111, 121], quedan: [121] }, // tres en cadena: solo el último
+      { antes: [70, 101], quedan: [70, 101] }, // el de 70 acabó antes de que empezara el otro
+      { antes: [101, 128], quedan: [128] }, // a 27 días: todavía pisa
+      { antes: [101, 129], quedan: [101, 129] }, // a 28 días: ya no
+      { antes: [101], quedan: [101] },
+    ]
+    const ids: string[] = []
+    for (const [i, caso] of casos.entries()) {
+      const [rider] = await t.client<{ id: string }[]>`
+        insert into riders (world_id, name, country, gender, birth_season, archetype, face_seed)
+        values (${world!.id}, ${`Corredor ${i}`}, 'ES', 'M', -25, 'fondo', ${`cara-${i}`}) returning id`
+      ids.push(rider!.id)
+      for (const startDay of caso.antes) {
+        await t.client`
+          insert into training_plans (rider_id, start_day, block_1) values (${rider!.id}, ${startDay}, 'base')`
+      }
+    }
+    const planes = async (): Promise<number[][]> => {
+      const filas = await t.client<{ rider_id: string; start_day: number }[]>`
+        select rider_id, start_day from training_plans order by start_day`
+      return ids.map((id) => filas.filter((f) => f.rider_id === id).map((f) => f.start_day))
+    }
+    expect(await planes()).toEqual(casos.map((c) => c.antes))
+
+    await t.detached((url) => runMigrations(url))
+    expect(await planes()).toEqual(casos.map((c) => c.quedan))
+
+    // idempotente: la misma sentencia otra vez no encuentra solapes
+    const sentencia = readFileSync(join(DRIZZLE, '0051_un_plan_vivo.sql'), 'utf8')
+    await t.client.unsafe(sentencia)
+    expect(await planes()).toEqual(casos.map((c) => c.quedan))
+  }, 120_000)
+})
