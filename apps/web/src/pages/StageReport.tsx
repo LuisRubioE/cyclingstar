@@ -1,12 +1,13 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { fetchStageReport, stageReportKey } from '../api/broadcast'
-import { ApiError, GateError } from '../api/request'
+import { GateError } from '../api/request'
 import { fetchCalendarStage, stageReplayKey } from '../api/results'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
 import { ShareStage } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard } from '../components/StageGate'
+import { QueryView } from '../components/ui/QueryView'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
 import { diagOf, useHealth, useHorizonRev, useRevealActions, useWatchOn } from '../queryClient'
 // de `stageView.tsx` y no de `StageReplay.tsx`: el acta no carga la página de la etapa ni el reproductor
@@ -72,7 +73,6 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
   const info = stage.data ?? acta.data
   const race = info?.race
   const stagePath = `/world/races/${raceId}/stages/${day}`
-  const notRun = acta.error instanceof ApiError && acta.error.status === 404
   const diagOn = diag && isAdmin
 
   return (
@@ -103,39 +103,41 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
 
       {diagOn && <DiagnosticStrip exitHref={`/world/races/${raceId}/stages/${day}/report`} />}
 
-      {rev === undefined || acta.isPending ? (
-        <p className="text-slate-500">Loading…</p>
-      ) : gate !== null ? (
-        <StageGateCard
-          gate={gate}
-          stageDay={day}
-          place="result"
-          raceId={raceId}
-          watchOn={watchOn}
-          watchable={watchOn}
-          actions={actions}
-          signIn={readingWithCookie}
-          diagHref={isAdmin ? `/world/races/${raceId}/stages/${day}/report?diag=1` : null}
-        />
-      ) : notRun ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">This stage hasn&apos;t been raced yet.</p>
-        </div>
-      ) : acta.isError ? (
-        <p className="text-red-600">Could not load the report.</p>
-      ) : (
-        <>
-          <ShareStage raceId={raceId} day={day} report />
-          <StageReportView data={acta.data} />
-          {watchOn && (
-            <p className="text-sm">
-              <Link to={`${stagePath}?tab=watch`} className="font-medium text-brand-cyan">
-                Watch this stage →
-              </Link>
-            </p>
-          )}
-        </>
-      )}
+      {/* Los estados del acta, con `QueryView` (E3, PR 10): la puerta del velo (el 403, `GateError`), la
+          etapa sin correr (el 404) y un fallo, que ya dice qué falló. */}
+      <QueryView
+        query={acta}
+        label="the report"
+        skeleton={{ kind: 'panel' }}
+        notFound="This stage hasn't been raced yet."
+        gate={(g) => (
+          <StageGateCard
+            gate={g}
+            stageDay={day}
+            place="result"
+            raceId={raceId}
+            watchOn={watchOn}
+            watchable={watchOn}
+            actions={actions}
+            signIn={readingWithCookie}
+            diagHref={isAdmin ? `/world/races/${raceId}/stages/${day}/report?diag=1` : null}
+          />
+        )}
+      >
+        {(d) => (
+          <>
+            <ShareStage raceId={raceId} day={day} report />
+            <StageReportView data={d} />
+            {watchOn && (
+              <p className="text-sm">
+                <Link to={`${stagePath}?tab=watch`} className="font-medium text-brand-cyan">
+                  Watch this stage →
+                </Link>
+              </p>
+            )}
+          </>
+        )}
+      </QueryView>
     </section>
   )
 }

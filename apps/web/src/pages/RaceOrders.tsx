@@ -47,6 +47,8 @@ import {
   withOrderPatch,
 } from '../domain/raceOrdersDraft'
 import { OrdersGate } from '../components/OrdersGate'
+import { EmptyState } from '../components/ui/EmptyState'
+import { QueryView } from '../components/ui/QueryView'
 import { waitingStage } from '../domain/veil'
 import { horizonKey, useHorizon, useHorizonRev, veilApplies } from '../queryClient'
 
@@ -278,11 +280,12 @@ export function RaceOrders() {
     setSelectedKey(next.raceKey)
   }, [upcoming.data, selectedKey, searchParams])
 
-  const { data, isPending, isError } = useQuery({
+  const raceOrders = useQuery({
     queryKey: ['race-orders', selectedKey],
     queryFn: () => fetchRaceOrders(selectedKey!),
     enabled: !!selectedKey,
   })
+  const { data } = raceOrders
   // Borrador de ediciones sin guardar, SIEMPRE atado a su carrera: ni un refetch en segundo plano
   // las pisa (antes un `useEffect` copiaba `data` al estado y las borraba) ni se pueden guardar
   // contra otra carrera si el jugador cambia de selección antes de pulsar "Save all".
@@ -353,16 +356,15 @@ export function RaceOrders() {
     mutation.mutate({ raceKey: selectedKey, orders: Object.values(orders) })
   }
 
-  if (upcoming.isPending) return <p className="text-slate-500">Loading…</p>
-  if (!upcoming.data || upcoming.data.length === 0) {
+  // Los estados, con `QueryView` (E3, PR 10): un fallo de `upcoming` ya no se pinta como «no tienes
+  // carreras».
+  if (upcoming.data === undefined)
+    return <QueryView query={upcoming} label="your upcoming races" skeleton={{ kind: 'panel' }} />
+  if (upcoming.data.length === 0) {
     return (
       <section className="space-y-4">
         <SectionBar>Race orders</SectionBar>
-        <p className="text-sm text-slate-500">
-          You have no upcoming races yet. Once your team enters you in a race (or you enter one as a
-          free agent), it will appear here about two weeks before the start so you can set your
-          autopilot.
-        </p>
+        <EmptyState text="You have no upcoming races yet. Once your team enters you in a race (or you enter one as a free agent), it will appear here about two weeks before the start so you can set your autopilot." />
       </section>
     )
   }
@@ -424,8 +426,10 @@ export function RaceOrders() {
         </p>
       )}
 
-      {isPending && <p className="text-sm text-slate-500">Loading the race…</p>}
-      {isError && <p className="text-sm text-red-600">Could not load the race.</p>}
+      {/* la hoja de la carrera elegida, con sus estados (E3, PR 10): su clave llega con el efecto de arriba */}
+      {data === undefined && (
+        <QueryView query={raceOrders} label="the race" skeleton={{ kind: 'panel' }} />
+      )}
       {mutation.isSuccess && <p className="text-sm text-emerald-600">Orders saved.</p>}
       {mutation.isError && <p className="text-sm text-red-600">Could not save your orders.</p>}
 

@@ -8,6 +8,9 @@ import {
   paintedRadioFromChunks,
 } from '../domain/broadcast/paintedRadio'
 import { RaceRadioPanel } from './RaceRadioPanel'
+import { Button } from './ui/Button'
+import { EmptyState } from './ui/EmptyState'
+import { QueryView } from './ui/QueryView'
 
 /**
  * LA RACE RADIO DE UNA ETAPA SIN VER, HASTA LO PINTADO (E2, docs/retransmision.md §11.16 y §12.10;
@@ -43,23 +46,23 @@ export function PaintedRaceRadio({
     () => (chunks.data === undefined ? null : paintedRadioFromChunks(head, chunks.data, reachedS)),
     [head, chunks.data, reachedS],
   )
-  if (radio === null) return <p className="text-slate-500">Loading…</p>
+  // Los estados, con `QueryView` (E3, PR 10): sin los tramos, la radio es `null`.
+  if (radio === null)
+    return <QueryView query={chunks} label="the race radio" skeleton={{ kind: 'panel' }} />
   if (radio.kms.length === 0)
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Race Radio</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Nothing to show yet: the race radio fills in as far as you&apos;ve watched.
-        </p>
-        {onWatch && (
-          <button
-            type="button"
-            onClick={onWatch}
-            className="mt-3 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
-          >
-            Watch
-          </button>
-        )}
+        <EmptyState
+          text="Nothing to show yet: the race radio fills in as far as you've watched."
+          action={
+            onWatch && (
+              <Button variant="primary" onClick={onWatch}>
+                Watch
+              </Button>
+            )
+          }
+        />
       </div>
     )
   return <RaceRadioPanel radio={radio} painted />

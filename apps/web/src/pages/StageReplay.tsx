@@ -19,6 +19,8 @@ import { StageRoute } from '../components/StageRoute'
 import { StageStory } from '../components/StageStory'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
+import { EmptyState } from '../components/ui/EmptyState'
+import { LoadingState, QueryView } from '../components/ui/QueryView'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
@@ -204,19 +206,19 @@ function StageClassifications({
           (gc.length > 0 ? (
             <GcTable rows={gc} leaders={leaders} />
           ) : (
-            <p className="text-sm text-slate-400">No general classification yet.</p>
+            <EmptyState text="No general classification yet." />
           ))}
         {active === 'points' &&
           (points.length > 0 ? (
             <PointsTable rows={points} unit="pts" leaders={leaders} />
           ) : (
-            <p className="text-sm text-slate-400">No sprint points awarded yet.</p>
+            <EmptyState text="No sprint points awarded yet." />
           ))}
         {active === 'kom' &&
           (kom.length > 0 ? (
             <PointsTable rows={kom} unit="pts" leaders={leaders} />
           ) : (
-            <p className="text-sm text-slate-400">No mountain points awarded yet.</p>
+            <EmptyState text="No mountain points awarded yet." />
           ))}
         {/* Equipos: la clasificación de ESTA etapa y la acumulada tras ella, una debajo de otra
             —son dos preguntas distintas ("¿quién ganó hoy?" y "¿quién va ganando?") y las dos se
@@ -239,7 +241,7 @@ function StageClassifications({
               <TeamClassNote />
             </div>
           ) : (
-            <p className="text-sm text-slate-400">No team classification for this stage.</p>
+            <EmptyState text="No team classification for this stage." />
           ))}
       </TabPanel>
     </div>
@@ -312,7 +314,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const f = useStageFacts(raceId, day)
-  const { data, isPending, isError, diagOn, isAdmin, watchOn, run, isOneDay } = f
+  const { data, diagOn, isAdmin, watchOn, run, isOneDay } = f
   const { watchable, unavailable, seen, settled, dataGate, readingWithCookie } = f
   const tabIds: readonly StagePageTabId[] = run
     ? stagePageTabs(seen, watchOn, watchable)
@@ -338,21 +340,21 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
   )
 
   // Lo que enseña el resultado: la ficha si lo trae; si no, sin puerta, el acta, a un toque (10-e).
-  const { full, gate, actaError } = useStageResult(f, raceId, day, RESULT_TABS.has(active))
+  const { full, gate, acta } = useStageResult(f, raceId, day, RESULT_TABS.has(active))
   const watchHead = usePinnedHead(f.broadcastHead.data)
 
   // El título de la etapa (§11.8): el mismo en todas sus pestañas y antes del JavaScript (11-c).
   usePageTitle(stageTitleInfo(data), 'watch')
 
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the stage.</p>
-  if (data === undefined) return <p className="text-slate-500">Loading…</p>
+  // Los estados de la ficha, con `QueryView` (E3, PR 10).
+  if (data === undefined)
+    return <QueryView query={f.stage} label="the stage" skeleton={{ kind: 'header' }} />
 
   // Carrera de un día: la ficha de carrera ya contiene todo esto. Se redirige sin dejar rastro en el
   // historial, así que el botón "atrás" no rebota entre las dos páginas; sin pestaña pedida, a donde
-  // diga `Watch` para quien mira (9b), así que espera a saberlo.
+  // diga `Watch` para quien mira (9b), así que espera a saberlo (`settled`, que siempre llega).
   if (isOneDay) {
-    if (!settled) return <p className="text-slate-500">Loading…</p>
+    if (!settled) return <LoadingState label="the race" skeleton={{ kind: 'header' }} />
     return <Navigate to={oneDayStageTarget(raceId, params, watchOn)} replace />
   }
 
@@ -404,17 +406,14 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
       diagHref={diagHref}
     />
   )
-  /** Lo que enseña el resultado: la puerta, o lo que trae la ficha o el acta. */
+  /**
+   * Lo que enseña el resultado: la puerta, o lo que trae la ficha o el acta. Mientras el acta no llega,
+   * sus estados, con `QueryView` (E3, PR 10); su 403 ya es la puerta (`useStageResult`).
+   */
   const withResult = (render: (d: StageReplayData) => ReactNode): ReactNode => {
     if (gate !== null) return gateCard(gate, 'result')
     if (full !== null) return render(full)
-    if (actaError)
-      return (
-        <div className={card}>
-          <p className="text-sm text-red-600">Could not load the report.</p>
-        </div>
-      )
-    return <p className="text-slate-500">Loading…</p>
+    return <QueryView query={acta} label="the report" skeleton={{ kind: 'panel' }} />
   }
   // La Race Radio de una etapa sin ver (§11.16, 11-i; 11a): la radio hasta lo pintado, construida aquí
   // con la cabecera y los tramos de `Watch`, en lugar de la puerta (`paintedRadioWanted`).
@@ -507,8 +506,9 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
 
       {diagOn && <DiagnosticStrip exitHref={hrefWith(pagePath, params, { diag: null })} />}
 
+      {/* hasta saber las pestañas (`settled`, que siempre llega): la espera sin consulta (E3, PR 10) */}
       {!settled ? (
-        <p className="text-slate-500">Loading…</p>
+        <LoadingState label="the stage" />
       ) : (
         <>
           <Tabs
@@ -554,7 +554,11 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   }
                 />
               ) : (
-                <p className="text-slate-500">Loading…</p>
+                <QueryView
+                  query={f.broadcastHead}
+                  label="the broadcast"
+                  skeleton={{ kind: 'panel' }}
+                />
               ))}
 
             {active === 'report' && (
@@ -586,7 +590,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   </div>
                 ) : (
                   <div className={card}>
-                    <p className="text-sm text-slate-400">No result for this stage.</p>
+                    <EmptyState text="No result for this stage." />
                   </div>
                 ),
               )}
@@ -608,11 +612,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                 ) : (
                   <div className={card}>
                     <h2 className={head}>Race Radio</h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      This stage was raced before the race radio was recorded, so there is nothing
-                      to replay. We don&apos;t rebuild it from scratch: a re-run with today&apos;s
-                      engine would tell a different race from the one on the result sheet.
-                    </p>
+                    <EmptyState text="This stage was raced before the race radio was recorded, so there is nothing to replay. We don't rebuild it from scratch: a re-run with today's engine would tell a different race from the one on the result sheet." />
                   </div>
                 ),
               )}
@@ -641,7 +641,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                     dangerouslySetInnerHTML={{ __html: (full ?? data).altimetry }}
                   />
                 ) : (
-                  <p className="text-sm text-slate-400">No profile available for this stage.</p>
+                  <EmptyState text="No profile available for this stage." />
                 )}
                 {!data.run && (
                   <p className="mt-3 text-sm text-slate-500">
