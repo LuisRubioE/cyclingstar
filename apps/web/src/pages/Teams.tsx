@@ -28,7 +28,7 @@ function DivisionBlock({ division, teams }: { division: string; teams: TeamListI
           <Link
             key={t.id}
             to={`/world/teams/${t.id}`}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
           >
             <span className="flex items-center gap-2">
               <TeamJersey team={wornTeam(t.name, t.kit, t.jerseySeed)} size={28} />

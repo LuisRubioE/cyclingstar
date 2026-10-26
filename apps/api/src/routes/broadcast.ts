@@ -408,7 +408,8 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.post<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/broadcast/finish',
-    { config: { spoiler: 'watch', veil: { by: ['G'] } } },
+    // F desde el 17a de E3: los títulos de `champions` del acta, sin los velados (docs/visual.md §8.5)
+    { config: { spoiler: 'watch', veil: { by: ['G', 'F'] } } },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       const body = finishBodySchema.safeParse(request.body)
@@ -549,7 +550,8 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.get<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/report',
-    { config: { spoiler: 'watch', veil: { by: ['G'] } } },
+    // F desde el 17a de E3: los títulos de `champions`, sin los velados (docs/visual.md §8.5)
+    { config: { spoiler: 'watch', veil: { by: ['G', 'F'] } } },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       if (!q.success) return badRequest(reply)

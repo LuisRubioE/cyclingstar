@@ -69,12 +69,13 @@ describe('Kit', () => {
     expect(s.split('<path').length - 1).toBe(3) // el torso, el filete y el cuello
   })
 
-  it('el filete es el token kit-edge de 1 u, que sigue al tema; surface lo fuerza', () => {
-    const tema = html('plain.green')
-    expect(tema).toMatch(/<path d="[^"]+" fill="none" stroke-width="1" class="stroke-kit-edge"/)
-    expect(html('plain.green', 28, 'light')).toContain('stroke="rgb(0 0 0 / 0.3)"')
-    expect(html('plain.green', 28, 'dark')).toContain('stroke="rgb(255 255 255 / 0.6)"')
-    expect(html('plain.green', 28, 'dark')).not.toContain('stroke-kit-edge')
+  it('el filete es de 1 u y sin color propio, que le pone el tema (el token kit-edge); surface lo fuerza', () => {
+    // sin clases (D-10): sin `surface`, el trazo del filete no lleva `stroke`; con ella, el valor del token
+    const filete = (s: string) =>
+      /<path d="[^"]+" fill="none" stroke-width="1"([^>]*)>/.exec(s)?.[1]
+    expect(filete(html('plain.green'))).not.toContain('stroke=')
+    expect(filete(html('plain.green', 28, 'light'))).toContain('stroke="rgb(0 0 0 / 0.3)"')
+    expect(filete(html('plain.green', 28, 'dark'))).toContain('stroke="rgb(255 255 255 / 0.6)"')
   })
 
   it('cada uno de los quince colores, y las siete figuras, salen de kit.ts', () => {

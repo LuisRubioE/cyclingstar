@@ -215,13 +215,12 @@ describe('GroupBar · quién va y con qué maillot (§6.2; [DUEÑO 3]; E3, §14.
     expect(line(rows[3]!)).toBeUndefined()
   })
 
-  it('cada fila es un botón de 44 con aria-expanded y aria-controls, y su lista, cerrada, no se pinta (Ruso-036)', () => {
+  // Los 44 px de la fila y de cada corredor de su lista no se miran aquí, que serían clases (D-10): los
+  // cuenta la comprobación 5 de la prueba del teléfono en las pantallas 08, 09 y 35.
+  it('cada fila es un botón con aria-expanded y aria-controls, y su lista, cerrada, no se pinta (Ruso-036)', () => {
     const rows = rowsOf(html(<GroupBar instant={sixPointOne()} cast={CAST} clock="exact" />))
     for (const row of rows) {
-      const boton =
-        /<button type="button" aria-expanded="false" aria-controls="([^"]+)"[^>]*class="[^"]*min-h-11/.exec(
-          row,
-        )
+      const boton = /<button type="button" aria-expanded="false" aria-controls="([^"]+)"/.exec(row)
       expect(boton).not.toBeNull()
       expect(row).toContain(`<ul id="${boton?.[1]}"`)
       expect(row).toMatch(/<ul id="[^"]+" data-group-list="\d+" hidden="">/)
@@ -252,13 +251,13 @@ describe('GroupBar · la lista de un grupo, abierta (Ruso-036; E3, §14.4)', () 
       />,
     )
 
-  it('abierta, una fila de 44 por corredor con su RiderLabel: el dorsal, la bandera, el nombre, el maillot y el equipo', () => {
+  it('abierta, una fila por corredor con su RiderLabel: el dorsal, la bandera, el nombre, el maillot y el equipo', () => {
     const s = fila(true)
     expect(s).toContain('aria-expanded="true"')
     const lista = s.slice(s.indexOf('data-group-list'))
     expect(lista).not.toMatch(/^[^>]*hidden=""/)
     expect(lista.split('data-ui="RiderLabel"').length - 1).toBe(5)
-    expect(lista.split('class="flex min-h-11 items-center"').length - 1).toBe(5)
+    expect(lista.split('<li').length - 1).toBe(5)
     for (const r of [3, 40, 41, 42, 43]) expect(textOf(lista)).toContain(CAST[r]!.name)
     // el líder con el suyo; los demás con su equipación y su equipo debajo
     expect(count(lista, 'Race leader')).toBe(1)

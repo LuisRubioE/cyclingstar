@@ -891,8 +891,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     {
       config: {
         spoiler: 'horizon',
+        // F desde el 17a de E3: `champion`, sin los títulos de un campeonato velado (docs/visual.md §8.5)
         veil: {
-          by: ['R', 'M', 'L'],
+          by: ['R', 'M', 'F', 'L'],
           why: 'DD-08: los atributos se enseñan aunque los mueva lo aprendido en carrera, también los de un rival',
         },
       },

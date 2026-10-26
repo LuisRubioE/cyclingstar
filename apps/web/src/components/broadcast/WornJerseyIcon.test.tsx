@@ -57,9 +57,7 @@ describe('WornJerseyIcon', () => {
 
   it('sin equipo, el hueco de su ancho, que no se lee', () => {
     const s = renderToStaticMarkup(<WornJerseyIcon worn={{ kind: 'team' }} team={null} size={28} />)
-    expect(s).toBe(
-      '<span aria-hidden="true" class="inline-block shrink-0 align-middle" style="width:28px;height:28px"></span>',
-    )
+    expect(s).toMatch(/^<span aria-hidden="true"[^>]* style="width:28px;height:28px"><\/span>$/)
   })
 
   it('surface llega al filete de los tres dibujos nuevos', () => {

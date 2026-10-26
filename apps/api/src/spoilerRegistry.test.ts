@@ -95,14 +95,14 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // routes/races.ts
   'GET /api/my-orders': ['safe', { by: ['N', 'L'], why: 'rivales por fama, que no se escribe' }], // l. 84-85
   'PUT /api/my-orders': ['safe', N], // l. 176
-  'GET /api/races/:raceId/stages/:day': ['horizon', { by: ['G', 'P'] }], // l. 207-208
+  'GET /api/races/:raceId/stages/:day': ['horizon', { by: ['G', 'P', 'F'] }], // l. 209-210; F desde el 17a de E3
   // routes/broadcast.ts (E2, paso 3a): la retransmisión y el acta (§14.2)
   'GET /api/races/:raceId/stages/:day/broadcast': ['watch', { by: ['B', 'G'] }], // l. 246-247
   'GET /api/races/:raceId/stages/:day/broadcast/chunk': ['watch', { by: ['B'] }], // l. 335-336
-  'POST /api/races/:raceId/stages/:day/broadcast/finish': ['watch', { by: ['G'] }], // l. 362-363
+  'POST /api/races/:raceId/stages/:day/broadcast/finish': ['watch', { by: ['G', 'F'] }], // l. 409-410; F desde el 17a de E3
   // el salto en el servidor (8-t, §14.2; 10b, los arreglos): como la meta, `watch` · G
   'POST /api/races/:raceId/stages/:day/broadcast/seek': ['watch', { by: ['G'] }],
-  'GET /api/races/:raceId/stages/:day/report': ['watch', { by: ['G'] }], // l. 403-404
+  'GET /api/races/:raceId/stages/:day/report': ['watch', { by: ['G', 'F'] }], // l. 551-552; F desde el 17a de E3
   // routes/me.ts (E2, paso 7a): lo visto, el revelado, la guardia y el horizonte de cada uno (§14.2)
   'POST /api/me/watch/:raceKey/:day': ['watch', { by: ['B'] }], // l. 99-100
   'POST /api/me/reveal/:raceKey/:day': ['watch', { by: ['G'] }], // l. 148-149
@@ -188,10 +188,10 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'GET /api/riders/:id': [
     'horizon',
     {
-      by: ['R', 'M', 'L'],
+      by: ['R', 'M', 'F', 'L'],
       why: 'DD-08: los atributos se enseñan aunque los mueva lo aprendido en carrera, también los de un rival',
     },
-  ], // l. 856-857
+  ], // l. 889-890; F desde el 17a de E3 (`champion`)
   // routes/teams.ts
   'POST /api/teams/take-over': ['safe', N], // l. 37
   'PUT /api/teams/me': ['safe', N], // l. 49

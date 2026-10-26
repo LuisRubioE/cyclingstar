@@ -125,8 +125,11 @@ describe('ChampionJersey', () => {
     expect(await loadFlagSvg('ZZ')).toBeNull()
   })
 
-  it('el filete fuerte sigue al tema; surface lo fuerza', () => {
-    expect(html(title())).toContain('stroke-width="1.5" class="stroke-kit-edge-strong"')
+  it('el filete fuerte, sin color propio, sigue al tema; surface lo fuerza', () => {
+    // sin clases (D-10): sin `surface`, el trazo del filete no lleva `stroke`
+    expect(/fill="none" stroke-width="1.5"([^>]*)>/.exec(html(title()))?.[1]).not.toContain(
+      'stroke=',
+    )
     expect(html(title(), 28, 'dark')).toContain('stroke="rgb(255 255 255 / 0.6)"')
     expect(html(WORLD, 28, 'light')).toContain('stroke="rgb(0 0 0 / 0.35)"')
   })

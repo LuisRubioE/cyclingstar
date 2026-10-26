@@ -50,9 +50,10 @@ describe('LeaderJersey', () => {
     expect(new Set(lunares.map((m) => `${m[3]} ${m[4]}`))).toEqual(new Set(['4 #ffffff']))
   })
 
-  it('el filete fuerte de 1,5 u sigue al tema (kit-edge-strong); surface lo fuerza; sin cuello', () => {
+  it('el filete fuerte de 1,5 u, sin color propio, sigue al tema (kit-edge-strong); surface lo fuerza; sin cuello', () => {
     const tema = renderToStaticMarkup(<LeaderJersey kind="gc" size={28} />)
-    expect(tema).toContain('stroke-width="1.5" class="stroke-kit-edge-strong"')
+    // sin clases (D-10): sin `surface`, el trazo no lleva `stroke`
+    expect(/fill="none" stroke-width="1.5"([^>]*)>/.exec(tema)?.[1]).not.toContain('stroke=')
     expect(renderToStaticMarkup(<LeaderJersey kind="gc" size={28} surface="light" />)).toContain(
       'stroke="rgb(0 0 0 / 0.35)"',
     )

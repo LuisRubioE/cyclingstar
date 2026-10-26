@@ -214,16 +214,21 @@ export function GroupRow({
         <span className="w-5 shrink-0 text-right text-caption font-semibold tabular-nums text-ink-3">
           {g.number}
         </span>
-        <RowName group={g} cast={cast} />
-        {g.label.k !== 'names' && g.jerseys.map((j) => <LeaderJersey key={j} kind={j} size={28} />)}
-        {g.own && (
-          <span
-            className="h-2 w-2 shrink-0 rounded-full bg-cyan-500"
-            role="img"
-            aria-label="Your rider"
-            title="Your rider"
-          />
-        )}
+        {/* el rótulo y los maillots de líder parten de línea en vez de cortar ([DUEÑO 17]; §6.4): a 28,
+            los tres del grueso no caben con su rótulo en un renglón a 360 */}
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+          <RowName group={g} cast={cast} />
+          {g.label.k !== 'names' &&
+            g.jerseys.map((j) => <LeaderJersey key={j} kind={j} size={28} />)}
+          {g.own && (
+            <span
+              className="h-2 w-2 shrink-0 rounded-full bg-cyan-500"
+              role="img"
+              aria-label="Your rider"
+              title="Your rider"
+            />
+          )}
+        </span>
         <span className="ml-auto shrink-0 text-xs tabular-nums text-slate-400">
           km {clock === 'estimated' && g.number > 1 ? '~' : ''}
           {g.km.toFixed(1)}
@@ -300,7 +305,7 @@ function RowName({ group, cast }: { group: GroupNow; cast: readonly RiderCard[] 
     )
   const word = groupLabelText('en', group.label, group.role, 'bar', nameOf(cast))
   return (
-    <span className="min-w-0 truncate text-slate-800">
+    <span className="min-w-0 break-words text-slate-800">
       <span className="font-semibold uppercase tracking-wide">{word}</span>
       <span className="text-slate-500"> · {group.size}</span>
     </span>

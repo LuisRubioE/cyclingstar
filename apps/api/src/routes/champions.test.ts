@@ -401,6 +401,28 @@ describe('el maillot de campeón en las tablas y en la ficha (docs/visual.md §8
       }
     })
 
+    it('la ficha elige entre lo que ve: con su crono a la vista y la ruta velada, la crono, y no null', async () => {
+      // Elegir antes de quitar lo velado daría el de ruta, y después nada: `null` si ganó la ruta y la
+      // crono si no la ganó, que destripa el campeonato (implementacion.md, el 17a, punto 3). Aquí su
+      // corredor gana también la crono de España, que no está en su velo.
+      await t.db.insert(palmares).values({
+        worldId,
+        riderId: ROAD,
+        season: 0,
+        raceId: 'nc-es-itt',
+        raceName: SEASON_CALENDAR.find((r) => r.id === 'nc-es-itt')!.name,
+        kind: 'gc' as const,
+        gameDay: ncDay('nc-es-itt'),
+        stageDay: 1,
+      })
+      try {
+        expect(await championOf(playerApp, ROAD)).toEqual(ITT_ES)
+        expect(await championOf(app, ROAD)).toEqual(ROAD_ES)
+      } finally {
+        await t.client`delete from palmares where rider_id = ${ROAD} and race_id = 'nc-es-itt'`
+      }
+    })
+
     it('la ficha de carrera de quien solo conoce la 1 es la de tras la crono: los de crono; la 2, sin tablas ni campeones', async () => {
       try {
         await watched(RACE_KEY, 1, 'W')
