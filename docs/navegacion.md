@@ -195,7 +195,8 @@ Una página, un componente, sin duplicar. Y lo privado nunca sale en la vista p�
 > Así que cada carrera es una línea con su puesto en la general de titular —se gane o no, y diciendo
 > "so far" si aún está en marcha, o `DNF` si abandonó— y las etapas cuelgan debajo plegadas
 > (`components/RaceResults.tsx`), cada una con su enlace a la crónica. Igual en la ficha del
-> corredor, en la de un compañero (`My Team → Squad`) y en `My Rider → My races → Results`.
+> corredor y en `My Rider → My races → Results`; en `My Team → Squad`, desde el 12b de E3, cada
+> compañero enlaza a su ficha, que trae lo mismo (docs/visual.md §6.1).
 >
 > El puesto sale de `race_gc`, que el tick ya acumula etapa a etapa y nunca se borra (la temporada
 > va en la clave), numerada con el **mismo** desempate y el mismo trato de los abandonos que la

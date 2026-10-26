@@ -74,7 +74,7 @@ describe('RankTable: la tabla', () => {
       rows: BASE.rows,
       rowKey: BASE.rowKey,
       identity: BASE.identity,
-      href: BASE.href,
+      href: (r) => `/world/riders/${r.id}`,
       columns: BASE.columns,
     }
     const s = renderToStaticMarkup(
@@ -118,6 +118,36 @@ describe('RankTable: las 20, la propia y Show all', () => {
 
   it('total manda en el texto: Show all 140 con 25 filas', () => {
     expect(pinta({ rows: FILAS.slice(0, 25), total: 140 })).toContain('Show all 140')
+  })
+
+  it('lo que no tiene valor no sale en el segundo renglón, ni su punto: la llegada sin bonificación', () => {
+    const columnas: readonly RankTableColumn<Fila>[] = [
+      { key: 'team', header: 'Team', priority: 'secondary', clip: true, render: (r) => r.team },
+      {
+        key: 'bonus',
+        header: 'Bonus',
+        priority: 'secondary',
+        numeric: true,
+        render: (r) => (r.id === 'r1' ? '−10 s' : null),
+      },
+      { key: 'time', header: 'Time', priority: 'primary', numeric: true, render: (r) => r.gap },
+    ]
+    const s = pinta({ rows: FILAS.slice(0, 2), columns: columnas })
+    const segundo = (id: string) =>
+      new RegExp(
+        `Rider ${id.slice(1)}</span><span data-second=""[^>]*>((?:(?!</a>).)*)</span></a>`,
+      ).exec(s)?.[1] ?? ''
+    expect(segundo('r1')).toContain('−10 s')
+    expect(segundo('r1')).toContain('<span aria-hidden="true">·</span>')
+    expect(segundo('r2')).not.toContain('data-column="bonus"')
+    expect(segundo('r2')).not.toContain('·')
+  })
+
+  it('con all, todas y sin Show all: la plantilla (§6.1)', () => {
+    const s = pinta({ rows: FILAS.slice(0, 26), all: true })
+    expect(filas(s)).toBe(26)
+    expect(s).not.toContain('Show all')
+    expect(s).not.toContain('aria-hidden="true" class="h-6')
   })
 })
 
@@ -185,5 +215,56 @@ describe('RankTable: velada', () => {
 describe('RankTable: la respuesta', () => {
   it('data-answer cuando lo pide la pantalla (§7.3)', () => {
     expect(pinta({ answer: true })).toMatch(/^<div data-ui="RankTable"[^>]*data-answer=""/)
+  })
+})
+
+describe('RankTable: lo que piden las tablas del 12b', () => {
+  it('sin href, la identidad no enlaza: los movimientos no llevan a ningún sitio (§6.1)', () => {
+    const sinEnlace: RankTableProps<Fila> = {
+      caption: BASE.caption,
+      rows: FILAS.slice(0, 3),
+      rowKey: BASE.rowKey,
+      identity: BASE.identity,
+      columns: BASE.columns,
+    }
+    const s = renderToStaticMarkup(
+      <MemoryRouter>
+        <RankTable {...sinEnlace} />
+      </MemoryRouter>,
+    )
+    expect(s).not.toContain('<a ')
+    expect(s).toMatch(
+      /<td [^>]*><span data-identity="" class="block py-1"><span class="block">Rider 1<\/span><span data-second=""/,
+    )
+  })
+
+  it('una fila sin puesto dice su porqué: OTL en la llegada, OUT en la de equipos', () => {
+    const s = pinta({
+      rows: [...FILAS.slice(0, 3), fila(901, null)],
+      inactiveLabel: () => 'OTL',
+    })
+    expect(s).toMatch(
+      /data-state="inactive"(?:(?!<\/tr>).)*data-column="time"[^>]*><span[^>]*>OTL<\/span>/,
+    )
+    expect(s).not.toContain('>DNF<')
+  })
+
+  it('una columna puede decir otra cosa en el segundo renglón: «2 overall» y, desde 640, «2»', () => {
+    const columnas: readonly RankTableColumn<Fila>[] = [
+      {
+        key: 'gc',
+        header: 'Overall',
+        priority: 'secondary',
+        numeric: true,
+        render: (r) => r.rank,
+        second: (r) => `${r.rank} overall`,
+      },
+      { key: 'time', header: 'Time', priority: 'primary', numeric: true, render: (r) => r.gap },
+    ]
+    const s = pinta({ rows: FILAS.slice(0, 3), columns: columnas })
+    expect(s).toMatch(
+      /<span data-column="gc" data-priority="secondary"[^>]*><span>2 overall<\/span>/,
+    )
+    expect(s).toMatch(/<td data-column="gc" data-priority="secondary"[^>]*>2<\/td>/)
   })
 })

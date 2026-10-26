@@ -10,6 +10,7 @@ import { TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
+import type { TableIdentity } from '../domain/tableIdentity'
 import type { ReadyRace } from '../domain/veil'
 import { useRevealActions } from '../queryClient'
 import {
@@ -64,11 +65,17 @@ export function OneDaySections({
   classifications,
   route,
   honours,
+  identity,
+  ownRiderId,
 }: {
   raceId: string
   watchOn: boolean
   watchSettled: boolean
   veil: ReadyRace | null
+  /** el dorsal y el dibujo del equipo de cada fila del acta, de la lista de salida de `Race` (PR 12b) */
+  identity: TableIdentity
+  /** el corredor del jugador: su fila del acta (§6.2) */
+  ownRiderId: string | null
   /** `Result` con `Watch` apagado: las clasificaciones de la ficha (`ClassificationsTab` de `Race.tsx`) */
   classifications: ReactNode
   /** `Route` y `Roll of honour`, los de la ficha */
@@ -219,6 +226,8 @@ export function OneDaySections({
                 <StageReportView
                   data={d}
                   onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
+                  identity={identity}
+                  ownRiderId={ownRiderId}
                 />
               ) : (
                 <StageStory data={d} onFullResult={() => setActive('result')} />

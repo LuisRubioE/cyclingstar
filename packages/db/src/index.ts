@@ -21,6 +21,7 @@ export {
   ensureRaceRosterFrozen,
   lockCalendarDay,
   predictStartlist,
+  readFrozenStartlist,
   recomputeWorldRanking,
   runCalendarDay,
   selectFieldTeams,

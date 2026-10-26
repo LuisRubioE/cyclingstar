@@ -764,7 +764,7 @@ export interface StartlistTeam {
   jerseySeed: string
   riders: StartlistRider[]
 }
-/** Lista de inscritos de una carrera por empezar. */
+/** Lista de inscritos de una carrera: la prevista antes del cierre y la congelada desde él. */
 export interface RaceStartlist {
   /**
    * `true` cuando ya pasó el cierre de inscripciones (SPEC 8): la escuadra está congelada y los equipos
@@ -777,16 +777,107 @@ export interface RaceStartlist {
 }
 
 /**
+ * LA ESCUADRA CONGELADA de una carrera, leída de `race_rosters`: los corredores reales de cada equipo,
+ * por dorsal, más los agentes libres que entraron; null si aún no está congelada (no tiene filas). La
+ * leen la previsión de inscritos, pasado el cierre, y la lista de salida desde la salida, de la que las
+ * tablas de la carrera toman el dorsal y el maillot de cada fila (E3, paso 12b; docs/visual.md §6.1,
+ * 17-q). No mira nada de lo corrido, ni `abandoned_day` ni resultados: quien abandonó sigue en su equipo
+ * con su dorsal. Solo lectura.
+ */
+export async function readFrozenStartlist(
+  q: Db | Tx,
+  // L (E2, §10.6): la escuadra se congela antes de la salida y lo corrido no la cambia; quien llama pasa
+  // worldHorizon y no se usa.
+  _h: Horizon,
+  race: CalendarRace,
+  season: number,
+): Promise<RaceStartlist | null> {
+  const raceKey = `${race.id}:s${season}`
+  const rows = await q
+    .select({
+      id: riders.id,
+      name: riders.name,
+      country: riders.country,
+      userId: riders.userId,
+      teamId: riders.teamId,
+      teamName: teams.name,
+      teamCountry: teams.country,
+      teamDivision: teams.division,
+      teamJersey: teamDrawSeedOrNull,
+      bib: raceRosters.bib,
+    })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .where(eq(raceRosters.raceId, raceKey))
+  if (rows.length === 0) return null
+  const byTeam = new Map<string, StartlistTeam & { minBib: number }>()
+  const freeAgents: StartlistRider[] = []
+  for (const r of rows) {
+    const rider: StartlistRider = {
+      id: r.id,
+      name: r.name,
+      country: r.country ?? '',
+      isBot: r.userId == null,
+      bib: r.bib,
+    }
+    if (r.teamId && r.teamName) {
+      let t = byTeam.get(r.teamId)
+      if (!t) {
+        t = {
+          id: r.teamId,
+          name: r.teamName,
+          country: r.teamCountry,
+          division: r.teamDivision as Division,
+          jerseySeed: r.teamJersey ?? '',
+          riders: [],
+          minBib: Number.POSITIVE_INFINITY,
+        }
+        byTeam.set(r.teamId, t)
+      }
+      t.riders.push(rider)
+      if (rider.bib != null) t.minBib = Math.min(t.minBib, rider.bib)
+    } else {
+      freeAgents.push(rider)
+    }
+  }
+  // Orden por dorsal (el equipo del dorsal más bajo primero; corredores por su número). Si un roster
+  // antiguo no tiene dorsales, se cae a orden alfabético.
+  const byBib = (a: StartlistRider, b: StartlistRider) =>
+    a.bib != null && b.bib != null ? a.bib - b.bib : a.name.localeCompare(b.name)
+  const teamsList = [...byTeam.values()].sort((a, b) =>
+    Number.isFinite(a.minBib) && Number.isFinite(b.minBib)
+      ? a.minBib - b.minBib
+      : a.name.localeCompare(b.name),
+  )
+  for (const t of teamsList) t.riders.sort(byBib)
+  freeAgents.sort(byBib)
+  return {
+    frozen: true,
+    teams: teamsList.map((t) => ({
+      id: t.id,
+      name: t.name,
+      country: t.country,
+      division: t.division,
+      jerseySeed: t.jerseySeed,
+      riders: t.riders,
+    })),
+    freeAgents,
+  }
+}
+
+/**
  * Inscritos de una carrera aún por empezar. Si ya pasó el cierre de inscripciones, devuelve la ESCUADRA
  * CONGELADA real (los corredores que traerá cada equipo, más los agentes libres que entraron), leída de
- * `race_rosters`. Si aún falta más de `ENROLL_LOCK_DAYS`, devuelve la PREVISIÓN: los equipos que se
- * espera que acudan (misma elección determinista que hará el tick) y los agentes libres ya apuntados,
- * sin nombrar corredores todavía. Solo lectura.
+ * `race_rosters` por `readFrozenStartlist`. Si aún falta más de `ENROLL_LOCK_DAYS`, devuelve la
+ * PREVISIÓN: los equipos que se espera que acudan (misma elección determinista que hará el tick) y los
+ * agentes libres ya apuntados, sin nombrar corredores todavía. Solo lectura.
  */
 export async function predictStartlist(
   db: Db,
-  // L (E2, §10.6): la lista se congela con el mundo al día; quien llama pasa worldHorizon y no se usa.
-  _h: Horizon,
+  // L (E2, §10.6): la lista se congela con el mundo al día; quien llama pasa worldHorizon, que solo
+  // llega hasta `readFrozenStartlist`.
+  h: Horizon,
   worldId: string,
   race: CalendarRace,
   season: number,
@@ -794,78 +885,8 @@ export async function predictStartlist(
   const raceKey = `${race.id}:s${season}`
   return db.transaction(async (tx) => {
     // Cierre pasado: la escuadra está congelada. Mostramos los corredores reales, por equipo y dorsal.
-    const rows = await tx
-      .select({
-        id: riders.id,
-        name: riders.name,
-        country: riders.country,
-        userId: riders.userId,
-        teamId: riders.teamId,
-        teamName: teams.name,
-        teamCountry: teams.country,
-        teamDivision: teams.division,
-        teamJersey: teamDrawSeedOrNull,
-        bib: raceRosters.bib,
-      })
-      .from(raceRosters)
-      .innerJoin(riders, eq(riders.id, raceRosters.riderId))
-      .leftJoin(teams, eq(teams.id, riders.teamId))
-      .where(eq(raceRosters.raceId, raceKey))
-    if (rows.length > 0) {
-      const byTeam = new Map<string, StartlistTeam & { minBib: number }>()
-      const freeAgents: StartlistRider[] = []
-      for (const r of rows) {
-        const rider: StartlistRider = {
-          id: r.id,
-          name: r.name,
-          country: r.country ?? '',
-          isBot: r.userId == null,
-          bib: r.bib,
-        }
-        if (r.teamId && r.teamName) {
-          let t = byTeam.get(r.teamId)
-          if (!t) {
-            t = {
-              id: r.teamId,
-              name: r.teamName,
-              country: r.teamCountry,
-              division: r.teamDivision as Division,
-              jerseySeed: r.teamJersey ?? '',
-              riders: [],
-              minBib: Number.POSITIVE_INFINITY,
-            }
-            byTeam.set(r.teamId, t)
-          }
-          t.riders.push(rider)
-          if (rider.bib != null) t.minBib = Math.min(t.minBib, rider.bib)
-        } else {
-          freeAgents.push(rider)
-        }
-      }
-      // Orden por dorsal (el equipo del dorsal más bajo primero; corredores por su número). Si un roster
-      // antiguo no tiene dorsales, se cae a orden alfabético.
-      const byBib = (a: StartlistRider, b: StartlistRider) =>
-        a.bib != null && b.bib != null ? a.bib - b.bib : a.name.localeCompare(b.name)
-      const teamsList = [...byTeam.values()].sort((a, b) =>
-        Number.isFinite(a.minBib) && Number.isFinite(b.minBib)
-          ? a.minBib - b.minBib
-          : a.name.localeCompare(b.name),
-      )
-      for (const t of teamsList) t.riders.sort(byBib)
-      freeAgents.sort(byBib)
-      return {
-        frozen: true,
-        teams: teamsList.map((t) => ({
-          id: t.id,
-          name: t.name,
-          country: t.country,
-          division: t.division,
-          jerseySeed: t.jerseySeed,
-          riders: t.riders,
-        })),
-        freeAgents,
-      }
-    }
+    const frozen = await readFrozenStartlist(tx, h, race, season)
+    if (frozen !== null) return frozen
     // Aún no congelada: previsión de equipos + agentes libres apuntados (sin nombrar corredores).
     const { teamRows } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
     const fa = await tx

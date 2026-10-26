@@ -1,24 +1,68 @@
-import { COUNTRIES, HOUSING_RENT_PER_WEEK } from '@cyclingstar/shared'
+import { COUNTRIES, HOUSING_RENT_PER_WEEK, seasonPosition } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
-import { fetchLedger } from '../api/finances'
+import { type LedgerEntry, fetchLedger } from '../api/finances'
 import { fetchRiderSummary } from '../api/rider'
-import { money } from '../domain/format'
 import { ledgerKindLabel } from '../domain/labels'
+import { formatGameDay } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Panel as UiPanel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { RankTable, type RankTableColumn } from '../components/ui/RankTable'
+import { statFigure } from '../components/ui/Stat'
 
-const KIND_TONE: Record<string, string> = {
-  salario: 'text-emerald-600',
-  premio: 'text-emerald-600',
-  patrocinador: 'text-emerald-600',
-  staff: 'text-rose-600',
-  viaje: 'text-rose-600',
-  vivienda: 'text-rose-600',
-  otro: 'text-slate-600',
+/** Un movimiento con su clave: no traen id, y su orden (el más reciente primero) no cambia. */
+interface Movimiento {
+  readonly e: LedgerEntry
+  readonly clave: string
+}
+
+/** Lo que dice el movimiento: su nota o, si no la tiene, su clase (`Salary`). */
+const concepto = (e: LedgerEntry): string =>
+  e.note.trim() === '' ? ledgerKindLabel(e.kind) : e.note
+
+/**
+ * El día (`Day 42`, el de la temporada) debajo del concepto hasta 640 y la clase hasta 1.024; el importe
+ * con su signo, siempre: `+780` en `good`, `−80` en `bad` y el cero en `ink`, como `Stat` (§6.1).
+ */
+const COLUMNAS: readonly RankTableColumn<Movimiento>[] = [
+  {
+    key: 'day',
+    header: 'Day',
+    priority: 'secondary',
+    render: ({ e }) => formatGameDay(seasonPosition(e.gameDay).dayOfSeason, null),
+  },
+  { key: 'kind', header: 'Kind', priority: 'optional', render: ({ e }) => ledgerKindLabel(e.kind) },
+  {
+    key: 'amount',
+    header: 'Amount',
+    priority: 'primary',
+    numeric: true,
+    render: ({ e }) => {
+      const { text, tone } = statFigure(e.amount, true)
+      return <span className={tone}>{text}</span>
+    },
+  },
+]
+
+/**
+ * LOS MOVIMIENTOS (E3, docs/visual.md §6.1; PR 12b). En `RankTable` sin puesto y sin enlace: no llevan a
+ * ningún sitio, ni fila propia (§6.2), porque todos son del jugador. Las 20 primeras y `Show all`.
+ */
+function LedgerTable({ entries }: { readonly entries: readonly LedgerEntry[] }) {
+  return (
+    <RankTable
+      caption="Transactions: description, game day, kind and amount"
+      rows={entries.map((e, i) => ({ e, clave: String(i) }))}
+      rowKey={({ clave }) => clave}
+      identity={({ e }) => <span className="text-row text-ink">{concepto(e)}</span>}
+      identityHeader="Description"
+      columns={COLUMNAS}
+    />
+  )
 }
 
 function countryName(code: string): string {
@@ -126,25 +170,9 @@ export function Finances() {
       {data.entries.length === 0 ? (
         <EmptyState text="No transactions yet. Salary lands weekly once you have a contract; prizes come from racing." />
       ) : (
-        <Panel bodyClassName="p-0">
-          <table className="w-full text-sm">
-            <caption className="sr-only">Transactions: game day, type, note and amount</caption>
-            <tbody>
-              {data.entries.map((e, i) => (
-                <tr key={i} className="border-b border-slate-100 last:border-0">
-                  <td className="w-16 px-4 py-2 text-slate-400 tabular-nums">Day {e.gameDay}</td>
-                  <td className="w-20 px-2 py-2 text-slate-500">{ledgerKindLabel(e.kind)}</td>
-                  <td className="px-2 py-2 text-slate-700">{e.note}</td>
-                  <td
-                    className={`px-4 py-2 text-right tabular-nums font-medium ${KIND_TONE[e.kind] ?? 'text-slate-600'}`}
-                  >
-                    {money(e.amount)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Panel>
+        <UiPanel ariaLabel="Transactions" variant="bleed">
+          <LedgerTable entries={data.entries} />
+        </UiPanel>
       )}
     </section>
   )

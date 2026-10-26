@@ -1,4 +1,5 @@
 import type { RiderRaceResult } from '@cyclingstar/shared'
+import type { Tone } from '../components/ui/types'
 
 /**
  * Presentación de los resultados de un corredor (docs/navegacion.md §3.6).
@@ -57,15 +58,17 @@ export function hasStageBreakdown(r: RiderRaceResult): boolean {
 }
 
 /**
- * Color del puesto en la ficha: el oro solo para la victoria, el podio destacado y el resto sobrio.
- * Vive aquí porque lo comparten la lista de la ficha y la tabla de `My races`, y una divergencia
- * haría que el mismo 1.º se pintara distinto en dos pantallas.
+ * El tono del puesto en la ficha: la victoria destacada, el podio también y el resto sobrio. Vive aquí
+ * porque lo comparten la lista de la ficha y la tabla de `My races`, y una divergencia haría que el mismo
+ * 1.º se pintara distinto en dos pantallas. Desde el PR 12b (E3, docs/visual.md §16.3) es un `Tone` y quien
+ * lo pinta toma su texto de `TONES`: la victoria en `good` y el podio en `info`, porque el oro de antes
+ * (`amber-500`, 2,15:1 sobre blanco) no es un tono del sistema ni se lee.
  */
-export function placeTone(r: RiderRaceResult): string {
-  if (r.dnf || r.gcPuesto == null) return 'text-slate-400'
-  if (r.gcPuesto === 1) return 'text-amber-500'
-  if (r.gcPuesto <= 3) return 'text-slate-700'
-  return 'text-slate-500'
+export function placeTone(r: RiderRaceResult): Tone {
+  if (r.dnf || r.gcPuesto == null) return 'neutral'
+  if (r.gcPuesto === 1) return 'good'
+  if (r.gcPuesto <= 3) return 'info'
+  return 'neutral'
 }
 
 /** Clave estable de una carrera del historial (una carrera puede repetirse cada temporada). */

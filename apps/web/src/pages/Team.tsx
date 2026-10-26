@@ -6,25 +6,18 @@ import { Flag } from '../components/Flag'
 import { DiagnosticStrip } from '../components/StageGate'
 import { Jersey } from '../components/Jersey'
 import { Panel, SectionBar } from '../components/Panel'
-import { RiderName } from '../components/RiderName'
+import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager } from '../components/TeamManager'
-import { archetypeLabel } from '../domain/labels'
 import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { Panel as UiPanel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 
 const DIVISION_LABEL: Record<string, string> = {
   WT: 'World Tour',
   PRS: 'Pro Series',
   CON: 'Continental',
-}
-
-/** Distintivo de salud junto al nombre en la plantilla; los sanos no llevan (sin ruido). */
-const HEALTH_BADGE: Record<string, { label: string; cls: string } | undefined> = {
-  molestias: { label: 'Niggle', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
-  enfermo: { label: 'Ill', cls: 'bg-orange-50 text-orange-700 ring-orange-200' },
-  lesionado: { label: 'Injured', cls: 'bg-red-50 text-red-700 ring-red-200' },
 }
 
 export function Team() {
@@ -122,36 +115,10 @@ export function Team() {
       )}
       {isMyTeam && data.human && control?.team?.ownedByMe && <TeamManager team={data} />}
 
-      <Panel title={`Roster (${data.roster.length})`} bodyClassName="p-0">
-        <table className="w-full text-sm">
-          <caption className="sr-only">Team roster: country, rider, speciality and points</caption>
-          <tbody>
-            {data.roster.map((r) => (
-              <tr key={r.id} className="border-b border-slate-100 last:border-0">
-                <td className="w-6 py-1.5 pl-4">
-                  <Flag code={r.country} size={16} />
-                </td>
-                <td className="py-1.5">
-                  {/* La bandera de cada corredor ya dice su nacionalidad; comparar con el país del
-                      equipo hace obvio quién es extranjero, así que no hace falta etiqueta "abroad". */}
-                  <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />
-                  {HEALTH_BADGE[r.health] && (
-                    <span
-                      className={`ml-2 rounded px-1.5 py-0.5 text-xs ring-1 ${HEALTH_BADGE[r.health]!.cls}`}
-                    >
-                      {HEALTH_BADGE[r.health]!.label}
-                    </span>
-                  )}
-                </td>
-                <td className="py-1.5 text-slate-500">{archetypeLabel(r.archetype)}</td>
-                <td className="py-1.5 pr-4 text-right tabular-nums text-slate-400">
-                  {r.seasonPoints} pts
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Panel>
+      {/* La plantilla, la de `My Team → Squad` (§6.1; PR 12b): la respuesta de la pantalla 12. */}
+      <UiPanel title={`Roster (${data.roster.length})`} variant="bleed">
+        <SquadTable rows={data.roster} team={data} answer />
+      </UiPanel>
 
       {teamNews.data && teamNews.data.length > 0 && (
         <Panel

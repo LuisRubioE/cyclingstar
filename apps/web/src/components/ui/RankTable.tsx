@@ -32,6 +32,11 @@ import type { ColumnPriority, Layout } from './types'
  *   icono `warning` y `Watch`, un botón de 44.
  *
  * Cargando, vacía y con un fallo son de su `QueryView` (PR 10), con `Skeleton` `rows`.
+ *
+ * Desde el PR 12b, para las tablas de §6.1: sin `href`, la identidad no enlaza (los movimientos); una fila
+ * sin puesto dice su porqué (`inactiveLabel`: `OTL` en la llegada, `OUT` en la de equipos); una columna
+ * puede decir otra cosa en el segundo renglón (`second`: `2 overall`, donde la columna dice `2`); y la
+ * plantilla las pinta todas (`all`).
  */
 
 export interface RankTableColumn<Row> {
@@ -44,6 +49,8 @@ export interface RankTableColumn<Row> {
   /** se corta con `…` en el segundo renglón: solo el nombre del equipo (§4.5) */
   readonly clip?: boolean
   readonly render: (row: Row) => ReactNode
+  /** lo que dice en el segundo renglón, si no es lo de la columna: `2 overall` (el salón de la fama) */
+  readonly second?: (row: Row) => ReactNode
 }
 
 export interface RankTableProps<Row> {
@@ -57,10 +64,14 @@ export interface RankTableProps<Row> {
   readonly identity: (row: Row) => ReactNode
   /** la cabecera de la identidad; por defecto `Rider` */
   readonly identityHeader?: string
-  /** la celda de identidad entera enlaza aquí */
-  readonly href: (row: Row) => string
+  /** la celda de identidad entera enlaza aquí; sin él, no enlaza (los movimientos, §6.1) */
+  readonly href?: (row: Row) => string
   readonly columns: readonly RankTableColumn<Row>[]
   readonly isOwn?: (row: Row) => boolean
+  /** lo que dice una fila sin puesto donde iría su valor: `DNF` por defecto; `OTL`, `OUT` */
+  readonly inactiveLabel?: (row: Row) => string
+  /** todas las filas, sin `Show all`: la plantilla de un equipo (§6.1) */
+  readonly all?: boolean
   /** las filas que hay en total, para `Show all 140`; por defecto, las que tienen puesto */
   readonly total?: number
   /** el velo de E2: la etapa que hay que ver, con su origen y su destino, y el enlace a `Watch` */
@@ -85,10 +96,11 @@ export type RankTableLine<Row> =
   | { readonly kind: 'gap' }
 
 export function rankTableLines<Row>(
-  props: Pick<RankTableProps<Row>, 'rows' | 'rank' | 'isOwn'>,
+  props: Pick<RankTableProps<Row>, 'rows' | 'rank' | 'isOwn' | 'all'>,
   expanded: boolean,
 ): RankTableLine<Row>[] {
   const { rows, rank, isOwn } = props
+  const abierta = expanded || props.all === true
   const own = (row: Row) => isOwn?.(row) ?? false
   const conPuesto = rank === undefined ? rows : rows.filter((r) => rank(r) !== null)
   const abandonos = rank === undefined ? [] : rows.filter((r) => rank(r) === null)
@@ -99,9 +111,9 @@ export function rankTableLines<Row>(
     dnf,
   })
   const out: RankTableLine<Row>[] = []
-  const vista = expanded ? conPuesto : conPuesto.slice(0, TOP_ROWS)
+  const vista = abierta ? conPuesto : conPuesto.slice(0, TOP_ROWS)
   for (const row of vista) out.push(linea(row, false))
-  if (!expanded) {
+  if (!abierta) {
     const propia = conPuesto.slice(TOP_ROWS).find(own)
     if (propia !== undefined) out.push({ kind: 'gap' }, linea(propia, false))
   }
@@ -124,7 +136,10 @@ const CABECERA =
 /** La primera celda de cada fila lleva la barra de 3 px: `own` en la propia, transparente en las demás. */
 const BARRA = 'border-l-3'
 
-/** El segundo renglón de la identidad: las `secondary` y las `optional`, unidas con `·`. */
+/** Un valor que no se pinta en el segundo renglón: una llegada sin bonificación (PR 12b). */
+const vacio = (v: ReactNode): boolean => v === null || v === undefined || v === false || v === ''
+
+/** El segundo renglón de la identidad: las `secondary` y las `optional` con valor, unidas con `·`. */
 function SegundoRenglon<Row>({
   row,
   columns,
@@ -132,21 +147,26 @@ function SegundoRenglon<Row>({
   row: Row
   columns: readonly RankTableColumn<Row>[]
 }) {
-  const secundarias = columns.filter((c) => c.priority === 'secondary')
-  const opcionales = columns.filter((c) => c.priority === 'optional')
+  const conValor = (priority: ColumnPriority) =>
+    columns
+      .filter((c) => c.priority === priority)
+      .map((c) => ({ c, valor: (c.second ?? c.render)(row) }))
+      .filter((x) => !vacio(x.valor))
+  const secundarias = conValor('secondary')
+  const opcionales = conValor('optional')
   if (secundarias.length + opcionales.length === 0) return null
   // el punto cuelga del valor anterior, como una coma: si el renglón parte, no empieza por él; y se
   // esconde con su valor, así que entre lo que queda a la vista siempre hay uno
   const items = [
-    ...secundarias.map((c, i) => ({
-      c,
+    ...secundarias.map((x, i) => ({
+      ...x,
       punto: i < secundarias.length - 1 || opcionales.length > 0,
     })),
-    ...opcionales.map((c, i) => ({ c, punto: i < opcionales.length - 1 })),
+    ...opcionales.map((x, i) => ({ ...x, punto: i < opcionales.length - 1 })),
   ]
   return (
     <span data-second="" className="flex flex-wrap gap-x-1 text-meta font-normal text-ink-3">
-      {items.map(({ c, punto }) => (
+      {items.map(({ c, valor, punto }) => (
         <span
           key={c.key}
           data-column={c.key}
@@ -155,10 +175,10 @@ function SegundoRenglon<Row>({
         >
           {c.clip === true ? (
             <span data-clip-ok="" className="min-w-0 truncate">
-              {c.render(row)}
+              {valor}
             </span>
           ) : (
-            <span>{c.render(row)}</span>
+            <span>{valor}</span>
           )}
           {punto && <span aria-hidden="true">·</span>}
         </span>
@@ -169,6 +189,7 @@ function SegundoRenglon<Row>({
 
 export function RankTable<Row>(props: RankTableProps<Row>) {
   const { caption, rows, rowKey, rank, identity, href, columns, veil, answer, layout } = props
+  const inactivo = props.inactiveLabel ?? (() => DNF_WORD)
   const [expanded, setExpanded] = useState(false)
   const conPuesto = rank === undefined ? rows.length : rows.filter((r) => rank(r) !== null).length
   const total = props.total ?? conPuesto
@@ -266,13 +287,20 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
                     </td>
                   )}
                   <td className={`w-full max-w-0 p-0 align-top ${rank === undefined ? barra : ''}`}>
-                    <Link
-                      to={href(row)}
-                      className={`block min-h-11 py-1 ${own ? 'font-semibold' : ''} ${FOCUS_INSET}`}
-                    >
-                      <span className="block">{identity(row)}</span>
-                      <SegundoRenglon row={row} columns={columns} />
-                    </Link>
+                    {href === undefined ? (
+                      <span data-identity="" className={`block py-1${own ? ' font-semibold' : ''}`}>
+                        <span className="block">{identity(row)}</span>
+                        <SegundoRenglon row={row} columns={columns} />
+                      </span>
+                    ) : (
+                      <Link
+                        to={href(row)}
+                        className={`block min-h-11 py-1 ${own ? 'font-semibold' : ''} ${FOCUS_INSET}`}
+                      >
+                        <span className="block">{identity(row)}</span>
+                        <SegundoRenglon row={row} columns={columns} />
+                      </Link>
+                    )}
                   </td>
                   {columns.map((c, j) => (
                     <td
@@ -286,7 +314,9 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
                       }`}
                     >
                       {dnf && j === primera ? (
-                        <span className="text-caption font-semibold text-ink-3">{DNF_WORD}</span>
+                        <span className="text-caption font-semibold text-ink-3">
+                          {inactivo(row)}
+                        </span>
                       ) : (
                         c.render(row)
                       )}
@@ -298,7 +328,7 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
           )}
         </tbody>
       </table>
-      {!velada && (
+      {!velada && props.all !== true && (
         <ShowAllRows total={total} expanded={expanded} onToggle={() => setExpanded((e) => !e)} />
       )}
     </div>

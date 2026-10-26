@@ -253,6 +253,8 @@ jobs:
   # `telefono-baseline.json`, medidas sobre otro mundo: en la misma ejecución se compila la web de la base
   # (un `worktree`), se sirve sobre el mismo mundo y se mide; el PR falla si una cifra sube sobre ella, o si
   # baja y `telefono-baseline.json` no lo apunta. Si la base no tiene ese fichero, el PR lo crea (el 2b).
+  # Y si el PR toca el instrumento o cambia la clave del mundo (§7.4, regla 1; desde el 12b), puede
+  # reescribirlo entero, y solo cuenta que nada suba.
   #
   # En `main` informa y no para (`continue-on-error`): el PR ya pasó el trinquete contra su base, y una
   # falta que solo saliera con los datos de otro mundo no puede dejar el commit en rojo, porque Railway no
@@ -321,6 +323,17 @@ jobs:
           if git diff --name-only "$BASE" HEAD -- apps/web/e2e/medidas.ts apps/web/e2e/navega.ts \
             apps/web/e2e/pantallas.ts apps/web/e2e/telefono.spec.ts apps/web/e2e/control.html | grep -q .; then
             echo 'El PR cambia el instrumento: puede reescribir telefono-baseline.json entero.'
+            echo 'instrumento=cambia' >> "$GITHUB_OUTPUT"
+          # LA CLAVE DEL MUNDO (§7.4, regla 1 de 7-h; PR 12b): las rutas de la clave de su caché
+          # (`.github/actions/telefono/action.yml`), sin los tests. Un PR que la cambia se mide sobre un
+          # mundo construido de nuevo, y una cifra en el borde (un recorte que sale con un nombre y no con
+          # otro) puede ir en él al revés que en el mundo del fichero: con un 0 en el de la base y un 1 en
+          # la web de la base, la bajada no se puede apuntar. Así que reescribe el fichero entero, como
+          # dice §7.4, y solo cuenta que nada suba.
+          elif git diff --name-only "$BASE" HEAD -- packages/db/drizzle packages/db/src packages/engine/src \
+            packages/shared/src apps/web/e2e/world/build.mjs \
+            | grep -vE '\.test\.ts$' | grep -qE '^packages/db/drizzle/|\.ts$|/build\.mjs$'; then
+            echo 'El PR cambia la clave del mundo: puede reescribir telefono-baseline.json entero (§7.4, regla 1).'
             echo 'instrumento=cambia' >> "$GITHUB_OUTPUT"
           fi
           git worktree add --detach "$RUNNER_TEMP/base" "$BASE"

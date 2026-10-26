@@ -15,6 +15,7 @@ import {
 // aquí se cuentan CARRERAS ("Show all 31"), no filas de una clasificación.
 import { TOP_ROWS } from './ShowAll'
 import { StageRoute } from './StageRoute'
+import { TONES } from './ui/styles'
 
 /**
  * Los resultados de un corredor, tal como se leen en su ficha (docs/navegacion.md §3.6).
@@ -41,7 +42,7 @@ export function RaceResultRow({
     <li className="py-2 first:pt-0 last:pb-0">
       <div className="flex items-baseline gap-3 text-sm">
         <span
-          className={`w-10 shrink-0 text-right font-bold tabular-nums ${placeTone(result)}`}
+          className={`w-10 shrink-0 text-right font-bold tabular-nums ${TONES[placeTone(result)].text}`}
           // "3rd" ya se lee bien, pero DNF y el guion necesitan contexto al oírse.
           title={result.dnf ? 'Did not finish' : undefined}
         >

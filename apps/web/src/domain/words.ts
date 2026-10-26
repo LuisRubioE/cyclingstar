@@ -23,7 +23,8 @@ function minutosQueFaltan(ms: number): number {
   return Math.ceil(Math.max(0, ms) / 60_000)
 }
 
-const plural = (n: number, una: string) => `${n} ${una}${n === 1 ? '' : 's'}`
+/** `1 stage`, `4 stages`: la cifra y la palabra, en singular solo con 1. */
+export const plural = (n: number, una: string) => `${n} ${una}${n === 1 ? '' : 's'}`
 
 /**
  * EL RELOJ DEL MUNDO de la cabecera (§6.3; PR 11): el día de la temporada, la temporada y lo que falta

@@ -1,4 +1,4 @@
-import type { HorizonSummary, RaceLeaders, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
+import type { HorizonSummary, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
 import {
   type UseQueryResult,
   keepPreviousData,
@@ -6,13 +6,11 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { Fragment, Suspense, lazy, useState } from 'react'
+import { Fragment, Suspense, lazy, useMemo } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { RaceClass, RaceFormat } from '../api/calendar'
 import { fetchRacePrefs, setRacePref } from '../api/objectives'
 import {
-  type GcRow,
-  type PointsEntry,
   type RaceStagePlan,
   type RaceStartlist,
   type RaceStatus,
@@ -26,14 +24,15 @@ import {
 import { putFollow } from '../api/watch'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
-import { Jersey, RiderJersey } from '../components/Jersey'
+import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
-import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { DiagnosticStrip } from '../components/StageGate'
 import { StageRoute } from '../components/StageRoute'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
+import { useOwnIds } from '../components/useTableIdentity'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
 import {
@@ -46,6 +45,7 @@ import {
 } from '../domain/labels'
 import { usePageTitle } from '../domain/pageTitle'
 import { stageRowLink, stageRowState } from '../domain/raceStages'
+import { type TableIdentity, identityFromStartlist } from '../domain/tableIdentity'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
 import { type ReadyRace, finalVeiled, raceKeyOn, raceVeil, raceVeilNotice } from '../domain/veil'
 import {
@@ -64,17 +64,6 @@ import {
 const OneDaySections = lazy(() =>
   import('./OneDayRace').then((m) => ({ default: m.OneDaySections })),
 )
-
-function fmtTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
-  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
-function relTime(seconds: number, leader: number, isLeader: boolean): string {
-  return isLeader ? fmtTime(seconds) : `+${fmtTime(seconds - leader)}`
-}
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400'
@@ -200,79 +189,6 @@ function Startlist({ data }: { data: RaceStartlist }) {
           : 'Provisional — each team names its squad of riders when entries close, about two weeks out.'}
       </p>
     </div>
-  )
-}
-
-/** General de la carrera: top 20 y "Show all" (nunca 176 filas de golpe, nunca truncada sin salida). */
-function GcTable({ rows, leaders }: { rows: GcRow[]; leaders: RaceLeaders | undefined }) {
-  const [showAll, setShowAll] = useState(false)
-  const leader = rows[0]?.tiempoTotalS ?? 0
-  const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
-  return (
-    <>
-      <table className="w-full text-sm">
-        <caption className="sr-only">
-          General classification: position, country, rider, team and time
-        </caption>
-        <tbody>
-          {visible.map((r, i) => (
-            <tr
-              key={r.riderId}
-              className={`border-b border-slate-100 last:border-0${r.dnf ? ' text-slate-300' : ''}`}
-            >
-              <td className="w-7 py-1 text-slate-400 tabular-nums">{r.dnf ? '' : i + 1}</td>
-              <td className="w-6 py-1">
-                <Flag code={r.country} size={16} />
-              </td>
-              <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
-                <RiderJersey leaders={leaders} riderId={r.riderId} />
-                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                <span className="ml-2 text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
-              </td>
-              <td className="py-1 text-right tabular-nums text-slate-500">
-                {r.dnf ? (
-                  <span className="text-amber-500">DNF</span>
-                ) : (
-                  relTime(r.tiempoTotalS, leader, i === 0)
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ShowAllButton total={rows.length} expanded={showAll} onToggle={() => setShowAll(!showAll)} />
-    </>
-  )
-}
-
-/** Clasificación por puntos (montaña o metas volantes), con la misma regla de top 20 + "Show all". */
-function PointsTable({ rows, leaders }: { rows: PointsEntry[]; leaders: RaceLeaders | undefined }) {
-  const [showAll, setShowAll] = useState(false)
-  const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
-  return (
-    <>
-      <table className="w-full text-sm">
-        <caption className="sr-only">Classification: position, country, rider and points</caption>
-        <tbody>
-          {visible.map((r, i) => (
-            <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-              <td className="w-7 py-1 tabular-nums text-slate-400">{i + 1}</td>
-              <td className="w-6 py-1">
-                <Flag code={r.country} size={16} />
-              </td>
-              <td className="py-1 text-slate-700">
-                <RiderJersey leaders={leaders} riderId={r.riderId} />
-                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-              </td>
-              <td className="py-1 text-right font-medium tabular-nums text-slate-600">
-                {r.puntos} pts
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ShowAllButton total={rows.length} expanded={showAll} onToggle={() => setShowAll(!showAll)} />
-    </>
   )
 }
 
@@ -479,8 +395,21 @@ const CLASS_PANEL = 'race-classification'
  * En una carrera de un día la "general" ES el resultado de la llegada,
  * así que se rotula como tal; y si además no hay nada más que enseñar, no se pinta ninguna tira de
  * sub-pestañas: sobra una pestaña única sobre una sola tabla.
+ *
+ * Las tablas, en `RankTable` desde el PR 12b (E3, docs/visual.md §6.1; `components/RaceRankTables.tsx`):
+ * con el dorsal y el dibujo del equipo de la lista de salida (`identity`) y la fila del jugador (`own`);
+ * la que está a la vista contesta a la pantalla (§7.3).
  */
-function ClassificationsTab({ data }: { data: RaceView }) {
+function ClassificationsTab({
+  data,
+  identity,
+  own,
+}: {
+  data: RaceView
+  identity: TableIdentity
+  own: { readonly riderId: string | null; readonly teamId: string | null }
+}) {
+  const ctx = { leaders: data.leaders, identity, ownRiderId: own.riderId, answer: true } as const
   // Sub-pestaña en `?cls=`, validada contra las opciones: un enlace a una clasificación concreta
   // funciona, y hasta que el jugador toca una no se escribe nada en la URL.
   const [active, setActive] = useTabParam(CLASS_TAB_IDS, 'gc', 'cls')
@@ -497,7 +426,9 @@ function ClassificationsTab({ data }: { data: RaceView }) {
       <div className={card}>
         <h2 className={head}>Result</h2>
         {data.gc.length > 0 ? (
-          <GcTable rows={data.gc} leaders={data.leaders} />
+          // en la tarjeta, casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1): a 320 el
+          // nombre cabe; y el margen negativo, en un hijo directo, no se sale de su caja
+          <GcRankTable rows={data.gc} caption="Result" {...ctx} layout="-mx-4" />
         ) : (
           <EmptyState text="No result yet." />
         )}
@@ -514,29 +445,41 @@ function ClassificationsTab({ data }: { data: RaceView }) {
         variant="pill"
         panelId={CLASS_PANEL}
       />
-      <TabPanel panelId={CLASS_PANEL} active={active} className="mt-4">
+      {/* casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1), el panel y no la tabla: el
+          margen negativo, en un hijo directo de la tarjeta, no se sale de su caja de relleno */}
+      <TabPanel panelId={CLASS_PANEL} active={active} className="mt-4 -mx-4">
         {active === 'gc' &&
           (data.gc.length > 0 ? (
-            <GcTable rows={data.gc} leaders={data.leaders} />
+            <GcRankTable
+              rows={data.gc}
+              caption={oneDay ? 'Result' : 'General classification'}
+              {...ctx}
+            />
           ) : (
             <EmptyState text="No general classification yet." />
           ))}
         {active === 'points' &&
           (data.points.length > 0 ? (
-            <PointsTable rows={data.points} leaders={data.leaders} />
+            <PointsRankTable rows={data.points} caption="Points classification" {...ctx} />
           ) : (
             <EmptyState text="No sprint points awarded yet." />
           ))}
         {active === 'kom' &&
           (data.kom.length > 0 ? (
-            <PointsTable rows={data.kom} leaders={data.leaders} />
+            <PointsRankTable rows={data.kom} caption="Mountains classification" {...ctx} />
           ) : (
             <EmptyState text="No mountain points awarded yet." />
           ))}
         {active === 'teams' &&
           (data.teamGc.length > 0 ? (
             <>
-              <TeamClassTable rows={data.teamGc} />
+              <TeamClassTable
+                rows={data.teamGc}
+                identity={identity}
+                ownTeamId={own.teamId}
+                cumulative={!oneDay}
+                answer
+              />
               <TeamClassNote />
             </>
           ) : (
@@ -630,6 +573,8 @@ function RaceSections({
   startlist,
   watchOn,
   veil,
+  identity,
+  own,
 }: {
   data: RaceView
   raceId: string
@@ -637,6 +582,8 @@ function RaceSections({
   startlist: UseQueryResult<RaceStartlist>
   watchOn: boolean
   veil: ReadyRace | null
+  identity: TableIdentity
+  own: { readonly riderId: string | null; readonly teamId: string | null }
 }) {
   const [params] = useSearchParams()
   // una vuelta, o una carrera de un día sin terminar, no mira `seen` ni `watchOn` (§11.17)
@@ -664,7 +611,9 @@ function RaceSections({
         panelId={RACE_PANEL}
       />
       <TabPanel panelId={RACE_PANEL} active={active}>
-        {active === 'classifications' && <ClassificationsTab data={data} />}
+        {active === 'classifications' && (
+          <ClassificationsTab data={data} identity={identity} own={own} />
+        )}
         {active === 'stages' && <StagesTab data={data} raceId={raceId} watchOn={watchOn} />}
         {active === 'route' && <RouteTab data={data} />}
         {active === 'startlist' && <StartlistTab status={status} startlist={startlist} />}
@@ -740,6 +689,13 @@ export function Race() {
     queryKey: ['race-startlist', raceId],
     queryFn: () => fetchStartlist(raceId),
   })
+  // Lo que las clasificaciones no traen (E3, PR 12b): el dorsal y el dibujo del equipo, de esta misma
+  // lista, que tras la salida sirve la escuadra congelada; y lo propio.
+  const identidad = useMemo(
+    () => identityFromStartlist(startlist.data, startlist.isPending),
+    [startlist.data, startlist.isPending],
+  )
+  const propio = useOwnIds()
   // Objetivos del jugador: si su ciclista puede marcar esta carrera como objetivo (influye en la
   // convocatoria y en la moral). Vacío si no ha iniciado sesión o no tiene ciclista.
   const prefs = useQuery({ queryKey: ['race-prefs'], queryFn: fetchRacePrefs })
@@ -920,7 +876,9 @@ export function Race() {
             watchOn={sw.watchOn}
             watchSettled={sw.settled}
             veil={veil}
-            classifications={<ClassificationsTab data={data} />}
+            classifications={<ClassificationsTab data={data} identity={identidad} own={propio} />}
+            identity={identidad}
+            ownRiderId={propio.riderId}
             route={<RouteTab data={data} />}
             honours={<HonoursTab data={data} />}
           />
@@ -933,6 +891,8 @@ export function Race() {
           startlist={startlist}
           watchOn={sw.watchOn}
           veil={veil}
+          identity={identidad}
+          own={propio}
         />
       )}
     </section>

@@ -445,6 +445,9 @@ export interface PointsRow {
   riderId: string
   name: string
   country: string
+  /** El equipo de hoy, como en la general (E3, 12b; docs/visual.md §6.1); null en un agente libre. */
+  teamId: string | null
+  teamName: string | null
   isBot: boolean
   puntos: number
 }
@@ -454,7 +457,9 @@ export interface PointsRow {
  * (inclusive) si se indica —para ver la clasificación tal como quedó tras una etapa concreta—. Con P
  * (E2, §10.6), nunca más allá de la última etapa que `h` deja ver. A igualdad de puntos, por el id del
  * corredor: sin él el orden de los empatados era el que devolviera Postgres, y la misma clasificación
- * cortada por el velo podía salir en otro orden que la de ayer (B1b).
+ * cortada por el velo podía salir en otro orden que la de ayer (B1b). Con el equipo de cada corredor,
+ * como `getGcThroughStage`: un corredor tiene un solo equipo, así que agrupar también por él no parte
+ * ninguna fila.
  */
 export async function getPointsClassification(
   q: Queryable,
@@ -469,18 +474,21 @@ export async function getPointsClassification(
       riderId: stageResults.riderId,
       name: riders.name,
       country: riders.country,
+      teamId: teams.id,
+      teamName: teams.name,
       isBot: sql<boolean>`bool_and(${riders.userId} is null)`,
       puntos: total,
     })
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(
       and(
         eq(stageResults.raceId, raceId),
         throughStage != null ? lte(stageResults.stageDay, throughStage) : undefined,
       ),
     )
-    .groupBy(stageResults.riderId, riders.name, riders.country)
+    .groupBy(stageResults.riderId, riders.name, riders.country, teams.id, teams.name)
     .orderBy(desc(total), asc(stageResults.riderId))
   return rows.filter((r) => r.puntos > 0)
 }
@@ -529,8 +537,8 @@ export async function getStageWinners(
 
 /**
  * Clasificación de la montaña (cimas). Acumulada en toda la carrera, o solo hasta `pedida`
- * (inclusive) si se indica —para ver la montaña tal como quedó tras una etapa concreta—. Con P y el
- * desempate por id, como la de puntos.
+ * (inclusive) si se indica —para ver la montaña tal como quedó tras una etapa concreta—. Con P, el
+ * desempate por id y el equipo de cada corredor, como la de puntos.
  */
 export async function getKomClassification(
   q: Queryable,
@@ -545,18 +553,21 @@ export async function getKomClassification(
       riderId: stageResults.riderId,
       name: riders.name,
       country: riders.country,
+      teamId: teams.id,
+      teamName: teams.name,
       isBot: sql<boolean>`bool_and(${riders.userId} is null)`,
       puntos: total,
     })
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(
       and(
         eq(stageResults.raceId, raceId),
         throughStage != null ? lte(stageResults.stageDay, throughStage) : undefined,
       ),
     )
-    .groupBy(stageResults.riderId, riders.name, riders.country)
+    .groupBy(stageResults.riderId, riders.name, riders.country, teams.id, teams.name)
     .orderBy(desc(total), asc(stageResults.riderId))
   return rows.filter((r) => r.puntos > 0)
 }

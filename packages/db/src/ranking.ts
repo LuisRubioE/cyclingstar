@@ -628,6 +628,9 @@ export interface HallOfFameRow {
   riderId: string
   name: string
   country: string
+  /** El equipo de HOY (E3, 12b; docs/visual.md §6.1): el palmarés no guarda con cuál ganó; null sin él. */
+  teamId: string | null
+  teamName: string | null
   isBot: boolean
   gc: number
   stage: number
@@ -638,7 +641,8 @@ export interface HallOfFameRow {
 
 /**
  * Salón de la fama (#58): corredores por palmarés total de todas las temporadas, con desglose, y a
- * igualdad por id. R (E2, §10.6; sup. W4; 8b): sin las filas veladas de `h`.
+ * igualdad por id. R (E2, §10.6; sup. W4; 8b): sin las filas veladas de `h`. Con el equipo de hoy de
+ * cada corredor, que es uno solo: agrupar también por él no parte ninguna fila.
  */
 export async function getHallOfFame(
   db: Database,
@@ -652,6 +656,8 @@ export async function getHallOfFame(
       riderId: palmares.riderId,
       name: riders.name,
       country: riders.country,
+      teamId: teams.id,
+      teamName: teams.name,
       isBot: sql<boolean>`${riders.userId} is null`,
       gc: sql<number>`count(*) filter (where ${palmares.kind} = 'gc')::int`,
       stage: sql<number>`count(*) filter (where ${palmares.kind} = 'stage')::int`,
@@ -661,8 +667,9 @@ export async function getHallOfFame(
     })
     .from(palmares)
     .innerJoin(riders, eq(riders.id, palmares.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(and(eq(palmares.worldId, worldId), notVeiledPalmares(d)))
-    .groupBy(palmares.riderId, riders.name, riders.country, riders.userId)
+    .groupBy(palmares.riderId, riders.name, riders.country, riders.userId, teams.id, teams.name)
     .orderBy(desc(sql`count(*)`), asc(palmares.riderId))
     .limit(limit)
 }

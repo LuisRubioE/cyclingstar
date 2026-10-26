@@ -18,6 +18,7 @@ import {
   lastRaceResponseSchema,
   newsItemSchema,
   newsResponseSchema,
+  pointsEntrySchema,
   riderRaceReportSchema,
   riderRaceResultSchema,
   riderResultsResponseSchema,
@@ -38,10 +39,10 @@ import { buildApp } from '../app.js'
  * siguiente, una pestaña abierta sigue validando con los esquemas de la versión anterior, así que cada
  * PR de E2 tiene que mandar algo que esos esquemas acepten. Este fichero lo hace test:
  *
- * - `YESTERDAY` son los esquemas de la web de ayer: los de hoy SIN lo que E2 les añade. Cada PR que
- *   ensancha uno le pone aquí su `.omit` de los campos nuevos (1a, 3a, 7b y 8a; el 12, el de `report`,
- *   que va anidado y por eso tiene su propia entrada: un `.omit` de fuera no llega dentro, regla 8 de
- *   §14.7).
+ * - `YESTERDAY` son los esquemas de la web de ayer: los de hoy SIN lo que E2 y E3 les añaden. Cada PR
+ *   que ensancha uno le pone aquí su `.omit` de los campos nuevos (1a, 3a, 7b y 8a). Lo anidado tiene
+ *   su propia entrada, porque un `.omit` de fuera no llega dentro (regla 8 de §14.7): `report`, del 12,
+ *   y las filas de `kom` y `points` de la etapa, del 12b de E3 (regla 6 de docs/visual.md §17.1).
  * - Una lista literal fija sus claves tal como están en la base de E2 (la v91, `b1be481`): con el
  *   `.omit` puesto no cambian, y cambiar o quitar una clave de hoy se ve en el diff.
  * - Las respuestas de hoy de esas rutas, sobre un mundo de verdad (PGlite, con dos etapas corridas por
@@ -62,6 +63,9 @@ const YESTERDAY = {
   // `tplRev`, del 3a (12-c): la sirven el acta y el paquete de meta; la ruta de etapa, todavía no. Y
   // `watch`, del 7b (§14.1): lo visto de la etapa, que la ruta de etapa sirve con SPOILER_MODE.
   stageReplay: stageReplaySchema.omit({ tplRev: true, watch: true }),
+  // `teamId` y `teamName`, del 12b de E3 (docs/visual.md §6.1, 17-q): el equipo de cada fila de puntos y
+  // de montaña, que va anidada en `kom` y `points` de la etapa.
+  pointsEntry: pointsEntrySchema.omit({ teamId: true, teamName: true }),
   newsItem: newsItemSchema.omit(NEWS_DATA),
   teamNewsItem: teamNewsItemSchema.omit(NEWS_DATA),
   // `ready`, del 8a (§12.9): la última corrida, si está velada, con lo único que se sabe de ella.
@@ -75,7 +79,10 @@ const YESTERDAY = {
 }
 
 /** Lo que valida la web de ayer, ruta a ruta (apps/web/src/api: results, news, browse, lastRace, health). */
-const yesterdayStage = YESTERDAY.stageReplay
+const yesterdayStage = YESTERDAY.stageReplay.extend({
+  kom: z.array(YESTERDAY.pointsEntry).optional(),
+  points: z.array(YESTERDAY.pointsEntry).optional(),
+})
 const yesterdayNews = z.object({ news: z.array(YESTERDAY.newsItem) })
 const yesterdayTeamNews = z.object({ news: z.array(YESTERDAY.teamNewsItem) })
 const yesterdayLastRace = YESTERDAY.lastRaceResponse.extend({
@@ -108,6 +115,7 @@ const KEYS: Record<keyof typeof YESTERDAY, readonly string[]> = {
     'leaders',
     'radio',
   ],
+  pointsEntry: ['riderId', 'name', 'country', 'isBot', 'puntos'],
   newsItem: [
     'gameDay',
     'kind',
@@ -446,6 +454,30 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
     const yesterday = yesterdayLastRace.parse(body).report
     expect(yesterday?.stageDay).toBe(2)
     expect(yesterday).not.toHaveProperty('moments')
+  })
+
+  /**
+   * EL EQUIPO DE CADA FILA DE PUNTOS Y DE MONTAÑA (docs/visual.md §6.1, 17-q; E3, paso 12b): `teamId` y
+   * `teamName`, en cada fila de `kom` y `points` de la etapa. Van anidados, así que la web de ayer la
+   * valida con `stageReplaySchema.omit({ tplRev: true, watch: true }).extend({ kom: z.array(
+   * pointsEntrySchema.omit({ teamId: true, teamName: true })).optional(), points: … })` (regla 8 de
+   * §14.7): los objetos son strip y los descarta.
+   */
+  it('las filas de puntos y de montaña, con su equipo, pasan por el esquema de ayer (12b)', async () => {
+    const body = await get(`/api/races/${RACE_ID}/stages/2`)
+    const today = stageReplaySchema.parse(body)
+    const rows = [...(today.points ?? []), ...(today.kom ?? [])]
+    expect(rows.length).toBeGreaterThan(0)
+    // En este mundo todos corren con equipo.
+    for (const r of rows) {
+      expect(TEAM_IDS, r.name).toContain(r.teamId)
+      expect(r.teamName, r.name).toMatch(/^Team [01]$/)
+    }
+    const yesterday = yesterdayStage.parse(body)
+    for (const r of [...(yesterday.points ?? []), ...(yesterday.kom ?? [])]) {
+      expect(r).not.toHaveProperty('teamId')
+      expect(r).not.toHaveProperty('teamName')
+    }
   })
 
   it('los resultados del corredor', async () => {

@@ -7,7 +7,6 @@
  */
 import {
   type BroadcastHead,
-  type RaceLeaders,
   type StageGate,
   type StageReplay as StageReplayData,
   currentSeason,
@@ -22,24 +21,22 @@ import {
   stageReportKey,
 } from '../api/broadcast'
 import { ApiError, GateError } from '../api/request'
-import { type StageResultEntry, fetchCalendarStage, stageReplayKey } from '../api/results'
+import { fetchCalendarStage, stageReplayKey } from '../api/results'
 import { readLocalProgress } from '../api/watch'
 import { authClient } from '../auth/client'
-import { Flag } from '../components/Flag'
-import { RiderJersey } from '../components/Jersey'
-import { RiderName } from '../components/RiderName'
-import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { StageResultRankTable } from '../components/RaceRankTables'
 import { StageStory } from '../components/StageStory'
 import { EmptyState } from '../components/ui/EmptyState'
-import { formatTime } from '../domain/format'
-import { raceTeamLabel } from '../domain/labels'
+import type { TableIdentity } from '../domain/tableIdentity'
 import { diagOf, useHealth, useHorizonRev, useWatchOn } from '../queryClient'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
 
 /**
- * Resultado de la etapa: top 20 y "Show all" (antes se truncaba a 15 sin forma de ver el resto).
+ * Resultado de la etapa: top 20 y "Show all" (antes se truncaba a 15 sin forma de ver el resto). En
+ * `RankTable` desde el PR 12b (E3, docs/visual.md §6.1): `StageResultRankTable`
+ * (`components/RaceRankTables.tsx`), con el nombre de siempre para quien la importa de aquí.
  *
  * LOS MAILLOTS DE ESTA TABLA SON LOS DE LA CARRETERA (`leaders.onRoad`), no los de después. Es la
  * única tabla de la página en la que es así, y tiene su razón: esta tabla no es una clasificación,
@@ -56,71 +53,7 @@ const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
  * lo que hay que verificar de ellas es qué fila lleva qué maillot, y montar la página entera con su
  * `react-query` y su router para eso no prueba nada más y sí puede fallar por otra cosa.
  */
-/**
- * CÓMO SE DICE QUE ALGUIEN NO ACABÓ. `fuera_control` es su propia cosa —cruzó la meta, pero tarde— y
- * la hoja de una carrera de verdad no lo llama DNF; el resto se agrupa, porque para el lector «se
- * bajó de la bici» y «se cayó y no siguió» son la misma noticia y el porqué lo cuenta el journal.
- */
-function dnfLabel(reason: string | null | undefined): string {
-  return reason === 'fuera_control' ? 'OTL' : 'DNF'
-}
-
-export function ResultTable({
-  rows,
-  leaders,
-}: {
-  rows: StageResultEntry[]
-  leaders: RaceLeaders | undefined
-}) {
-  const [showAll, setShowAll] = useState(false)
-  const winnerTime = rows[0]?.tiempoS ?? 0
-  /**
-   * LOS QUE NO ACABARON SE VEN SIEMPRE, tampoco cuando la tabla está plegada (v50).
-   *
-   * Van al final, como en una hoja de verdad, pero esconderlos detrás de «Show all» sería repetir la
-   * queja que esto viene a arreglar —«los DNF no salen en la clasificación de la etapa»—: son cuatro
-   * o cinco filas y son justo las que se buscan cuando falta alguien.
-   */
-  const acabaron = rows.filter((r) => !r.dnf)
-  const noAcabaron = rows.filter((r) => r.dnf)
-  const visible = showAll ? rows : [...acabaron.slice(0, TOP_ROWS), ...noAcabaron]
-  return (
-    <>
-      <table className="mt-2 w-full text-sm">
-        <caption className="sr-only">Stage result: position, country, rider and time</caption>
-        <tbody>
-          {visible.map((r) => (
-            <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-              <td className="w-7 py-1 text-slate-400 tabular-nums">{r.dnf ? '' : r.puesto}</td>
-              <td className="w-6 py-1">
-                <Flag code={r.country} size={16} />
-              </td>
-              <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
-                <RiderJersey leaders={leaders} riderId={r.riderId} />
-                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                <span className="ml-2 text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
-              </td>
-              <td className="py-1 text-right tabular-nums text-slate-500">
-                {r.dnf ? (
-                  <span className="text-amber-500">{dnfLabel(r.reason)}</span>
-                ) : r.puesto === 1 ? (
-                  formatTime(r.tiempoS)
-                ) : (
-                  `+${formatTime(r.tiempoS - winnerTime)}`
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ShowAllButton
-        total={acabaron.length}
-        expanded={showAll}
-        onToggle={() => setShowAll(!showAll)}
-      />
-    </>
-  )
-}
+export { StageResultRankTable as ResultTable } from '../components/RaceRankTables'
 
 // ------------------------------------------------------- el acta y revelar (E2, §11.10 y §11.11; 9a)
 
@@ -152,9 +85,18 @@ export function raceKeyOf(
 export function StageReportView({
   data,
   onWatchAnyway,
+  identity,
+  ownRiderId = null,
+  answer = false,
 }: {
   data: StageReplayData
   onWatchAnyway?: (() => void) | undefined
+  /** el dorsal y el dibujo del equipo de cada fila (`useRaceIdentity`, PR 12b) */
+  identity?: TableIdentity | undefined
+  /** el corredor del jugador: su fila (§6.2) */
+  ownRiderId?: string | null
+  /** la llegada contesta a la pantalla: el acta pública (§7.3) */
+  answer?: boolean
 }) {
   const results = data.results ?? []
   return (
@@ -174,7 +116,14 @@ export function StageReportView({
         <div className={card}>
           <h2 className={head}>Stage result</h2>
           {/* `onRoad`, no `afterStage`: ver la cabecera de `ResultTable`. */}
-          <ResultTable rows={results} leaders={data.leaders?.onRoad} />
+          <StageResultRankTable
+            rows={results}
+            leaders={data.leaders?.onRoad}
+            {...(identity === undefined ? {} : { identity })}
+            ownRiderId={ownRiderId}
+            answer={answer}
+            layout="-mx-4"
+          />
         </div>
       ) : (
         <div className={card}>

@@ -17,6 +17,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { QueryView } from '../components/ui/QueryView'
 import { Segmented } from '../components/ui/Segmented'
 import { ShowAllRows } from '../components/ui/ShowAllRows'
+import { TONES } from '../components/ui/styles'
 import { raceClassLabel, travelDaysLabel } from '../domain/labels'
 import {
   hasStageBreakdown,
@@ -505,7 +506,9 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                   )}
                 </th>
                 <td className="px-2 py-2 text-slate-500">{raceResultKind(r)}</td>
-                <td className={`px-3 py-2 text-right font-bold tabular-nums ${placeTone(r)}`}>
+                <td
+                  className={`px-3 py-2 text-right font-bold tabular-nums ${TONES[placeTone(r)].text}`}
+                >
                   {raceResultPlace(r)}
                 </td>
               </tr>

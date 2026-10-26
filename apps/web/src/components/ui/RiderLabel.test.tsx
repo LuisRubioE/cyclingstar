@@ -47,6 +47,13 @@ describe('RiderLabel', () => {
     expect(s).toMatch(/^<span data-ui="RiderLabel" data-variant="row" data-state="ready"/)
   })
 
+  it('tras el dorsal, el renglón puede partir: una primera palabra larga no lo saca de su celda a 320 (PR 12b)', () => {
+    expect(pinta({ bib: 214 })).toMatch(
+      />#214<\/span><span class="whitespace-normal"><wbr\/><\/span>/,
+    )
+    expect(pinta()).not.toContain('<wbr')
+  })
+
   it('el nombre es un TextLink rider a su ficha; un humano y un bot se distinguen', () => {
     const s = pinta()
     expect(s).toMatch(/<a [^>]*data-ui="TextLink" data-variant="rider"[^>]*data-inline-link=""/)
