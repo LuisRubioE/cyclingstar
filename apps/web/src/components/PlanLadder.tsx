@@ -246,7 +246,7 @@ export function PlanLadder() {
       */}
       {preview.data && (
         <div className="mt-4 border-t border-slate-100 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">
             What this does to you
           </p>
           {preview.data.races.length === 0 ? (
