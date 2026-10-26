@@ -8,6 +8,7 @@ import { fetchMarket } from '../api/market'
 import { fetchEnterableRaces } from '../api/raceEntry'
 import { fetchRaceOrders } from '../api/raceOrders'
 import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary } from '../api/rider'
+import { fetchTrainingPlan } from '../api/sheet'
 import { fetchOrders } from '../api/training'
 import { authClient } from '../auth/client'
 import { Logo } from '../components/Logo'
@@ -23,6 +24,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { QueryView } from '../components/ui/QueryView'
 import { type DashboardAction, buildDashboard } from '../domain/dashboard'
 import { raceVerdict } from '../domain/narration'
+import { livePlan } from '../domain/trainingPlan'
 import { horizonKey, useHorizonRev, veilApplies } from '../queryClient'
 
 function SystemStatus() {
@@ -246,6 +248,8 @@ function PlayerHome({ name }: { name: string }) {
     enabled: rev !== undefined,
   })
   const market = useQuery({ queryKey: ['market'], queryFn: fetchMarket })
+  // El modo y el plan vivo (E3, §11.7; PR 15): la portada habla del plan, no solo de las órdenes.
+  const stored = useQuery({ queryKey: ['training-plan'], queryFn: fetchTrainingPlan })
   const form = useQuery({
     queryKey: horizonKey(['rider', 'form'], rev),
     queryFn: fetchForm,
@@ -276,8 +280,13 @@ function PlayerHome({ name }: { name: string }) {
     0,
   )
   const pendingEntries = (entries.data ?? []).filter((r) => r.entered).length
+  // El plan vivo con algún bloque, como lo cuenta el cuadro (`livePlan`): su último día.
+  const vivo = livePlan(stored.data?.plan ?? null)
+  // Mañana es día de ida: la carrera del programa cuya ida sale mañana.
+  const viajeDeManana = upcoming.data?.find((r) => r.travelOut.includes(currentDay + 1)) ?? null
 
   const actions = buildDashboard({
+    currentDay,
     nextRace: nextRace
       ? {
           raceKey: nextRace.raceKey,
@@ -288,6 +297,17 @@ function PlayerHome({ name }: { name: string }) {
           hasOrders: raceOrders.data ? raceOrders.data.orders.length > 0 : true,
         }
       : null,
+    // Mientras no se sabe el modo, no se pide planificar: como la cola, que se da por llena.
+    mode: stored.data?.mode ?? 'entrenador',
+    plan: vivo === null ? null : { endDay: vivo.startDay + 27 },
+    tomorrowTravel:
+      viajeDeManana === null
+        ? null
+        : {
+            raceName: viajeDeManana.raceName,
+            out: viajeDeManana.travelOut.length,
+            back: viajeDeManana.travelBack.length,
+          },
     trainingPlannedDays: training.data ? trainingPlannedDays : 99,
     offers: market.data?.offers.length ?? 0,
     freeAgent,

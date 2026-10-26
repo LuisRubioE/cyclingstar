@@ -1,10 +1,10 @@
 import { SEASON_CALENDAR, raceLastDay, stageDayOfSeason } from '@cyclingstar/engine'
-import { TRANSPORT_COST, travelTier } from '@cyclingstar/shared'
+import { TRANSPORT_COST, raceAttendanceCost, travelTier } from '@cyclingstar/shared'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { type Horizon, type VeilDelta, veilDelta } from './horizon.js'
 import { emitNews } from './news.js'
-import { raceRosters, riders } from './schema.js'
+import { raceEntries, raceRosters, riders } from './schema.js'
 
 /**
  * Días de juego en los que un corredor tiene carrera (#6): de sus convocatorias (race_rosters),
@@ -338,6 +338,15 @@ export interface RiderUpcomingRace {
   ongoing: boolean
   /** Dorsal del corredor en esa carrera (null si aún no se asignó). */
   bib: number | null
+  /** Los días de ida y de vuelta, los mismos que pinta el plan (`getRiderTravelDays`; E3, PR 15). */
+  travelOut: number[]
+  travelBack: number[]
+  /**
+   * Lo que pagó el viaje: solo el agente libre, que lo paga al entrar convocado por su inscripción
+   * (`calendarRun.ts`); recalculado con `raceAttendanceCost`, la regla que lo cobró (11-b), y nulo si no
+   * pagó nada (el corredor de un equipo, o en casa).
+   */
+  travelPaid: number | null
 }
 
 /**
@@ -386,7 +395,53 @@ export async function getRiderUpcomingRaces(
       stageCount: race.stages.length,
       ongoing: startGameDay <= currentDay && currentDay <= lastGameDay,
       bib,
+      travelOut: [],
+      travelBack: [],
+      travelPaid: null,
     })
+  }
+  if (out.length === 0) return out
+
+  // EL VIAJE (E3, docs/visual.md §11.6; PR 15): los días de `getRiderTravelDays` en la ventana de estas
+  // carreras, con sus reglas (la ida pisa a la vuelta; un día de otra carrera no es de viaje).
+  const desde = Math.min(...out.map((r) => r.startGameDay)) - TRANSPORT_COST.intercontinental.days
+  const hasta =
+    Math.max(
+      ...out.map((r) => {
+        const race = SEASON_CALENDAR.find((c) => c.id === r.raceId)!
+        return r.startGameDay + (raceLastDay(race) - race.startDay)
+      }),
+    ) + TRANSPORT_COST.intercontinental.days
+  const viajes = await getRiderTravelDays(db, riderId, desde, hasta)
+  // Lo pagado: las inscripciones convocadas del agente libre, con su residencia de hoy.
+  const [corredor] = await db
+    .select({ residence: riders.residence, country: riders.country })
+    .from(riders)
+    .where(eq(riders.id, riderId))
+  const inscritas = new Set(
+    (
+      await db
+        .select({ raceId: raceEntries.raceId, season: raceEntries.season })
+        .from(raceEntries)
+        .where(and(eq(raceEntries.riderId, riderId), eq(raceEntries.enrolled, true)))
+    ).map((e) => `${e.raceId}:s${e.season}`),
+  )
+  for (const r of out) {
+    r.travelOut = viajes
+      .filter((v) => v.raceKey === r.raceKey && v.direction === 'out')
+      .map((v) => v.gameDay)
+    r.travelBack = viajes
+      .filter((v) => v.raceKey === r.raceKey && v.direction === 'back')
+      .map((v) => v.gameDay)
+    if (inscritas.has(r.raceKey) && corredor !== undefined) {
+      const race = SEASON_CALENDAR.find((c) => c.id === r.raceId)!
+      const { money } = raceAttendanceCost(
+        corredor.residence ?? corredor.country,
+        r.country,
+        race.stages.length,
+      )
+      r.travelPaid = money > 0 ? money : null
+    }
   }
   return out.sort((a, b) => a.startGameDay - b.startGameDay)
 }

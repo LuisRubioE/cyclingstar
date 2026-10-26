@@ -14,11 +14,13 @@ import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { ActionRow } from '../components/ui/ActionRow'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Icon } from '../components/ui/Icon'
 import { QueryView } from '../components/ui/QueryView'
 import { Segmented } from '../components/ui/Segmented'
 import { ShowAllRows } from '../components/ui/ShowAllRows'
 import { TONES } from '../components/ui/styles'
 import { raceClassLabel, travelDaysLabel } from '../domain/labels'
+import { programmeTravel } from '../domain/programme'
 import {
   hasStageBreakdown,
   ordinal,
@@ -156,13 +158,24 @@ function UpcomingTab() {
                     clase={`${raceClassLabel(r.raceClass as RaceClass)}${r.stageCount > 1 ? ` · ${r.stageCount} stages` : ''}`}
                   />
                 }
-                meta={[
-                  r.bib != null ? `Bib ${r.bib}` : null,
-                  r.ongoing ? 'Racing now' : formatGameDay(diaDeTemporada(r.startGameDay), hoy),
-                  r.country,
-                ]
-                  .filter((p) => p !== null)
-                  .join(' · ')}
+                meta={
+                  <>
+                    {[
+                      r.bib != null ? `Bib ${r.bib}` : null,
+                      r.ongoing ? 'Racing now' : formatGameDay(diaDeTemporada(r.startGameDay), hoy),
+                      r.country,
+                    ]
+                      .filter((p) => p !== null)
+                      .join(' · ')}
+                    {/* el viaje, donde se decide (E3, §11.6; PR 15): cuándo sale, cuándo vuelve y lo pagado */}
+                    {programmeTravel(r) !== null && (
+                      <span className="flex items-center gap-1">
+                        <Icon name="travel" size={16} />
+                        {programmeTravel(r)}
+                      </span>
+                    )}
+                  </>
+                }
                 href={`/world/races/${raceIdFromKey(r.raceId)}`}
                 action={{
                   label: 'Set orders',
@@ -212,7 +225,7 @@ function UpcomingTab() {
                   {r.name}
                 </Link>
                 <span className="shrink-0 text-xs text-slate-500">
-                  GD {r.startDay} · travel {r.travelMoney.toLocaleString('en-US')}
+                  {formatGameDay(r.startDay, hoy)} · travel {r.travelMoney.toLocaleString('en-US')}
                   {r.travelDays > 0 && ` · ${travelDaysLabel(r.travelDays)}`}
                 </span>
               </li>

@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { type DashboardInputs, buildDashboard } from './dashboard'
 
-/** Estado tranquilo: nada que decidir hoy. */
+/** Estado tranquilo: nada que decidir hoy (el día 50, en `Mixed` y sin plan vivo). */
 const calm: DashboardInputs = {
+  currentDay: 50,
   nextRace: null,
+  mode: 'mixto',
+  plan: null,
+  tomorrowTravel: null,
   trainingPlannedDays: 7,
   offers: 0,
   freeAgent: false,
@@ -90,5 +94,60 @@ describe('buildDashboard', () => {
     })
     expect(actions[0]!.dueInDays).toBe(0)
     expect(actions[0]!.title).toContain('right now')
+  })
+
+  it('el viaje de mañana: que no se entrena, con sus días de ida y de vuelta (§11.7)', () => {
+    const [a] = buildDashboard({
+      ...calm,
+      tomorrowTravel: { raceName: 'Race Var', out: 1, back: 1 },
+    })
+    expect(a).toMatchObject({
+      id: 'travel',
+      title: 'You travel to Race Var tomorrow',
+      detail: "You don't train on travel days: 1 out, 1 back.",
+      cta: 'See your plan',
+      to: '/me/training',
+      dueInDays: 1,
+    })
+  })
+
+  it('el plan vivo que acaba en siete días o menos lo dice, con su último día (PLAN_END_WARN_DAYS)', () => {
+    const [a] = buildDashboard({ ...calm, plan: { endDay: 57 } })
+    expect(a).toMatchObject({
+      id: 'plan-end',
+      title: 'Your plan ends on Day 57',
+      detail: 'After that, your coach picks the sessions.',
+      cta: 'Plan the next weeks',
+      to: '/me/training',
+      dueInDays: 7,
+    })
+    expect(buildDashboard({ ...calm, plan: { endDay: 58 } })).toEqual([])
+  })
+
+  it('sin plan vivo y sin órdenes en los próximos dos días, la cola está vacía', () => {
+    const [a] = buildDashboard({ ...calm, trainingPlannedDays: 0 })
+    expect(a).toMatchObject({
+      id: 'training',
+      title: 'Your training queue is empty',
+      detail: 'Until you plan it, your coach picks the sessions.',
+      cta: 'Plan the week',
+      to: '/me/training',
+    })
+  })
+
+  it('quien tiene sus bloques ya no ve la cola vacía (O-22)', () => {
+    expect(buildDashboard({ ...calm, trainingPlannedDays: 0, plan: { endDay: 78 } })).toEqual([])
+  })
+
+  it('en Coach decides no se pide planificar: ni la cola ni el final del plan', () => {
+    const coach = { ...calm, mode: 'entrenador' as const, trainingPlannedDays: 0 }
+    expect(buildDashboard(coach)).toEqual([])
+    expect(buildDashboard({ ...coach, plan: { endDay: 52 } })).toEqual([])
+    // el viaje sí: no entrenar mañana vale en cualquier modo
+    expect(
+      buildDashboard({ ...coach, tomorrowTravel: { raceName: 'Race Var', out: 2, back: 2 } }).map(
+        (a) => a.id,
+      ),
+    ).toEqual(['travel'])
   })
 })

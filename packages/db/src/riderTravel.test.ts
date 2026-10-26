@@ -1,6 +1,14 @@
+import { SEASON_CALENDAR } from '@cyclingstar/engine'
+import { raceAttendanceCost } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { getRiderTravelDays, outboundTravelDays, returnTravelDays } from './riderSchedule.js'
-import { raceRosters, riders, worlds } from './schema.js'
+import { worldHorizon } from './horizon.js'
+import {
+  getRiderTravelDays,
+  getRiderUpcomingRaces,
+  outboundTravelDays,
+  returnTravelDays,
+} from './riderSchedule.js'
+import { raceEntries, raceRosters, riders, teams, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
 
 /**
@@ -165,6 +173,107 @@ describe('db: el plan ve el viaje entero, ida y vuelta', () => {
       [19, 'out', 'race-down-under:s0'],
       [25, 'back', 'race-down-under:s0'],
       [26, 'back', 'race-down-under:s0'],
+    ])
+  })
+})
+
+/**
+ * EL PROGRAMA DICE EL VIAJE Y LO QUE COSTÓ (E3, docs/visual.md §11.6; 11-b; PR 15). Cada carrera de
+ * `getRiderUpcomingRaces` lleva sus días de ida y de vuelta, los mismos que pinta el plan, y lo que pagó
+ * el viaje quien se lo pagó: el agente libre, al entrar convocado por su inscripción (`calendarRun.ts`),
+ * recalculado con `raceAttendanceCost`, la regla que lo cobró. El corredor de un equipo no paga: nulo.
+ */
+describe('db: el programa dice el viaje y lo que pagó', () => {
+  let t: TestDb
+  const ids = { libre: '', equipo: '', enCasa: '', encadenado: '' }
+  const besseges = SEASON_CALENDAR.find((r) => r.id === 'race-besseges')!
+
+  beforeAll(async () => {
+    t = await startTestDb()
+    const [world] = await t.db
+      .insert(worlds)
+      .values({ worldSeed: 'semilla-programa', engineVersion: 1 })
+      .returning({ id: worlds.id })
+    const [team] = await t.db
+      .insert(teams)
+      .values({
+        worldId: world!.id,
+        name: 'Equipo del programa',
+        division: 'WT',
+        philosophy: 'general',
+        jerseySeed: 'j0',
+        country: 'ES',
+      })
+      .returning({ id: teams.id })
+    const alta = async (tag: keyof typeof ids, residence: string, teamId: string | null) => {
+      const [r] = await t.db
+        .insert(riders)
+        .values({
+          worldId: world!.id,
+          teamId,
+          name: `Corredor ${tag}`,
+          country: 'ES',
+          residence,
+          gender: 'M',
+          birthSeason: -6,
+          archetype: 'fondo',
+          faceSeed: `cara-${tag}`,
+        })
+        .returning({ id: riders.id })
+      return r!.id
+    }
+    ids.libre = await alta('libre', 'ES', null)
+    ids.equipo = await alta('equipo', 'ES', team!.id)
+    ids.enCasa = await alta('enCasa', 'FR', null)
+    ids.encadenado = await alta('encadenado', 'ES', team!.id)
+    await t.db.insert(raceRosters).values([
+      { raceId: 'race-besseges:s0', riderId: ids.libre },
+      { raceId: 'race-besseges:s0', riderId: ids.equipo },
+      { raceId: 'race-besseges:s0', riderId: ids.enCasa },
+      { raceId: 'race-tachira:s0', riderId: ids.encadenado },
+      { raceId: 'race-down-under:s0', riderId: ids.encadenado },
+    ])
+    // Los dos agentes libres entraron por su inscripción, convocados: pagaron al entrar.
+    await t.db.insert(raceEntries).values([
+      { riderId: ids.libre, raceId: 'race-besseges', season: 0, createdDay: 20, enrolled: true },
+      { riderId: ids.enCasa, raceId: 'race-besseges', season: 0, createdDay: 20, enrolled: true },
+    ])
+  }, 180_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  const programa = async (riderId: string, hoy = 5) =>
+    (await getRiderUpcomingRaces(t.db, worldHorizon, riderId, hoy)).map((r) => ({
+      raceKey: r.raceKey,
+      travelOut: r.travelOut,
+      travelBack: r.travelBack,
+      travelPaid: r.travelPaid,
+    }))
+
+  it('el agente libre lleva lo que pagó; el corredor de un equipo, nada, con el mismo viaje', async () => {
+    const pagado = raceAttendanceCost('ES', 'FR', besseges.stages.length).money
+    expect(pagado).toBeGreaterThan(0)
+    expect(await programa(ids.libre)).toEqual([
+      { raceKey: 'race-besseges:s0', travelOut: [34], travelBack: [40], travelPaid: pagado },
+    ])
+    expect(await programa(ids.equipo)).toEqual([
+      { raceKey: 'race-besseges:s0', travelOut: [34], travelBack: [40], travelPaid: null },
+    ])
+  })
+
+  it('en casa no hay viaje ni nada que pagar', async () => {
+    expect(await programa(ids.enCasa)).toEqual([
+      { raceKey: 'race-besseges:s0', travelOut: [], travelBack: [], travelPaid: null },
+    ])
+  })
+
+  it('carreras encadenadas: cada viaje con su carrera, como en el plan', async () => {
+    // Táchira acaba el 18 y Down Under sale el 20: el 19 es la ida a Down Under, no la vuelta de Táchira.
+    expect(await programa(ids.encadenado)).toEqual([
+      { raceKey: 'race-tachira:s0', travelOut: [7, 8], travelBack: [], travelPaid: null },
+      { raceKey: 'race-down-under:s0', travelOut: [19], travelBack: [25, 26], travelPaid: null },
     ])
   })
 })

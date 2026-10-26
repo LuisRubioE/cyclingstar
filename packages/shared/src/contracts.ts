@@ -248,6 +248,14 @@ export const upcomingRaceSchema = z.object({
   stageCount: z.number().int(),
   ongoing: z.boolean(),
   bib: z.number().int().nullable(),
+  /**
+   * El viaje (E3, docs/visual.md §11.6; 11-b; PR 15): sus días de ida y de vuelta, en días de juego, y lo
+   * que pagó el agente libre por él (nulo si no pagó). Con `default`, como `travelDays`, para una web que
+   * vaya por delante de la API.
+   */
+  travelOut: z.array(z.number().int()).default([]),
+  travelBack: z.array(z.number().int()).default([]),
+  travelPaid: z.number().int().nullable().default(null),
 })
 export type UpcomingRace = z.infer<typeof upcomingRaceSchema>
 export const upcomingRacesResponseSchema = z.object({ races: z.array(upcomingRaceSchema) })
