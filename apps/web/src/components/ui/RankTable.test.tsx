@@ -69,7 +69,14 @@ describe('RankTable: la tabla', () => {
   })
 
   it('sin puesto, sin su columna', () => {
-    const { rank: _rank, ...sinPuesto } = BASE
+    const sinPuesto: RankTableProps<Fila> = {
+      caption: BASE.caption,
+      rows: BASE.rows,
+      rowKey: BASE.rowKey,
+      identity: BASE.identity,
+      href: BASE.href,
+      columns: BASE.columns,
+    }
     const s = renderToStaticMarkup(
       <MemoryRouter>
         <RankTable {...sinPuesto} />
