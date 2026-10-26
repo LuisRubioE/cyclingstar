@@ -30,9 +30,23 @@ function abandonedDayAt(
 }
 
 /**
- * Conjunto de días de juego con carrera para el corredor, dentro de [fromDay, toDay]. M (sup. X10, 11-b;
- * 8b): con el abandono velado, los días que quedaban de la carrera siguen siendo de carrera, en el
- * planificador y en su proyección.
+ * Un día de carrera del corredor: de qué carrera y qué etapa (la primera, si el día tiene dos). La vista
+ * previa del plan dice de qué carrera habla cada día (E3, docs/visual.md §11.2; PR 13b).
+ */
+export interface RiderRaceDay {
+  readonly gameDay: number
+  /** `${raceId}:s${season}` */
+  readonly raceKey: string
+  /** el id de calendario */
+  readonly raceId: string
+  readonly stage: number
+}
+
+/**
+ * Los días de juego con carrera para el corredor, dentro de [fromDay, toDay], en orden y con su carrera y
+ * su etapa (como `getRiderTravelDays`; hasta el 13b, solo el día). M (sup. X10, 11-b; 8b): con el abandono
+ * velado, los días que quedaban de la carrera siguen siendo de carrera, en el planificador y en su
+ * proyección.
  */
 export async function getRiderRaceDays(
   db: Database,
@@ -40,19 +54,19 @@ export async function getRiderRaceDays(
   riderId: string,
   fromDay: number,
   toDay: number,
-): Promise<number[]> {
+): Promise<RiderRaceDay[]> {
   const rosters = await db
     .select({ raceId: raceRosters.raceId, abandonedDay: raceRosters.abandonedDay })
     .from(raceRosters)
     .where(eq(raceRosters.riderId, riderId))
   const d = await veilDelta(db, h)
 
-  const days = new Set<number>()
+  const days = new Map<number, RiderRaceDay>()
   for (const row of rosters) {
-    const raceId = row.raceId
-    const abandonedDay = abandonedDayAt(d, raceId, riderId, row.abandonedDay)
+    const raceKey = row.raceId
+    const abandonedDay = abandonedDayAt(d, raceKey, riderId, row.abandonedDay)
     // Clave del calendario: `${raceId}:s${season}`. Una clave sin temporada no es del calendario.
-    const m = /^(.*):s(\d+)$/.exec(raceId)
+    const m = /^(.*):s(\d+)$/.exec(raceKey)
     if (!m) continue
     const baseId = m[1]!
     const season = Number(m[2])
@@ -63,10 +77,11 @@ export async function getRiderRaceDays(
       // Si el corredor ABANDONÓ, ya no toma la salida en las etapas posteriores: esos días SÍ entrena
       // (se recupera). Solo cuentan como día de carrera las etapas hasta el día del abandono inclusive.
       if (abandonedDay != null && gameDay > abandonedDay) continue
-      if (gameDay >= fromDay && gameDay <= toDay) days.add(gameDay)
+      if (gameDay < fromDay || gameDay > toDay || days.has(gameDay)) continue
+      days.set(gameDay, { gameDay, raceKey, raceId: baseId, stage: idx })
     }
   }
-  return [...days].sort((a, b) => a - b)
+  return [...days.values()].sort((a, b) => a.gameDay - b.gameDay)
 }
 
 /*

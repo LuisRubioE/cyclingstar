@@ -20,6 +20,7 @@ import type { RaceLeaders } from './jerseys.js'
 import { newsPayloadSchema } from './news.js'
 import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
 import { INTENSITIES, SESSIONS } from './training.js'
+import { TRAINING_DAY_SOURCES } from './trainingDay.js'
 
 // --- Piezas comunes ------------------------------------------------------------------------
 
@@ -199,8 +200,8 @@ export type TrainingPlanInput = z.infer<typeof trainingPlanSchema>
  * El cuerpo de `PUT /api/riders/me/plan` (E3, docs/visual.md §11.5; PR 13a): el modo y lo que el jugador
  * decide del plan. El plan se guarda sobre el `startDay` del plan vivo, o desde mañana si no hay o con
  * `startFresh`; ni `startDay` ni `goalRaceId` van en el cuerpo (el primero lo pone la API; el segundo no
- * tiene control, y el 19c lo saca), y si llegan, como los manda hoy la pantalla, se ignoran. Lo comparte
- * `POST /api/riders/me/plan/preview`, que solo lee los bloques, el foco y la intensidad.
+ * tiene control, y el 19c lo saca), y si llegan, como los manda hoy la pantalla, se ignoran. La vista
+ * previa tiene el suyo desde el 13b (`planPreviewRequestSchema`).
  */
 export const putTrainingPlanSchema = z.object({
   mode: trainingModeSchema,
@@ -214,34 +215,9 @@ export const trainingPlanResponseSchema = z.object({
   currentDay: z.number().int(),
 })
 
-/** Lo que la pantalla enseña ANTES de guardar: cómo vas a llegar si haces esto. */
-export const projectedDaySchema = z.object({
-  day: z.number().int(),
-  gameDay: z.number().int(),
-  ctl: z.number(),
-  atl: z.number(),
-  tsb: z.number(),
-  tss: z.number(),
-  session: z.enum(SESSIONS),
-  intensity: intensitySchema,
-})
+/** Cómo se llega a una carrera: los tramos de `arrivalLabel` del motor, con el TSB de la mañana de la salida. */
 export const arrivalLabelSchema = z.enum(['oxidado', 'perfecto', 'bien', 'cargado', 'fundido'])
 export type ArrivalLabel = z.infer<typeof arrivalLabelSchema>
-
-export const planPreviewResponseSchema = z.object({
-  days: z.array(projectedDaySchema),
-  totalTss: z.number(),
-  /** Una entrada por carrera del horizonte: cómo llegaría a ella con este plan. */
-  arrivals: z.array(
-    z.object({
-      gameDay: z.number().int(),
-      raceId: z.string().nullable(),
-      tsb: z.number(),
-      label: arrivalLabelSchema,
-    }),
-  ),
-})
-export type PlanPreview = z.infer<typeof planPreviewResponseSchema>
 
 export const geoCountryResponseSchema = z.object({
   country: z.string().nullable(),
@@ -381,6 +357,83 @@ export const trainingOrderSchema = z.object({
 })
 export type TrainingOrder = z.infer<typeof trainingOrderSchema>
 
+// --- Los 28 días y la vista previa del plan (E3, docs/visual.md §11.2; D-34, D-35; PR 13b) ----------
+
+/** Quién decide un día: los siete orígenes de `resolveTrainingDay`, en su orden. */
+export const trainingDaySourceSchema = z.enum(TRAINING_DAY_SOURCES)
+/** La carga de un día en palabras, de `Rest` (0) a `Very hard` (4): `loadLevelOf`. Nunca un TSS. */
+export const loadLevelSchema = z.number().int().min(0).max(4)
+const dayBlockSchema = z.object({ code: coachBlockSchema, week: z.number().int().min(1).max(4) })
+
+/**
+ * Un día de los 28, en `GET /orders`: qué se entrena, quién lo decide y de qué carrera es. Las respuestas
+ * son `z.object` y nunca `.strict()` (11-f): el serializador valida con `safeEncode`, y una clave de más
+ * en un objeto estricto daría un 500 en vez de quitarse.
+ */
+export const ordersDaySchema = z.object({
+  gameDay: z.number().int(),
+  /** null el día de carrera, que no se entrena */
+  session: sessionSchema.nullable(),
+  intensity: intensitySchema.nullable(),
+  source: trainingDaySourceSchema,
+  /** el bloque del plan vivo y su semana, con `source` `bloque` */
+  block: dayBlockSchema.nullable(),
+  /** la carrera del día o del viaje, con `source` `carrera` o `viaje` */
+  raceKey: z.string().nullable(),
+})
+export type OrdersDay = z.infer<typeof ordersDaySchema>
+
+/** Un día de la vista previa: el de `GET /orders`, con su clase y su carga (11-a). */
+export const planPreviewDaySchema = ordersDaySchema.extend({
+  kind: z.enum(['race', 'travel', 'train']),
+  load: loadLevelSchema,
+})
+export type PlanPreviewDay = z.infer<typeof planPreviewDaySchema>
+
+/** Una carrera del horizonte, con cómo se llegaría a su salida (D-34): una tarjeta por carrera. */
+export const planPreviewRaceSchema = z.object({
+  raceKey: z.string(),
+  /** el id de calendario, el de `/world/races/:raceId` */
+  raceId: z.string(),
+  name: z.string(),
+  country: z.string().nullable(),
+  raceClass: z.string(),
+  stageCount: z.number().int().min(1),
+  /** días de juego absolutos, como el resto de la API */
+  startDay: z.number().int(),
+  endDay: z.number().int(),
+  ongoing: z.boolean(),
+  /** la llegada a la primera etapa que cae en el horizonte; null en una carrera en curso */
+  arrival: arrivalLabelSchema.nullable(),
+  travelOut: z.array(z.number().int()),
+  travelBack: z.array(z.number().int()),
+})
+export type PlanPreviewRace = z.infer<typeof planPreviewRaceSchema>
+
+/**
+ * El cuerpo de `POST /api/riders/me/plan/preview`: el modo y el plan de la pantalla, y la ventana de
+ * órdenes tal como está en ella, guardadas y sin guardar, como la manda `PUT /orders` (11-c). Estricto,
+ * en la raíz y en su plan (§13.3): la petición no tiene campos de más que quitar.
+ */
+export const planPreviewRequestSchema = z
+  .object({
+    mode: trainingModeSchema,
+    plan: trainingPlanSchema.pick({ blocks: true, focusAttr: true, intensity: true }).strict(),
+    /** `TRAINING_HORIZON_DAYS` de la API */
+    edits: z.array(trainingOrderSchema).max(28),
+    /** la vista previa de empezar el plan de cero mañana */
+    startFresh: z.boolean().default(false),
+  })
+  .strict()
+export type PlanPreviewRequest = z.input<typeof planPreviewRequestSchema>
+
+/** Lo que la pantalla enseña ANTES de guardar: las carreras y los 28 días, sin un solo número interno. */
+export const planPreviewResponseSchema = z.object({
+  races: z.array(planPreviewRaceSchema),
+  days: z.array(planPreviewDaySchema).max(28),
+})
+export type PlanPreview = z.infer<typeof planPreviewResponseSchema>
+
 /**
  * Un día de VIAJE del plan: de qué carrera y en qué sentido (`out` hacia la carrera, `back` de vuelta
  * a casa). `direction` con `default` para que una API anterior, que solo mandaba la ida, siga valiendo.
@@ -406,6 +459,11 @@ export const ordersResponseSchema = z.object({
    * planificador entero.
    */
   travelDays: z.array(travelDaySchema).default([]),
+  /**
+   * Los 28 días, con quién decide cada uno (E3, §11.4; PR 13b): con las órdenes guardadas y el plan vivo.
+   * Con `default`, como `travelDays`, para una web que vaya por delante de la API.
+   */
+  days: z.array(ordersDaySchema).default([]),
 })
 export type OrdersResponse = z.infer<typeof ordersResponseSchema>
 

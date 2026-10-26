@@ -347,6 +347,15 @@ export {
   type TrainingPlanRow,
 } from './training.js'
 export {
+  clearRaceDayTssCache,
+  projectTraining,
+  raceDayTss,
+  type ProjectedRace,
+  type ProjectedTrainingDay,
+  type TrainingProjection,
+  type TrainingProjectionRequest,
+} from './trainingProjection.js'
+export {
   getRiderRaceDays,
   getRiderTravelDays,
   getRiderUpcomingRaces,
@@ -357,6 +366,7 @@ export {
   ridersTravellingBack,
   ridersTravellingOutbound,
   type RetireOutcome,
+  type RiderRaceDay,
   type RiderTravelDay,
   type TravelDirection,
   type RiderUpcomingRace,

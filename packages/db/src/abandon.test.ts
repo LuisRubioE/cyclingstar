@@ -386,8 +386,9 @@ describe('db: el abandono bajo el velo (sups. X2, X9 y X10; 8b)', () => {
     const hasta = g(2) + 6
     const todos = (await getRiderRaceDays(t.db, veiled, out(), desde, hasta)).length
     const visto = await getRiderRaceDays(t.db, known, out(), desde, hasta)
-    // con la etapa del abandono conocida, solo hasta el día del abandono, inclusive
-    expect(visto).toEqual([g(2), g(3)])
+    // con la etapa del abandono conocida, solo hasta el día del abandono, inclusive (desde el 13b de E3,
+    // cada día con su carrera y su etapa: aquí cuentan los días)
+    expect(visto.map((d) => d.gameDay)).toEqual([g(2), g(3)])
     expect(await getRiderRaceDays(t.db, worldHorizon, out(), desde, hasta)).toEqual(visto)
     // velado, los de toda la ventana que son de la carrera (los de la 2 a la que toque), como el de un corredor sin abandono
     const sinAbandono = await getRiderRaceDays(t.db, worldHorizon, riderIds[5]!, desde, hasta)

@@ -65,6 +65,7 @@ export const B1B_WHITELIST: ReadonlyMap<string, readonly string[]> = new Map([
   ['GET /api/riders/:id', ['rider.attributes']],
   ['GET /api/riders/me/race-prefs', ['races.[].callup']],
   ['GET /api/riders/me/offers', ['offers']],
+  ['GET /api/riders/me/orders', ['days.[].session', 'days.[].intensity']],
 ])
 /**
  * Lo que cambia SOLO porque el velo gana la etapa entre los dos barridos de B1b (el jugador pasa de velo vacío a la etapa velada):

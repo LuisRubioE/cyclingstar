@@ -88,7 +88,44 @@ describe('contratos: entrenamiento', () => {
     expect(ordersResponseSchema.parse({ ...payload, travelDays: [] })).toEqual({
       ...payload,
       travelDays: [],
+      days: [],
     })
+  })
+
+  // Los 28 días, con quién decide cada uno (E3, PR 13b): sin ellos, como sin los de viaje, la lista
+  // vacía, para una web que vaya por delante de la API.
+  it('acepta los 28 días con su origen, y sin ellos la lista vacía', () => {
+    const days = [
+      {
+        gameDay: 13,
+        session: 'umbral',
+        intensity: 'normal',
+        source: 'orden',
+        block: null,
+        raceKey: null,
+      },
+      {
+        gameDay: 15,
+        session: null,
+        intensity: null,
+        source: 'carrera',
+        block: null,
+        raceKey: 'race-x:s0',
+      },
+      {
+        gameDay: 16,
+        session: 'fondo',
+        intensity: 'normal',
+        source: 'bloque',
+        block: { code: 'base', week: 1 },
+        raceKey: null,
+      },
+    ]
+    expect(ordersResponseSchema.parse({ ...payload, days }).days).toEqual(days)
+    expect(ordersResponseSchema.parse(payload).days).toEqual([])
+    expect(() =>
+      ordersResponseSchema.parse({ ...payload, days: [{ ...days[0], source: 'tick' }] }),
+    ).toThrow()
   })
 
   // Los días de viaje llegan con destino, y sin ellos el planificador NO se cae: un despliegue en el
@@ -103,7 +140,7 @@ describe('contratos: entrenamiento', () => {
         { ...trip, gameDay: 18, direction: 'back' },
       ],
     }
-    expect(ordersResponseSchema.parse(viaje)).toEqual(viaje)
+    expect(ordersResponseSchema.parse(viaje)).toEqual({ ...viaje, days: [] })
     expect(ordersResponseSchema.parse(payload).travelDays).toEqual([])
   })
 

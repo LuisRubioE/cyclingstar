@@ -318,6 +318,15 @@ jobs:
         env:
           TELEFONO_MUNDO: ${{ github.workspace }}/apps/web/e2e/world/.mundo/mundo-50.tar.gz
         run: pnpm exec vitest run packages/db/src/trainingDay.diff.test.ts --reporter=verbose
+      # LA LLEGADA PROYECTADA FRENTE AL DIARIO (E3, docs/visual.md §11.3; H-20, 16-h; PR 13b): desde el
+      # día 40 del mundo de la prueba y sin correr el tick, la llegada a cada carrera de los días 41 a
+      # 50 que pronostica la vista previa nueva y la que pronosticaba la de antes, frente al diario.
+      # Falla si la nueva no acierta más. Tampoco aquí hay otra copia del mundo en memoria todavía.
+      - name: La vista previa acierta más llegadas que la de antes, sobre el mundo de la prueba
+        if: steps.toca.outputs.correr == 'si'
+        env:
+          TELEFONO_MUNDO: ${{ github.workspace }}/apps/web/e2e/world/.mundo/mundo-50.tar.gz
+        run: pnpm exec vitest run apps/api/src/routes/planPreviewDiary.test.ts --reporter=verbose
       - name: La web de la base, sobre el mismo mundo
         id: base
         if: steps.toca.outputs.correr == 'si'

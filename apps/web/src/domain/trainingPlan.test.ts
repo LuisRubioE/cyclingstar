@@ -8,6 +8,7 @@ const response = (over: Partial<OrdersResponse> = {}): OrdersResponse => ({
   orders: [],
   raceDays: [],
   travelDays: [],
+  days: [],
   ...over,
 })
 

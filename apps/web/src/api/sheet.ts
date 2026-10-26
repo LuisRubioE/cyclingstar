@@ -6,6 +6,7 @@ import {
   type CoachNote,
   type CoachView,
   type PlanPreview,
+  type PlanPreviewRequest,
   type TrainingMode,
   type TrainingPlanInput,
   blockReportResponseSchema,
@@ -83,10 +84,7 @@ export async function saveTrainingPlan(body: {
   })
 }
 
-export async function previewTrainingPlan(body: {
-  mode: TrainingMode
-  plan: TrainingPlanInput
-}): Promise<PlanPreview> {
+export async function previewTrainingPlan(body: PlanPreviewRequest): Promise<PlanPreview> {
   return request('/api/riders/me/plan/preview', planPreviewResponseSchema, {
     method: 'POST',
     json: body,

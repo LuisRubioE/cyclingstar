@@ -17976,6 +17976,10 @@ Al líder ya lo frenan su rol (0,3) y, con el maillot, `jerseyBreakDamp`; así c
 - `sim/targets.ts`: el suelo de `smallTours.bestSprinterWinPct`, de 25 a 22 (§1).
 - `pnpm typecheck`, `pnpm lint` (0 errores; los 20 avisos de `apps/web` son de antes), `pnpm format`, `pnpm test:rapido` y `pnpm test:bancos` en verde.
 
+### 4 · Las que no lee el motor
+
+- `PREVIEW_RACE_DAY_TSS = 150`, `PREVIEW_RACE_DAY_SAMPLE = 10` y `PREVIEW_WORLD_WINDOW_DAYS = 28` (E3, PR 13b): la carga que la vista previa del plan pone a un día de carrera; no las lee el motor y no suben `ENGINE_VERSION`.
+
 ## E2 · La altitud en la estimación de la retransmisión (paso 10b, 08/10/2026)
 
 Una constante nueva de `packages/shared`, `BROADCAST.nominalAltitude` (docs/retransmision.md §15.3; decisión 15-h: se anota aquí con su medida, sin subir `ENGINE_VERSION`). No toca el motor ni ninguna carrera: solo la duración que anuncia `Watch` (`About 13 min`) y la escala del digest de `While you were away`.

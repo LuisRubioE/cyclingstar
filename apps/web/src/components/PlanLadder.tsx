@@ -1,6 +1,7 @@
 import {
   ATTRIBUTES,
   ATTRIBUTE_LABELS,
+  type ArrivalLabel,
   type Attribute,
   INTENSITIES,
   INTENSITY_LABELS,
@@ -16,6 +17,8 @@ import {
   previewTrainingPlan,
   saveTrainingPlan,
 } from '../api/sheet'
+import { fetchOrders } from '../api/training'
+import { ARRIVAL_WORD } from '../domain/words'
 import { Panel } from './Panel'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
@@ -60,12 +63,16 @@ const MODE_WHY: Record<TrainingMode, string> = {
   manual: 'Only what you write. Days you leave empty are active recovery, not a coach session.',
 }
 
-const ARRIVAL_LABEL: Record<string, { text: string; cls: string }> = {
-  oxidado: { text: 'Rusty', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
-  perfecto: { text: 'Spot on', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  bien: { text: 'Fine', cls: 'bg-slate-50 text-slate-600 ring-slate-200' },
-  cargado: { text: 'Loaded', cls: 'bg-orange-50 text-orange-700 ring-orange-200' },
-  fundido: { text: 'Cooked', cls: 'bg-rose-50 text-rose-700 ring-rose-200' },
+/**
+ * The look of each arrival. The word is `ARRIVAL_WORD`'s (D-00n: `Undertrained`, never `Rusty`); the
+ * code stays `oxidado`.
+ */
+const ARRIVAL_LOOK: Record<ArrivalLabel, string> = {
+  oxidado: 'bg-amber-50 text-amber-700 ring-amber-200',
+  perfecto: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  bien: 'bg-slate-50 text-slate-600 ring-slate-200',
+  cargado: 'bg-orange-50 text-orange-700 ring-orange-200',
+  fundido: 'bg-rose-50 text-rose-700 ring-rose-200',
 }
 
 const BLOCKS: Block[] = ['base', 'construccion', 'especifico', 'afinado', 'recuperacion']
@@ -94,10 +101,23 @@ export function PlanLadder() {
   }, [stored.data, tocado])
 
   const rev = useHorizonRev()
+  // La ventana de órdenes de la vista previa (E3, PR 13b; 11-c): las guardadas, las mismas que pinta
+  // `Training`, con su misma clave. Las que el jugador toca sin guardar llegan con el cuadro del 14.
+  const orders = useQuery({
+    queryKey: horizonKey(['orders'], rev),
+    queryFn: fetchOrders,
+    enabled: rev !== undefined,
+  })
+  const edits = orders.data?.orders ?? []
+  const { blocks, focusAttr, intensity } = plan
   const preview = useQuery({
-    queryKey: horizonKey(['plan-preview', mode, JSON.stringify(plan)], rev),
-    queryFn: () => previewTrainingPlan({ mode, plan }),
-    enabled: stored.data !== undefined && rev !== undefined,
+    queryKey: horizonKey(
+      ['plan-preview', mode, JSON.stringify({ blocks, focusAttr, intensity, edits })],
+      rev,
+    ),
+    queryFn: () =>
+      previewTrainingPlan({ mode, plan: { blocks, focusAttr, intensity }, edits: [...edits] }),
+    enabled: stored.data !== undefined && orders.data !== undefined && rev !== undefined,
   })
 
   const guardar = useMutation({
@@ -229,31 +249,37 @@ export function PlanLadder() {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             What this does to you
           </p>
-          <p className="mt-1 text-sm text-slate-600">
-            {Math.round(preview.data.totalTss)} TSS over four weeks.
-          </p>
-          {preview.data.arrivals.length === 0 ? (
+          {preview.data.races.length === 0 ? (
             <p className="mt-1 text-sm text-slate-500">
               No races in the next four weeks — this month is for building.
             </p>
           ) : (
             <ul className="mt-2 space-y-1">
-              {preview.data.arrivals.map((a) => {
-                const look = ARRIVAL_LABEL[a.label] ?? ARRIVAL_LABEL.bien!
-                return (
-                  <li key={a.gameDay} className="flex items-center gap-2 text-sm">
-                    <span className="w-28 shrink-0 text-slate-500">
-                      Day {seasonPosition(a.gameDay).dayOfSeason}
-                    </span>
-                    <span className="text-slate-600">You'll arrive:</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${look.cls}`}
-                    >
-                      {look.text}
-                    </span>
-                  </li>
-                )
-              })}
+              {/* Una fila por carrera, con su nombre y cómo se llega a su salida (PR 13b); la que está en
+                  curso no tiene llegada que pronosticar. */}
+              {preview.data.races.map((race) => (
+                <li
+                  key={race.raceKey}
+                  className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm"
+                >
+                  <span className="w-28 shrink-0 text-slate-500">
+                    Day {seasonPosition(race.startDay).dayOfSeason}
+                  </span>
+                  <span className="font-medium text-ink">{race.name}</span>
+                  {race.arrival === null ? (
+                    <span className="text-ink-2">Racing now</span>
+                  ) : (
+                    <>
+                      <span className="text-slate-600">You'll arrive:</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${ARRIVAL_LOOK[race.arrival]}`}
+                      >
+                        {ARRIVAL_WORD[race.arrival]}
+                      </span>
+                    </>
+                  )}
+                </li>
+              ))}
             </ul>
           )}
         </div>
