@@ -1,4 +1,10 @@
-import { type ArrivalLabel, seasonPosition } from '@cyclingstar/shared'
+import {
+  type ArrivalLabel,
+  type CoachBlock,
+  type LoadLevel,
+  type TrainingMode,
+  seasonPosition,
+} from '@cyclingstar/shared'
 
 /**
  * LAS PALABRAS DE PANTALLA (E3, docs/visual.md §4.10; D-15, I-19): una palabra por cosa, junto a
@@ -13,6 +19,35 @@ export const ARRIVAL_WORD: Readonly<Record<ArrivalLabel, string>> = {
   bien: 'Fine',
   perfecto: 'Spot on',
   oxidado: 'Undertrained',
+}
+
+/** Quién decide el entrenamiento (§10.8; PR 14), en el orden del `Segmented`. */
+export const MODE_WORD: Readonly<Record<TrainingMode, string>> = {
+  entrenador: 'Coach decides',
+  mixto: 'Mixed',
+  manual: 'I decide',
+}
+
+/** El bloque de una semana del plan (§10.6; PR 14). */
+export const BLOCK_WORD: Readonly<Record<CoachBlock, string>> = {
+  base: 'Base',
+  construccion: 'Build',
+  especifico: 'Specific',
+  afinado: 'Taper',
+  recuperacion: 'Recovery',
+}
+
+/**
+ * La carga de un día en palabras (§10.7; D-41, D-00o; PR 14), de `loadLevelOf`: `Rest` sin carga y
+ * `Very hard` por encima de 110 TSS. Nunca el TSS; tampoco `Easy` y `Hard` a secas detrás de `Load:`, que
+ * son también intensidades: detrás de `Load:` van en minúscula (`Load: hard`).
+ */
+export const LOAD_WORD: Readonly<Record<LoadLevel, string>> = {
+  0: 'Rest',
+  1: 'Easy',
+  2: 'Steady',
+  3: 'Hard',
+  4: 'Very hard',
 }
 
 /** Un abandono: sin puesto y al final de la tabla (§4.5). Nunca el nombre tachado. */

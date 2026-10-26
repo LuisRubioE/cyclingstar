@@ -31,8 +31,39 @@ export function meterText(value: number | null, steps: 4 | 5, valueText?: string
   throw new Error('Meter: con cuatro pasos, la palabra es obligatoria (nunca la cifra)')
 }
 
+/** Los segmentos llenos de un valor, recortado de 0 a los pasos. */
+const llenos = (value: number, steps: number) => Math.min(steps, Math.max(0, Math.round(value)))
+
+/**
+ * Los segmentos solos, sin la palabra ni el `role` (PR 14): la tira de siete días del cuadro (§10.6), cuyas
+ * celdas de 35 a 41 px dicen su día y su carga en texto para el lector. `fluid` los estira al ancho de la
+ * celda, con 2 px de hueco: los cuatro de 20 no caben.
+ */
+export function MeterSegments({
+  value,
+  steps = 4,
+  fluid = false,
+}: {
+  readonly value: number
+  readonly steps?: 4 | 5
+  readonly fluid?: boolean
+}) {
+  const lleno = llenos(value, steps)
+  return (
+    <span aria-hidden="true" className={fluid ? 'flex w-full gap-0.5' : 'flex gap-1'}>
+      {Array.from({ length: steps }, (_, i) => (
+        <span
+          key={i}
+          data-segment={i < lleno ? 'on' : 'off'}
+          className={`h-2 ${fluid ? 'min-w-0 flex-1' : 'w-5'} rounded-full ${i < lleno ? 'bg-accent' : 'bg-line'}`}
+        />
+      ))}
+    </span>
+  )
+}
+
 export function Meter({ label, value, steps = 4, valueText, layout }: MeterProps) {
-  const lleno = value === null ? 0 : Math.min(steps, Math.max(0, Math.round(value)))
+  const lleno = value === null ? 0 : llenos(value, steps)
   const texto = meterText(value === null ? null : lleno, steps, valueText)
   return (
     <div
@@ -47,15 +78,7 @@ export function Meter({ label, value, steps = 4, valueText, layout }: MeterProps
       aria-valuetext={texto}
       className={withLayout('flex flex-wrap items-center gap-x-2 gap-y-1', layout)}
     >
-      <span aria-hidden="true" className="flex gap-1">
-        {Array.from({ length: steps }, (_, i) => (
-          <span
-            key={i}
-            data-segment={i < lleno ? 'on' : 'off'}
-            className={`h-2 w-5 rounded-full ${i < lleno ? 'bg-accent' : 'bg-line'}`}
-          />
-        ))}
-      </span>
+      <MeterSegments value={lleno} steps={steps} />
       <span aria-hidden="true" className="text-meta text-ink-2">
         {label}: {texto}
       </span>

@@ -208,6 +208,8 @@ export const putTrainingPlanSchema = z.object({
   plan: trainingPlanSchema.pick({ blocks: true, focusAttr: true, intensity: true }),
   startFresh: z.boolean().optional(),
 })
+/** Lo que manda la pantalla (PR 14): el modo, los bloques, el énfasis y la intensidad, y empezar de cero. */
+export type PutTrainingPlanRequest = z.input<typeof putTrainingPlanSchema>
 
 export const trainingPlanResponseSchema = z.object({
   mode: trainingModeSchema,

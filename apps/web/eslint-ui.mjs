@@ -158,7 +158,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/components/OrdersGate.tsx',
   'apps/web/src/components/PaintedRaceRadio.tsx',
   'apps/web/src/components/Panel.tsx',
-  'apps/web/src/components/PlanLadder.tsx',
   'apps/web/src/components/RaceEffortLog.tsx',
   'apps/web/src/components/RaceRadioPanel.tsx',
   'apps/web/src/components/RaceResults.tsx',
@@ -223,7 +222,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/pages/TeamIdentity.tsx',
   'apps/web/src/pages/TeamSquad.tsx',
   'apps/web/src/pages/Teams.tsx',
-  'apps/web/src/pages/Training.tsx',
   'apps/web/src/pages/VerifyEmail.tsx',
   'apps/web/src/pages/stageView.tsx',
 ]

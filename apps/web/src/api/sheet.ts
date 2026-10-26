@@ -7,6 +7,7 @@ import {
   type CoachView,
   type PlanPreview,
   type PlanPreviewRequest,
+  type PutTrainingPlanRequest,
   type TrainingMode,
   type TrainingPlanInput,
   blockReportResponseSchema,
@@ -73,10 +74,8 @@ export async function fetchTrainingPlan(): Promise<TrainingPlanResponse> {
   })
 }
 
-export async function saveTrainingPlan(body: {
-  mode: TrainingMode
-  plan: TrainingPlanInput
-}): Promise<void> {
+/** Guarda sobre el plan vivo, o desde mañana sin él o con `startFresh` (§11.5; PR 13a). */
+export async function saveTrainingPlan(body: PutTrainingPlanRequest): Promise<void> {
   await request('/api/riders/me/plan', okResponseSchema, {
     method: 'PUT',
     json: body,

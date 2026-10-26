@@ -1,289 +1,274 @@
 import {
   ATTRIBUTES,
   ATTRIBUTE_LABELS,
-  type ArrivalLabel,
   type Attribute,
+  type CoachBlock,
   INTENSITIES,
   INTENSITY_LABELS,
   type Intensity,
-  seasonPosition,
-} from '@cyclingstar/shared'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
-import {
+  type PlanPreviewDay,
   type TrainingMode,
-  type TrainingPlanInput,
-  fetchTrainingPlan,
-  previewTrainingPlan,
-  saveTrainingPlan,
-} from '../api/sheet'
-import { fetchOrders } from '../api/training'
-import { ARRIVAL_WORD } from '../domain/words'
-import { Panel } from './Panel'
-import { horizonKey, useHorizonRev } from '../queryClient'
+} from '@cyclingstar/shared'
+import { Fragment, type ReactNode, useId } from 'react'
+import {
+  type PlanCalendar,
+  type PlanDraft,
+  RULE_INFO,
+  RULE_INTRO,
+  afterStripLabel,
+  afterTitle,
+  monthLoad,
+  ruleLine,
+  ruleSpoken,
+  weekStripLabel,
+  weekTitle,
+} from '../domain/trainingPlan'
+import { BLOCK_WORD, LOAD_WORD, MODE_WORD } from '../domain/words'
+import { WeekStrip } from './WeekStrip'
+import { Button } from './ui/Button'
+import { Field } from './ui/Field'
+import { Icon } from './ui/Icon'
+import { InfoButton } from './ui/InfoButton'
+import { Meter } from './ui/Meter'
+import { Segmented } from './ui/Segmented'
+import { Skeleton } from './ui/Skeleton'
 
 /**
- * THE PLAN, ONE LEVEL UP (docs/entrenamiento.md §5.3).
+ * EL PLAN, UN NIVEL MÁS ARRIBA (docs/entrenamiento.md §5.3; E3, docs/visual.md §10.5 a §10.8; PR 14). El
+ * cuerpo del `Panel` `Your month`: quién decide (`Segmented`), la regla de un día en una línea con su
+ * `InfoButton`, y las semanas del plan vivo con sus días, cada una con el `select` de su bloque, su porqué y
+ * su tira; el énfasis y la intensidad; la carga del mes en palabras, y empezar el plan de cero mañana. En
+ * `Coach decides`, las semanas siguen a la vista (lo que hará el entrenador) sin nada que elegir.
  *
- * The old screen asked for 28 × (session, intensity) — 56 dropdowns — and showed nothing at all
- * until the days went by one at a time: the consequence of hammering three weeks straight arrived
- * when it could no longer be undone. Here you pick four weeks, an emphasis and an intensity, and
- * you see how you'll arrive BEFORE you save. The 28 days are still there, and still editable.
+ * No guarda: cada cambio sube a la página, que lo cuenta en su única `ActionBar` (§10.9).
  */
 
-type Block = 'base' | 'construccion' | 'especifico' | 'afinado' | 'recuperacion'
+export const MODES: readonly TrainingMode[] = ['entrenador', 'mixto', 'manual']
+const BLOCKS: readonly CoachBlock[] = [
+  'base',
+  'construccion',
+  'especifico',
+  'afinado',
+  'recuperacion',
+]
 
-const BLOCK_LABEL: Record<Block, string> = {
-  base: 'Base',
-  construccion: 'Build',
-  especifico: 'Specific',
-  afinado: 'Taper',
-  recuperacion: 'Recovery',
-}
-
-/** What each block is FOR. Not decoration: it's the reason to pick one over another. */
-const BLOCK_WHY: Record<Block, string> = {
+/** Para qué es cada bloque: no es decoración, es la razón para elegir uno y no otro. */
+const BLOCK_WHY: Readonly<Record<CoachBlock, string>> = {
   base: 'Builds fitness without digging a hole. Pre-season, back from injury, a down week.',
-  construccion: 'Where attributes actually move. Leaves you tired — that is the point.',
+  construccion: 'Where attributes actually move. Leaves you tired: that is the point.',
   especifico: 'Sharpens what your goal race asks for, plus tactics.',
   afinado: 'Sheds fatigue so you arrive at the race fresh. Lightest week before a goal.',
   recuperacion: 'After a stage race. Rebuilds recovery and keeps you off the physio table.',
 }
 
-const MODE_LABEL: Record<TrainingMode, string> = {
-  entrenador: 'Coach decides',
-  mixto: 'Mixed',
-  manual: 'I decide',
+/** La semana sin bloque: en `Mixed` decide el equipo o el entrenador; en `I decide`, nadie, y es descanso. */
+const SIN_BLOQUE = {
+  mixto: {
+    option: 'Leave it to the coach',
+    why: 'Your coach picks this week, or your team plan if your team has one.',
+  },
+  manual: { option: 'No block: rest', why: 'Days you leave empty are rest.' },
+} as const
+
+/** La regla de un día (§10.5): los pasos con `chevron-right` entre ellos, y la frase entera para el lector. */
+export function RuleText({ mode }: { readonly mode: TrainingMode }) {
+  const rule = ruleLine(mode)
+  return (
+    <p className="min-w-0 flex-1 text-meta text-ink-2">
+      <span className="sr-only">{ruleSpoken(rule)}</span>
+      <span aria-hidden="true">
+        {`${RULE_INTRO} `}
+        {rule.steps.map((step, i) => (
+          <Fragment key={step}>
+            {i > 0 && (
+              <span className="inline-flex px-0.5 align-middle">
+                <Icon name="chevron-right" size={16} />
+              </span>
+            )}
+            {step}
+          </Fragment>
+        ))}
+        {`.${rule.note === null ? '' : ` ${rule.note}`}`}
+      </span>
+    </p>
+  )
 }
 
-const MODE_WHY: Record<TrainingMode, string> = {
-  entrenador:
-    'Your coach picks every day using how you actually feel that morning — better information than a plan you wrote four weeks ago. Nothing you set here is used.',
-  mixto: 'Your blocks and your edits win; anything you leave alone goes back to the coach.',
-  manual: 'Only what you write. Days you leave empty are active recovery, not a coach session.',
+/** La regla con su porqué plegado, que es de E6 hasta que diga dónde vive el largo (§10.10). */
+export function RuleLine({ mode }: { readonly mode: TrainingMode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-1">
+      <RuleText mode={mode} />
+      <InfoButton label="About what wins on a day">{RULE_INFO}</InfoButton>
+    </div>
+  )
 }
 
-/**
- * The look of each arrival. The word is `ARRIVAL_WORD`'s (D-00n: `Undertrained`, never `Rusty`); the
- * code stays `oxidado`.
- */
-const ARRIVAL_LOOK: Record<ArrivalLabel, string> = {
-  oxidado: 'bg-amber-50 text-amber-700 ring-amber-200',
-  perfecto: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  bien: 'bg-slate-50 text-slate-600 ring-slate-200',
-  cargado: 'bg-orange-50 text-orange-700 ring-orange-200',
-  fundido: 'bg-rose-50 text-rose-700 ring-rose-200',
+function Semana({
+  title,
+  stripLabel,
+  days,
+  direction,
+  firstColumn,
+  select,
+}: {
+  readonly title: string
+  readonly stripLabel: string
+  readonly days: readonly PlanPreviewDay[] | null
+  readonly direction: ReadonlyMap<number, 'out' | 'back'>
+  readonly firstColumn: number
+  readonly select?: (titleId: string) => ReactNode
+}) {
+  const titleId = useId()
+  return (
+    <li className="grid gap-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h3 id={titleId} className="text-row text-ink">
+          {title}
+        </h3>
+        {select?.(titleId)}
+      </div>
+      {days === null ? (
+        <Skeleton shape={{ kind: 'rows', rows: 1, rowHeight: 64 }} />
+      ) : (
+        <WeekStrip label={stripLabel} days={days} direction={direction} firstColumn={firstColumn} />
+      )}
+    </li>
+  )
 }
 
-const BLOCKS: Block[] = ['base', 'construccion', 'especifico', 'afinado', 'recuperacion']
-
-const PLAN_VACIO: TrainingPlanInput = {
-  startDay: 0,
-  blocks: [null, null, null, null],
-  focusAttr: null,
-  intensity: null,
-  goalRaceId: null,
+export interface PlanLadderProps {
+  readonly draft: PlanDraft
+  readonly calendar: PlanCalendar
+  /** los 28 días de la vista previa, con lo tocado encima; null mientras llega */
+  readonly days: readonly PlanPreviewDay[] | null
+  readonly direction: ReadonlyMap<number, 'out' | 'back'>
+  /** hay un plan vivo empezado antes de mañana */
+  readonly canStartFresh: boolean
+  readonly onMode: (mode: TrainingMode) => void
+  readonly onBlock: (index: number, block: CoachBlock | null) => void
+  readonly onFocus: (attr: Attribute | null) => void
+  readonly onIntensity: (intensity: Intensity) => void
+  readonly onStartFresh: () => void
 }
 
-export function PlanLadder() {
-  const qc = useQueryClient()
-  const stored = useQuery({ queryKey: ['training-plan'], queryFn: fetchTrainingPlan })
-  const [mode, setMode] = useState<TrainingMode>('mixto')
-  const [plan, setPlan] = useState<TrainingPlanInput>(PLAN_VACIO)
-  const [tocado, setTocado] = useState(false)
-
-  // El plan del servidor se adopta UNA vez y no vuelve a pisar lo que el jugador esté tocando: un
-  // refetch en segundo plano no puede deshacerle una decisión a medio tomar.
-  useEffect(() => {
-    if (tocado || !stored.data) return
-    setMode(stored.data.mode)
-    if (stored.data.plan) setPlan(stored.data.plan)
-  }, [stored.data, tocado])
-
-  const rev = useHorizonRev()
-  // La ventana de órdenes de la vista previa (E3, PR 13b; 11-c): las guardadas, las mismas que pinta
-  // `Training`, con su misma clave. Las que el jugador toca sin guardar llegan con el cuadro del 14.
-  const orders = useQuery({
-    queryKey: horizonKey(['orders'], rev),
-    queryFn: fetchOrders,
-    enabled: rev !== undefined,
-  })
-  const edits = orders.data?.orders ?? []
-  const { blocks, focusAttr, intensity } = plan
-  const preview = useQuery({
-    queryKey: horizonKey(
-      ['plan-preview', mode, JSON.stringify({ blocks, focusAttr, intensity, edits })],
-      rev,
-    ),
-    queryFn: () =>
-      previewTrainingPlan({ mode, plan: { blocks, focusAttr, intensity }, edits: [...edits] }),
-    enabled: stored.data !== undefined && orders.data !== undefined && rev !== undefined,
-  })
-
-  const guardar = useMutation({
-    mutationFn: () => saveTrainingPlan({ mode, plan }),
-    onSuccess: async () => {
-      setTocado(false)
-      await qc.invalidateQueries({ queryKey: ['training-plan'] })
-      await qc.invalidateQueries({ queryKey: ['orders'] })
-    },
-  })
-
-  function cambia(patch: Partial<TrainingPlanInput>) {
-    setTocado(true)
-    setPlan((p) => ({ ...p, ...patch }))
-  }
-
-  function ponBloque(i: number, b: Block | null) {
-    setTocado(true)
-    setPlan((p) => ({ ...p, blocks: p.blocks.map((x, j) => (j === i ? b : x)) }))
-  }
-
-  const soloEntrenador = mode === 'entrenador'
+export function PlanLadder({
+  draft,
+  calendar,
+  days,
+  direction,
+  canStartFresh,
+  onMode,
+  onBlock,
+  onFocus,
+  onIntensity,
+  onStartFresh,
+}: PlanLadderProps) {
+  const focusId = useId()
+  const intensityId = useId()
+  const elige = draft.mode !== 'entrenador'
+  const sinBloque = SIN_BLOQUE[draft.mode === 'manual' ? 'manual' : 'mixto']
+  const deLosDias = (gameDays: readonly number[]) =>
+    days === null ? null : days.filter((d) => gameDays.includes(d.gameDay))
+  const carga = days === null ? null : monthLoad(days)
 
   return (
-    <Panel title="Your month">
-      <div className="flex flex-wrap gap-2">
-        {(Object.keys(MODE_LABEL) as TrainingMode[]).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => {
-              setTocado(true)
-              setMode(m)
-            }}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ring-1 transition ${
-              mode === m
-                ? 'bg-brand-cyan/15 text-brand-navy ring-brand-cyan/40'
-                : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            {MODE_LABEL[m]}
-          </button>
-        ))}
+    <div className="grid gap-4">
+      <div className="grid gap-1">
+        <Segmented
+          label="Who decides your training"
+          options={MODES.map((m) => ({ key: m, label: MODE_WORD[m] }))}
+          value={draft.mode}
+          onChange={onMode}
+        />
+        <RuleLine mode={draft.mode} />
       </div>
-      <p className="mt-2 text-xs text-slate-500">{MODE_WHY[mode]}</p>
 
-      {!soloEntrenador && (
-        <>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {plan.blocks.map((b, i) => (
-              <div key={i} className="rounded-xl border border-slate-200 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Week {i + 1}
-                </p>
-                <select
-                  value={b ?? ''}
-                  onChange={(e) => ponBloque(i, (e.target.value || null) as Block | null)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm"
-                >
-                  <option value="">Leave it to the coach</option>
-                  {BLOCKS.map((x) => (
-                    <option key={x} value={x}>
-                      {BLOCK_LABEL[x]}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1.5 text-xs text-slate-500">
-                  {b ? BLOCK_WHY[b] : 'Your coach picks this week from how you are on the day.'}
-                </p>
-              </div>
-            ))}
-          </div>
+      <ol className="grid gap-4">
+        {calendar.weeks.map((w) => {
+          const block = draft.blocks[w.index] ?? null
+          const title = weekTitle(w)
+          return (
+            <Semana
+              key={w.index}
+              title={title}
+              stripLabel={weekStripLabel(w)}
+              days={deLosDias(w.days)}
+              direction={direction}
+              firstColumn={(w.days[0] ?? w.firstDay) - w.firstDay}
+              {...(elige
+                ? {
+                    select: (titleId: string) => (
+                      <Field
+                        kind="select"
+                        id={`${titleId}-block`}
+                        label={title}
+                        labelledBy={titleId}
+                        value={block ?? ''}
+                        onChange={(v) => onBlock(w.index, v === '' ? null : (v as CoachBlock))}
+                        options={[
+                          { value: '', label: sinBloque.option },
+                          ...BLOCKS.map((b) => ({ value: b, label: BLOCK_WORD[b] })),
+                        ]}
+                        help={block === null ? sinBloque.why : BLOCK_WHY[block]}
+                        layout="min-w-0 flex-1 basis-48"
+                      />
+                    ),
+                  }
+                : {})}
+            />
+          )
+        })}
+        {calendar.after !== null && (
+          <Semana
+            title={afterTitle(calendar.after, draft.mode)}
+            stripLabel={afterStripLabel(calendar.after)}
+            days={deLosDias(calendar.after.days)}
+            direction={direction}
+            firstColumn={0}
+          />
+        )}
+      </ol>
 
-          <div className="mt-4 flex flex-wrap items-end gap-4">
-            <label className="text-sm">
-              <span className="mb-1 block text-xs font-medium text-slate-500">Emphasis</span>
-              <select
-                value={plan.focusAttr ?? ''}
-                onChange={(e) =>
-                  cambia({ focusAttr: (e.target.value || null) as Attribute | null })
-                }
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm"
-              >
-                <option value="">My strength</option>
-                {ATTRIBUTES.map((a) => (
-                  <option key={a} value={a}>
-                    {ATTRIBUTE_LABELS[a]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-xs font-medium text-slate-500">Intensity</span>
-              <select
-                value={plan.intensity ?? 'normal'}
-                onChange={(e) => cambia({ intensity: e.target.value as Intensity })}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm"
-              >
-                {INTENSITIES.map((i) => (
-                  <option key={i} value={i}>
-                    {INTENSITY_LABELS[i]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={() => guardar.mutate()}
-              disabled={guardar.isPending}
-              className="rounded-lg bg-brand-cyan px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-cyan-light disabled:opacity-60"
-            >
-              {guardar.isPending ? 'Saving…' : 'Save plan'}
-            </button>
-            {guardar.isSuccess && !tocado && (
-              <span className="text-sm text-emerald-600">Saved.</span>
-            )}
-            {guardar.isError && <span className="text-sm text-red-600">Could not save.</span>}
-          </div>
-        </>
-      )}
-
-      {/*
-        LO QUE EL PLAN VA A HACERTE, antes de guardarlo. La cuenta la hace el motor —el mismo
-        Banister del tick—, así que lo que dice aquí es lo que va a pasar y no una aproximación
-        escrita aparte en el navegador.
-      */}
-      {preview.data && (
-        <div className="mt-4 border-t border-slate-100 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">
-            What this does to you
-          </p>
-          {preview.data.races.length === 0 ? (
-            <p className="mt-1 text-sm text-slate-500">
-              No races in the next four weeks — this month is for building.
-            </p>
-          ) : (
-            <ul className="mt-2 space-y-1">
-              {/* Una fila por carrera, con su nombre y cómo se llega a su salida (PR 13b); la que está en
-                  curso no tiene llegada que pronosticar. */}
-              {preview.data.races.map((race) => (
-                <li
-                  key={race.raceKey}
-                  className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm"
-                >
-                  <span className="w-28 shrink-0 text-slate-500">
-                    Day {seasonPosition(race.startDay).dayOfSeason}
-                  </span>
-                  <span className="font-medium text-ink">{race.name}</span>
-                  {race.arrival === null ? (
-                    <span className="text-ink-2">Racing now</span>
-                  ) : (
-                    <>
-                      <span className="text-slate-600">You'll arrive:</span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${ARRIVAL_LOOK[race.arrival]}`}
-                      >
-                        {ARRIVAL_WORD[race.arrival]}
-                      </span>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+      {elige && (
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          <Field
+            kind="select"
+            id={focusId}
+            label="Emphasis"
+            inline
+            value={draft.focusAttr ?? ''}
+            onChange={(v) => onFocus(v === '' ? null : (v as Attribute))}
+            options={[
+              { value: '', label: 'My strength' },
+              ...ATTRIBUTES.map((a) => ({ value: a, label: ATTRIBUTE_LABELS[a] })),
+            ]}
+            layout="min-w-0 flex-1 basis-56"
+          />
+          <Field
+            kind="select"
+            id={intensityId}
+            label="Intensity"
+            inline
+            value={draft.intensity ?? 'normal'}
+            onChange={(v) => onIntensity(v as Intensity)}
+            options={INTENSITIES.map((i) => ({ value: i, label: INTENSITY_LABELS[i] }))}
+            layout="min-w-0 flex-1 basis-56"
+          />
         </div>
       )}
-    </Panel>
+
+      <Meter
+        label="Load this month"
+        value={carga}
+        {...(carga === null ? {} : { valueText: LOAD_WORD[carga].toLowerCase() })}
+      />
+
+      {elige && canStartFresh && !draft.startFresh && (
+        <Button variant="quiet" onClick={onStartFresh} layout="-ml-4 self-start">
+          Start a new plan tomorrow
+        </Button>
+      )}
+    </div>
   )
 }

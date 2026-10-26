@@ -1,134 +1,82 @@
-import {
-  type Intensity,
-  INTENSITIES,
-  INTENSITY_LABELS,
-  SESSIONS,
-  SESSION_CATALOG,
-  type Session,
-  ATTRIBUTE_LABELS,
-  attributesTrainedBy,
-  seasonPosition,
-} from '@cyclingstar/shared'
-import { useQuery } from '@tanstack/react-query'
+import type { TrainingOrder } from '@cyclingstar/shared'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { fetchMyRider } from '../api/rider'
-import { fetchOrders, fetchTeamTraining, saveOrders, saveTeamTraining } from '../api/training'
-import { Panel, SectionBar } from '../components/Panel'
-import { PlanLadder } from '../components/PlanLadder'
 import {
-  type DayEdit,
-  type DayPlan,
-  adoptTeamSuggestions,
-  applyEdits,
-  buildServerPlan,
-  onlyEdited,
-  withEdit,
-} from '../domain/trainingPlan'
+  type TrainingPlanResponse,
+  fetchTrainingPlan,
+  previewTrainingPlan,
+  saveTrainingPlan,
+} from '../api/sheet'
+import {
+  type OrdersResponse,
+  type TeamTraining,
+  fetchOrders,
+  fetchTeamTraining,
+  saveOrders,
+  saveTeamTraining,
+} from '../api/training'
+import { ArrivalCards } from '../components/ArrivalCards'
+import { DayByDay } from '../components/DayByDay'
+import { PlanLadder } from '../components/PlanLadder'
+import { ActionBar, type ActionBarStatus } from '../components/ui/ActionBar'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { Skeleton } from '../components/ui/Skeleton'
+import {
+  type DayEdits,
+  type PlanDraft,
+  adoptTeamSuggestions,
+  applyEdits,
+  backTarget,
+  backToLabel,
+  buildServerPlan,
+  changeCount,
+  consequenceText,
+  ordersWindow,
+  planChanges,
+  planWeeks,
+  previewRequest,
+  savedDraft,
+  statusLine,
+  tripsOf,
+  weekOfDay,
+  withDayEdit,
+  withoutOrder,
+} from '../domain/trainingPlan'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
- * CUÁNTOS DÍAS SE PLANIFICAN. La API acepta y devuelve 28 (`TRAINING_HORIZON_DAYS`) desde hace
- * tiempo; esta pantalla enseñaba SIETE y el resto se quedaba sin tocar. El dueño: «en el
- * entrenamiento, que permita ver y editar los próximos 28 días, no solo 1 semana».
+ * EL CUADRO DE ENTRENAMIENTO (E3, docs/visual.md §10; PR 14): el examen de E3, una pantalla con el motor bien
+ * que no se entendía. Contesta cuatro preguntas, de arriba abajo (§10.1): cómo llego a mis próximas carreras
+ * (`How you'll arrive`, la respuesta), qué hago cada día y quién lo ha decidido (`Your month`), cómo lo cambio
+ * y qué cambia (sus bloques y la `ActionBar`), y un día concreto (`Edit day by day`, plegado: el dueño pidió
+ * «que permita ver y editar los próximos 28 días, no solo 1 semana»).
  *
- * El número lo manda el servidor (`horizonDays`), que es quien también valida lo que se guarda; el
- * 28 de aquí es solo el respaldo para el primer render.
+ * Lo que dice cada día y cada llegada sale de la vista previa (§11.2), que proyecta lo que hará el tick con
+ * la misma precedencia (`resolveTrainingDay`) y la curva que escribe; la pantalla solo pone encima lo tocado
+ * para que se vea al momento. Lo guardado llega de `GET /plan` y `GET /orders`; lo tocado vive aparte, por
+ * día de juego, y un refetch en segundo plano nunca lo pisa. Un solo guardado (§10.9): `PUT /plan`, si cambió
+ * el plan, y después `PUT /orders` con la ventana de la pantalla, si cambió un día.
  */
-const HORIZON_POR_DEFECTO = 28
-/** Los días se agrupan de siete en siete: veintiocho filas seguidas no son un plan, son un muro. */
-const DIAS_POR_SEMANA = 7
-
-// "Travel" no se elige a mano: lo marca el sistema de viajes automáticamente los días de
-// desplazamiento a una carrera lejana, a la ida y a la vuelta (y el día de competición tampoco se
-// entrena).
-const SELECTABLE_SESSIONS = SESSIONS.filter((s) => s !== 'viaje')
-
-/** Human-readable summary of what a session trains and how hard it is (#7). */
-function sessionEffect(session: Session, intensity: Intensity): string {
-  const info = SESSION_CATALOG[session]
-  const attrs = attributesTrainedBy(session)
-  if (attrs.length === 0) {
-    return session === 'video_tactica'
-      ? 'Builds race intelligence with no physical load.'
-      : `Recovery — sheds fatigue (${info.tss[intensity]} TSS).`
-  }
-  const trains = attrs.map((a) => ATTRIBUTE_LABELS[a]).join(', ')
-  const group = info.group ? ' · Group session: +gains when teammates train it the same day' : ''
-  return `Trains ${trains} · ${info.tss[intensity]} TSS${group}`
-}
 
 export function Training() {
   const rev = useHorizonRev()
-  const query = useQuery({
-    queryKey: horizonKey(['orders'], rev),
-    queryFn: fetchOrders,
-    enabled: rev !== undefined,
-  })
-  const team = useQuery({ queryKey: ['team-training'], queryFn: fetchTeamTraining })
-  // Sin corredor no hay plan que enseñar: la API da uno vacío, y el vacío lo dice (E3, PR 10).
   const mine = useQuery({
     queryKey: horizonKey(['rider', 'me'], rev),
     queryFn: fetchMyRider,
     enabled: rev !== undefined,
   })
-  // Ediciones sin guardar, por día de juego. Viven APARTE de los datos del servidor: un refetch en
-  // segundo plano actualiza la base pero jamás pisa lo que el jugador ha tocado.
-  const [edits, setEdits] = useState<Record<number, DayEdit>>({})
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [teamMsg, setTeamMsg] = useState<string | null>(null)
-  const [diaADia, setDiaADia] = useState(false)
-
-  const raceDays = new Set(query.data?.raceDays ?? [])
-  const travelByDay = new Map((query.data?.travelDays ?? []).map((t) => [t.gameDay, t]))
-  const teamByDay = new Map((team.data?.plan ?? []).map((o) => [o.gameDay, o]))
-
-  // El plan del servidor es un valor DERIVADO, no estado copiado con un efecto.
-  const serverPlan = useMemo(
-    () => (query.data ? buildServerPlan(query.data, query.data.horizonDays) : []),
-    [query.data],
-  )
-  const plan: DayPlan[] = applyEdits(serverPlan, edits)
-
-  function adoptTeamPlan() {
-    setSaved(false)
-    setEdits((current) => adoptTeamSuggestions(serverPlan, current, teamByDay))
-  }
-
-  async function publishTeamPlan() {
-    setTeamMsg(null)
-    try {
-      await saveTeamTraining(plan)
-      setTeamMsg('Published to your squad.')
-      await team.refetch()
-    } catch (err) {
-      setTeamMsg(err instanceof Error ? err.message : 'Could not publish.')
-    }
-  }
-
-  function update(gameDay: number, patch: DayEdit) {
-    setSaved(false)
-    setEdits((current) => withEdit(current, gameDay, patch))
-  }
-
-  async function onSave() {
-    setSaving(true)
-    setError(null)
-    try {
-      await saveOrders(onlyEdited(plan, edits))
-      setSaved(true)
-      // Refresca la base con lo que acaba de quedar guardado (las ediciones ya coinciden con ella).
-      await query.refetch()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
-    } finally {
-      setSaving(false)
-    }
-  }
+  const orders = useQuery({
+    queryKey: horizonKey(['orders'], rev),
+    queryFn: fetchOrders,
+    enabled: rev !== undefined,
+  })
+  const stored = useQuery({ queryKey: ['training-plan'], queryFn: fetchTrainingPlan })
+  const team = useQuery({ queryKey: ['team-training'], queryFn: fetchTeamTraining })
 
   // Los estados, con `QueryView` (E3, PR 10): la respuesta de las pantallas 40, 41 y 45.
   if (mine.data === undefined)
@@ -146,217 +94,216 @@ export function Training() {
         answer
       />
     )
-  if (query.data === undefined)
+  if (orders.data === undefined)
     return (
-      <QueryView query={query} label="your training plan" skeleton={{ kind: 'panel' }} answer />
+      <QueryView query={orders} label="your training plan" skeleton={{ kind: 'panel' }} answer />
     )
+  if (stored.data === undefined)
+    return (
+      <QueryView query={stored} label="your training plan" skeleton={{ kind: 'panel' }} answer />
+    )
+  return <Cuadro orders={orders.data} stored={stored.data} team={team.data ?? null} />
+}
 
-  const currentDay = query.data.currentDay
-  const horizonte = query.data.horizonDays || HORIZON_POR_DEFECTO
-  const days = Array.from({ length: horizonte }, (_, i) => currentDay + i + 1)
-  const semanas: number[][] = []
-  for (let i = 0; i < days.length; i += DIAS_POR_SEMANA) {
-    semanas.push(days.slice(i, i + DIAS_POR_SEMANA))
+function Cuadro({
+  orders,
+  stored,
+  team,
+}: {
+  readonly orders: OrdersResponse
+  readonly stored: TrainingPlanResponse
+  readonly team: TeamTraining | null
+}) {
+  const qc = useQueryClient()
+  const rev = useHorizonRev()
+  const saved = useMemo(() => savedDraft(stored), [stored])
+  // Lo tocado sin guardar, APARTE de lo guardado: un refetch cambia la base, nunca esto.
+  const [cambios, setCambios] = useState<Partial<PlanDraft>>({})
+  const [edits, setEdits] = useState<DayEdits>({})
+  const [status, setStatus] = useState<ActionBarStatus>('idle')
+  const [teamMessage, setTeamMessage] = useState<string | null>(null)
+  const draft: PlanDraft = { ...saved, ...cambios }
+
+  const tomorrow = orders.currentDay + 1
+  const ventana = ordersWindow(orders.orders, edits)
+  const savedReq = previewRequest(saved, orders.orders)
+  const draftReq = previewRequest(draft, ventana)
+  const savedPreview = useQuery({
+    queryKey: horizonKey(['plan-preview', JSON.stringify(savedReq)], rev),
+    queryFn: () => previewTrainingPlan(savedReq),
+    enabled: rev !== undefined,
+  })
+  // Mientras llega la de lo tocado, la anterior: la pantalla no se vacía a cada cambio.
+  const preview = useQuery({
+    queryKey: horizonKey(['plan-preview', JSON.stringify(draftReq)], rev),
+    queryFn: () => previewTrainingPlan(draftReq),
+    enabled: rev !== undefined,
+    placeholderData: keepPreviousData,
+  })
+
+  const calendar = planWeeks({
+    tomorrow,
+    horizonDays: orders.horizonDays,
+    startDay: draft.startFresh ? null : (stored.plan?.startDay ?? null),
+  })
+  const teamByDay = new Map((team?.plan ?? []).map((o) => [o.gameDay, o]))
+  const fallback = (gameDay: number) => {
+    const week = weekOfDay(calendar, gameDay)
+    const weekBlock = week === null ? null : (draft.blocks[week.index] ?? null)
+    const source = backTarget({ mode: draft.mode, weekBlock, teamPlanDay: teamByDay.has(gameDay) })
+    return {
+      source,
+      block:
+        source === 'bloque' && weekBlock !== null && week !== null
+          ? { code: weekBlock, week: (week.index + 1) as 1 | 2 | 3 | 4 }
+          : null,
+    }
   }
-  const planByDay = new Map(plan.map((day) => [day.gameDay, day]))
+  const days =
+    preview.data === undefined
+      ? null
+      : applyEdits(preview.data.days, edits, { mode: draft.mode, fallback })
+  const races = preview.data?.races ?? []
+  const direction = new Map(orders.travelDays.map((t) => [t.gameDay, t.direction]))
+  const trips = days === null ? [] : tripsOf({ races, days, travelDays: orders.travelDays })
+
+  const changes = changeCount(saved, draft, edits)
+  const consequence = consequenceText({
+    saved,
+    draft,
+    savedRaces: savedPreview.data?.races ?? races,
+    draftRaces: races,
+    tomorrow,
+  })
+
+  function cambia(patch: Partial<PlanDraft>) {
+    setStatus('idle')
+    setCambios((c) => ({ ...c, ...patch }))
+  }
+  function tocaDias(f: (e: DayEdits) => DayEdits) {
+    setStatus('idle')
+    setEdits(f)
+  }
+
+  async function guardar() {
+    setStatus('saving')
+    try {
+      if (planChanges(saved, draft) > 0)
+        await saveTrainingPlan({
+          mode: draft.mode,
+          plan: {
+            blocks: [...draft.blocks],
+            focusAttr: draft.focusAttr,
+            intensity: draft.intensity,
+          },
+          startFresh: draft.startFresh,
+        })
+      if (Object.keys(edits).length > 0) await saveOrders(ventana)
+      // Lo guardado, de nuevo, antes de soltar lo tocado: la pantalla no vuelve a lo de antes un momento.
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['training-plan'] }),
+        qc.invalidateQueries({ queryKey: ['orders'] }),
+        qc.invalidateQueries({ queryKey: ['plan-preview'] }),
+      ])
+      setCambios({})
+      setEdits({})
+      setStatus('saved')
+    } catch {
+      setStatus('failed')
+    }
+  }
+
+  async function publicar() {
+    setTeamMessage(null)
+    const plan: TrainingOrder[] = (days === null ? [] : buildServerPlan(days)).map((d) => ({
+      gameDay: d.gameDay,
+      session: d.session ?? 'descanso_activo',
+      intensity: d.intensity ?? 'normal',
+    }))
+    try {
+      await saveTeamTraining(plan)
+      setTeamMessage('Published to your squad.')
+      await qc.invalidateQueries({ queryKey: ['team-training'] })
+    } catch (err) {
+      setTeamMessage(err instanceof Error ? err.message : 'Could not publish.')
+    }
+  }
+
+  const sinDias = <Skeleton shape={{ kind: 'rows', rows: 4, rowHeight: 64 }} />
 
   return (
-    <section className="space-y-4">
-      <SectionBar>Training plan</SectionBar>
-      <p className="text-sm text-slate-500">
-        Pick your month in four blocks and see how you'll arrive at each race. Every day is still
-        yours to edit below. On race days you rest and race — no training.
-      </p>
+    <section className="grid gap-4">
+      <PageHeader title="Training" status={statusLine({ mode: saved.mode, plan: stored.plan })} />
 
-      <PlanLadder />
-
-      {team.data && (team.data.plan.length > 0 || team.data.canEdit) && (
-        <Panel title="Team training plan">
-          <p className="text-sm text-slate-600">
-            {team.data.canEdit
-              ? 'Publish a suggested session per day for your squad. Riders who train the same session on the same day get a group bonus, so a shared plan makes everyone improve faster.'
-              : `${team.data.teamName ?? 'Your team'} suggests a session per day. Train it together with your teammates for a group bonus.`}
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            {team.data.plan.length > 0 && (
-              <button
-                type="button"
-                onClick={adoptTeamPlan}
-                className="rounded-lg bg-brand-cyan/15 px-3 py-1.5 text-sm font-medium text-brand-navy transition hover:bg-brand-cyan/25"
-              >
-                Adopt team plan
-              </button>
-            )}
-            {team.data.canEdit && (
-              <button
-                type="button"
-                onClick={publishTeamPlan}
-                className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700"
-              >
-                Publish my plan as the team plan
-              </button>
-            )}
-            {teamMsg && <span className="text-sm text-emerald-600">{teamMsg}</span>}
-          </div>
-        </Panel>
-      )}
-
-      {/*
-        LOS 28 DÍAS SIGUEN AHÍ, y eso es dictado del dueño: la escalera de bloques sube el NIVEL de
-        la decisión, no se la quita a nadie. Van PLEGADOS porque veintiocho filas de desplegables
-        abiertas de golpe son otra vez el muro que la escalera vino a arreglar.
-      */}
-      <Panel title="Edit day by day">
-        <button
-          type="button"
-          onClick={() => setDiaADia((x) => !x)}
-          aria-expanded={diaADia}
-          className="mb-2 text-sm font-medium text-brand-cyan hover:underline"
+      <Panel title="How you'll arrive" answer>
+        <QueryView
+          query={preview}
+          label="your arrivals"
+          skeleton={{ kind: 'rows', rows: 3, rowHeight: 64 }}
         >
-          {diaADia ? 'Hide the 28 days' : 'Show the 28 days'}
-        </button>
-        <div className={diaADia ? 'space-y-2' : 'hidden'}>
-          {semanas.map((semana, iSemana) => (
-            <div key={iSemana} className="space-y-2">
-              {/* Cada semana con su cabecera: con veintiocho días seguidos el jugador no sabe dónde
-                  está mirando, y el bloque de siete es la unidad con la que se piensa un plan. */}
-              <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Week {iSemana + 1} · days {seasonPosition(semana[0] ?? currentDay).dayOfSeason}–
-                {seasonPosition(semana[semana.length - 1] ?? currentDay).dayOfSeason}
-              </p>
-              {semana.map((gameDay) => {
-                const position = seasonPosition(gameDay)
-                if (raceDays.has(gameDay)) {
-                  return (
-                    <div
-                      key={gameDay}
-                      className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
-                    >
-                      <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                        Day {position.dayOfSeason}
-                      </span>
-                      <span className="text-sm font-semibold text-amber-700">🚴 Race day</span>
-                      <span className="text-xs text-amber-600">No training — you're racing.</span>
-                    </div>
-                  )
-                }
-                // Día de VIAJE, de ida o de vuelta: el plan lo enseña por adelantado, con la carrera.
-                // No se entrena. Antes solo salía la ida y el plan enseñaba medio viaje.
-                const trip = travelByDay.get(gameDay)
-                if (trip) {
-                  return (
-                    <div
-                      key={gameDay}
-                      className="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3"
-                    >
-                      <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                        Day {position.dayOfSeason}
-                      </span>
-                      <span className="text-sm font-semibold text-sky-700">✈️ Travel day</span>
-                      <span className="text-xs text-sky-600">
-                        {trip.direction === 'back' ? 'Heading home from' : 'On your way to'}{' '}
-                        {trip.raceName}
-                        {trip.country ? ` (${trip.country.toUpperCase()})` : ''} — no training.
-                      </span>
-                    </div>
-                  )
-                }
-                const day = planByDay.get(gameDay)
-                if (!day) return null
-                const info = SESSION_CATALOG[day.session]
-                return (
-                  <div
-                    key={gameDay}
-                    className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
-                  >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                        Day {position.dayOfSeason}
-                      </span>
-                      <select
-                        id={`session-${gameDay}`}
-                        aria-label={`Session for day ${position.dayOfSeason}`}
-                        value={day.session}
-                        onChange={(event) =>
-                          update(day.gameDay, { session: event.target.value as Session })
-                        }
-                        className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                      >
-                        {SELECTABLE_SESSIONS.map((session) => (
-                          <option key={session} value={session}>
-                            {SESSION_CATALOG[session].label}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        id={`intensity-${gameDay}`}
-                        aria-label={`Intensity for day ${position.dayOfSeason}`}
-                        value={day.intensity}
-                        disabled={!info.variableIntensity}
-                        onChange={(event) =>
-                          update(day.gameDay, { intensity: event.target.value as Intensity })
-                        }
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100 disabled:text-slate-400"
-                      >
-                        {INTENSITIES.map((intensity) => (
-                          <option key={intensity} value={intensity}>
-                            {INTENSITY_LABELS[intensity]}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="w-16 shrink-0 text-right text-xs text-slate-400">
-                        {info.tss[day.intensity]} TSS
-                      </span>
-                    </div>
-                    <p className="pl-24 text-xs text-slate-500">
-                      {sessionEffect(day.session, day.intensity)}
-                    </p>
-                    {(() => {
-                      const suggestion = teamByDay.get(gameDay)
-                      if (!suggestion || suggestion.session === day.session) return null
-                      return (
-                        <p className="pl-24 text-xs text-brand-navy">
-                          Team session: {SESSION_CATALOG[suggestion.session].label}{' '}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              update(gameDay, {
-                                session: suggestion.session,
-                                intensity: suggestion.intensity,
-                              })
-                            }
-                            className="font-medium underline hover:text-brand-cyan"
-                          >
-                            train together
-                          </button>
-                        </p>
-                      )
-                    })()}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </div>
+          {(p) => <ArrivalCards races={p.races} days={days ?? p.days} today={orders.currentDay} />}
+        </QueryView>
       </Panel>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <Panel title="Your month">
+        <PlanLadder
+          draft={draft}
+          calendar={calendar}
+          days={days}
+          direction={direction}
+          canStartFresh={stored.plan !== null && stored.plan.startDay < tomorrow}
+          onMode={(mode) => cambia({ mode })}
+          onBlock={(i, b) => cambia({ blocks: draft.blocks.map((x, j) => (j === i ? b : x)) })}
+          onFocus={(focusAttr) => cambia({ focusAttr })}
+          onIntensity={(intensity) => cambia({ intensity })}
+          onStartFresh={() => cambia({ startFresh: true })}
+        />
+      </Panel>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving || Object.keys(edits).length === 0}
-          className="rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Save day edits'}
-        </button>
-        {saved && <span className="text-sm text-emerald-600">Saved.</span>}
-        <span className="text-xs text-slate-400">
-          Only the days you changed are saved. Anything you leave alone goes back to your blocks —
-          or to your coach.
-        </span>
-      </div>
+      <Panel title="Edit day by day">
+        {days === null ? (
+          sinDias
+        ) : (
+          <DayByDay
+            mode={draft.mode}
+            calendar={calendar}
+            blocks={draft.blocks}
+            days={days}
+            races={races}
+            trips={trips}
+            actions={{
+              onEdit: (gameDay, choice) =>
+                tocaDias((e) => withDayEdit(e, orders.orders, gameDay, choice)),
+              onBack: (gameDay) => tocaDias((e) => withoutOrder(e, orders.orders, gameDay)),
+              backLabel: (gameDay) => {
+                const week = weekOfDay(calendar, gameDay)
+                return backToLabel({
+                  mode: draft.mode,
+                  weekBlock: week === null ? null : (draft.blocks[week.index] ?? null),
+                  teamPlanDay: teamByDay.has(gameDay),
+                })
+              },
+            }}
+            onSwitchToMixed={() => cambia({ mode: 'mixto' })}
+            {...(draft.mode === 'mixto' && teamByDay.size > 0
+              ? {
+                  onAdopt: () =>
+                    tocaDias((e) => adoptTeamSuggestions(e, orders.orders, days, teamByDay)),
+                }
+              : {})}
+            {...(team?.canEdit === true ? { onPublish: () => void publicar() } : {})}
+            teamMessage={teamMessage}
+          />
+        )}
+      </Panel>
+
+      <ActionBar
+        changes={changes}
+        consequence={consequence}
+        actionLabel="Save plan"
+        status={status}
+        onSave={() => void guardar()}
+      />
     </section>
   )
 }
