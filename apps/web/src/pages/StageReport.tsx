@@ -1,12 +1,13 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { fetchStageReport, stageReportKey } from '../api/broadcast'
-import { GateError } from '../api/request'
+import { ApiError, GateError } from '../api/request'
 import { fetchCalendarStage, stageReplayKey } from '../api/results'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
 import { ShareStage } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard } from '../components/StageGate'
+import { EmptyState } from '../components/ui/EmptyState'
 import { QueryView } from '../components/ui/QueryView'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
 import { diagOf, useHealth, useHorizonRev, useRevealActions, useWatchOn } from '../queryClient'
@@ -73,6 +74,9 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
   const info = stage.data ?? acta.data
   const race = info?.race
   const stagePath = `/world/races/${raceId}/stages/${day}`
+  // el 404 del acta es la etapa sin correr: un vacío con su porqué, no un fallo
+  const notRun =
+    acta.data === undefined && acta.error instanceof ApiError && acta.error.status === 404
   const diagOn = diag && isAdmin
 
   return (
@@ -103,41 +107,44 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
 
       {diagOn && <DiagnosticStrip exitHref={`/world/races/${raceId}/stages/${day}/report`} />}
 
-      {/* Los estados del acta, con `QueryView` (E3, PR 10): la puerta del velo (el 403, `GateError`), la
-          etapa sin correr (el 404) y un fallo, que ya dice qué falló. */}
-      <QueryView
-        query={acta}
-        label="the report"
-        skeleton={{ kind: 'panel' }}
-        notFound="This stage hasn't been raced yet."
-        gate={(g) => (
-          <StageGateCard
-            gate={g}
-            stageDay={day}
-            place="result"
-            raceId={raceId}
-            watchOn={watchOn}
-            watchable={watchOn}
-            actions={actions}
-            signIn={readingWithCookie}
-            diagHref={isAdmin ? `/world/races/${raceId}/stages/${day}/report?diag=1` : null}
-          />
-        )}
-      >
-        {(d) => (
-          <>
-            <ShareStage raceId={raceId} day={day} report />
-            <StageReportView data={d} />
-            {watchOn && (
-              <p className="text-sm">
-                <Link to={`${stagePath}?tab=watch`} className="font-medium text-brand-cyan">
-                  Watch this stage →
-                </Link>
-              </p>
-            )}
-          </>
-        )}
-      </QueryView>
+      {/* Los estados del acta, con `QueryView` (E3, PR 10): la puerta del velo (el 403, `GateError`) y un
+          fallo, que ya dice qué falló; la etapa sin correr (el 404), su vacío. */}
+      {notRun ? (
+        <EmptyState icon="race" text="This stage hasn't been raced yet." />
+      ) : (
+        <QueryView
+          query={acta}
+          label="the report"
+          skeleton={{ kind: 'panel' }}
+          gate={(g) => (
+            <StageGateCard
+              gate={g}
+              stageDay={day}
+              place="result"
+              raceId={raceId}
+              watchOn={watchOn}
+              watchable={watchOn}
+              actions={actions}
+              signIn={readingWithCookie}
+              diagHref={isAdmin ? `/world/races/${raceId}/stages/${day}/report?diag=1` : null}
+            />
+          )}
+        >
+          {(d) => (
+            <>
+              <ShareStage raceId={raceId} day={day} report />
+              <StageReportView data={d} />
+              {watchOn && (
+                <p className="text-sm">
+                  <Link to={`${stagePath}?tab=watch`} className="font-medium text-brand-cyan">
+                    Watch this stage →
+                  </Link>
+                </p>
+              )}
+            </>
+          )}
+        </QueryView>
+      )}
     </section>
   )
 }
