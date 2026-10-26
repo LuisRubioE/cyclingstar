@@ -92,6 +92,17 @@ export function queryViewStateOf<T>(
   return o.slow ? 'slow' : 'loading'
 }
 
+/**
+ * Lo que espera un 429 para repetirse solo: sus `retryAfterS`, o 5 s sin cabecera, como la espera de
+ * `Watch` (`RETRY_AFTER_FALLBACK_S`); `null` si no es un 429, o si ya hay datos en la mano.
+ */
+export function retryDelayMsOf<T>(query: Pick<Consulta<T>, 'data' | 'error'>): number | null {
+  const { data, error } = query
+  return data === undefined && error instanceof ApiError && error.status === 429
+    ? (error.retryAfterS ?? RETRY_AFTER_FALLBACK_S) * 1000
+    : null
+}
+
 export const SLOW_TEXT = 'Still loading. Slow connection?'
 
 /** Lo que tarda: el esqueleto se ve a los 300 ms, y a los 8 s la consulta es lenta. */
@@ -141,13 +152,10 @@ export function QueryView<T>(props: QueryViewProps<T>) {
   const { error, refetch } = query
 
   // un 429 se repite solo a los `retryAfterS` (5 s sin cabecera), como la espera de `Watch`
-  const espera429 =
-    query.data === undefined && error instanceof ApiError && error.status === 429
-      ? (error.retryAfterS ?? RETRY_AFTER_FALLBACK_S)
-      : null
+  const espera429 = retryDelayMsOf(query)
   useEffect(() => {
     if (espera429 === null) return
-    const t = setTimeout(() => void refetch(), espera429 * 1000)
+    const t = setTimeout(() => void refetch(), espera429)
     return () => clearTimeout(t)
   }, [espera429, error, refetch])
 

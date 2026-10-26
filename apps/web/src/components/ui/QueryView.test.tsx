@@ -3,7 +3,13 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ApiError, ContractError, GateError } from '../../api/request'
 import { ChunkLoadError } from '../../lazyPage'
-import { QueryView, type QueryViewProps, errorKindOf, queryViewStateOf } from './QueryView'
+import {
+  QueryView,
+  type QueryViewProps,
+  errorKindOf,
+  queryViewStateOf,
+  retryDelayMsOf,
+} from './QueryView'
 
 /**
  * `QueryView` (E3, docs/visual.md §4.2; PR 10): los seis estados de una consulta, cada uno por sus props
@@ -158,6 +164,16 @@ describe('QueryView: lo que no es un fallo (Rcodigo-009)', () => {
     expect(s).toMatch(/^<div data-ui="QueryView" data-state="slow" role="status">/)
     expect(texto(s)).toContain('Still loading. Slow connection? Retry')
     expect(s).toMatch(/data-ui="Skeleton" data-variant="rows" data-state="loading"/)
+  })
+
+  it('un 429 se repite solo a los retryAfterS, y a los 5 s sin cabecera, como Watch', () => {
+    const con = (error: Error, data?: readonly string[]) =>
+      retryDelayMsOf(consulta({ status: 'error', fetchStatus: 'idle', error, data }))
+    expect(con(new ApiError('x', 429, 'demasiadas_peticiones', 3))).toBe(3000)
+    expect(con(new ApiError('x', 429, 'demasiadas_peticiones'))).toBe(5000)
+    expect(con(new ApiError('x', 500, null))).toBeNull()
+    // con datos en la mano, no se pinta lenta ni se repite: la repetición es la de React Query
+    expect(con(new ApiError('x', 429, 'demasiadas_peticiones', 3), ['Valencia'])).toBeNull()
   })
 
   it('un 401 sigue cargando: lo resuelve SessionExpiryWatcher', () => {
