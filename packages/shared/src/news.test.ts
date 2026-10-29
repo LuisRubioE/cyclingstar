@@ -119,6 +119,10 @@ const GOLDENS: readonly { readonly payload: NewsPayload; readonly text: string }
 const KIT_GOLDENS: readonly { readonly payload: NewsPayload; readonly text: string }[] = [
   { payload: { kind: 'kit_new', teamId: 't2', kit: 'plain.navy' }, text: 'T has a new kit.' },
   { payload: { kind: 'kit_ceded', teamId: 't2', kit: 'halves.red.blue' }, text: 'New kit for T.' },
+  {
+    payload: { kind: 'kit_reset', teamId: 't2', kit: 'hoops.navy.yellow' },
+    text: "T's kit was reset by a moderator.",
+  },
 ]
 
 const KINDS: readonly NewsKind[] = [
@@ -137,6 +141,7 @@ const KINDS: readonly NewsKind[] = [
   'retirement',
   'kit_new',
   'kit_ceded',
+  'kit_reset',
 ]
 
 const render = (p: NewsPayload, n: NameResolver = SHORT): string =>
@@ -164,6 +169,10 @@ describe('shared: el titular se redacta al leer desde sus datos (B4)', () => {
     const otro: NameResolver = { ...SHORT, team: () => 'Mistral Racing' }
     expect(render(KIT_GOLDENS[0]!.payload, otro)).toBe('Mistral Racing has a new kit.')
     expect(render(KIT_GOLDENS[1]!.payload, otro)).toBe('New kit for Mistral Racing.')
+    // la reversión de E9 (§8.8; 18a), en tercera persona: el diario del equipo lo lee cualquiera
+    expect(render(KIT_GOLDENS[2]!.payload, otro)).toBe(
+      "Mistral Racing's kit was reset by a moderator.",
+    )
   })
 
   it('la etapa se cita con su salida y su llegada, una ciudad si coinciden, y sin nada fuera del calendario', () => {
@@ -284,7 +293,7 @@ describe('B5 · las noticias ya escritas se leen igual (§12.7, §16.4)', () => 
 })
 
 describe('shared: newsPayloadSchema, lo que la API acepta de news.data', () => {
-  it('acepta los trece payloads de los goldens tal cual, y los dos del maillot', () => {
+  it('acepta los trece payloads de los goldens tal cual, y los tres del maillot', () => {
     for (const { payload } of [...GOLDENS, ...KIT_GOLDENS])
       expect(newsPayloadSchema.parse(payload)).toEqual(payload)
   })

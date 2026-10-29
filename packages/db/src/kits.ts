@@ -1,14 +1,22 @@
 import {
+  type BibStyle,
+  DAYS_PER_SEASON,
+  KIT_CHANGES_PER_SEASON,
+  KIT_CODES,
+  type KitBlockedWhy,
+  type KitCheckCode,
   type KitCode,
   type KitVerdict,
+  type TeamKitResponse,
   canonicalKit,
   currentSeason,
   parseKit,
   seededRng,
 } from '@cyclingstar/shared'
 import { type LegacyJerseyStyle, legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
-import { and, desc, eq, ne, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, ne, sql } from 'drizzle-orm'
 import type { drizzle } from 'drizzle-orm/postgres-js'
+import type { Database } from './client.js'
 import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
 import { kitOn, kitsOn } from './kitsOn.js'
@@ -243,12 +251,76 @@ const okVerdict: KitVerdict = {
   nextChangeDay: null,
 }
 
+// ---------------------------------------------------------------------- el cambio por temporada
+
+/** Una fila de la historia del maillot de un equipo: lo que mira el cambio por temporada. */
+export interface KitHistoryRow {
+  readonly validFromDay: number
+  readonly setBy: KitSetBy
+}
+
 /**
- * El veredicto de un maillot para un equipo (§8.7), en el orden de `kitCheckCodeSchema`: el que ya lleva
- * o tiene programado (`kit_igual`), sin contraste (`kit_contraste`), reservado por una señal
- * (`kit_reservado`), el que lleva otro equipo del mundo (`kit_ocupado`) y el que choca con un rival de
- * temporada (`kit_se_confunde`), nombrando al que más carreras comparte. `kit_reciente`, el límite de un
- * cambio por temporada, llega con el 18a (`kitChangeAllowed`). Consulta la tabla; no rasteriza.
+ * Los cambios del mánager que cuentan en la temporada de hoy (D-00k; §8.7; 8-g, 8-t): las filas `manager`
+ * guardadas en ella (`currentSeason(validFromDay − 1)`, porque todo maillot vale desde el día siguiente al
+ * de guardarlo) desde que el equipo tiene este dueño, menos dos: la de su primer cambio, que es libre, y
+ * la de mañana, que un guardado de hoy sustituye. Las de la traducción, un patrocinio o un moderador no
+ * cuentan nunca, ni las del dueño anterior. Sin `managedSinceDay`, en los equipos con dueño antes del 16a,
+ * el cambio libre es el primero de todos.
+ */
+export function kitChangesCounted(
+  rows: readonly KitHistoryRow[],
+  managedSinceDay: number | null,
+  today: number,
+): number {
+  const season = currentSeason(today)
+  const mine = rows
+    .filter(
+      (r) =>
+        r.setBy === 'manager' && (managedSinceDay === null || r.validFromDay > managedSinceDay),
+    )
+    .sort((a, b) => a.validFromDay - b.validFromDay)
+  return mine
+    .slice(1)
+    .filter((r) => r.validFromDay !== today + 1 && currentSeason(r.validFromDay - 1) === season)
+    .length
+}
+
+/** Si el mánager puede cambiar hoy de maillot; si no, desde qué día: el primero de la temporada siguiente. */
+export function kitChangeAllowed(
+  rows: readonly KitHistoryRow[],
+  managedSinceDay: number | null,
+  today: number,
+): { readonly ok: true } | { readonly ok: false; readonly nextChangeDay: number } {
+  return kitChangesCounted(rows, managedSinceDay, today) < KIT_CHANGES_PER_SEASON
+    ? { ok: true }
+    : { ok: false, nextChangeDay: nextSeasonDay(today) }
+}
+
+/** El primer día de la temporada siguiente a la de `day`. */
+const nextSeasonDay = (day: number): number => (currentSeason(day) + 1) * DAYS_PER_SEASON
+
+/** La historia del maillot de un equipo y desde cuándo lo lleva su dueño. */
+async function kitHistory(
+  q: Queryable,
+  teamId: string,
+): Promise<{ readonly rows: readonly KitHistoryRow[]; readonly managedSinceDay: number | null }> {
+  const rows = await q
+    .select({ validFromDay: teamKits.validFromDay, setBy: teamKits.setBy })
+    .from(teamKits)
+    .where(eq(teamKits.teamId, teamId))
+  const [team] = await q
+    .select({ managedSinceDay: teams.managedSinceDay })
+    .from(teams)
+    .where(eq(teams.id, teamId))
+  return { rows, managedSinceDay: team?.managedSinceDay ?? null }
+}
+
+/**
+ * El veredicto de un maillot para un equipo (§8.7), en el orden de `kitCheckCodeSchema`: el cambio por
+ * temporada ya gastado (`kit_reciente`, con el día en que vuelve a poder), el que ya lleva o tiene
+ * programado (`kit_igual`), sin contraste (`kit_contraste`), reservado por una señal (`kit_reservado`), el
+ * que lleva otro equipo del mundo (`kit_ocupado`) y el que choca con un rival de temporada
+ * (`kit_se_confunde`), nombrando al que más carreras comparte. Consulta la tabla; no rasteriza.
  */
 export async function checkKit(
   q: Queryable,
@@ -261,6 +333,10 @@ export async function checkKit(
 ): Promise<KitVerdict> {
   const { worldId, teamId, kit, today } = args
   const fromDay = today + 1
+  const { rows, managedSinceDay } = await kitHistory(q, teamId)
+  const allowed = kitChangeAllowed(rows, managedSinceDay, today)
+  if (!allowed.ok)
+    return { ...okVerdict, ok: false, code: 'kit_reciente', nextChangeDay: allowed.nextChangeDay }
   const [current, next] = [await kitOn(q, teamId, today), await kitOn(q, teamId, fromDay)]
   // el mismo maillot es el mismo canónico: el espejo de halves también (8-k)
   const same = (k: KitCode | null) => k !== null && canonicalKit(k) === canonicalKit(kit)
@@ -556,4 +632,179 @@ export async function revertKit(tx: Tx, teamId: string, reason: string): Promise
   }
   await setKit(tx, teamId, kit, 'moderator', fromDay)
   return kit
+}
+
+// ------------------------------------------------------------------------------- el editor (18a)
+
+/** Los rivales que enseña el editor, los que más carreras comparten (§8.7). */
+const EDITOR_RIVALS = 8
+
+/**
+ * Lo que pinta el editor (§8.7; 8-e), `GET /api/teams/me/kit`: el maillot de hoy y el programado, el
+ * culote, los cambios que le quedan esta temporada, los códigos que no puede elegir con su porqué (sin
+ * contraste, reservado, el de otro equipo o el que choca con un rival de mañana), con lo que tacha sus
+ * muestras, y sus ocho rivales con más carreras compartidas. Sin la tabla de choques en la web.
+ */
+export async function getTeamKitState(
+  q: Queryable,
+  args: { readonly worldId: string; readonly teamId: string; readonly today: number },
+): Promise<TeamKitResponse> {
+  const { worldId, teamId, today } = args
+  const fromDay = today + 1
+  const [team] = await q.select({ bib: teams.bib }).from(teams).where(eq(teams.id, teamId))
+  const current = await kitOn(q, teamId, today)
+  const [pending] = await q
+    .select({ kit: teamKits.kit, validFromDay: teamKits.validFromDay })
+    .from(teamKits)
+    .where(and(eq(teamKits.teamId, teamId), gt(teamKits.validFromDay, today)))
+    .orderBy(desc(teamKits.validFromDay))
+    .limit(1)
+  const { rows, managedSinceDay } = await kitHistory(q, teamId)
+  const changesLeft = Math.max(
+    0,
+    KIT_CHANGES_PER_SEASON - kitChangesCounted(rows, managedSinceDay, today),
+  )
+  const others = await q
+    .select({ canonical: teams.kitCanonical })
+    .from(teams)
+    .where(and(eq(teams.worldId, worldId), ne(teams.id, teamId)))
+  const taken = new Set(others.flatMap((o) => (o.canonical === null ? [] : [o.canonical])))
+  const rivals = (await seasonRivals(q, worldId, currentSeason(fromDay))).get(teamId) ?? new Map()
+  const worn = await kitsOn(q, [...rivals.keys()], fromDay)
+  const rivalKits = new Set(worn.values())
+  const options: { kit: KitCode; why: KitBlockedWhy }[] = []
+  for (const kit of KIT_CODES) {
+    const entry = KIT_CONFLICTS[kit]
+    const why: KitBlockedWhy | null =
+      entry === undefined || !entry.contrastOk
+        ? 'contraste'
+        : entry.reserved !== null
+          ? 'reservado'
+          : taken.has(canonicalKit(kit))
+            ? 'ocupado'
+            : entry.near.some(([c]) => rivalKits.has(c))
+              ? 'rival'
+              : null
+    if (why !== null) options.push({ kit, why })
+  }
+  const top = [...rivals]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, EDITOR_RIVALS)
+  const names =
+    top.length === 0
+      ? []
+      : await q
+          .select({ id: teams.id, name: teams.name })
+          .from(teams)
+          .where(
+            inArray(
+              teams.id,
+              top.map(([id]) => id),
+            ),
+          )
+  const nameOf = new Map(names.map((n) => [n.id, n.name]))
+  return {
+    current,
+    bib: team?.bib ?? 'black',
+    pending: pending ? { kit: pending.kit as KitCode, validFromDay: pending.validFromDay } : null,
+    changesLeft,
+    nextChangeDay: changesLeft > 0 ? null : nextSeasonDay(today),
+    options,
+    rivals: top.map(([id, races]) => ({
+      teamId: id,
+      name: nameOf.get(id) ?? '',
+      kit: worn.get(id) ?? null,
+      races,
+    })),
+  }
+}
+
+/** El equipo que lleva un usuario y el día de hoy de su mundo; null si no lleva ninguno. */
+export async function ownedTeamToday(
+  q: Queryable,
+  userId: string,
+): Promise<{ readonly teamId: string; readonly worldId: string; readonly today: number } | null> {
+  const [team] = await q
+    .select({ teamId: teams.id, worldId: teams.worldId })
+    .from(teams)
+    .where(eq(teams.ownerUserId, userId))
+    .limit(1)
+  return team ? { ...team, today: await today(q, team.worldId) } : null
+}
+
+/** Lo que contesta el guardado del editor: el día desde el que vale el maillot, o su porqué. */
+export type KitSaveResult =
+  | { readonly ok: true; readonly validFromDay: number | null }
+  | { readonly ok: false; readonly code: 'kit_reciente'; readonly nextChangeDay: number }
+  | { readonly ok: false; readonly code: Exclude<KitCheckCode, 'kit_reciente'> | 'sin_equipo' }
+
+/**
+ * El guardado del editor (§8.7), `PUT /api/teams/me/kit`, en una transacción: el maillot, si vale, para
+ * mañana con `set_by = 'manager'`; el culote, en el acto, sin contar para el límite ni para la unicidad.
+ * Si el maillot no vale, no se guarda nada, tampoco el culote. Un guardado a la vez que otro equipo se
+ * queda con el mismo canónico da `kit_ocupado` (el índice, §8.5).
+ */
+export async function saveTeamKit(
+  db: Database,
+  userId: string,
+  body: { readonly kit?: KitCode | undefined; readonly bib?: BibStyle | undefined },
+): Promise<KitSaveResult> {
+  return db.transaction(async (tx): Promise<KitSaveResult> => {
+    const [team] = await tx
+      .select({ id: teams.id, worldId: teams.worldId })
+      .from(teams)
+      .where(eq(teams.ownerUserId, userId))
+      .limit(1)
+    if (!team) return { ok: false, code: 'sin_equipo' }
+    const day = await today(tx, team.worldId)
+    let validFromDay: number | null = null
+    if (body.kit !== undefined) {
+      const verdict = await checkKit(tx, {
+        worldId: team.worldId,
+        teamId: team.id,
+        kit: body.kit,
+        today: day,
+      })
+      if (verdict.code === 'kit_reciente')
+        return { ok: false, code: 'kit_reciente', nextChangeDay: nextSeasonDay(day) }
+      if (verdict.code !== null) return { ok: false, code: verdict.code }
+      try {
+        await setKit(tx, team.id, body.kit, 'manager', day + 1)
+      } catch (error) {
+        if (error instanceof KitTakenError) return { ok: false, code: 'kit_ocupado' }
+        throw error
+      }
+      validFromDay = day + 1
+    }
+    if (body.bib !== undefined)
+      await tx.update(teams).set({ bib: body.bib }).where(eq(teams.id, team.id))
+    return { ok: true, validFromDay }
+  })
+}
+
+/**
+ * La reversión de E9 con su noticia (§8.8): `revertKit` y, en el diario del equipo, `Mistral Racing's kit
+ * was reset by a moderator.`, fechada el día en que se ve. Null si el equipo no existe.
+ */
+export async function revertTeamKit(
+  db: Database,
+  teamId: string,
+  reason: string,
+): Promise<{ readonly kit: KitCode; readonly validFromDay: number } | null> {
+  return db.transaction(async (tx) => {
+    const [team] = await tx
+      .select({ worldId: teams.worldId })
+      .from(teams)
+      .where(eq(teams.id, teamId))
+    if (!team) return null
+    const kit = await revertKit(tx, teamId, reason)
+    const validFromDay = (await today(tx, team.worldId)) + 1
+    await emitNews(tx, {
+      worldId: team.worldId,
+      gameDay: validFromDay,
+      seed: `kit_reset:${teamId}:${validFromDay}`,
+      payload: { kind: 'kit_reset', teamId, kit },
+    })
+    return { kit, validFromDay }
+  })
 }

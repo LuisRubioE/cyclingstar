@@ -8,6 +8,7 @@ import {
   BIB_STRAPS,
   BIB_STYLES,
   type BibStyle,
+  KIT_CHANGES_PER_SEASON,
   KIT_BASES,
   KIT_CODES,
   KIT_COLORS,
@@ -437,6 +438,10 @@ describe('shared: el maillot en grande (E3, §8.10; PR 17c)', () => {
             )
       }
     }
+  })
+
+  it('un cambio de maillot por temporada (D-00k; 18a)', () => {
+    expect(KIT_CHANGES_PER_SEASON).toBe(1)
   })
 
   it('una zona con nombre no cambia el Kit: el nombre del patrocinador viaja aparte (§9.9)', () => {

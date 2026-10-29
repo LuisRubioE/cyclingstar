@@ -1020,6 +1020,65 @@ export const kitVerdictSchema = z.object({
 })
 export type KitVerdict = z.infer<typeof kitVerdictSchema>
 
+// --- Las rutas del editor del maillot (E3, docs/visual.md §8.7 y §8.8; PR 18a) -------------------
+
+/** Por qué no se puede elegir un maillot, con lo que el editor tacha su muestra. */
+export const kitBlockedWhySchema = z.enum(['contraste', 'reservado', 'ocupado', 'rival'])
+export type KitBlockedWhy = z.infer<typeof kitBlockedWhySchema>
+
+/** `GET /api/teams/me/kit`: lo que el editor necesita para pintar sin la tabla de choques (8-e). */
+export const teamKitResponseSchema = z.object({
+  /** el que lleva hoy */
+  current: kitCodeSchema.nullable(),
+  bib: z.enum(BIB_STYLES),
+  /** el programado, que vale desde mañana o después */
+  pending: z.object({ kit: kitCodeSchema, validFromDay: z.number().int() }).nullable(),
+  /** los cambios que le quedan esta temporada (D-00k) */
+  changesLeft: z.number().int().nonnegative(),
+  /** sin ninguno: el primer día en que vale otro, el primero de la temporada siguiente */
+  nextChangeDay: z.number().int().nullable(),
+  /** los que no puede elegir, cada uno con su porqué */
+  options: z.array(z.object({ kit: kitCodeSchema, why: kitBlockedWhySchema })),
+  /** los ocho rivales que más carreras comparten, con el maillot que llevan mañana */
+  rivals: z.array(
+    z.object({
+      teamId: z.string(),
+      name: z.string(),
+      kit: kitCodeSchema.nullable(),
+      races: z.number().int(),
+    }),
+  ),
+})
+export type TeamKitResponse = z.infer<typeof teamKitResponseSchema>
+
+/** `POST /api/teams/me/kit/check`: el maillot que se mira, nada más. */
+export const kitCheckBodySchema = z.strictObject({ kit: kitCodeSchema })
+
+/** `PUT /api/teams/me/kit`: el maillot (desde mañana), el culote (en el acto) o los dos. */
+export const kitSaveBodySchema = z
+  .strictObject({ kit: kitCodeSchema.optional(), bib: z.enum(BIB_STYLES).optional() })
+  .refine((b) => b.kit !== undefined || b.bib !== undefined, { message: 'nada_que_cambiar' })
+export type KitSaveBody = z.infer<typeof kitSaveBodySchema>
+/** El día desde el que vale el maillot guardado; null si solo cambió el culote. */
+export const kitSaveResponseSchema = z.object({
+  ok: z.literal(true),
+  validFromDay: z.number().int().nullable(),
+})
+/** El 429 del cambio por temporada: sin `retry-after`, que no es el límite de peticiones (8-v). */
+export const kitRecentErrorSchema = z.object({
+  ok: z.literal(false),
+  error: z.literal('kit_reciente'),
+  nextChangeDay: z.number().int(),
+})
+
+/** `POST /api/admin/teams/:id/kit/revert` (§8.8): el motivo, que va al registro de la API. */
+export const kitRevertBodySchema = z.strictObject({ reason: z.string().trim().min(3).max(200) })
+export const kitRevertResponseSchema = z.object({
+  ok: z.literal(true),
+  kit: kitCodeSchema,
+  validFromDay: z.number().int(),
+})
+
 // --- /api/news -----------------------------------------------------------------------------
 
 export const newsItemSchema = z.object({

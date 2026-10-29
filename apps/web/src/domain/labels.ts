@@ -206,6 +206,8 @@ const NEWS_KIND_LABEL: Record<string, string> = {
   // el del NPC que cede.
   kit_new: 'Kit',
   kit_ceded: 'Kit',
+  // y el que pone un moderador (§8.8; 18a)
+  kit_reset: 'Kit',
 }
 
 export function newsLabel(kind: string): string {

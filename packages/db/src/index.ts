@@ -410,9 +410,17 @@ export {
   KitTakenError,
   checkKit,
   ensureKits,
+  getTeamKitState,
+  kitChangeAllowed,
+  kitChangesCounted,
+  ownedTeamToday,
   revertKit,
+  revertTeamKit,
+  saveTeamKit,
   setKit,
   type EnsureKitsReport,
+  type KitHistoryRow,
+  type KitSaveResult,
   type KitSetBy,
 } from './kits.js'
 export { kitOn, kitsOn } from './kitsOn.js'

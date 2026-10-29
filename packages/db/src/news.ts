@@ -5,6 +5,7 @@ import {
   type NewsPayload,
   TEAM_NEWS_KINDS,
   TEMPLATE_REV,
+  isTeamNewsPayload,
   newsPayloadSchema,
   parseRaceKey,
   renderNews,
@@ -106,9 +107,8 @@ export async function newsNames(
   for (const p of payloads) {
     if ('riderId' in p && UUID.test(p.riderId)) riderIds.add(p.riderId)
     if (p.kind === 'contract' && UUID.test(p.toTeamId)) teamIds.add(p.toTeamId)
-    // las del maillot (E3, 17b) nombran a su equipo, que no tiene corredor
-    if ((p.kind === 'kit_new' || p.kind === 'kit_ceded') && UUID.test(p.teamId))
-      teamIds.add(p.teamId)
+    // las del maillot (E3, 17b y 18a) nombran a su equipo, que no tiene corredor
+    if (isTeamNewsPayload(p) && UUID.test(p.teamId)) teamIds.add(p.teamId)
   }
   const riderRows =
     riderIds.size === 0

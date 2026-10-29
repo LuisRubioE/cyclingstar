@@ -15,11 +15,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
 import {
+  type KitHistoryRow,
   KitTakenError,
   assignKits,
   checkKit,
   emitKitNews,
   ensureKits,
+  kitChangeAllowed,
+  kitChangesCounted,
   kitsBySeed,
   kitsClash,
   revertKit,
@@ -400,6 +403,27 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
         !worn.has(canonicalKit(c)) && ![...mine.keys()].some((r) => kitsClash(c, kits.get(r)!)),
     )!
     expect(await check(fine)).toMatchObject({ ok: true, code: null })
+    // y antes que todo, el cambio por temporada (18a): con dueño desde el día 0, el primero es libre y
+    // el segundo de la temporada agota el cambio; lo da kit_reciente aunque el maillot valga
+    await rolledBack(async (tx) => {
+      await tx.update(teams).set({ managedSinceDay: 0 }).where(eq(teams.id, id))
+      const second = KIT_ALLOWED.filter(
+        (c) =>
+          !worn.has(canonicalKit(c)) &&
+          ![...mine.keys()].some((r) => kitsClash(c, kits.get(r)!)) &&
+          canonicalKit(c) !== canonicalKit(fine),
+      )[0]!
+      // el día 1 es el de la traducción de la génesis: los dos cambios, los días 3 y 4
+      await tx.insert(teamKits).values([
+        { teamId: id, validFromDay: 3, kit: second, setBy: 'manager' },
+        { teamId: id, validFromDay: 4, kit: second, setBy: 'manager' },
+      ])
+      expect(await checkKit(tx, { worldId, teamId: id, kit: fine, today: 10 })).toMatchObject({
+        ok: false,
+        code: 'kit_reciente',
+        nextChangeDay: 364,
+      })
+    })
   })
 
   it('el NPC cede: si el maillot de un humano choca con el de un NPC rival, el NPC cambia esa noche', async () => {
@@ -572,5 +596,61 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       .from(teams)
       .where(eq(teams.id, npcTeam!.id))
     expect(released).toEqual({ owner: null, day: null })
+  })
+})
+
+/**
+ * UN CAMBIO POR TEMPORADA (E3, docs/visual.md §8.7; D-00k, 8-g, 8-t; PR 18a): la tabla de
+ * `kitChangeAllowed`, pura. Cuentan las filas `manager` de la temporada de hoy de quien lleva el equipo,
+ * menos la de su primer cambio y la de mañana, que un guardado de hoy sustituiría; las de la traducción,
+ * un patrocinio o un moderador, nunca.
+ */
+describe('db: un cambio de maillot por temporada (kitChangeAllowed)', () => {
+  const m = (validFromDay: number): KitHistoryRow => ({ validFromDay, setBy: 'manager' })
+  const by = (validFromDay: number, setBy: KitHistoryRow['setBy']): KitHistoryRow => ({
+    validFromDay,
+    setBy,
+  })
+  const NEXT = { ok: false, nextChangeDay: 364 } as const
+
+  it('el primer cambio tras tomar el equipo es libre; el segundo de la temporada, no', () => {
+    expect(kitChangeAllowed([], 90, 100)).toEqual({ ok: true })
+    expect(kitChangeAllowed([m(95)], 90, 100)).toEqual({ ok: true })
+    expect(kitChangesCounted([m(95)], 90, 100)).toBe(0)
+    expect(kitChangeAllowed([m(95), m(98)], 90, 100)).toEqual(NEXT)
+    expect(kitChangesCounted([m(95), m(98)], 90, 100)).toBe(1)
+  })
+
+  it('dos guardados el mismo día cuentan uno: el de mañana se sustituye (8-t)', () => {
+    // el segundo cambio, guardado hoy para mañana: se puede cambiar de idea hoy
+    expect(kitChangeAllowed([m(95), m(101)], 90, 100)).toEqual({ ok: true })
+    // y mañana ya contó
+    expect(kitChangeAllowed([m(95), m(101)], 90, 101)).toEqual(NEXT)
+  })
+
+  it('la traducción, un patrocinio y un moderador no cuentan; el cambio del mánager tras ellos, sí', () => {
+    const rows = [by(50, 'system'), m(95), by(97, 'sponsor'), by(98, 'moderator')]
+    expect(kitChangeAllowed(rows, 90, 100)).toEqual({ ok: true })
+    expect(kitChangeAllowed([...rows, m(99)], 90, 100)).toEqual(NEXT)
+  })
+
+  it('la temporada siguiente vuelve a ser libre; una fila cuenta en la temporada del día en que se guardó', () => {
+    expect(kitChangeAllowed([m(95), m(98)], 90, 400)).toEqual({ ok: true })
+    // guardada el último día de la 0 para el primero de la 1: es de la 0
+    expect(kitChangeAllowed([m(300), m(364)], 90, 364)).toEqual({ ok: true })
+    expect(kitChangeAllowed([m(300), m(330)], 90, 363)).toEqual(NEXT)
+    expect(kitChangeAllowed([m(400), m(500)], 90, 600)).toEqual({ ok: false, nextChangeDay: 728 })
+  })
+
+  it('sin managed_since_day (con dueño antes del 16a), el primero de todos es el libre', () => {
+    expect(kitChangeAllowed([m(95)], null, 100)).toEqual({ ok: true })
+    expect(kitChangeAllowed([m(95), m(98)], null, 100)).toEqual(NEXT)
+  })
+
+  it('los cambios del dueño anterior no cuentan para el nuevo', () => {
+    // el nuevo lo tomó el día 99; los de 95 y 98 eran del anterior
+    expect(kitChangeAllowed([m(95), m(98)], 99, 100)).toEqual({ ok: true })
+    expect(kitChangeAllowed([m(95), m(98), m(101)], 99, 102)).toEqual({ ok: true })
+    expect(kitChangeAllowed([m(95), m(98), m(101), m(103)], 99, 104)).toEqual(NEXT)
   })
 })

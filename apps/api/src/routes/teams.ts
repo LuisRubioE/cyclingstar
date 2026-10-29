@@ -1,30 +1,56 @@
 import {
+  checkKit,
   draftRace,
   getCurrentWorld,
   getRiderTeamRacePlan,
   getTeamCalendar,
   getTeamDetail,
+  getTeamKitState,
   getTeamNews,
   getTeams,
+  ownedTeamToday,
+  saveTeamKit,
   takeOverBotTeam,
   undraftRace,
   updateOwnedTeam,
 } from '@cyclingstar/db'
+import {
+  type KitCheckCode,
+  kitCheckBodySchema,
+  kitRecentErrorSchema,
+  kitSaveBodySchema,
+  kitSaveResponseSchema,
+  kitVerdictSchema,
+  teamKitResponseSchema,
+} from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import { diagHorizon } from '../spoiler.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseUuid } from './params.js'
 
+// El nombre y el país; el maillot va por su editor desde el 18a (E3, docs/visual.md §8.7), y
+// `jerseySeed` ya no se acepta: una clave de más se quita, y sola no cambia nada.
 const teamEditSchema = z
   .object({
     name: z.string().trim().min(2).max(40).optional(),
     country: z.string().trim().length(2).optional(),
-    jerseySeed: z.string().trim().min(1).max(120).optional(),
   })
-  .refine((v) => v.name !== undefined || v.country !== undefined || v.jerseySeed !== undefined, {
+  .refine((v) => v.name !== undefined || v.country !== undefined, {
     message: 'nada_que_cambiar',
   })
+
+/** El código HTTP de cada porqué del guardado del maillot (§8.7); `kit_reciente` va aparte, con su 429. */
+const KIT_SAVE_STATUS: Readonly<
+  Record<Exclude<KitCheckCode, 'kit_reciente'> | 'sin_equipo', number>
+> = {
+  kit_igual: 400,
+  kit_contraste: 400,
+  kit_reservado: 409,
+  kit_ocupado: 409,
+  kit_se_confunde: 409,
+  sin_equipo: 409,
+}
 
 /**
  * Rutas de equipo: control del equipo propio (tomar el control, editarlo, planificar su
@@ -45,7 +71,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
     return { ok: true, teamId: result.teamId, teamName: result.teamName }
   })
 
-  // El dueño edita su equipo: nombre (validado como el de un ciclista), país y maillot (SPEC 7).
+  // El dueño edita su equipo: nombre (validado como el de un ciclista) y país (SPEC 7).
   app.put('/api/teams/me', { config: { spoiler: 'safe' } }, async (request, reply) => {
     const userId = await currentUserId(request)
     if (!userId) return unauthorized(reply)
@@ -58,6 +84,59 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
     }
     return { ok: true }
   })
+
+  // EL EDITOR DEL MAILLOT (E3, docs/visual.md §8.7; PR 18a): lo que pinta, el veredicto y el guardado,
+  // `safe` y con su esquema de respuesta, que el serializador recorta (§13.3). Un cambio por temporada
+  // (D-00k): su 429 `kit_reciente` va sin `retry-after`, que no es el límite de peticiones (8-v).
+  app.get(
+    '/api/teams/me/kit',
+    { config: { spoiler: 'safe' }, schema: { response: { 200: teamKitResponseSchema } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const team = await ownedTeamToday(db, userId)
+      if (!team) return sendError(reply, 409, 'sin_equipo')
+      return getTeamKitState(db, team)
+    },
+  )
+
+  // El veredicto, a los 300 ms del último toque en el editor: la autoridad es esta, no la pantalla.
+  app.post(
+    '/api/teams/me/kit/check',
+    { config: { spoiler: 'safe' }, schema: { response: { 200: kitVerdictSchema } } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = kitCheckBodySchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const team = await ownedTeamToday(db, userId)
+      if (!team) return sendError(reply, 409, 'sin_equipo')
+      return checkKit(db, { ...team, kit: parsed.data.kit })
+    },
+  )
+
+  app.put(
+    '/api/teams/me/kit',
+    {
+      config: { spoiler: 'safe' },
+      schema: { response: { 200: kitSaveResponseSchema, 429: kitRecentErrorSchema } },
+    },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = kitSaveBodySchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const result = await saveTeamKit(db, userId, parsed.data)
+      if (result.ok) return { ok: true as const, validFromDay: result.validFromDay }
+      if (result.code === 'kit_reciente')
+        return reply.status(429).send({
+          ok: false as const,
+          error: 'kit_reciente' as const,
+          nextChangeDay: result.nextChangeDay,
+        })
+      return sendError(reply, KIT_SAVE_STATUS[result.code], result.code)
+    },
+  )
 
   // Draft de calendario del EQUIPO (lo hace el manager): lista las carreras elegibles con el coste
   // de viaje y permite añadir/quitar del plan. Solo para quien gestiona un equipo.

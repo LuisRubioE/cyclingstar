@@ -3,7 +3,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getCastIdentities } from './castIdentities.js'
 import { removeJerseyClones } from './jerseyClone.js'
 import { teams, tickLog, worlds } from './schema.js'
-import { updateOwnedTeam } from './teamControl.js'
 import { type TestDb, startTestDb } from './testDb.js'
 import { runTick } from './tick.js'
 import { reconcileTeams, seedWorld, teamIndexFromSeed } from './world.js'
@@ -109,8 +108,10 @@ describe('db: el clon del maillot (E3, §8.9; PR 1)', () => {
     const team = await genesisTeam('CON', 0)
     await t.db.update(teams).set({ ownerUserId: USER_A }).where(eq(teams.id, team.id))
     const candidate = `${team.id}:jersey:3`
-    expect(await updateOwnedTeam(t.db, USER_A, { jerseySeed: candidate })).toEqual({ ok: true })
-    // El maillot va a la semilla del dibujo: la de génesis, la identidad, sigue en su sitio.
+    // Hasta el 18a de E3, `updateOwnedTeam` escribía la candidata en la semilla del dibujo; desde el 18a
+    // el maillot va por su editor (`PUT /api/teams/me/kit`), y la que eligió antes sigue ahí.
+    await t.db.update(teams).set({ jerseyStyleSeed: candidate }).where(eq(teams.id, team.id))
+    // La de génesis, la identidad, sigue en su sitio.
     expect(await genesisTeam('CON', 0)).toMatchObject({ id: team.id, jerseyStyleSeed: candidate })
     await tick()
     expect(await counts()).toEqual({ teams: 219, riders: 3900 })

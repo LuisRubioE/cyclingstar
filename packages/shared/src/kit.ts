@@ -12,7 +12,7 @@ import type { JerseyKind } from './jerseys.js'
  * la rejilla de 48 u de `TORSO`, las reglas (el contraste y la distancia mínima), las señales que ningún
  * maillot de equipo puede parecer (los tres líderes, el mundial y el continental, y el nacional, que
  * viste su bandera), lo que E8 venderá a un patrocinador y, desde el 17c, el maillot en grande (§8.10):
- * la espalda, el culote y las zonas con nombre. `KIT_CHANGES_PER_SEASON` entra en el 18a.
+ * la espalda, el culote y las zonas con nombre; y, desde el 18a, el cambio por temporada.
  *
  * El tamaño en pantalla nació en el PR 2b, porque la comprobación 10 de la prueba del teléfono importa
  * `KIT_MIN_PX` (§7.1) antes de que existiera el vocabulario (15-a).
@@ -148,6 +148,11 @@ export const KIT_CHECK_SIZES = [28] as const
 export const KIT_MIN_DISTANCE = 10
 /** El ΔE00 mínimo entre la base y el segundo color, en las cinco vistas, para que la figura no desaparezca. */
 export const KIT_CONTRAST_MIN = 20
+/**
+ * Los cambios de maillot que hace el mánager en una temporada (D-00k; §8.7): el primero desde que tiene el
+ * equipo no cuenta, y lo que pone la traducción, un patrocinio o un moderador, tampoco (`kitChangeAllowed`).
+ */
+export const KIT_CHANGES_PER_SEASON = 1
 /** Las cinco vistas de la regla de contraste: las cuatro visiones y los grises (I-25). */
 const CONTRAST_VIEWS: readonly View[] = [...VISIONS, 'gray']
 

@@ -61,6 +61,7 @@ describe('web: diccionario de dominio (español interno → inglés de UI)', () 
   it('las dos del maillot nuevo llevan la familia Kit (E3, 17b)', () => {
     expect(newsLabel('kit_new')).toBe('Kit')
     expect(newsLabel('kit_ceded')).toBe('Kit')
+    expect(newsLabel('kit_reset')).toBe('Kit')
   })
 
   it('traduce los tipos de apunte y de palmarés', () => {

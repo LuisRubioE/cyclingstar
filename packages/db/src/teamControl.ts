@@ -109,10 +109,10 @@ export async function takeOverBotTeam(db: Database, userId: string): Promise<Tak
   })
 }
 
+/** El nombre y el país; el maillot va por `PUT /api/teams/me/kit` desde el 18a (§8.7). */
 export interface TeamEdit {
   name?: string | undefined
   country?: string | undefined
-  jerseySeed?: string | undefined
 }
 export type TeamEditResult =
   | { ok: true }
@@ -165,7 +165,7 @@ export async function updateOwnedTeam(
   const team = owned[0]
   if (!team) return { ok: false, reason: 'sin_equipo' }
 
-  const patch: { name?: string; country?: string; jerseyStyleSeed?: string } = {}
+  const patch: { name?: string; country?: string } = {}
 
   if (edit.name !== undefined) {
     const name = edit.name.trim()
@@ -180,15 +180,6 @@ export async function updateOwnedTeam(
   if (edit.country !== undefined) {
     if (!isKnownCountry(edit.country)) return { ok: false, reason: 'pais_desconocido' }
     patch.country = edit.country.toUpperCase()
-  }
-
-  // EL MAILLOT VA A LA SEMILLA DEL DIBUJO (E3, docs/visual.md §8.9; la 0050), nunca a `jersey_seed`,
-  // que es la identidad con que `seedWorld` reconoce el equipo: escribirla ahí hacía que el tick
-  // siguiente creara un clon del equipo con la semilla vieja.
-  if (edit.jerseySeed !== undefined) {
-    const seed = edit.jerseySeed.trim()
-    if (seed.length < 1 || seed.length > 120) return { ok: false, reason: 'nombre_invalido' }
-    patch.jerseyStyleSeed = seed
   }
 
   if (Object.keys(patch).length > 0) {
