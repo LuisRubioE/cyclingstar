@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { distance } from './colorMath.js'
+import { type View, VISIONS, distance } from './colorMath.js'
 import type { JerseyKind } from './jerseys.js'
 
 /**
@@ -11,8 +11,8 @@ import type { JerseyKind } from './jerseys.js'
  * Lo que hay: el vocabulario y su código (`plain.red`, `hoops.navy.yellow`), la geometría del dibujo en
  * la rejilla de 48 u de `TORSO`, las reglas (el contraste y la distancia mínima), las señales que ningún
  * maillot de equipo puede parecer (los tres líderes, el mundial y el continental, y el nacional, que
- * viste su bandera) y lo que E8 venderá a un patrocinador. Lo del maillot en grande (§8.10) entra en el
- * 17c, y `KIT_CHANGES_PER_SEASON` en el 18a.
+ * viste su bandera), lo que E8 venderá a un patrocinador y, desde el 17c, el maillot en grande (§8.10):
+ * la espalda, el culote y las zonas con nombre. `KIT_CHANGES_PER_SEASON` entra en el 18a.
  *
  * El tamaño en pantalla nació en el PR 2b, porque la comprobación 10 de la prueba del teléfono importa
  * `KIT_MIN_PX` (§7.1) antes de que existiera el vocabulario (15-a).
@@ -23,11 +23,26 @@ import type { JerseyKind } from './jerseys.js'
 /** El maillot más pequeño que se pinta, en píxeles CSS, de alto y de ancho (D-00b). */
 export const KIT_MIN_PX = 28
 
-/** Los tamaños con nombre: la fila de una lista, la tarjeta, el equipo, la página y la cabecera. */
-export const KIT_PX = { row: 28, card: 40, team: 48, page: 72, hero: 96 } as const
+/**
+ * Los tamaños con nombre: la fila de una lista, la tarjeta, el equipo, la página y la cabecera, y los dos
+ * del maillot en grande (D-00g, §8.10): `showcase` en la ficha del equipo y `poster` en la `Sheet`.
+ */
+export const KIT_PX = {
+  row: 28,
+  card: 40,
+  team: 48,
+  page: 72,
+  hero: 96,
+  showcase: 160,
+  poster: 320,
+} as const
 
 /** Un tamaño de maillot: uno de `KIT_PX`, ninguno por debajo de `KIT_MIN_PX`. */
 export type KitSize = (typeof KIT_PX)[keyof typeof KIT_PX]
+/** Los dos únicos de las vistas de detrás y del culote (§8.10). */
+export type KitBigSize = typeof KIT_PX.showcase | typeof KIT_PX.poster
+/** De 28 a 96 px, solo `front`; `back` y `bib`, solo en `KitBigSize`. */
+export type KitView = 'front' | 'back' | 'bib'
 
 // ------------------------------------------------------------------------------- el vocabulario
 
@@ -133,6 +148,8 @@ export const KIT_CHECK_SIZES = [28] as const
 export const KIT_MIN_DISTANCE = 10
 /** El ΔE00 mínimo entre la base y el segundo color, en las cinco vistas, para que la figura no desaparezca. */
 export const KIT_CONTRAST_MIN = 20
+/** Las cinco vistas de la regla de contraste: las cuatro visiones y los grises (I-25). */
+const CONTRAST_VIEWS: readonly View[] = [...VISIONS, 'gray']
 
 // --------------------------------------------------------------------------------- el dibujo
 
@@ -158,9 +175,83 @@ export const KIT_FIGURE_PATHS: Readonly<Record<KitFigure, string | null>> = {
   sash: 'M13.76 6.71 L41.76 38.71 L34.24 45.29 L6.24 13.29 Z',
 }
 
+// ------------------------------------------------------------- el maillot en grande (§8.10)
+
+/** La espalda: la silueta de `TORSO` con el escote más alto, el control en y 10, y sin cuello (8-n). */
+export const TORSO_BACK =
+  'M16 8 L10 12 L7 20 L12 23 L14 18 L14 40 Q24 43 34 40 L34 18 L36 23 L41 20 L38 12 L32 8 Q24 10 16 8 Z'
+
+/**
+ * La figura vista desde detrás (8-n): la de delante reflejada, x → 48 − x. Las cinco simétricas quedan
+ * igual; `halves` pasa a la izquierda y `sash` baja del hombro derecho a la cadera izquierda, porque la
+ * banda da la vuelta al cuerpo.
+ */
+const KIT_BACK_FIGURE_PATHS: Readonly<Record<KitFigure, string | null>> = {
+  ...KIT_FIGURE_PATHS,
+  halves: 'M0 0H24V48H0Z',
+  sash: 'M34.24 6.71 L6.24 38.71 L13.76 45.29 L41.76 13.29 Z',
+}
+
+/** La región del segundo color de una figura en la espalda, que se pinta recortada por `TORSO_BACK`. */
+export function kitBackPath(figure: KitFigure): string | null {
+  return KIT_BACK_FIGURE_PATHS[figure]
+}
+
+/** Los tres bolsillos, en trazos de 0,5 u y `rgba(0,0,0,0.3)`. */
+export const POCKETS = 'M14.5 33.5H33.5 M20.8 33.5V40.5 M27.2 33.5V40.5'
+/** El nombre del equipo, sobre los hombros: solo si cabe a 12 px con su ancho medido, nunca cortado. */
+export const BACK_NAME_BOX: ZoneBox = { x: 12, y: 11, w: 24, h: 5 }
+/** El sitio del dorsal, sobre los bolsillos: solo con dorsal, y ningún patrocinador lo ocupa. */
+export const BACK_NUMBER_BOX: ZoneBox = { x: 18, y: 28, w: 12, h: 8 }
+
+/** El culote, en su `viewBox` de 48: el cuerpo y las dos perneras (8-o). */
+export const BIB = 'M12 8 L36 8 L38 40 L26 40 L24 26 L22 40 L10 40 Z'
+/** Los tirantes, del color del cuerpo. */
+export const BIB_STRAPS = 'M15 8 L16.5 1 L19.5 1 L18.5 8 Z M33 8 L31.5 1 L28.5 1 L29.5 8 Z'
+/** Los paneles de los costados, 4 u por fuera de cada pernera. */
+export const BIB_PANELS = 'M12 8 L16 8 L14 40 L10 40 Z M36 8 L32 8 L34 40 L38 40 Z'
+/** Los puños, de y 37 a 40, que se pintan recortados por `BIB`: quedan las dos perneras. */
+export const BIB_CUFFS = 'M0 37H48V40H0Z'
+
 /** El culote (§8.10): el de la `0052` lo guarda en `teams.bib` con un `check` a estos cuatro (8-o). */
 export const BIB_STYLES = ['black', 'black.panel', 'base', 'base.panel'] as const
 export type BibStyle = (typeof BIB_STYLES)[number]
+
+/** Los colores del culote, en hexadecimal: el cuerpo (y los tirantes), los paneles si los hay y los puños. */
+export interface BibPaint {
+  readonly body: string
+  readonly panels: string | null
+  readonly cuffs: string
+}
+
+/**
+ * Los colores de un estilo sobre un maillot: el cuerpo negro o de la base; los paneles, del segundo color,
+ * o de la base en un `plain`; los puños, como los paneles, o como el cuerpo si no hay. Un estilo que no
+ * ofrece `bibStylesFor` también se pinta, porque `teams.bib` puede venir de un maillot anterior: unos
+ * paneles del color del cuerpo no se ven, y no se pintan.
+ */
+export function bibPaint(kit: Kit, style: BibStyle): BibPaint {
+  const body = KIT_COLORS[style === 'black' || style === 'black.panel' ? 'black' : kit.base]
+  const panel = KIT_COLORS[kit.figure === 'plain' ? kit.base : kit.secondary]
+  const panels = style.endsWith('.panel') && panel !== body ? panel : null
+  return { body, panels, cuffs: panels ?? body }
+}
+
+/**
+ * Los estilos que se ofrecen para un maillot (§8.10): sin `base` si la base es `black`, que sería el
+ * negro, y sin los paneles que no pasan la regla de contraste (`KIT_CONTRAST_MIN` en las cinco vistas),
+ * como `base.panel` en un `plain`, con los paneles del color del cuerpo.
+ */
+export function bibStylesFor(kit: Kit): BibStyle[] {
+  return BIB_STYLES.filter((style) => {
+    if (kit.base === 'black' && style.startsWith('base')) return false
+    if (!style.endsWith('.panel')) return true
+    const { body, panels } = bibPaint(kit, style)
+    return (
+      panels !== null && CONTRAST_VIEWS.every((v) => distance(body, panels, v) >= KIT_CONTRAST_MIN)
+    )
+  })
+}
 
 // ------------------------------------------------------------------------ la señal de campeón
 
@@ -221,19 +312,83 @@ export const LEADER_JERSEY = {
 /** Por debajo, ninguna marca de patrocinador en el pecho: el nombre va en `aria-label` y `<title>`. */
 export const KIT_SPONSOR_TEXT_MIN_PX = 72
 
-/** Lo que se le puede comprar al maillot (§9.9): un color; las zonas con nombre llegan con el 17c. */
-export type KitZone = 'base' | 'secondary'
+/** Las zonas con nombre que un patrocinador puede comprar (D-30, D-00g; §8.10). */
+export type SponsorZone = 'chest' | 'back' | 'sleeves' | 'bibSides'
+
+/** Una caja en el `viewBox` de 48 de su vista; `vertical`, con el texto a lo largo del alto. */
+export interface ZoneBox {
+  readonly x: number
+  readonly y: number
+  readonly w: number
+  readonly h: number
+  readonly vertical?: true
+}
+
+/**
+ * Las cajas de cada zona y las vistas en que se ven (§8.10): el pecho, delante; la espalda, detrás; las
+ * mangas, en las dos; los costados del culote, en el suyo. Cada caja cae dentro de su silueta
+ * (`sponsorZones.test.ts`).
+ */
+export const SPONSOR_ZONES: Readonly<
+  Record<SponsorZone, { readonly views: readonly KitView[]; readonly boxes: readonly ZoneBox[] }>
+> = {
+  chest: { views: ['front'], boxes: [{ x: 14, y: 23, w: 20, h: 10 }] },
+  back: { views: ['back'], boxes: [{ x: 14, y: 18, w: 20, h: 9 }] },
+  sleeves: {
+    views: ['front', 'back'],
+    boxes: [
+      { x: 10, y: 13, w: 3.5, h: 6, vertical: true },
+      { x: 34.5, y: 13, w: 3.5, h: 6, vertical: true },
+    ],
+  },
+  bibSides: {
+    views: ['bib'],
+    boxes: [
+      { x: 11.65, y: 14, w: 2.7, h: 20, vertical: true },
+      { x: 33.65, y: 14, w: 2.7, h: 20, vertical: true },
+    ],
+  },
+}
+
+/** La letra más pequeña que se pinta, también sobre un maillot: la `MIN_FONT_PX` de la web. */
+export const KIT_TEXT_MIN_PX = 12
+/** La mayúscula más ancha medida, la `W` a 600 de DejaVu Sans, en em (8-z). */
+export const KIT_CAPITAL_EM = 1.07
+
+/**
+ * Las mayúsculas que caben en una caja a un tamaño, en el peor caso (8-z): 1,07 em por letra a 12 px, a
+ * lo largo del ancho (del alto en `vertical`), y ninguna si lo otro no da los 12 px de la letra. Lo que se
+ * pinta lo decide el ancho medido de cada texto (`fitsText`, en la web).
+ */
+export function zoneCapacity(box: ZoneBox, size: KitSize): number {
+  const u = size / 48
+  const along = (box.vertical ? box.h : box.w) * u
+  const across = (box.vertical ? box.w : box.h) * u
+  if (across < KIT_TEXT_MIN_PX) return 0
+  return Math.floor(along / (KIT_CAPITAL_EM * KIT_TEXT_MIN_PX))
+}
+
+/** Lo que se le puede comprar al maillot (§9.9): un color, o una de las zonas con nombre (§8.10). */
+export type KitZone = 'base' | 'secondary' | SponsorZone
 
 export interface SponsorOffer {
   readonly zone: KitZone
   /** 'base' o 'secondary': el color del vocabulario más cercano al de su marca */
   readonly color?: KitColorName
-  /** 'chest': el patrocinador de la lista cerrada (DD-19), desde el 17c */
+  /** las zonas con nombre: el patrocinador de la lista cerrada (DD-19) */
   readonly sponsorId?: string
 }
 
-/** El maillot con la oferta puesta; lanza si la zona no existe en ese maillot ('secondary' en un 'plain'). */
+/**
+ * El maillot con la oferta puesta; lanza si la zona no existe en ese maillot ('secondary' en un 'plain').
+ * Una zona con nombre no cambia el `Kit`, el mismo objeto: el nombre del patrocinador viaja aparte (§9.9).
+ */
 export function applySponsor(kit: Kit, offer: SponsorOffer): Kit {
+  if (offer.zone !== 'base' && offer.zone !== 'secondary') {
+    if (offer.sponsorId === undefined)
+      throw new Error(`applySponsor: la zona ${offer.zone} pide un patrocinador`)
+    return kit
+  }
   const color = offer.color
   if (color === undefined) throw new Error(`applySponsor: la zona ${offer.zone} pide un color`)
   if (offer.zone === 'base') {
@@ -250,7 +405,7 @@ export function applySponsor(kit: Kit, offer: SponsorOffer): Kit {
 }
 
 /** El color de `KIT_COLORS` (de `KIT_BASES` para la base) a menor ΔE00 en visión normal. */
-export function nearestKitColor(hex: string, zone: KitZone): KitColorName {
+export function nearestKitColor(hex: string, zone: 'base' | 'secondary'): KitColorName {
   const pool: readonly KitColorName[] = zone === 'base' ? KIT_BASES : KIT_SECONDARIES
   let best = pool[0]!
   let bestDistance = Number.POSITIVE_INFINITY

@@ -2,7 +2,12 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import type { z } from 'zod'
 import { type View, VISIONS, distance } from './colorMath.js'
 import {
+  BIB,
+  BIB_CUFFS,
+  BIB_PANELS,
+  BIB_STRAPS,
   BIB_STYLES,
+  type BibStyle,
   KIT_BASES,
   KIT_CODES,
   KIT_COLORS,
@@ -13,15 +18,22 @@ import {
   KIT_MIN_PX,
   KIT_PX,
   KIT_SECONDARIES,
+  type KitBigSize,
   type KitCode,
   type KitFigure,
+  type KitView,
   LEADER_JERSEY,
   LOGO_STAR,
+  POCKETS,
   TORSO,
+  TORSO_BACK,
   applySponsor,
+  bibPaint,
+  bibStylesFor,
   canonicalKit,
   kitCode,
   kitCodeSchema,
+  kitBackPath,
   kitSchema,
   nearestKitColor,
   parseKit,
@@ -44,8 +56,8 @@ describe('shared: el tamaño del maillot (E3, §8.3; D-00b)', () => {
     for (const px of Object.values(KIT_PX)) expect(px).toBeGreaterThanOrEqual(KIT_MIN_PX)
   })
 
-  it('los tamaños van de menor a mayor: fila, tarjeta, equipo, página y cabecera', () => {
-    expect(Object.values(KIT_PX)).toEqual([28, 40, 48, 72, 96])
+  it('los tamaños van de menor a mayor: fila, tarjeta, equipo, página, cabecera y los dos grandes', () => {
+    expect(Object.values(KIT_PX)).toEqual([28, 40, 48, 72, 96, 160, 320])
   })
 })
 
@@ -304,5 +316,133 @@ describe('shared: lo que compra el patrocinador (E3, §9.9)', () => {
     expect(() =>
       applySponsor(parseKit('hoops.navy.yellow')!, { zone: 'secondary', color: 'navy' }),
     ).toThrow()
+  })
+})
+
+/** Un `path` de polígonos como conjunto, sin el punto de partida ni el sentido de cada uno. */
+function regionsOf(d: string): string[] {
+  const norm = (poly: readonly Point[]): string => {
+    const pts = poly.map(([x, y]) => `${+x.toFixed(4)},${+y.toFixed(4)}`)
+    const rotations = (ps: string[]) =>
+      ps.map((_, k) => [...ps.slice(k), ...ps.slice(0, k)].join(' '))
+    return [...rotations(pts), ...rotations([...pts].reverse())].sort()[0]!
+  }
+  return flattenPath(d).map(norm).sort()
+}
+/** El mismo `path` visto desde detrás: x → 48 − x. */
+const mirrored = (d: string): string =>
+  d.replace(/([MLH])\s*(-?[\d.]+)/g, (_, cmd: string, x: string) => `${cmd}${48 - Number(x)}`)
+
+describe('shared: el maillot en grande (E3, §8.10; PR 17c)', () => {
+  it('showcase (160) y poster (320) entran en KIT_PX; la espalda y el culote, solo a esos dos', () => {
+    expect(KIT_PX).toEqual({
+      row: 28,
+      card: 40,
+      team: 48,
+      page: 72,
+      hero: 96,
+      showcase: 160,
+      poster: 320,
+    })
+    expectTypeOf<KitBigSize>().toEqualTypeOf<160 | 320>()
+    expectTypeOf<KitView>().toEqualTypeOf<'front' | 'back' | 'bib'>()
+  })
+
+  it('TORSO_BACK es la silueta de delante con el escote más alto, el control en y 10', () => {
+    expect(TORSO_BACK).toBe(TORSO.replace('Q24 12 16 8 Z', 'Q24 10 16 8 Z'))
+    expect(TORSO_BACK).not.toBe(TORSO)
+  })
+
+  it('la espalda de las siete figuras es la de delante reflejada: halves y sash al otro lado, las demás igual', () => {
+    for (const figure of KIT_FIGURES) {
+      const front = KIT_FIGURE_PATHS[figure]
+      const back = kitBackPath(figure)
+      if (front === null) {
+        expect(back).toBeNull()
+        continue
+      }
+      expect(regionsOf(back!), figure).toEqual(regionsOf(mirrored(front)))
+    }
+    expect(kitBackPath('halves')).toBe('M0 0H24V48H0Z')
+    expect(kitBackPath('sash')).toBe('M34.24 6.71 L6.24 38.71 L13.76 45.29 L41.76 13.29 Z')
+    for (const figure of ['band', 'hoops', 'yoke', 'sides'] as const)
+      expect(kitBackPath(figure)).toBe(KIT_FIGURE_PATHS[figure])
+  })
+
+  it('los bolsillos y el culote, con los trazos de §8.10', () => {
+    expect(POCKETS).toBe('M14.5 33.5H33.5 M20.8 33.5V40.5 M27.2 33.5V40.5')
+    expect(BIB).toBe('M12 8 L36 8 L38 40 L26 40 L24 26 L22 40 L10 40 Z')
+    expect(BIB_STRAPS).toBe('M15 8 L16.5 1 L19.5 1 L18.5 8 Z M33 8 L31.5 1 L28.5 1 L29.5 8 Z')
+    expect(BIB_PANELS).toBe('M12 8 L16 8 L14 40 L10 40 Z M36 8 L32 8 L34 40 L38 40 Z')
+    // los paneles, 4 u por fuera de cada pernera, dentro del culote
+    const bib = flattenPath(BIB)
+    for (const poly of flattenPath(BIB_PANELS)) {
+      const [cx, cy] = poly.reduce(
+        ([x, y], [px, py]) => [x + px / poly.length, y + py / poly.length],
+        [0, 0],
+      )
+      expect(insidePath(bib, cx, cy)).toBe(true)
+    }
+  })
+
+  it('el culote: el cuerpo negro o de la base, los paneles del segundo color, y los puños como los paneles', () => {
+    const hoops = parseKit('hoops.navy.yellow')!
+    const paint = (style: BibStyle) => bibPaint(hoops, style)
+    expect(paint('black')).toEqual({
+      body: KIT_COLORS.black,
+      panels: null,
+      cuffs: KIT_COLORS.black,
+    })
+    expect(paint('black.panel')).toEqual({
+      body: KIT_COLORS.black,
+      panels: KIT_COLORS.yellow,
+      cuffs: KIT_COLORS.yellow,
+    })
+    expect(paint('base')).toEqual({ body: KIT_COLORS.navy, panels: null, cuffs: KIT_COLORS.navy })
+    expect(paint('base.panel')).toEqual({
+      body: KIT_COLORS.navy,
+      panels: KIT_COLORS.yellow,
+      cuffs: KIT_COLORS.yellow,
+    })
+    // un liso con cuerpo negro lleva los paneles en su base
+    expect(bibPaint(parseKit('plain.red')!, 'black.panel')).toMatchObject({
+      panels: KIT_COLORS.red,
+      cuffs: KIT_COLORS.red,
+    })
+  })
+
+  it('no se ofrece lo que no pasa la regla de contraste: ni base.panel en un liso, ni base con base negra', () => {
+    expect(bibStylesFor(parseKit('hoops.navy.yellow')!)).toEqual([...BIB_STYLES])
+    expect(bibStylesFor(parseKit('plain.red')!)).toEqual(['black', 'black.panel', 'base'])
+    expect(bibStylesFor(parseKit('plain.black')!)).toEqual(['black'])
+    expect(bibStylesFor(parseKit('hoops.black.yellow')!)).toEqual(['black', 'black.panel'])
+    // los paneles del segundo color, solo si contrastan con el cuerpo en las cinco vistas
+    for (const code of KIT_CODES) {
+      const kit = parseKit(code)!
+      for (const style of bibStylesFor(kit)) {
+        const { body, panels } = bibPaint(kit, style)
+        if (panels !== null)
+          for (const v of VIEWS)
+            expect(distance(body, panels, v), `${code} ${style} ${v}`).toBeGreaterThanOrEqual(
+              KIT_CONTRAST_MIN,
+            )
+      }
+    }
+  })
+
+  it('una zona con nombre no cambia el Kit: el nombre del patrocinador viaja aparte (§9.9)', () => {
+    const kit = parseKit('hoops.navy.yellow')!
+    for (const zone of ['chest', 'back', 'sleeves', 'bibSides'] as const) {
+      expect(applySponsor(kit, { zone, sponsorId: 'sponsor-1' })).toBe(kit)
+      expect(() => applySponsor(kit, { zone })).toThrow()
+    }
+  })
+
+  it('los puños, de y 37 a 40, recortados por el culote: uno en cada pernera, nada entre las dos', () => {
+    expect(BIB_CUFFS).toBe('M0 37H48V40H0Z')
+    const bib = flattenPath(BIB)
+    expect(insidePath(bib, 16, 38.5)).toBe(true)
+    expect(insidePath(bib, 32, 38.5)).toBe(true)
+    expect(insidePath(bib, 24, 38.5)).toBe(false)
   })
 })
