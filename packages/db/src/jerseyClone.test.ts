@@ -114,8 +114,12 @@ describe('db: el clon del maillot (E3, §8.9; PR 1)', () => {
     expect(await genesisTeam('CON', 0)).toMatchObject({ id: team.id, jerseyStyleSeed: candidate })
     await tick()
     expect(await counts()).toEqual({ teams: 219, riders: 3900 })
-    // Y el tick no tuvo que borrar ningún clon: no nació ninguno.
-    expect(await lastTickNote()).toBe('sin días pendientes')
+    // Y el tick no tuvo que borrar ningún clon: no nació ninguno. Desde el 17b de E3 la nota puede llevar
+    // delante lo que hicieron los maillots: con dueño, el equipo corre su calendario natural, cambia de
+    // rivales, y los NPC cuyo maillot choca con el suyo ceden esa noche (DD-08, docs/visual.md §8.6).
+    const note = await lastTickNote()
+    expect(note).not.toContain('jersey clone removed')
+    expect(note).toMatch(/^(maillots: [^·]+ · )?sin días pendientes$/)
     // La identidad no se mueve y el dibujo servido es el elegido.
     const after = await genesisTeam('CON', 0)
     expect(after.id).toBe(team.id)

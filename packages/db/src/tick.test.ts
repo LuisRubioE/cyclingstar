@@ -152,5 +152,7 @@ describe('tick: los maillots tras seedWorld (17b)', () => {
       .from(tickLog)
       .where(eq(tickLog.ok, true))
     expect(log?.notes).toContain(`maillots: ${all.length} traducidos`)
+    // lo que tarda en frío, como el primer tick tras el despliegue (17b)
+    console.info(`tick: ${/maillots: [^·]*/.exec(log?.notes ?? '')?.[0] ?? ''}`)
   })
 })
