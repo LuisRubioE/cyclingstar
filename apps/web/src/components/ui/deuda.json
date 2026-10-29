@@ -1,7 +1,7 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2029,
+    "tema": 2021,
     "arbitrarios": 32,
     "espaciado": 29,
     "layout": 0
@@ -158,7 +158,7 @@
       "layout": 0
     },
     "apps/web/src/components/TeamManager.tsx": {
-      "tema": 39,
+      "tema": 31,
       "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0

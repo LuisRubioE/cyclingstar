@@ -9,7 +9,6 @@ import {
 } from '../api/browse'
 import { fetchRiderSummary } from '../api/rider'
 import { Flag } from '../components/Flag'
-import { Jersey } from '../components/Jersey'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager } from '../components/TeamManager'
@@ -17,6 +16,7 @@ import { archetypeLabel } from '../domain/labels'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { QueryView } from '../components/ui/QueryView'
+import { TeamJersey, wornTeam } from '../components/ui/TeamJersey'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
@@ -138,7 +138,7 @@ export function TeamIdentity() {
 
       <Panel>
         <div className="flex flex-wrap items-center gap-4">
-          <Jersey seed={data.jerseySeed} size={72} />
+          <TeamJersey team={wornTeam(data.name, data.kit, data.jerseySeed)} size={72} />
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-lg font-bold text-slate-800">
               {data.country && <Flag code={data.country} size={22} />}
@@ -176,16 +176,17 @@ export function TeamIdentity() {
 
         <Panel title="Jersey">
           <div className="flex items-center gap-4">
-            <Jersey seed={data.jerseySeed} size={96} />
+            <TeamJersey team={wornTeam(data.name, data.kit, data.jerseySeed)} size={96} />
             <p className="text-sm text-slate-500">
-              Every kit is drawn from the team&apos;s own seed, so it is the same everywhere it
-              appears — start lists, results and the peloton.
+              Every team wears its own kit, the same everywhere it appears: start lists, results and
+              the peloton.
             </p>
           </div>
         </Panel>
       </div>
 
-      {/* Si además gestiono el equipo, aquí es donde se cambian nombre, país y maillot (§3.4). */}
+      {/* Si además gestiono el equipo, aquí se cambian el nombre y el país (§3.4); el maillot, con el
+          editor del 18b (E3, 17-i), y hasta entonces se ve el vigente, arriba. */}
       {ownedByMe && <TeamManager team={data} />}
 
       {/* Los estados, con `QueryView` (E3, PR 10): cargando o con un fallo ya no se pinta «nada todavía». */}

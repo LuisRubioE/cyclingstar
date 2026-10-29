@@ -16,8 +16,9 @@ const TORSO =
  *
  * `data-kit` es lo que busca la comprobación 10 de la prueba del teléfono (E3, docs/visual.md §7.1;
  * 7-g): ninguno por debajo de 28 px. Desde el 17a los maillots de líder y de campeón son los del
- * catálogo (`ui/LeaderJersey.tsx` y `ui/ChampionJersey.tsx`), y este queda para los dos sitios que aún
- * eligen una semilla (el panel de las doce del mánager, hasta el 17b, y la identidad, hasta el 18b).
+ * catálogo (`ui/LeaderJersey.tsx` y `ui/ChampionJersey.tsx`), y desde el 17b no lo pinta ninguna página:
+ * la identidad enseña el maillot vigente con `TeamJersey`, y el panel de las doce semillas se fue. Queda
+ * como el dibujo de referencia que `ui/LegacyJersey.test.tsx` compara con `LegacyJersey`.
  */
 export const Jersey = memo(function Jersey({ seed, size = 28 }: { seed: string; size?: number }) {
   const { base, secondary, accent, pattern } = jerseyStyle(seed)

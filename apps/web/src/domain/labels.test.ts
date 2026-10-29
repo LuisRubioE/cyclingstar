@@ -53,6 +53,11 @@ describe('web: diccionario de dominio (español interno → inglés de UI)', () 
     expect(newsLabel('stage_ready')).toBe('Watch')
   })
 
+  it('las dos del maillot nuevo llevan la familia Kit (E3, 17b)', () => {
+    expect(newsLabel('kit_new')).toBe('Kit')
+    expect(newsLabel('kit_ceded')).toBe('Kit')
+  })
+
   it('traduce los tipos de apunte y de palmarés', () => {
     expect(ledgerKindLabel('salario')).toBe('Salary')
     expect(ledgerKindLabel('viaje')).toBe('Travel')

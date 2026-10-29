@@ -198,6 +198,10 @@ const NEWS_KIND_LABEL: Record<string, string> = {
   // El marcador de una etapa velada (§11.7, sup. N2; 9b): la familia `Watch`, igual para todos, venga de
   // la carrera que venga y pase lo que pase en ella.
   stage_ready: 'Watch',
+  // El maillot nuevo de un equipo, en su diario (E3, docs/visual.md §8.6; 17b): el de la traducción y
+  // el del NPC que cede.
+  kit_new: 'Kit',
+  kit_ceded: 'Kit',
 }
 
 export function newsLabel(kind: string): string {

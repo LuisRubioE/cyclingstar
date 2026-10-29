@@ -12,6 +12,7 @@ import type { drizzle } from 'drizzle-orm/postgres-js'
 import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
 import { kitOn, kitsOn } from './kitsOn.js'
+import { emitNews } from './news.js'
 import { gameState, teamKits, teams } from './schema.js'
 import { type SeasonRivals, seasonRivals } from './seasonRivals.js'
 import type { Queryable } from './titles.js'
@@ -308,6 +309,14 @@ export async function checkKit(
 
 // --------------------------------------------------------------------------------- en la base
 
+/** Un maillot que escribió `ensureKits`, y por qué. */
+export interface KitChange {
+  readonly teamId: string
+  readonly kit: KitCode
+  /** la traducción, un equipo que nace sin maillot o un NPC que cede el suyo a un humano rival */
+  readonly why: 'translated' | 'seeded' | 'ceded'
+}
+
 /** Lo que hizo `ensureKits`. */
 export interface EnsureKitsReport {
   /** la primera vez: el mundo entero traducido */
@@ -318,6 +327,10 @@ export interface EnsureKitsReport {
   readonly ceded: number
   /** los que no encontraron un libre lejos de todos sus rivales */
   readonly clashes: number
+  /** el día desde el que valen, mañana */
+  readonly fromDay: number
+  /** lo que escribió, equipo a equipo: de aquí salen sus noticias (17b) */
+  readonly changed: readonly KitChange[]
 }
 
 /** El día de juego de hoy, el del reloj del mundo. */
@@ -335,7 +348,8 @@ async function today(q: Queryable, worldId: string): Promise<number> {
  * equipos que nacen sin fila toman el primer libre del orden de su semilla, y un NPC cuyo maillot choca
  * con el de un humano rival cede el suyo (DD-08). Idempotente: una segunda pasada no cambia nada. Cada
  * maillot vale desde mañana, con `set_by = 'system'`; si un mánager se queda con uno mientras corre, se
- * prueba el siguiente libre. Sin noticias hasta el 17b, que es cuando el tick la llama.
+ * prueba el siguiente libre. No escribe noticias: las escribe `emitKitNews` con lo que devuelve, en la
+ * misma transacción del tick (17b).
  */
 export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsReport> {
   const day = await today(tx, worldId)
@@ -381,6 +395,9 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
   for (const id of ceding) worn.delete(id)
   const pending = rows.filter((r) => !worn.has(r.id))
   let clashes = 0
+  const changed: KitChange[] = []
+  const whyOf = (id: string): KitChange['why'] =>
+    translating ? 'translated' : ceding.has(id) ? 'ceded' : 'seeded'
   // se reparte y se escribe; si un mánager se ha quedado con uno mientras tanto, se vuelve a repartir
   // lo que falta, con ese ya ocupado
   let left = pending
@@ -398,6 +415,7 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
       try {
         await setKit(tx, r.id, kit, 'system', fromDay)
         worn.set(r.id, kit)
+        changed.push({ teamId: r.id, kit, why: whyOf(r.id) })
         if (c.has(r.id)) clashes++
       } catch (error) {
         if (!(error instanceof KitTakenError)) throw error
@@ -414,7 +432,47 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
     seeded: translating ? 0 : missing.length,
     ceded: ceding.size,
     clashes,
+    fromDay,
+    changed,
   }
+}
+
+/**
+ * LAS NOTICIAS DEL MAILLOT (E3, docs/visual.md §8.6; PR 17b, 17-l): una en el diario de cada equipo
+ * cuyo maillot cambia, el día en que se ve (`report.fromDay`): `Mistral Racing has a new kit` en la
+ * traducción y `New kit for Mistral Racing` cuando un NPC cede. El que nace sin maillot y toma uno por
+ * su semilla no lo cambia: nace con él, y no lleva noticia.
+ */
+export async function emitKitNews(
+  tx: Tx,
+  worldId: string,
+  report: EnsureKitsReport,
+): Promise<void> {
+  for (const c of report.changed) {
+    if (c.why === 'seeded') continue
+    await emitNews(tx, {
+      worldId,
+      gameDay: report.fromDay,
+      seed: `kit:${c.teamId}:${report.fromDay}`,
+      payload: {
+        kind: c.why === 'translated' ? 'kit_new' : 'kit_ceded',
+        teamId: c.teamId,
+        kit: c.kit,
+      },
+    })
+  }
+}
+
+/** La nota de `tick_log`: lo que hizo `ensureKits` y lo que tardó; null si no hizo nada. */
+export function kitsNote(report: EnsureKitsReport, ms: number): string | null {
+  const parts = [
+    report.translated > 0 ? `${report.translated} traducidos` : null,
+    report.seeded > 0 ? `${report.seeded} por semilla` : null,
+    report.ceded > 0 ? `${report.ceded} cedidos` : null,
+    report.clashes > 0 ? `${report.clashes} sin un libre lejos de sus rivales` : null,
+  ].filter((p) => p !== null)
+  if (parts.length === 0) return null
+  return `maillots: ${parts.join(', ')} (${(ms / 1000).toFixed(1).replace('.', ',')} s)`
 }
 
 /**

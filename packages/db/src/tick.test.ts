@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { reanchorClock, targetGameDay } from './tick.js'
+import { eq, inArray, isNull } from 'drizzle-orm'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { news, teamKits, teams, tickLog } from './schema.js'
+import { type TestDb, startTestDb } from './testDb.js'
+import { reanchorClock, runTick, targetGameDay } from './tick.js'
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 
@@ -90,5 +93,64 @@ describe('tick: reanchorClock', () => {
         msPerGameDay: SIX_HOURS_MS,
       }),
     ).toBeNull()
+  })
+})
+
+/**
+ * LOS MAILLOTS EN EL TICK (E3, docs/visual.md §8.6; PR 17b, 17-l): `ensureKits` corre tras `seedWorld` y
+ * `backfillRosters`, en su propia transacción, así que el tick de la génesis ya deja a cada equipo con
+ * su maillot desde mañana. Las noticias del maillot, en `kits.test.ts`: en el mundo que acaba de nacer,
+ * ninguna.
+ */
+describe('tick: los maillots tras seedWorld (17b)', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startTestDb()
+    await t.detached((url) =>
+      runTick(url, {
+        now: new Date('2026-01-01T00:00:00.000Z'),
+        msPerGameDay: SIX_HOURS_MS,
+        worldSeed: 'semilla-tick-maillots',
+        engineVersion: 1,
+        forceDays: 0,
+        timelineRecord: 'off',
+      }),
+    )
+  }, 300_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('la génesis da a cada equipo una fila system desde mañana, con su canónico, y ninguna noticia', async () => {
+    const all = await t.db.select({ id: teams.id }).from(teams)
+    expect(all.length).toBeGreaterThan(200)
+    const rows = await t.db
+      .select({ teamId: teamKits.teamId, from: teamKits.validFromDay, setBy: teamKits.setBy })
+      .from(teamKits)
+      .where(
+        inArray(
+          teamKits.teamId,
+          all.map((r) => r.id),
+        ),
+      )
+    expect(rows).toHaveLength(all.length)
+    expect(new Set(rows.map((r) => r.teamId)).size).toBe(all.length)
+    for (const r of rows) expect(r).toMatchObject({ from: 1, setBy: 'system' })
+    expect(
+      await t.db.select({ id: teams.id }).from(teams).where(isNull(teams.kitCanonical)),
+    ).toEqual([])
+    expect(
+      await t.db
+        .select({ id: news.id })
+        .from(news)
+        .where(inArray(news.kind, ['kit_new', 'kit_ceded'])),
+    ).toEqual([])
+    const [log] = await t.db
+      .select({ notes: tickLog.notes })
+      .from(tickLog)
+      .where(eq(tickLog.ok, true))
+    expect(log?.notes).toContain(`maillots: ${all.length} traducidos`)
   })
 })

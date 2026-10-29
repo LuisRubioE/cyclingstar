@@ -2,7 +2,6 @@ import { COUNTRIES } from '@cyclingstar/shared'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { type TeamDetail, updateMyTeam } from '../api/browse'
-import { Jersey } from './Jersey'
 
 /** Mensajes de error del servidor al editar el equipo. */
 const EDIT_ERROR: Record<string, string> = {
@@ -13,24 +12,21 @@ const EDIT_ERROR: Record<string, string> = {
   sin_equipo: 'You do not manage a team.',
 }
 
-/** Panel de gestión del dueño: renombrar, cambiar país y elegir maillot (SPEC 7). */
+/**
+ * Panel de gestión del dueño: renombrar y cambiar país (SPEC 7). El panel de las doce semillas del
+ * maillot salió en el 17b de E3 (docs/visual.md §8.6, 17-i): desde la traducción, lo que eligiera ya no
+ * se vería; el maillot vigente lo enseña `/team/identity`, y se cambia con el editor del 18b.
+ */
 export function TeamManager({ team }: { team: TeamDetail }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState(team.name)
   const [country, setCountry] = useState(team.country ?? 'ES')
-  // Candidatos de maillot deterministas a partir del id del equipo; el actual va primero.
-  const [jerseySeed, setJerseySeed] = useState(team.jerseySeed)
-  const candidates = [
-    team.jerseySeed,
-    ...Array.from({ length: 11 }, (_, i) => `${team.id}:jersey:${i}`),
-  ]
 
   const save = useMutation({
     mutationFn: () =>
       updateMyTeam({
         name: name.trim() === team.name ? undefined : name.trim(),
         country: country === team.country ? undefined : country,
-        jerseySeed: jerseySeed === team.jerseySeed ? undefined : jerseySeed,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['team', team.id] })
@@ -39,10 +35,7 @@ export function TeamManager({ team }: { team: TeamDetail }) {
     },
   })
 
-  const dirty =
-    name.trim() !== team.name ||
-    country !== (team.country ?? 'ES') ||
-    jerseySeed !== team.jerseySeed
+  const dirty = name.trim() !== team.name || country !== (team.country ?? 'ES')
   const errorCode = save.error instanceof Error ? save.error.message : null
 
   return (
@@ -73,27 +66,6 @@ export function TeamManager({ team }: { team: TeamDetail }) {
             ))}
           </select>
         </label>
-      </div>
-
-      <div>
-        <span className="text-sm font-medium text-slate-700">Jersey</span>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {candidates.map((seed) => (
-            <button
-              key={seed}
-              type="button"
-              onClick={() => setJerseySeed(seed)}
-              className={`rounded-xl border p-1 transition ${
-                jerseySeed === seed
-                  ? 'border-indigo-500 ring-2 ring-indigo-200'
-                  : 'border-slate-200 hover:border-indigo-300'
-              }`}
-              aria-label="Choose jersey"
-            >
-              <Jersey seed={seed} size={34} />
-            </button>
-          ))}
-        </div>
       </div>
 
       {errorCode && (

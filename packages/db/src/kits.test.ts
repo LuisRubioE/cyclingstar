@@ -10,7 +10,7 @@ import {
 } from '@cyclingstar/shared'
 import { VISIONS } from '@cyclingstar/shared/colorMath'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
-import { TransactionRollbackError, and, eq, isNull } from 'drizzle-orm'
+import { TransactionRollbackError, and, count, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
@@ -18,6 +18,7 @@ import {
   KitTakenError,
   assignKits,
   checkKit,
+  emitKitNews,
   ensureKits,
   kitsBySeed,
   kitsClash,
@@ -25,7 +26,7 @@ import {
   setKit,
 } from './kits.js'
 import { kitOn, kitsOn } from './kitsOn.js'
-import { gameState, riders, teamKits, teams, users, worlds } from './schema.js'
+import { gameState, news, riders, teamKits, teams, users, worlds } from './schema.js'
 import { type SeasonRivals, rivalsOf, seasonFields } from './seasonRivals.js'
 import { releaseUserToWorld, takeOverBotTeam } from './teamControl.js'
 import { type TestDb, startTestDb } from './testDb.js'
@@ -43,6 +44,10 @@ import { runTick } from './tick.js'
  * color y cada figura, que aquí corre solo de noche (`CS_BANCOS=1`, 16-i). Después, el resto de
  * `kits.ts`: la escritura con su historia, el maillot ocupado, el NPC que cede, el veredicto y la
  * reversión de E9.
+ *
+ * Desde el 17b la traducción la hace el tick (`ensureKits` tras `seedWorld` y `backfillRosters`), y la
+ * génesis del `beforeAll` ya sale traducida: la puerta la deshace y la rehace para medirla sola, y el
+ * caso del tick mira las noticias de un mundo de antes del 17b, como el de producción.
  */
 
 const SEED = 'semilla-maillots'
@@ -98,6 +103,30 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
     await t?.close()
   })
 
+  /** El mundo de antes del 17b, sin maillots: como el de producción la noche del despliegue. */
+  const withoutKits = async () => {
+    await t.db.delete(teamKits).where(inArray(teamKits.teamId, teamIds))
+    await t.db.update(teams).set({ kitCanonical: null }).where(eq(teams.worldId, worldId))
+  }
+  /** Las noticias del maillot del mundo. */
+  const kitNews = () =>
+    t.db
+      .select({ kind: news.kind, gameDay: news.gameDay, riderId: news.riderId, data: news.data })
+      .from(news)
+      .where(and(eq(news.worldId, worldId), inArray(news.kind, ['kit_new', 'kit_ceded'])))
+  /** Un tick que no avanza el día: lo de antes del bucle, la génesis, las reparaciones y los maillots. */
+  const tickWithoutDays = () =>
+    t.detached((url) =>
+      runTick(url, {
+        now: NOW,
+        msPerGameDay: 6 * 60 * 60 * 1000,
+        worldSeed: SEED,
+        engineVersion: 1,
+        forceDays: 0,
+        timelineRecord: 'off',
+      }),
+    )
+
   /** Los rivales de hoy, de la base: un equipo con dueño corre su calendario natural y cambia los suyos. */
   const currentRivals = async () => rivalsOf(await seasonFields(t.db, worldId, 0))
 
@@ -129,13 +158,20 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
   }
 
   it('la puerta de D-00e: la génesis traducida, 0 carreras con un par por debajo de 10 y 0 canónicos repetidos', async () => {
+    // la génesis ya la tradujo el tick (17b): se deshace para medir la traducción sola
+    const fromTick = await kitsOn(t.db, teamIds, 1)
+    expect(fromTick.size).toBe(teamIds.length)
+    await withoutKits()
     const started = performance.now()
     const report = await t.db.transaction((tx) => ensureKits(tx, worldId))
     const seconds = (performance.now() - started) / 1000
     expect(report.translated).toBe(teamIds.length)
     const kits = await kitsOn(t.db, teamIds, 1)
     expect(kits.size).toBe(teamIds.length)
+    expect(kits).toEqual(fromTick) // la del tick, la misma: la traducción no depende de quién la pida
     expect(await kitsOn(t.db, teamIds, 0)).toEqual(new Map()) // vale desde mañana
+    expect(report.changed).toHaveLength(teamIds.length)
+    expect(new Set(report.changed.map((c) => c.why))).toEqual(new Set(['translated']))
     expect(new Set([...kits.values()].map(canonicalKit)).size).toBe(kits.size)
     for (const kit of kits.values()) expect(KIT_ALLOWED).toContain(kit)
 
@@ -176,6 +212,42 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
     )
     expect(failing, failing.join(', ')).toEqual([])
     expect(report.clashes).toBe(0)
+  }, 300_000)
+
+  it('el tick (17b): da maillot a los 219, una noticia por equipo cuyo maillot cambia, y el segundo no cambia nada', async () => {
+    // en la génesis, ninguna: el mundo acababa de nacer y sus equipos nacen con su maillot
+    expect(await kitNews()).toEqual([])
+    const translated = await kitsOn(t.db, teamIds, 1)
+    await withoutKits()
+    // el primer tick tras el despliegue, sin días que correr: lo que añade la traducción (17b)
+    const started = performance.now()
+    await tickWithoutDays()
+    const seconds = (performance.now() - started) / 1000
+    const kits = await kitsOn(t.db, teamIds, 1)
+    expect(kits).toEqual(translated)
+    const written = await kitNews()
+    expect(written).toHaveLength(teamIds.length)
+    for (const n of written) {
+      const data = n.data as { teamId: string; kit: string }
+      expect(n).toMatchObject({ kind: 'kit_new', gameDay: 1, riderId: null })
+      expect(data.kit).toBe(kits.get(data.teamId))
+    }
+    expect(new Set(written.map((n) => (n.data as { teamId: string }).teamId))).toEqual(
+      new Set(teamIds),
+    )
+    console.info(
+      `kits: el primer tick con la traducción, ${seconds.toFixed(1)} s, con ${written.length} noticias`,
+    )
+    // el segundo, nada: ni una fila de maillot ni una noticia más
+    const rows = async () =>
+      (
+        await t.db.select({ n: count() }).from(teamKits).where(inArray(teamKits.teamId, teamIds))
+      )[0]!.n
+    const before = await rows()
+    await tickWithoutDays()
+    expect(await rows()).toBe(before)
+    expect(await kitNews()).toHaveLength(teamIds.length)
+    await t.db.delete(news).where(eq(news.worldId, worldId))
   }, 300_000)
 
   it.runIf(NIGHTLY)(
@@ -353,8 +425,19 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
     }
     expect(kit).toBeDefined()
     await t.db.transaction((tx) => setKit(tx, human!, kit!, 'manager', 1))
-    const report = await t.db.transaction((tx) => ensureKits(tx, worldId))
+    const report = await t.db.transaction(async (tx) => {
+      const r = await ensureKits(tx, worldId)
+      await emitKitNews(tx, worldId, r)
+      return r
+    })
     expect(report.ceded).toBeGreaterThanOrEqual(1)
+    // una noticia por NPC que cede, en su diario: «New kit for …»
+    const ceded = report.changed.filter((c) => c.why === 'ceded').map((c) => c.teamId)
+    expect(ceded).toContain(npc)
+    expect((await kitNews()).map((n) => [n.kind, (n.data as { teamId: string }).teamId])).toEqual(
+      ceded.map((id) => ['kit_ceded', id]),
+    )
+    await t.db.delete(news).where(eq(news.worldId, worldId))
     const after = await kitsOn(t.db, teamIds, 1)
     expect(after.get(human!)).toBe(kit)
     expect(after.get(npc)).not.toBe(kits.get(npc))
@@ -368,6 +451,8 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       seeded: 0,
       ceded: 0,
       clashes: 0,
+      fromDay: 1,
+      changed: [],
     })
     expect(await kitsOn(t.db, teamIds, 1)).toEqual(after)
   })
@@ -386,6 +471,10 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
     await t.db.update(teams).set({ kitCanonical: null }).where(eq(teams.id, newcomer))
     const report = await t.db.transaction((tx) => ensureKits(tx, worldId))
     expect(report).toMatchObject({ translated: 0, seeded: 1 })
+    // el que nace con su maillot no lo cambia: sin noticia (17b)
+    expect(report.changed.map((c) => c.why)).toEqual(['seeded'])
+    await t.db.transaction((tx) => emitKitNews(tx, worldId, report))
+    expect(await kitNews()).toEqual([])
     const after = await kitsOn(t.db, teamIds, 1)
     const kit = after.get(newcomer)!
     const [seed] = await t.db
