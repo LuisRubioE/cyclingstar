@@ -832,6 +832,14 @@ function Equipaciones() {
             </KitShowcase>
           </Panel>
         </Estado>
+        <Estado name="compact · the team page: the front, and its tabs in the sheet (8-x)">
+          <Panel ariaLabel="Noord Cycling kit">
+            <KitShowcase team={NOORD} bib="black" variant="compact">
+              <p>1,207 season points</p>
+              <p>Budget 6,236,433</p>
+            </KitShowcase>
+          </Panel>
+        </Estado>
         <Estado name="hidden · a team not yet translated, the drawing of before">
           <KitShowcase team={SIN_TRADUCIR} bib="black" />
         </Estado>

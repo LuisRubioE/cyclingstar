@@ -22,6 +22,10 @@ import type { Layout } from './types'
  * equipo, los puntos, el presupuesto y el maillot en palabras) lo pone quien lo pinta. La espalda del
  * equipo lleva su sitio del dorsal libre, sin número (§8.10). Sin maillot guardado, `hidden`: el dibujo
  * de antes de la traducción (`LegacyJersey`), solo por delante y sin pestañas.
+ *
+ * `compact` es lo que prevé 8-x para la ficha del equipo, donde las pestañas dejaban la plantilla a 544
+ * px, por debajo de los 520 de la comprobación 7 (medido en el 17c): el maillot de 160 solo por delante,
+ * y las pestañas, en la `Sheet`, que se abre siempre por delante. Ahorra las pestañas y su hueco, 53 px.
  */
 
 export interface KitShowcaseProps {
@@ -29,6 +33,8 @@ export interface KitShowcaseProps {
   readonly team: WornTeam
   readonly bib: BibStyle
   readonly sponsors?: KitSponsors
+  /** `compact`: solo por delante, con las pestañas en la `Sheet` (8-x) */
+  readonly variant?: 'default' | 'compact'
   /** lo que va a la derecha del maillot, en `meta` `ink-2` */
   readonly children?: ReactNode
   readonly layout?: Layout
@@ -120,10 +126,18 @@ export function KitSheet({
   )
 }
 
-export function KitShowcase({ team, bib, sponsors, children, layout }: KitShowcaseProps) {
+export function KitShowcase({
+  team,
+  bib,
+  sponsors,
+  variant = 'default',
+  children,
+  layout,
+}: KitShowcaseProps) {
   const [view, setView] = useState<KitView>('front')
   const [full, setFull] = useState(false)
   const panelId = useId()
+  const compact = variant === 'compact'
   const aside =
     children === undefined ? null : (
       <div className="flex min-w-0 flex-1 flex-col gap-1 text-meta text-ink-2">{children}</div>
@@ -133,7 +147,7 @@ export function KitShowcase({ team, bib, sponsors, children, layout }: KitShowca
     return (
       <div
         data-ui="KitShowcase"
-        data-variant="default"
+        data-variant={variant}
         data-state="hidden"
         className={withLayout('flex items-start gap-3', layout)}
       >
@@ -142,38 +156,50 @@ export function KitShowcase({ team, bib, sponsors, children, layout }: KitShowca
       </div>
     )
 
+  const boton = (
+    <button
+      type="button"
+      aria-label={SHOW_FULL_SCREEN}
+      onClick={() => {
+        if (compact) setView('front')
+        setFull(true)
+      }}
+      className={`block rounded-ui ${FOCUS}`}
+    >
+      <BigKit
+        code={team.kit}
+        teamName={team.name}
+        view={compact ? 'front' : view}
+        size={KIT_PX.showcase}
+        bib={bib}
+        sponsors={sponsors}
+      />
+    </button>
+  )
   return (
     <div
       data-ui="KitShowcase"
-      data-variant="default"
+      data-variant={variant}
       data-state="ready"
       className={withLayout('flex flex-col gap-2', layout)}
     >
-      <Tabs
-        label="Kit views"
-        options={KIT_VIEW_TABS}
-        value={view}
-        onChange={setView}
-        panelId={panelId}
-      />
+      {!compact && (
+        <Tabs
+          label="Kit views"
+          options={KIT_VIEW_TABS}
+          value={view}
+          onChange={setView}
+          panelId={panelId}
+        />
+      )}
       <div className="flex items-start gap-3">
-        <div id={panelId} role="tabpanel" aria-labelledby={tabId(panelId, view)}>
-          <button
-            type="button"
-            aria-label={SHOW_FULL_SCREEN}
-            onClick={() => setFull(true)}
-            className={`block rounded-ui ${FOCUS}`}
-          >
-            <BigKit
-              code={team.kit}
-              teamName={team.name}
-              view={view}
-              size={KIT_PX.showcase}
-              bib={bib}
-              sponsors={sponsors}
-            />
-          </button>
-        </div>
+        {compact ? (
+          boton
+        ) : (
+          <div id={panelId} role="tabpanel" aria-labelledby={tabId(panelId, view)}>
+            {boton}
+          </div>
+        )}
         {aside}
       </div>
       <KitSheet

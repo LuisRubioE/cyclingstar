@@ -62,7 +62,8 @@ export function Team() {
   const canTakeOver = isMyTeam && !data.human && control?.premium === true
 
   // La línea de estado (E3, §8.10): la división, el país y quién lo lleva; la bandera de al lado se va
-  // (D-00c). El maillot a 160 con sus vistas, y a su derecha las cifras y el maillot en palabras.
+  // (D-00c). El maillot a 160, y a su derecha las cifras y el maillot en palabras; sus vistas, en la
+  // `Sheet` que abre al tocarlo, porque con las pestañas la plantilla bajaba a 544 px (8-x).
   const status = [
     DIVISION_LABEL[data.division] ?? data.division,
     ...(data.country === null
@@ -77,7 +78,11 @@ export function Team() {
       <PageHeader title={data.name} back={{ to: '/world/teams', label: 'Teams' }} status={status} />
       <VeilNotice kind="results" />
       <UiPanel ariaLabel={`${data.name} kit`}>
-        <KitShowcase team={wornTeam(data.name, data.kit, data.jerseySeed)} bib={data.bib}>
+        <KitShowcase
+          team={wornTeam(data.name, data.kit, data.jerseySeed)}
+          bib={data.bib}
+          variant="compact"
+        >
           <p>{data.pointsSeason.toLocaleString('en-US')} season points</p>
           <p>Budget {data.budget.toLocaleString('en-US')}</p>
           {kit !== null && <p>{kitWords(kit)}</p>}

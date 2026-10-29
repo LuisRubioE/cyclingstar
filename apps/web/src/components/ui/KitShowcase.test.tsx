@@ -56,6 +56,24 @@ describe('KitShowcase', () => {
   })
 })
 
+describe('KitShowcase compact: las pestañas, en la hoja (8-x)', () => {
+  const c = renderToStaticMarkup(
+    <KitShowcase team={NOORD} bib="black" variant="compact">
+      <p>Budget 6,236,433</p>
+    </KitShowcase>,
+  )
+
+  it('el maillot de 160 solo por delante, en su botón, sin pestañas encima', () => {
+    expect(c).toMatch(/^<div data-ui="KitShowcase" data-variant="compact" data-state="ready"/)
+    expect(c).not.toContain('role="tab"')
+    expect(c).not.toContain('role="tabpanel"')
+    expect(c).toMatch(
+      /<button type="button" aria-label="Show the kit full screen"[^>]*><svg[^>]*data-view="front" width="160"/,
+    )
+    expect(c).toContain('<p>Budget 6,236,433</p>')
+  })
+})
+
 describe('KitSheet: el maillot a 320', () => {
   const hoja = (view: 'front' | 'back' | 'bib') =>
     renderToStaticMarkup(
