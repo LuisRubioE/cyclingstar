@@ -1,0 +1,76 @@
+{
+  "route": "GET /api/teams/me/kit",
+  "url": "/api/teams/me/kit",
+  "status": 200,
+  "body": {
+    "current": "halves.orange.plum",
+    "bib": "black",
+    "pending": null,
+    "changesLeft": 1,
+    "nextChangeDay": null,
+    "options": [
+      {
+        "kit": "plain.black",
+        "why": "ocupado"
+      },
+      {
+        "kit": "plain.navy",
+        "why": "ocupado"
+      },
+      {
+        "kit": "plain.blue",
+        "why": "ocupado"
+      }
+    ],
+    "rivals": [
+      {
+        "teamId": "1f3e719a-62f9-47e2-a3dc-96190adc6245",
+        "name": "Vinter Velo",
+        "kit": "band.navy.taupe",
+        "races": 36
+      },
+      {
+        "teamId": "2bfd2739-38f8-49d2-9c62-2e0b12906fc8",
+        "name": "Feuer Team",
+        "kit": "halves.teal.white",
+        "races": 36
+      },
+      {
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "name": "Noord Wielrennen",
+        "kit": "sides.blue.navy",
+        "races": 36
+      },
+      {
+        "teamId": "5510aad2-5d30-4fc8-8ead-dca5272a199b",
+        "name": "Sommet Vélo",
+        "kit": "sides.plum.orange",
+        "races": 36
+      },
+      {
+        "teamId": "61d287e2-9d63-48a2-b249-8b669af97401",
+        "name": "Meridian Velo",
+        "kit": "plain.plum",
+        "races": 36
+      },
+      {
+        "teamId": "6a651862-9350-4264-bf80-9550f7ff978a",
+        "name": "Qyran Cycling",
+        "kit": "yoke.black.teal",
+        "races": 36
+      },
+      {
+        "teamId": "6b05cad2-a1af-4573-bcb3-4adfd064d198",
+        "name": "Pfeil Velo",
+        "kit": "yoke.plum.orange",
+        "races": 36
+      },
+      {
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "name": "Vuur Racing",
+        "kit": "yoke.brown.blue",
+        "races": 36
+      }
+    ]
+  }
+}

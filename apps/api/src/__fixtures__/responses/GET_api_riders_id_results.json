@@ -1,0 +1,35 @@
+{
+  "route": "GET /api/riders/:id/results",
+  "url": "/api/riders/61a657ed-73d3-4b5b-b340-05bcbc71dde4/results",
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "raceId": "race-jaen",
+        "raceName": "Race Jaén",
+        "raceClass": "1",
+        "season": 0,
+        "stageCount": 1,
+        "isOneDay": true,
+        "gcPuesto": null,
+        "dnf": false,
+        "finished": false,
+        "stages": [],
+        "stagesToWatch": 1
+      },
+      {
+        "raceId": "race-murcia",
+        "raceName": "Race Murcia",
+        "raceClass": "1",
+        "season": 0,
+        "stageCount": 2,
+        "isOneDay": false,
+        "gcPuesto": null,
+        "dnf": false,
+        "finished": false,
+        "stages": [],
+        "stagesToWatch": 2
+      }
+    ]
+  }
+}

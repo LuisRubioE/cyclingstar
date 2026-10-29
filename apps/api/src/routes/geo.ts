@@ -1,4 +1,4 @@
-import { resolveCountry } from '@cyclingstar/shared'
+import { resolveCountry, geoCountryResponseSchema } from '@cyclingstar/shared'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import { type GeoIpLookup, lookupCountryByIp } from '../geoIp.js'
 
@@ -72,24 +72,28 @@ function leerCabeceras(request: FastifyRequest): {
 export const geoRoutes: FastifyPluginAsync<GeoRouteContext> = async (app, ctx) => {
   const lookup = ctx.lookup ?? lookupCountryByIp
 
-  app.get('/api/geo/country', { config: { spoiler: 'safe' } }, async (request) => {
-    const { code, fuente, vistas } = leerCabeceras(request)
-    if (code) {
-      return { country: resolveCountry(code), detectado: code, fuente, cabeceras: vistas }
-    }
+  app.get(
+    '/api/geo/country',
+    { config: { response: { 200: geoCountryResponseSchema }, spoiler: 'safe' } },
+    async (request) => {
+      const { code, fuente, vistas } = leerCabeceras(request)
+      if (code) {
+        return { country: resolveCountry(code), detectado: code, fuente, cabeceras: vistas }
+      }
 
-    /**
-     * La IP del cliente. `trustProxy` está activo (app.ts), así que Fastify ya la saca de
-     * `X-Forwarded-For` en vez de darnos la del proxy de Railway. Es falsificable por quien quiera
-     * molestarse, y da igual: esto solo PRESELECCIONA un desplegable que el jugador puede cambiar;
-     * no es un control de acceso ni decide nada del juego.
-     */
-    const encontrado = await lookup(request.ip)
-    return {
-      country: resolveCountry(encontrado?.code ?? null),
-      detectado: encontrado?.code ?? null,
-      fuente: encontrado?.proveedor ?? null,
-      cabeceras: vistas,
-    }
-  })
+      /**
+       * La IP del cliente. `trustProxy` está activo (app.ts), así que Fastify ya la saca de
+       * `X-Forwarded-For` en vez de darnos la del proxy de Railway. Es falsificable por quien quiera
+       * molestarse, y da igual: esto solo PRESELECCIONA un desplegable que el jugador puede cambiar;
+       * no es un control de acceso ni decide nada del juego.
+       */
+      const encontrado = await lookup(request.ip)
+      return {
+        country: resolveCountry(encontrado?.code ?? null),
+        detectado: encontrado?.code ?? null,
+        fuente: encontrado?.proveedor ?? null,
+        cabeceras: vistas,
+      }
+    },
+  )
 }

@@ -25,7 +25,15 @@ import {
   calendarForSeason,
   stagesForSeason,
 } from '@cyclingstar/engine'
-import { DAYS_PER_SEASON, NO_LEADERS, currentSeason, raceLeaders } from '@cyclingstar/shared'
+import {
+  DAYS_PER_SEASON,
+  NO_LEADERS,
+  currentSeason,
+  raceLeaders,
+  calendarResponseSchema,
+  raceStartlistSchema,
+  raceViewSchema,
+} from '@cyclingstar/shared'
 import { tableChampions } from '../champions.js'
 import { notFound } from '../http.js'
 import { diagHorizon } from '../spoiler.js'
@@ -42,7 +50,13 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
   // El ganador de cada carrera, a horizonte (P, sups. I1 a I4; E2, paso 8a): la de final velado, sin él.
   app.get(
     '/api/calendar',
-    { config: { spoiler: 'horizon', veil: { by: ['P'] } } },
+    {
+      config: {
+        response: { 200: calendarResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['P'] },
+      },
+    },
     async (request) => {
       const world = await getCurrentWorld(db)
       const season = world ? currentSeason(world.currentDay) : 0
@@ -99,6 +113,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     '/api/calendar/:raceId',
     {
       config: {
+        response: { 200: raceViewSchema },
         spoiler: 'horizon',
         veil: {
           by: ['P', 'F', 'L'],
@@ -271,6 +286,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     '/api/calendar/:raceId/startlist',
     {
       config: {
+        response: { 200: raceStartlistSchema },
         spoiler: 'horizon',
         veil: {
           by: ['L'],

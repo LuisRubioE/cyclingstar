@@ -6,9 +6,20 @@
  * con estos esquemas, así un cambio de campo en el backend falla en el borde con un mensaje claro
  * en vez de propagarse como `undefined` por la interfaz.
  *
+ * LA REGLA DE LA FRONTERA (E3, docs/visual.md §13.1; D-53):
+ *
+ * > Toda respuesta de la API es un subconjunto de lo que una pantalla enseña a quien la pide, en su forma
+ * > de pantalla. Un número interno (un atributo con decimales, CTL, ATL, TSB, TSS, un techo, el talento,
+ * > la fragilidad, la moral exacta) no cruza nunca; cruza su estrella, su tramo, su palabra, su barra de 0
+ * > a 100 o su flecha. Las excepciones van en una lista con su motivo y su PR de salida, y la lista solo
+ * > encoge.
+ *
+ * Desde el 19a, cada ruta declara su esquema de respuesta (`config.response`) y el serializador de la API
+ * quita lo que no declara, a cualquier profundidad; la lista es `FRONTERA_SIN_USO` (`apps/api/src/frontera.ts`).
+ *
  * Convenciones:
- * - Los objetos son "strip" por defecto (Zod ignora campos extra): añadir un campo en la API nunca
- *   rompe la web.
+ * - Los objetos son "strip" por defecto (Zod ignora campos extra): un campo de más no rompe la web, y desde
+ *   el 19a tampoco sale de la API. Un esquema de respuesta nunca lleva `.strict()` (§13.3).
  * - `.optional()` solo donde la API puede NO enviar el campo (ramas sin mundo, respuestas parciales).
  * - Los vocabularios internos del dominio siguen en español (roles, mentalidades…), como en el motor.
  */
@@ -25,6 +36,18 @@ import { INTENSITIES, SESSIONS } from './training.js'
 import { TRAINING_DAY_SOURCES } from './trainingDay.js'
 
 // --- Piezas comunes ------------------------------------------------------------------------
+
+// La resolución en el tipo (E3, docs/visual.md §13.2; D-54; PR 19a): un campo que la pantalla pinta como
+// estrellas, barra, flecha o marca se declara con su forma, y un `63.4172` no pasa el contrato.
+
+/** Medias estrellas de 0 a 5: lo que pinta StarRating (`attrStars`, rider.ts). */
+export const starsSchema = z.number().multipleOf(0.5).min(0).max(5)
+/** Una barra entera de 0 a 100: lo que pinta Meter (fondo y frescura, `condition.ts`). */
+export const barSchema = z.number().int().min(0).max(100)
+/** La flecha de 28 días, en sus cinco niveles: los códigos de `TREND_ARROW_CODE` (rider.ts; 13-a). */
+export const arrowSchema = z.enum(['sube_mucho', 'sube', 'igual', 'baja', 'baja_mucho'])
+/** El cuarto de banda de un atributo propio, de 0 a 3 (`attrProgress`; 13-b). */
+export const markSchema = z.number().int().min(0).max(3)
 
 /**
  * EL MAILLOT DE UN EQUIPO UN DÍA (E3, docs/visual.md §8.5; PR 16b): su código, o `null` mientras la

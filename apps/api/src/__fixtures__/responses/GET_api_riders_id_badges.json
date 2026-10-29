@@ -1,0 +1,8 @@
+{
+  "route": "GET /api/riders/:id/badges",
+  "url": "/api/riders/61a657ed-73d3-4b5b-b340-05bcbc71dde4/badges",
+  "status": 200,
+  "body": {
+    "badges": []
+  }
+}

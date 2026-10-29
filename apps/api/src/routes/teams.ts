@@ -22,6 +22,13 @@ import {
   kitSaveResponseSchema,
   kitVerdictSchema,
   teamKitResponseSchema,
+  okResponseSchema,
+  takeOverResponseSchema,
+  teamCalendarResponseSchema,
+  teamNewsResponseSchema,
+  teamRacePlanResponseSchema,
+  teamResponseSchema,
+  teamsResponseSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
@@ -60,37 +67,45 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   const { db, currentUserId } = ctx
 
   // Un jugador premium toma el control del equipo bot en el que corre su ciclista (SPEC 7).
-  app.post('/api/teams/take-over', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const result = await takeOverBotTeam(db, userId)
-    if (!result.ok) {
-      const status = result.reason === 'no_premium' ? 403 : 409
-      return sendError(reply, status, result.reason)
-    }
-    return { ok: true, teamId: result.teamId, teamName: result.teamName }
-  })
+  app.post(
+    '/api/teams/take-over',
+    { config: { response: { 200: takeOverResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const result = await takeOverBotTeam(db, userId)
+      if (!result.ok) {
+        const status = result.reason === 'no_premium' ? 403 : 409
+        return sendError(reply, status, result.reason)
+      }
+      return { ok: true, teamId: result.teamId, teamName: result.teamName }
+    },
+  )
 
   // El dueño edita su equipo: nombre (validado como el de un ciclista) y país (SPEC 7).
-  app.put('/api/teams/me', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = teamEditSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const result = await updateOwnedTeam(db, userId, parsed.data)
-    if (!result.ok) {
-      const status = result.reason === 'sin_equipo' ? 409 : 400
-      return sendError(reply, status, result.reason)
-    }
-    return { ok: true }
-  })
+  app.put(
+    '/api/teams/me',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = teamEditSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const result = await updateOwnedTeam(db, userId, parsed.data)
+      if (!result.ok) {
+        const status = result.reason === 'sin_equipo' ? 409 : 400
+        return sendError(reply, status, result.reason)
+      }
+      return { ok: true }
+    },
+  )
 
   // EL EDITOR DEL MAILLOT (E3, docs/visual.md §8.7; PR 18a): lo que pinta, el veredicto y el guardado,
   // `safe` y con su esquema de respuesta, que el serializador recorta (§13.3). Un cambio por temporada
   // (D-00k): su 429 `kit_reciente` va sin `retry-after`, que no es el límite de peticiones (8-v).
   app.get(
     '/api/teams/me/kit',
-    { config: { spoiler: 'safe' }, schema: { response: { 200: teamKitResponseSchema } } },
+    { config: { response: { 200: teamKitResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -103,7 +118,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   // El veredicto, a los 300 ms del último toque en el editor: la autoridad es esta, no la pantalla.
   app.post(
     '/api/teams/me/kit/check',
-    { config: { spoiler: 'safe' }, schema: { response: { 200: kitVerdictSchema } } },
+    { config: { response: { 200: kitVerdictSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -118,8 +133,10 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   app.put(
     '/api/teams/me/kit',
     {
-      config: { spoiler: 'safe' },
-      schema: { response: { 200: kitSaveResponseSchema, 429: kitRecentErrorSchema } },
+      config: {
+        response: { 200: kitSaveResponseSchema, 429: kitRecentErrorSchema },
+        spoiler: 'safe',
+      },
     },
     async (request, reply) => {
       const userId = await currentUserId(request)
@@ -142,7 +159,13 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   // de viaje y permite añadir/quitar del plan. Solo para quien gestiona un equipo.
   app.get(
     '/api/teams/me/calendar',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: {
+        response: { 200: teamCalendarResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['R'] },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -160,17 +183,21 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   // hoy, que todos los equipos son bots— no podía ver a qué carreras va el suyo. Este endpoint
   // responde justo a eso y a nada más: el programa, sin presupuesto ni salarios, que no son asunto
   // de un miembro de la plantilla.
-  app.get('/api/teams/me/race-plan', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const world = await getCurrentWorld(db)
-    if (!world) return { plan: null }
-    return { plan: await getRiderTeamRacePlan(db, userId, world.currentDay) }
-  })
+  app.get(
+    '/api/teams/me/race-plan',
+    { config: { response: { 200: teamRacePlanResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const world = await getCurrentWorld(db)
+      if (!world) return { plan: null }
+      return { plan: await getRiderTeamRacePlan(db, userId, world.currentDay) }
+    },
+  )
 
   app.post<{ Params: { raceId: string } }>(
     '/api/teams/me/calendar/:raceId',
-    { config: { spoiler: 'safe' } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -186,7 +213,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
 
   app.delete<{ Params: { raceId: string } }>(
     '/api/teams/me/calendar/:raceId',
-    { config: { spoiler: 'safe' } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -203,7 +230,7 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   // Explorar el mundo (#13/#14): lista de equipos y ficha de equipo. Público.
   app.get(
     '/api/teams',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    { config: { response: { 200: teamsResponseSchema }, spoiler: 'horizon', veil: { by: ['R'] } } },
     async (request) => {
       const world = await getCurrentWorld(db)
       if (!world) return { teams: [] }
@@ -213,7 +240,13 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
 
   app.get<{ Params: { id: string } }>(
     '/api/teams/:id',
-    { config: { spoiler: 'horizon', veil: { by: ['R', 'M'] } } },
+    {
+      config: {
+        response: { 200: teamResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['R', 'M'] },
+      },
+    },
     async (request, reply) => {
       const teamId = parseUuid(request.params.id)
       if (!teamId) return notFound(reply)
@@ -229,7 +262,13 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
   // velo (17-x). Con `?diag=1`, a un administrador con sesión, con el horizonte del mundo (§11.15).
   app.get<{ Params: { id: string } }>(
     '/api/teams/:id/news',
-    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    {
+      config: {
+        response: { 200: teamNewsResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['F'] },
+      },
+    },
     async (request, reply) => {
       const teamId = parseUuid(request.params.id)
       if (!teamId) return notFound(reply)

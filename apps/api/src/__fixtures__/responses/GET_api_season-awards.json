@@ -1,0 +1,41 @@
+{
+  "route": "GET /api/season-awards",
+  "url": "/api/season-awards",
+  "status": 200,
+  "body": {
+    "awards": {
+      "riderOfYear": {
+        "riderId": "619c359a-b57a-444d-a3bb-887b116fa2a4",
+        "name": "Oleksandr Prykhodko",
+        "country": "UA",
+        "isBot": true,
+        "archetype": "puncheur",
+        "points": 410
+      },
+      "bestSprinter": {
+        "riderId": "c6b4f7ab-5b13-4eb1-9a46-36cc034fccad",
+        "name": "Wirat Rojana",
+        "country": "TH",
+        "isBot": true,
+        "archetype": "velocidad",
+        "points": 264
+      },
+      "bestClimber": {
+        "riderId": "8bdc6681-4a51-40c1-a0d1-2fb7e26d5182",
+        "name": "Themba Kambarami",
+        "country": "ZW",
+        "isBot": true,
+        "archetype": "escalada",
+        "points": 302
+      },
+      "revelation": {
+        "riderId": "af2d56a2-52f9-45ee-807c-240123f99baa",
+        "name": "Xavier Phillips",
+        "country": "AU",
+        "isBot": true,
+        "archetype": "clasicas",
+        "points": 200
+      }
+    }
+  }
+}

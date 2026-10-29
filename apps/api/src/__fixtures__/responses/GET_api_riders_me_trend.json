@@ -1,0 +1,49 @@
+{
+  "route": "GET /api/riders/me/trend",
+  "url": "/api/riders/me/trend",
+  "status": 200,
+  "body": {
+    "trend": [
+      {
+        "attr": "RES",
+        "delta28": 4.061218
+      },
+      {
+        "attr": "REC",
+        "delta28": 2.970342
+      },
+      {
+        "attr": "LLA",
+        "delta28": 1.6284108
+      },
+      {
+        "attr": "MON",
+        "delta28": 1.3887165
+      },
+      {
+        "attr": "COL",
+        "delta28": 0
+      },
+      {
+        "attr": "CRI",
+        "delta28": 0
+      },
+      {
+        "attr": "SPR",
+        "delta28": 0
+      },
+      {
+        "attr": "DES",
+        "delta28": 0.15733437
+      },
+      {
+        "attr": "PAV",
+        "delta28": 0
+      },
+      {
+        "attr": "TAC",
+        "delta28": 0
+      }
+    ]
+  }
+}

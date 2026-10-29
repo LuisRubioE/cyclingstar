@@ -31,6 +31,9 @@ import {
   dayGoalSchema,
   stageQuerySchema,
   triggerCondSchema,
+  raceOrdersResponseSchema,
+  savedResponseSchema,
+  stageReplaySchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
@@ -86,6 +89,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     '/api/my-orders',
     {
       config: {
+        response: { 200: raceOrdersResponseSchema },
         spoiler: 'safe',
         veil: { by: ['N', 'L'], why: 'rivales por fama, que no se escribe' },
       },
@@ -174,24 +178,28 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     },
   )
 
-  app.put('/api/my-orders', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = putMyOrdersSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const parsedKey = parseRaceKey(parsed.data.raceKey)
-    const race = parsedKey ? SEASON_CALENDAR.find((r) => r.id === parsedKey.raceId) : null
-    if (!race) return notFound(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return notFound(reply)
-    if (!(await isOnRoster(db, parsed.data.raceKey, rider.id))) {
-      return sendError(reply, 403, 'no_convocado')
-    }
-    const validDays = new Set(race.stages.map((_, i) => i + 1))
-    const valid: StageOrderRow[] = parsed.data.orders.filter((o) => validDays.has(o.stageDay))
-    await setStageOrders(db, parsed.data.raceKey, rider.id, valid)
-    return { ok: true, saved: valid.length }
-  })
+  app.put(
+    '/api/my-orders',
+    { config: { response: { 200: savedResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = putMyOrdersSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const parsedKey = parseRaceKey(parsed.data.raceKey)
+      const race = parsedKey ? SEASON_CALENDAR.find((r) => r.id === parsedKey.raceId) : null
+      if (!race) return notFound(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return notFound(reply)
+      if (!(await isOnRoster(db, parsed.data.raceKey, rider.id))) {
+        return sendError(reply, 403, 'no_convocado')
+      }
+      const validDays = new Set(race.stages.map((_, i) => i + 1))
+      const valid: StageOrderRow[] = parsed.data.orders.filter((o) => validDays.has(o.stageDay))
+      await setStageOrders(db, parsed.data.raceKey, rider.id, valid)
+      return { ok: true, saved: valid.length }
+    },
+  )
 
   /**
    * LA FICHA DE UNA ETAPA DE CALENDARIO (pública): cuenta lo que pasó (fuga, caza, cimas, sprints,
@@ -208,7 +216,13 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
    */
   app.get<{ Params: { raceId: string; day: string } }>(
     '/api/races/:raceId/stages/:day',
-    { config: { spoiler: 'horizon', veil: { by: ['G', 'P', 'F'] } } },
+    {
+      config: {
+        response: { 200: stageReplaySchema },
+        spoiler: 'horizon',
+        veil: { by: ['G', 'P', 'F'] },
+      },
+    },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       if (!q.success) return badRequest(reply)

@@ -1,0 +1,17 @@
+{
+  "route": "GET /api/me/team-control",
+  "url": "/api/me/team-control",
+  "status": 200,
+  "body": {
+    "control": {
+      "premium": true,
+      "isAdmin": false,
+      "team": {
+        "id": "74df4318-905f-4275-9cdf-75f1d9f57a42",
+        "name": "Noord Cycling",
+        "isBot": false,
+        "ownedByMe": true
+      }
+    }
+  }
+}

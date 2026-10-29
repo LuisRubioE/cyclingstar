@@ -78,13 +78,40 @@ export interface VeilSpec {
   readonly why?: string
 }
 
-/** Una ruta registrada, con su política y su mecanismo: sin ellos no arranca (8a). */
+/**
+ * LA FRONTERA (E3, docs/visual.md §13.2; D-54, I-09; PR 19a): lo que devuelve una ruta, por código, con
+ * los esquemas de `packages/shared/src/contracts.ts`. El serializador de la API (`fastify-type-provider-zod`,
+ * `app.ts`) quita de la respuesta todo lo que el esquema no declara, también lo anidado (§13.3), así que un
+ * campo de más ya no sale. Además de los de éxito, el 429 de `kit_reciente`, que trae su día (18a).
+ */
+export type RouteResponse = Readonly<Partial<Record<200 | 201 | 204 | 429, z.ZodType>>>
+
+/** `runtime`: en el serializador de cada petición; `tests`: declarado y comprobado solo en los tests (§13.4). */
+export type ResponseCheck = 'runtime' | 'tests'
+
+/** Las únicas rutas de /api sin esquema de respuesta, con su porqué (13-c). */
+export const RESPONSE_EXEMPT: ReadonlyMap<string, string> = new Map([
+  ['/api/auth/*', 'la sirve el manejador de better-auth, con sus propias respuestas'],
+])
+
+/** Si una ruta tiene que declarar su respuesta: las de /api y /health, salvo las exentas (§13.2). */
+export function needsResponse(url: string): boolean {
+  if (url !== '/health' && !url.startsWith('/api/')) return false
+  for (const exempt of RESPONSE_EXEMPT.keys())
+    if (exempt.endsWith('/*') ? url.startsWith(exempt.slice(0, -1)) : url === exempt) return false
+  return true
+}
+
+/** Una ruta registrada, con su política, su mecanismo y lo que devuelve: sin ellos no arranca (8a; 19a). */
 export interface RouteEntry {
   readonly method: HTTPMethods
   readonly url: string
   readonly policy: SpoilerPolicy
   readonly veil: VeilSpec
   readonly origin: 'app' | 'static'
+  /** lo que devuelve; null en las exentas y fuera de /api y /health */
+  readonly response: RouteResponse | null
+  readonly responseCheck: ResponseCheck
 }
 
 /**
@@ -104,6 +131,10 @@ declare module 'fastify' {
   interface FastifyContextConfig {
     spoiler?: SpoilerPolicy
     veil?: VeilSpec
+    /** lo que devuelve, por código (§13.2; 19a): sin él, una ruta de /api o /health no arranca */
+    response?: RouteResponse
+    /** 'tests': declarado y comprobado en los tests, sin serializar en cada petición (§13.4) */
+    responseCheck?: ResponseCheck
   }
   interface FastifyRequest {
     /** de la sesión, o de cs_viewer en lectura, o null (§10.8); una vez por petición */
@@ -149,8 +180,11 @@ export const STATIC_ROUTES: ReadonlySet<string> = new Set(['/*'])
  * otros dos, falso; sin base no se registra ninguna ruta de juego, así que nadie los lee.
  *
  * Lanza al registrar una ruta sin política, una con horizonte (`horizon` o `watch`) sin mecanismo o
- * una L sin motivo (§14.5): `ready()` rechaza con el mensaje. Una `safe` sin `veil` es N. Las `HEAD`
- * que Fastify crea por cada `GET` heredan su `config` y pasan solas.
+ * una L sin motivo (§14.5): `ready()` rechaza con el mensaje. Una `safe` sin `veil` es N. Desde el 19a de
+ * E3, también una de /api o /health sin lo que devuelve (`config.response`, §13.2), salvo las de
+ * `RESPONSE_EXEMPT`; con `responseCheck` `runtime`, el de por defecto, el gancho lo copia en
+ * `schema.response` y lo aplica el serializador. Las `HEAD` que Fastify crea por cada `GET` heredan su
+ * `config` y pasan solas.
  */
 export function registerSpoilerGuard(
   app: FastifyInstance,
@@ -170,6 +204,12 @@ export function registerSpoilerGuard(
     if (veil === undefined) throw new Error(`ruta con horizonte sin mecanismo (config.veil): ${at}`)
     if (veil.by.includes('L') && (veil.why ?? '').trim() === '')
       throw new Error(`mecanismo L sin motivo escrito (config.veil.why): ${at}`)
+    // La frontera (19a): lo que devuelve, obligatorio en /api y /health; con `runtime`, al serializador.
+    const response = r.config?.response ?? null
+    if (response === null && !isStatic && needsResponse(r.url))
+      throw new Error(`ruta sin esquema de respuesta (config.response): ${at}`)
+    const responseCheck = r.config?.responseCheck ?? 'runtime'
+    if (response !== null && responseCheck === 'runtime') r.schema = { ...r.schema, response }
     for (const method of methods)
       registry.set(`${method} ${r.url}`, {
         method,
@@ -177,6 +217,8 @@ export function registerSpoilerGuard(
         policy,
         veil,
         origin: isStatic ? 'static' : 'app',
+        response,
+        responseCheck,
       })
   })
   installViewerAndHorizon(app, deps)

@@ -1,0 +1,28 @@
+{
+  "route": "GET /api/me/horizon",
+  "url": "/api/me/horizon",
+  "status": 200,
+  "body": {
+    "rev": "50.0",
+    "scope": "guarded",
+    "ready": [
+      {
+        "raceKey": "race-murcia:s0",
+        "raceName": "Race Murcia",
+        "stages": [1, 2],
+        "reason": "own_rider",
+        "expiresOnDay": 101
+      },
+      {
+        "raceKey": "race-jaen:s0",
+        "raceName": "Race Jaén",
+        "stages": [1],
+        "reason": "own_rider",
+        "expiresOnDay": 103
+      }
+    ],
+    "watching": [],
+    "expiredSinceLastVisit": [],
+    "revealConfirm": true
+  }
+}

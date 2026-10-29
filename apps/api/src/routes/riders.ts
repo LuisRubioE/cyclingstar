@@ -61,6 +61,31 @@ import {
   planPreviewRequestSchema,
   planPreviewResponseSchema,
   putTrainingPlanSchema,
+  badgesResponseSchema,
+  blockReportResponseSchema,
+  coachViewResponseSchema,
+  createdRiderResponseSchema,
+  enterableRacesResponseSchema,
+  formResponseSchema,
+  generatedNameSchema,
+  lastRaceResponseSchema,
+  ledgerResponseSchema,
+  marketResponseSchema,
+  myRiderResponseSchema,
+  okResponseSchema,
+  ordersResponseSchema,
+  palmaresResponseSchema,
+  publicRiderDetailResponseSchema,
+  racePrefsResponseSchema,
+  retireFromRaceResponseSchema,
+  riderResultsResponseSchema,
+  riderSummaryResponseSchema,
+  savedResponseSchema,
+  teamControlResponseSchema,
+  teamTrainingResponseSchema,
+  trainingPlanResponseSchema,
+  trendResponseSchema,
+  upcomingRacesResponseSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { riderChampion } from '../champions.js'
@@ -137,24 +162,29 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo y evita
   // colisiones con corredores en activo del mundo (ni bots ni humanos repetidos).
-  app.get('/api/names/generate', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const parsed = nameQuerySchema.safeParse(request.query)
-    if (!parsed.success) return badRequest(reply)
-    const { country, gender, seed } = parsed.data
-    if (!isKnownCountry(country)) return badRequest(reply, 'pais_desconocido')
-    const world = await getCurrentWorld(db)
-    if (!world) return generateName(seed, { country: country.toLowerCase(), gender })
-    return generateUniqueRiderName(db, world.worldId, seed, {
-      country: country.toLowerCase(),
-      gender,
-    })
-  })
+  app.get(
+    '/api/names/generate',
+    { config: { response: { 200: generatedNameSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const parsed = nameQuerySchema.safeParse(request.query)
+      if (!parsed.success) return badRequest(reply)
+      const { country, gender, seed } = parsed.data
+      if (!isKnownCountry(country)) return badRequest(reply, 'pais_desconocido')
+      const world = await getCurrentWorld(db)
+      if (!world) return generateName(seed, { country: country.toLowerCase(), gender })
+      return generateUniqueRiderName(db, world.worldId, seed, {
+        country: country.toLowerCase(),
+        gender,
+      })
+    },
+  )
 
   // El ciclista del usuario (o null si aún no ha creado uno).
   app.get(
     '/api/riders/me',
     {
       config: {
+        response: { 200: myRiderResponseSchema },
         spoiler: 'horizon',
         veil: {
           by: ['L'],
@@ -172,7 +202,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // Próximas carreras del ciclista del jugador (convocatorias ya congeladas + en curso).
   app.get(
     '/api/riders/me/upcoming-races',
-    { config: { spoiler: 'horizon', veil: { by: ['M'] } } },
+    {
+      config: {
+        response: { 200: upcomingRacesResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['M'] },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -186,57 +222,65 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   // Estado de control de equipo del usuario: si es premium y si su equipo sigue siendo bot
   // (reclamable) o ya es suyo. La web lo usa para mostrar el botón de "tomar control".
-  app.get('/api/me/team-control', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    return { control: await getAccountControl(db, userId) }
-  })
+  app.get(
+    '/api/me/team-control',
+    { config: { response: { 200: teamControlResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      return { control: await getAccountControl(db, userId) }
+    },
+  )
 
   // Crear el ciclista (SPEC 3.5). El genoma lo genera el servidor (no lo controla el cliente).
-  app.post('/api/riders', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = createRiderSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const { vocation, gender, country, nameSeed } = parsed.data
-    if (!isKnownCountry(country)) return badRequest(reply, 'pais_desconocido')
-    if (await getRiderForUser(db, userId)) return sendError(reply, 409, 'ya_tienes_ciclista')
-    const world = await getCurrentWorld(db)
-    if (!world) return sendError(reply, 409, 'mundo_no_inicializado')
-    const name = await generateUniqueRiderName(db, world.worldId, nameSeed, {
-      country: country.toLowerCase(),
-      gender,
-    })
-    /**
-     * SEMILLA REPRODUCIBLE. Esto era `generateRiderGenome(randomUUID(), vocation)`: el genoma del
-     * jugador —sus techos, su talento, su fragilidad, lo que va a poder llegar a ser— salía de un
-     * dado que no deja rastro. Dos consecuencias, y la segunda es la grave: no se podía reproducir
-     * un caso que el dueño reportara («mira qué corredor me ha salido»), y el mundo tenía una
-     * fuente de azar fuera de la semilla, que es justo lo que el resto del motor se prohíbe.
-     *
-     * `intento` cuenta los ciclistas que este usuario ya ha tenido, retirados incluidos, para que
-     * empezar de nuevo tras una retirada no reparta otra vez el mismo genoma.
-     */
-    const intento = await countRidersForUser(db, userId)
-    const semilla = `${world.worldSeed}:${userId}:${intento}`
-    const genome = generateRiderGenome(semilla, vocation)
-    const created = await createRider(db, {
-      worldId: world.worldId,
-      userId,
-      name: name.fullName,
-      country: country.toUpperCase(),
-      gender,
-      archetype: vocation,
-      // A los 18, sin equipo y con las piernas de un chaval (v48). Ver `PLAYER_START_AGE`: la edad
-      // se nombra y la `birthSeason` se deriva de ella, en vez del `currentSeason(...)` a pelo que
-      // había antes —que por la época de las edades salía 20 sin decirlo en ninguna parte—.
-      birthSeason: birthSeasonForAge(PLAYER_START_AGE, currentSeason(world.currentDay)),
-      faceSeed: `${semilla}:cara`,
-      attributes: genome.attributes,
-      hidden: genome.hidden,
-    })
-    return reply.status(201).send({ ok: true, id: created.id })
-  })
+  app.post(
+    '/api/riders',
+    { config: { response: { 201: createdRiderResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = createRiderSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const { vocation, gender, country, nameSeed } = parsed.data
+      if (!isKnownCountry(country)) return badRequest(reply, 'pais_desconocido')
+      if (await getRiderForUser(db, userId)) return sendError(reply, 409, 'ya_tienes_ciclista')
+      const world = await getCurrentWorld(db)
+      if (!world) return sendError(reply, 409, 'mundo_no_inicializado')
+      const name = await generateUniqueRiderName(db, world.worldId, nameSeed, {
+        country: country.toLowerCase(),
+        gender,
+      })
+      /**
+       * SEMILLA REPRODUCIBLE. Esto era `generateRiderGenome(randomUUID(), vocation)`: el genoma del
+       * jugador —sus techos, su talento, su fragilidad, lo que va a poder llegar a ser— salía de un
+       * dado que no deja rastro. Dos consecuencias, y la segunda es la grave: no se podía reproducir
+       * un caso que el dueño reportara («mira qué corredor me ha salido»), y el mundo tenía una
+       * fuente de azar fuera de la semilla, que es justo lo que el resto del motor se prohíbe.
+       *
+       * `intento` cuenta los ciclistas que este usuario ya ha tenido, retirados incluidos, para que
+       * empezar de nuevo tras una retirada no reparta otra vez el mismo genoma.
+       */
+      const intento = await countRidersForUser(db, userId)
+      const semilla = `${world.worldSeed}:${userId}:${intento}`
+      const genome = generateRiderGenome(semilla, vocation)
+      const created = await createRider(db, {
+        worldId: world.worldId,
+        userId,
+        name: name.fullName,
+        country: country.toUpperCase(),
+        gender,
+        archetype: vocation,
+        // A los 18, sin equipo y con las piernas de un chaval (v48). Ver `PLAYER_START_AGE`: la edad
+        // se nombra y la `birthSeason` se deriva de ella, en vez del `currentSeason(...)` a pelo que
+        // había antes —que por la época de las edades salía 20 sin decirlo en ninguna parte—.
+        birthSeason: birthSeasonForAge(PLAYER_START_AGE, currentSeason(world.currentDay)),
+        faceSeed: `${semilla}:cara`,
+        attributes: genome.attributes,
+        hidden: genome.hidden,
+      })
+      return reply.status(201).send({ ok: true, id: created.id })
+    },
+  )
 
   /**
    * La última corrida, si está velada y es posterior a la del informe (E2, docs/retransmision.md §12.9
@@ -281,7 +325,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // corredor (12-k; paso 12) y con `ready` si la última corrida está velada. Sin velo, sin esa clave.
   app.get(
     '/api/riders/me/last-race',
-    { config: { spoiler: 'horizon', veil: { by: ['P', 'G'] } } },
+    {
+      config: {
+        response: { 200: lastRaceResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['P', 'G'] },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -297,22 +347,27 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   // Cambiar la vocación declarada (la "etiqueta") del corredor. No toca techos ni atributos:
   // el corredor decide luego alinear su entrenamiento; influye en las convocatorias por tipo.
-  app.put('/api/riders/me/archetype', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = archetypeSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return notFound(reply, 'sin_ciclista')
-    await setRiderArchetype(db, rider.id, parsed.data.archetype)
-    return { ok: true }
-  })
+  app.put(
+    '/api/riders/me/archetype',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = archetypeSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return notFound(reply, 'sin_ciclista')
+      await setRiderArchetype(db, rider.id, parsed.data.archetype)
+      return { ok: true }
+    },
+  )
 
   // --- Planificador de entrenamiento (Paso 18) ---------------------------------------------
   app.get(
     '/api/riders/me/orders',
     {
       config: {
+        response: { 200: ordersResponseSchema },
         spoiler: 'horizon',
         // Los 28 días (E3, PR 13b): lo que el entrenador hará cada uno mira la carga y la tensión del
         // corredor, que cambian al correrse una etapa velada; la salud y los días de carrera, con el
@@ -379,31 +434,35 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     },
   )
 
-  app.put('/api/riders/me/orders', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = putOrdersSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
-    // Solo días futuros dentro del horizonte (SPEC 5.2: cola de 7 a 28 días).
-    const valid: TrainingOrderRow[] = parsed.data.orders.filter(
-      (order) =>
-        order.gameDay > world.currentDay &&
-        order.gameDay <= world.currentDay + TRAINING_HORIZON_DAYS,
-    )
-    /**
-     * Se guarda con VENTANA, y eso es lo que hace posible deshacer. Los días del horizonte que no
-     * vengan en `orders` se BORRAN, o sea vuelven a ser del entrenador (o del bloque). Sin la
-     * ventana, quitar una orden era imposible: el borrado solo alcanzaba a los días que se enviaban.
-     */
-    await setTrainingOrders(db, rider.id, valid, {
-      fromDay: world.currentDay + 1,
-      toDay: world.currentDay + TRAINING_HORIZON_DAYS,
-    })
-    return { ok: true, saved: valid.length }
-  })
+  app.put(
+    '/api/riders/me/orders',
+    { config: { response: { 200: savedResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = putOrdersSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
+      // Solo días futuros dentro del horizonte (SPEC 5.2: cola de 7 a 28 días).
+      const valid: TrainingOrderRow[] = parsed.data.orders.filter(
+        (order) =>
+          order.gameDay > world.currentDay &&
+          order.gameDay <= world.currentDay + TRAINING_HORIZON_DAYS,
+      )
+      /**
+       * Se guarda con VENTANA, y eso es lo que hace posible deshacer. Los días del horizonte que no
+       * vengan en `orders` se BORRAN, o sea vuelven a ser del entrenador (o del bloque). Sin la
+       * ventana, quitar una orden era imposible: el borrado solo alcanzaba a los días que se enviaban.
+       */
+      await setTrainingOrders(db, rider.id, valid, {
+        fromDay: world.currentDay + 1,
+        toDay: world.currentDay + TRAINING_HORIZON_DAYS,
+      })
+      return { ok: true, saved: valid.length }
+    },
+  )
 
   /**
    * EL PLAN POR BLOQUES (D0-D4, docs/entrenamiento.md §5.3, paso 11).
@@ -414,40 +473,48 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
    * siguen ahí y siguen siendo editables, que es dictado del dueño; lo que cambia es que ya no hace
    * falta pasar por ellos.
    */
-  app.get('/api/riders/me/plan', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return { mode: 'mixto', plan: null, currentDay: world?.currentDay ?? 0 }
-    const inicio = world.currentDay + 1
-    return {
-      mode: await getTrainingMode(db, rider.id),
-      plan: (await getPlanForDay(db, rider.id, inicio))?.plan ?? null,
-      currentDay: world.currentDay,
-    }
-  })
+  app.get(
+    '/api/riders/me/plan',
+    { config: { response: { 200: trainingPlanResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { mode: 'mixto', plan: null, currentDay: world?.currentDay ?? 0 }
+      const inicio = world.currentDay + 1
+      return {
+        mode: await getTrainingMode(db, rider.id),
+        plan: (await getPlanForDay(db, rider.id, inicio))?.plan ?? null,
+        currentDay: world.currentDay,
+      }
+    },
+  )
 
-  app.put('/api/riders/me/plan', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = putTrainingPlanSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
-    // UN SOLO PLAN VIVO (E3, docs/visual.md §11.5; PR 13a): sobre el `startDay` del plan vivo, o desde
-    // mañana si no hay o si el jugador empieza de cero; nunca hoy, que ya se entrenó (o se está
-    // entrenando) y reescribirlo sería prometer un cambio que el tick no va a aplicar. El modo, el plan y
-    // el borrado de los planes que pisa, en una transacción.
-    await saveLiveTrainingPlan(db, rider.id, {
-      currentDay: world.currentDay,
-      mode: parsed.data.mode,
-      plan: parsed.data.plan,
-      startFresh: parsed.data.startFresh === true,
-    })
-    return { ok: true }
-  })
+  app.put(
+    '/api/riders/me/plan',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = putTrainingPlanSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
+      // UN SOLO PLAN VIVO (E3, docs/visual.md §11.5; PR 13a): sobre el `startDay` del plan vivo, o desde
+      // mañana si no hay o si el jugador empieza de cero; nunca hoy, que ya se entrenó (o se está
+      // entrenando) y reescribirlo sería prometer un cambio que el tick no va a aplicar. El modo, el plan y
+      // el borrado de los planes que pisa, en una transacción.
+      await saveLiveTrainingPlan(db, rider.id, {
+        currentDay: world.currentDay,
+        mode: parsed.data.mode,
+        plan: parsed.data.plan,
+        startFresh: parsed.data.startFresh === true,
+      })
+      return { ok: true }
+    },
+  )
 
   /**
    * «¿CÓMO VOY A LLEGAR?» — la proyección, ANTES de guardar (docs/entrenamiento.md §5.3; E3,
@@ -460,8 +527,11 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   app.post(
     '/api/riders/me/plan/preview',
     {
-      config: { spoiler: 'horizon', veil: { by: ['M'] } },
-      schema: { response: { 200: planPreviewResponseSchema } },
+      config: {
+        response: { 200: planPreviewResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['M'] },
+      },
     },
     async (request, reply) => {
       const userId = await currentUserId(request)
@@ -494,46 +564,55 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   // Plan de entrenamiento SUGERIDO por el equipo (para que la plantilla entrene junta y gane el
   // bonus de grupo). Cualquier corredor del equipo lo LEE; solo el mánager (dueño) lo edita.
-  app.get('/api/me/team-training', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const rider = await getRiderForUser(db, userId)
-    const world = await getCurrentWorld(db)
-    // Solo el equipo de hoy, que no nace de ninguna etapa: con `worldHorizon` (la ruta es `safe`).
-    const summary = rider ? await getRiderSummary(db, worldHorizon, rider.id) : null
-    const teamId = summary?.teamId ?? null
-    if (!teamId || !world) return { plan: [], canEdit: false, teamName: null }
-    const control = await getAccountControl(db, userId)
-    const plan = await getTeamTrainingPlan(
-      db,
-      teamId,
-      world.currentDay + 1,
-      world.currentDay + TRAINING_HORIZON_DAYS,
-    )
-    return {
-      plan,
-      canEdit: control?.team?.ownedByMe ?? false,
-      teamName: summary?.teamName ?? null,
-    }
-  })
+  app.get(
+    '/api/me/team-training',
+    { config: { response: { 200: teamTrainingResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      // Solo el equipo de hoy, que no nace de ninguna etapa: con `worldHorizon` (la ruta es `safe`).
+      const summary = rider ? await getRiderSummary(db, worldHorizon, rider.id) : null
+      const teamId = summary?.teamId ?? null
+      if (!teamId || !world) return { plan: [], canEdit: false, teamName: null }
+      const control = await getAccountControl(db, userId)
+      const plan = await getTeamTrainingPlan(
+        db,
+        teamId,
+        world.currentDay + 1,
+        world.currentDay + TRAINING_HORIZON_DAYS,
+      )
+      return {
+        plan,
+        canEdit: control?.team?.ownedByMe ?? false,
+        teamName: summary?.teamName ?? null,
+      }
+    },
+  )
 
-  app.put('/api/me/team-training', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = putOrdersSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const control = await getAccountControl(db, userId)
-    const teamId = control?.team?.ownedByMe ? control.team.id : null
-    if (!teamId) return sendError(reply, 403, 'no_eres_manager')
-    await setTeamTrainingPlan(db, teamId, parsed.data.orders)
-    return { ok: true, saved: parsed.data.orders.length }
-  })
+  app.put(
+    '/api/me/team-training',
+    { config: { response: { 200: savedResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = putOrdersSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const control = await getAccountControl(db, userId)
+      const teamId = control?.team?.ownedByMe ? control.team.id : null
+      if (!teamId) return sendError(reply, 403, 'no_eres_manager')
+      await setTeamTrainingPlan(db, teamId, parsed.data.orders)
+      return { ok: true, saved: parsed.data.orders.length }
+    },
+  )
 
   // Serie de forma para la gráfica del perfil (Paso 20).
   app.get(
     '/api/riders/me/form',
     {
       config: {
+        response: { 200: formResponseSchema },
         spoiler: 'horizon',
         veil: {
           by: ['L', 'F', 'M'],
@@ -577,7 +656,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // Flecha de tendencia: Δ28 por atributo (SPEC 3.2, con la ventana y los niveles de §2.3).
   app.get(
     '/api/riders/me/trend',
-    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    { config: { response: { 200: trendResponseSchema }, spoiler: 'horizon', veil: { by: ['F'] } } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -593,6 +672,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     '/api/riders/me/coach-view',
     {
       config: {
+        response: { 200: coachViewResponseSchema },
         spoiler: 'horizon',
         veil: {
           by: ['L'],
@@ -615,7 +695,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // Informe del bloque: de dónde salió cada punto de los últimos 28 días (§4.6).
   app.get(
     '/api/riders/me/report',
-    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    {
+      config: {
+        response: { 200: blockReportResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['F'] },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -633,6 +719,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     '/api/riders/me/race-prefs',
     {
       config: {
+        response: { 200: racePrefsResponseSchema },
         spoiler: 'horizon',
         veil: {
           by: ['L'],
@@ -650,21 +737,31 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     },
   )
 
-  app.put('/api/riders/me/race-prefs', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await currentUserId(request)
-    if (!userId) return unauthorized(reply)
-    const parsed = putRacePrefSchema.safeParse(request.body)
-    if (!parsed.success) return badRequest(reply)
-    const rider = await getRiderForUser(db, userId)
-    if (!rider) return sendError(reply, 409, 'sin_ciclista')
-    await setRacePref(db, rider.id, parsed.data.raceId, parsed.data.wanted)
-    return { ok: true }
-  })
+  app.put(
+    '/api/riders/me/race-prefs',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      const parsed = putRacePrefSchema.safeParse(request.body)
+      if (!parsed.success) return badRequest(reply)
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return sendError(reply, 409, 'sin_ciclista')
+      await setRacePref(db, rider.id, parsed.data.raceId, parsed.data.wanted)
+      return { ok: true }
+    },
+  )
 
   // Palmarés del corredor de la sesión (Paso 40).
   app.get(
     '/api/riders/me/palmares',
-    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    {
+      config: {
+        response: { 200: palmaresResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['F'] },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -677,7 +774,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // Estado del corredor (equipo, moral, dinero, fama, puntos) para la cabecera del perfil.
   app.get(
     '/api/riders/me/summary',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: {
+        response: { 200: riderSummaryResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['R'] },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -690,7 +793,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // Libro de transacciones y saldo (Paso 38).
   app.get(
     '/api/riders/me/ledger',
-    { config: { spoiler: 'horizon', veil: { by: ['F', 'R'] } } },
+    {
+      config: {
+        response: { 200: ledgerResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['F', 'R'] },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -712,6 +821,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     '/api/riders/me/offers',
     {
       config: {
+        response: { 200: marketResponseSchema },
         spoiler: 'horizon',
         veil: {
           by: ['L'],
@@ -730,7 +840,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   app.post<{ Params: { id: string } }>(
     '/api/riders/me/offers/:id/accept',
-    { config: { spoiler: 'safe' } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -749,7 +859,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   app.post<{ Params: { id: string } }>(
     '/api/riders/me/offers/:id/reject',
-    { config: { spoiler: 'safe' } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -772,7 +882,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // puede correr con el coste de viaje, y permite inscribirse/darse de baja hasta que empiece.
   app.get(
     '/api/riders/me/race-entries',
-    { config: { spoiler: 'safe' } },
+    { config: { response: { 200: enterableRacesResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -785,7 +895,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   app.post<{ Params: { raceId: string } }>(
     '/api/riders/me/race-entries/:raceId',
-    { config: { spoiler: 'safe' } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -802,7 +912,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
 
   app.delete<{ Params: { raceId: string } }>(
     '/api/riders/me/race-entries/:raceId',
-    { config: { spoiler: 'safe' } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -828,7 +938,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
    */
   app.post<{ Params: { raceKey: string } }>(
     '/api/riders/me/races/:raceKey/retire',
-    { config: { spoiler: 'horizon', veil: { by: ['M'] } } },
+    {
+      config: {
+        response: { 200: retireFromRaceResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['M'] },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -855,7 +971,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // Logros de un corredor (#95).
   app.get<{ Params: { id: string } }>(
     '/api/riders/:id/badges',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: { response: { 200: badgesResponseSchema }, spoiler: 'horizon', veil: { by: ['R'] } },
+    },
     async (request, reply) => {
       const riderId = parseUuid(request.params.id)
       if (!riderId) return notFound(reply)
@@ -866,7 +984,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // Palmarés público de cualquier corredor (lo que ha ganado): para ver el detalle desde su ficha.
   app.get<{ Params: { id: string } }>(
     '/api/riders/:id/palmares',
-    { config: { spoiler: 'horizon', veil: { by: ['F'] } } },
+    {
+      config: {
+        response: { 200: palmaresResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['F'] },
+      },
+    },
     async (request, reply) => {
       const riderId = parseUuid(request.params.id)
       if (!riderId) return notFound(reply)
@@ -878,7 +1002,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // gane o no) y las etapas como desglose (docs/navegacion.md §3.6).
   app.get<{ Params: { id: string } }>(
     '/api/riders/:id/results',
-    { config: { spoiler: 'horizon', veil: { by: ['F', 'P'] } } },
+    {
+      config: {
+        response: { 200: riderResultsResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['F', 'P'] },
+      },
+    },
     async (request, reply) => {
       const riderId = parseUuid(request.params.id)
       if (!riderId) return notFound(reply)
@@ -890,6 +1020,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     '/api/riders/:id',
     {
       config: {
+        response: { 200: publicRiderDetailResponseSchema },
         spoiler: 'horizon',
         // F desde el 17a de E3: `champion`, sin los títulos de un campeonato velado (docs/visual.md §8.5)
         veil: {

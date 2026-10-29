@@ -1,0 +1,33 @@
+{
+  "route": "GET /api/records",
+  "url": "/api/records",
+  "status": 200,
+  "body": {
+    "records": {
+      "mostWins": {
+        "riderId": "b513aa24-8f51-4f7e-9744-d8b22dac0541",
+        "name": "José Antonio Fernández",
+        "country": "ES",
+        "isBot": true,
+        "value": 5,
+        "note": "career wins"
+      },
+      "mostGcWins": {
+        "riderId": "5485dd05-8006-4799-8777-9809785754f7",
+        "name": "Peerapong Saengsuwan",
+        "country": "TH",
+        "isBot": true,
+        "value": 2,
+        "note": "overall wins"
+      },
+      "youngestWinner": {
+        "riderId": "af2d56a2-52f9-45ee-807c-240123f99baa",
+        "name": "Xavier Phillips",
+        "country": "AU",
+        "isBot": true,
+        "value": 22,
+        "note": "Australia U23 ITT Championship, season 1"
+      }
+    }
+  }
+}

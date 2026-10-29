@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { stageReadyEmail } from './emails.js'
 import { preStageInfoFor, shellMetaFor } from './spaShell.js'
 import {
+  CANARY_POST_READS,
   OWN_RIDER,
   RACE_ID,
   RACE_KEY,
@@ -15,7 +16,9 @@ import {
   serverErrors,
   startSpoilerWorld,
   sweep,
+  sweepPostReads,
 } from './__fixtures__/spoilerWorld.js'
+import { excused } from './frontera.js'
 
 /**
  * B1a · EL CANARIO (docs/retransmision.md §16.3; I-30, D-54; E2, paso 7a). Suite rápida.
@@ -78,6 +81,43 @@ async function plantCanary(w: SpoilerWorld): Promise<void> {
   await w.t
     .client`update news set data = jsonb_set(data, '{stageDay}', ${String(CANARY.stageDay)}::jsonb) where game_day = ${day} and data ? 'stageDay'`
 }
+
+/**
+ * LOS TESTIGOS DE LA FRONTERA (E3, docs/visual.md §13.2, punto 4; I-09; PR 19a): tres números internos que
+ * ninguna respuesta puede devolver con esa cifra, salvo donde `FRONTERA_SIN_USO` todavía lo deja, y hasta
+ * su PR de salida. Una regla de nombres sola no basta: un campo con decimales y otro nombre la pasa, y esto
+ * lo caza. Con su hoja, para buscar su excepción.
+ */
+const FRONTERA = [
+  {
+    what: 'el MON visible',
+    value: 63.4172,
+    re: /(?<![0-9])63\.4172(?![0-9])/,
+    field: 'rider.attributes.MON',
+  },
+  {
+    what: 'el ctl del diario',
+    value: 61.98765,
+    re: /(?<![0-9])61\.98765(?![0-9])/,
+    field: 'log[].ctl',
+  },
+  {
+    what: 'la moral',
+    value: 57.31415,
+    re: /(?<![0-9])57\.31415(?![0-9])/,
+    field: 'summary.morale',
+  },
+] as const
+
+async function plantFrontera(w: SpoilerWorld): Promise<void> {
+  const [mon, ctl, moral] = FRONTERA
+  await w.t
+    .client`update rider_attrs set value = ${mon.value} where rider_id = ${OWN_RIDER} and attr = 'MON'`
+  await w.t
+    .client`update rider_daily_log set ctl = ${ctl.value} where rider_id = ${OWN_RIDER} and game_day = (select max(game_day) from rider_daily_log where rider_id = ${OWN_RIDER})`
+  await w.t.client`update riders set morale = ${moral.value} where id = ${OWN_RIDER}`
+}
+
 const leaking = (bodies: ReadonlyMap<string, Swept>): string[] =>
   [...bodies].filter(([, r]) => TOKENS.some((t) => t.test(r.body))).map(([k]) => k)
 
@@ -93,6 +133,7 @@ describe('B1a · el canario', () => {
     w = await startSpoilerWorld('b1a-base')
     await w.runVeiled('b1a-velada')
     await plantCanary(w)
+    await plantFrontera(w)
     const winner = await w.winner()
     w.extraRiders.push(winner) // su ficha es la que más tendría que contar
     winnerName = (
@@ -110,6 +151,31 @@ describe('B1a · el canario', () => {
 
   it('ninguna respuesta del barrido es un 5xx: un 500 no cuenta ni destripa, es un banco que no ha mirado', async () => {
     expect(serverErrors(await veiledSweep())).toEqual([])
+  })
+
+  it('las POST de lectura, también: ni cuentan el desenlace ni dan un 5xx (CANARY_POST_READS, 13-d)', async () => {
+    const posts = await sweepPostReads(w)
+    expect([...posts.keys()].map(routeOf).sort()).toEqual([...CANARY_POST_READS.keys()].sort())
+    expect(leaking(posts)).toEqual([])
+    expect(serverErrors(posts)).toEqual([])
+    for (const route of CANARY_POST_READS.keys())
+      expect(w.app.spoilerRegistry.get(route)?.method).toBe('POST')
+  })
+
+  it('los testigos de la frontera solo salen donde FRONTERA_SIN_USO aún los deja, y ahí salen (§13.2; 19a)', async () => {
+    const bodies = new Map([...(await veiledSweep()), ...(await sweepPostReads(w))])
+    const fuera = FRONTERA.flatMap((t) =>
+      [...bodies]
+        .filter(([k, r]) => t.re.test(r.body) && !excused(routeOf(k), t.field))
+        .map(([k]) => `${t.what}: ${k}`),
+    )
+    expect(fuera).toEqual([])
+    // no vacío: cada testigo sale en la ruta que su excepción nombra
+    for (const t of FRONTERA)
+      expect(
+        [...bodies].some(([k, r]) => t.re.test(r.body) && excused(routeOf(k), t.field)),
+        t.what,
+      ).toBe(true)
   })
 
   it('ni el título, ni las og:, ni el aviso llevan al ganador; el robot sin cookie sí lo ve en el acta, marcado', async () => {

@@ -1,0 +1,95 @@
+{
+  "route": "GET /api/riders/me/report",
+  "url": "/api/riders/me/report",
+  "status": 200,
+  "body": {
+    "report": {
+      "fromDay": 23,
+      "toDay": 50,
+      "rows": [
+        {
+          "attr": "RES",
+          "total": 4.061218,
+          "bySource": [
+            {
+              "source": "entrenamiento",
+              "delta": 4.061218
+            }
+          ]
+        },
+        {
+          "attr": "REC",
+          "total": 2.970342,
+          "bySource": [
+            {
+              "source": "entrenamiento",
+              "delta": 2.970342
+            }
+          ]
+        },
+        {
+          "attr": "LLA",
+          "total": 1.6284108,
+          "bySource": [
+            {
+              "source": "entrenamiento",
+              "delta": 1.6284108
+            }
+          ]
+        },
+        {
+          "attr": "MON",
+          "total": 1.3887165,
+          "bySource": [
+            {
+              "source": "entrenamiento",
+              "delta": 1.3887165
+            }
+          ]
+        },
+        {
+          "attr": "DES",
+          "total": 0.15733437,
+          "bySource": [
+            {
+              "source": "entrenamiento",
+              "delta": 0.15733437
+            }
+          ]
+        }
+      ],
+      "trainingDays": 28,
+      "raceDays": 0,
+      "sessions": [
+        {
+          "activity": "fondo",
+          "days": 9
+        },
+        {
+          "activity": "descanso_activo",
+          "days": 7
+        },
+        {
+          "activity": "descanso_total",
+          "days": 6
+        },
+        {
+          "activity": "puertos",
+          "days": 3
+        },
+        {
+          "activity": "carrera:race-jaen:e1",
+          "days": 1
+        },
+        {
+          "activity": "carrera:race-murcia:e1",
+          "days": 1
+        },
+        {
+          "activity": "carrera:race-murcia:e2",
+          "days": 1
+        }
+      ]
+    }
+  }
+}
