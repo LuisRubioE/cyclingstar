@@ -18,6 +18,7 @@ import {
   moraleStars,
   orderView,
   ownAttributes,
+  teamClassView,
   trendCode,
 } from './screenShape.js'
 
@@ -185,6 +186,31 @@ describe('la forma de pantalla (§13.5; 19b)', () => {
 })
 
 describe('lo que no tiene lector se queda en la API (§13.5; 19c)', () => {
+  it('la clasificación por equipos, en su orden y sin la suma de puestos, que solo desempata (19d)', () => {
+    const fila = (teamId: string, tiempoS: number, sumaPuestos: number) => ({
+      teamId,
+      teamName: `Team ${teamId}`,
+      country: 'ES',
+      kit: null,
+      tiempoS,
+      sumaPuestos,
+      stagesScored: 1,
+      out: false,
+    })
+    const tabla = teamClassView([fila('a', 100, 6), fila('b', 100, 9)])
+    expect(tabla.map((r) => r.teamId)).toEqual(['a', 'b'])
+    for (const r of tabla) expect(r).not.toHaveProperty('sumaPuestos')
+    expect(tabla[0]).toEqual({
+      teamId: 'a',
+      teamName: 'Team a',
+      country: 'ES',
+      kit: null,
+      tiempoS: 100,
+      stagesScored: 1,
+      out: false,
+    })
+  })
+
   it('una orden con el disparo `attack`, que la web no ofrece y pinta como ninguno, sale sin él', () => {
     const orden = {
       stageDay: 3,

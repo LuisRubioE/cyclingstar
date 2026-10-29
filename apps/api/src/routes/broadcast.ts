@@ -45,6 +45,7 @@ import {
   finishBodySchema,
   fromDs,
   instantAt,
+  newsPayloadView,
   photoBlocksOf,
   playbackEstimateS,
   seekBodySchema,
@@ -468,8 +469,12 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
         result: replay.results,
         closing: await closingOf(a.ctx, tl, replay, ix),
         report: { ...withoutRadio(replay), tplRev: await tplRevOf(tl, a) },
-        // La meta se sirve tras su puerta y con ella la etapa pasa a conocida: sus noticias, enteras.
-        news: await getStageNews(db, worldHorizon, a.ctx.worldId, a.ctx.raceKey, a.ctx.day),
+        // La meta se sirve tras su puerta y con ella la etapa pasa a conocida: sus noticias, enteras, y en
+        // su forma de pantalla (19d): la meta no pasa por el serializador, así que lo que no se pinta lo
+        // quita esto
+        news: (await getStageNews(db, worldHorizon, a.ctx.worldId, a.ctx.raceKey, a.ctx.day)).map(
+          (n) => (n.payload == null ? n : { ...n, payload: newsPayloadView(n.payload) }),
+        ),
         // las caídas de la línea grabada (sus `mishap` de estado); el tipo de final, por la etiqueta
         // (en alto, sin la regla), que es lo que la API sabe del `bunchFinish` del motor (6-o)
         threeKmRule: threeKmRuleRiders(tl, a.ctx.spec.label === 'Summit finish'),

@@ -333,4 +333,25 @@ describe('la frontera, hoja por hoja (§13.2, punto 3; PR 19a)', () => {
       expect(hojas(route), `${route} ${field}`).not.toContain(field)
     }
   })
+
+  it('lo que el 19d saca, lo último que pedía la web de ayer, ya no está en su esquema (§13.5; D-50)', () => {
+    const hojas = (route: string): string[] => {
+      const e = entries.find((x) => `${x.method} ${x.url}` === route)
+      return Object.values(e?.response ?? {}).flatMap((s) => leavesOf(s).map((l) => l.path))
+    }
+    const FUERA_19D: readonly (readonly [string, string])[] = [
+      ['GET /api/riders/:id', 'rider.champion.validToDay'],
+      ['GET /api/races/:raceId/stages/:day', 'champions.*.provisional'],
+      ['GET /api/races/:raceId/stages/:day', 'teamStage[].sumaPuestos'],
+      ['GET /api/races/:raceId/stages/:day/broadcast', 'cast[].worn.title.provisional'],
+      ['GET /api/races/:raceId/stages/:day/report', 'teamGc[].sumaPuestos'],
+      ['GET /api/news', 'news[].payload.fromTeamId'],
+      ['GET /api/teams/:id/news', 'news[].payload.prevHealth'],
+      ['GET /api/riders/me/last-race', 'report.bonusS'],
+    ]
+    for (const [route, field] of FUERA_19D) {
+      expect(hojas(route).length, route).toBeGreaterThan(0)
+      expect(hojas(route), `${route} ${field}`).not.toContain(field)
+    }
+  })
 })

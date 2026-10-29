@@ -3,6 +3,7 @@ import {
   type StageRunSpec,
   clearHorizonCaches,
   clearStageTimelineCache,
+  emitNews,
   gameState,
   getStageSnapshot,
   raceRosters,
@@ -52,6 +53,7 @@ import {
   watchResponseSchema,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { z } from 'zod'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
 import { clearAdaptedTimelineCache, threeKmRuleRiders, withClimbFeet } from '../broadcastSource.js'
@@ -477,6 +479,37 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect(head.view).toEqual({ reachedS: null, known: true })
         const bad = await call(app, 'POST', `${STAGE_URL}/2/broadcast/finish`, ADMIN, { mode: 'x' })
         expect(bad.statusCode).toBe(400)
+      })
+
+      it('la meta: las noticias de la etapa, en su forma de pantalla, sin la salud de antes de una lesión (§13.5; 19d)', async () => {
+        const lesion = {
+          kind: 'injury',
+          raceId: RACE_ID,
+          season: 0,
+          stageDay: 2,
+          riderId: OWN_RIDER,
+          teamId: null,
+          days: 5,
+        } as const
+        await emitNews(t.db, {
+          worldId,
+          gameDay: dayOf(2),
+          seed: 'meta-19d',
+          raceKey: RACE_KEY,
+          riderId: OWN_RIDER,
+          payload: { ...lesion, prevHealth: 'sano', prevUntilDay: null },
+        })
+        const res = await call(app, 'POST', `${STAGE_URL}/2/broadcast/finish`, ADMIN, {
+          mode: 'play',
+        })
+        expect(res.statusCode, res.body.slice(0, 300)).toBe(200)
+        // la meta no pasa por el serializador (`responseCheck: 'tests'`): lo que no se pinta lo quita
+        // newsPayloadView, y aquí se mira la respuesta tal cual, sin pasarla por su esquema
+        const { news } = z
+          .object({ news: z.array(z.object({ payload: z.unknown() })) })
+          .parse(res.json())
+        expect(news.map((n) => n.payload)).toContainEqual(lesion)
+        expect(res.body).not.toMatch(/"prevHealth"|"prevUntilDay"|"fromTeamId"/)
       })
 
       it('la revisión de plantillas sale de su fila: en la cabecera, el acta y la meta (12-c)', async () => {

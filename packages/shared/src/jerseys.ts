@@ -181,15 +181,24 @@ export interface ChampionTitle {
 }
 
 /**
- * EL TÍTULO COMO LO PINTA LA PANTALLA (E3, docs/visual.md §13.5; PR 19c): hasta cuándo vale y si es
- * provisional no se pintan. Desde el 19c son opcionales y se siguen mandando, porque la web de ayer, la del
- * 19b, los pide en la ruta de etapa (regla 6 de §17.1; D-50), y salen en el 19d. Lo llevan el rótulo
- * servido, las tablas y la ficha; el título entero sigue en lo grabado (`CastRider.worn`, el códec) y en la
- * base.
+ * EL TÍTULO COMO LO PINTA LA PANTALLA (E3, docs/visual.md §13.5; PR 19c y 19d): sin hasta cuándo vale ni si
+ * es provisional, que no se pintan y por eso no cruzan la frontera. El 19c los dejó opcionales y servidos para
+ * la web de ayer (regla 6 de §17.1; D-50), y el 19d los quita. Lo llevan el rótulo servido, las tablas y la
+ * ficha; el título entero sigue en lo grabado (`CastRider.worn`, el códec) y en la base.
  */
-export type ChampionTitleView = Omit<ChampionTitle, 'validToDay' | 'provisional'> & {
-  readonly validToDay?: number | undefined
-  readonly provisional?: boolean | undefined
+export type ChampionTitleView = Omit<ChampionTitle, 'validToDay' | 'provisional'>
+
+/** El título en su forma de pantalla: lo arman la API y el rótulo servido, también fuera del serializador. */
+export function championTitleView(t: ChampionTitleView): ChampionTitleView {
+  return {
+    scope: t.scope,
+    country: t.country,
+    discipline: t.discipline,
+    category: t.category,
+    season: t.season,
+    validFromDay: t.validFromDay,
+    source: t.source,
+  }
 }
 
 /** EL maillot que se ve. Se graba en CastRider.worn al correr la etapa (D-15, D-24). */
@@ -240,6 +249,16 @@ export type WornJerseyView =
 export type DistinctionView =
   | Exclude<Distinction, { readonly kind: 'champion' }>
   | { readonly kind: 'champion'; readonly title: ChampionTitleView }
+
+/** El maillot del rótulo servido: el grabado, con el título en su forma de pantalla (19d). */
+export function wornJerseyView(w: WornJersey): WornJerseyView {
+  return w.kind === 'champion' ? { kind: 'champion', title: championTitleView(w.title) } : w
+}
+
+/** Una línea del rótulo servido: la grabada, con el título en su forma de pantalla (19d). */
+export function distinctionView(d: Distinction): DistinctionView {
+  return d.kind === 'champion' ? { kind: 'champion', title: championTitleView(d.title) } : d
+}
 
 /** La entrada de wornJerseys: todo de SALIDA, es decir, de tras la N−1. */
 export interface WornInput {

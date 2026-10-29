@@ -197,9 +197,8 @@ export const distinctionSchema = z.discriminatedUnion('kind', [
   distinctionStageWins,
 ]) satisfies z.ZodType<Distinction>
 /**
- * LOS DEL RÓTULO SERVIDO (E3, docs/visual.md §13.5; PR 19c): los mismos, con el título de campeón en su
- * forma de pantalla (`championTitleViewSchema`: `validToDay` y `provisional`, opcionales hasta el 19d). El
- * formato guardado no cambia: lo de arriba.
+ * LOS DEL RÓTULO SERVIDO (E3, docs/visual.md §13.5; PR 19c y 19d): los mismos, con el título de campeón en
+ * su forma de pantalla, sin `validToDay` ni `provisional`. El formato guardado no cambia: lo de arriba.
  */
 export const wornJerseyViewSchema = z.discriminatedUnion('kind', [
   wornLeader,

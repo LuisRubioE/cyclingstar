@@ -42,6 +42,7 @@ import {
 } from '@cyclingstar/shared'
 import { leadersThroughStage } from './broadcastSource.js'
 import { tableChampions } from './champions.js'
+import { teamClassView } from './screenShape.js'
 import {
   type ChronicleEntry,
   type ChronicleEvent,
@@ -344,8 +345,8 @@ export async function stageReplayOf(
       gc,
       kom,
       points,
-      teamStage,
-      teamGc,
+      teamStage: teamClassView(teamStage),
+      teamGc: teamClassView(teamGc),
       leaders,
       champions,
       journalUnavailable: true,
@@ -387,8 +388,10 @@ export async function stageReplayOf(
     gc,
     kom,
     points,
-    teamStage,
-    teamGc,
+    // las dos por equipos, en su forma de pantalla (19d): sin la suma de puestos, que el acta y la meta,
+    // fuera del serializador, llevarían si no
+    teamStage: teamClassView(teamStage),
+    teamGc: teamClassView(teamGc),
     leaders,
     champions,
     ...(radio ? { radio } : {}),

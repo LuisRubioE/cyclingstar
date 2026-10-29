@@ -168,9 +168,7 @@
           "stageDay": 2,
           "riderId": "2a836dd5-63b7-4f2d-99ac-fbbc85e042f3",
           "teamId": "5ebf973c-a339-4b76-8526-bc0a96f59a32",
-          "days": 4,
-          "prevHealth": "sano",
-          "prevUntilDay": null
+          "days": 4
         },
         "seed": "injury:race-andalusia:s0:50:2a836dd5-63b7-4f2d-99ac-fbbc85e042f3",
         "tplRev": 0,

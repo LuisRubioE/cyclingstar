@@ -4,7 +4,9 @@ import {
   type KitCode,
   NO_LEADERS,
   type StageTimeline,
+  championTitleView,
   cutTimeline,
+  distinctionView,
   instantAt,
   photoAt,
   photoBlocksOf,
@@ -636,11 +638,12 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
       rev: '200.1',
       veil: stages.map((s) => ({ ...s, gameDay: 0, reason: 'own_rider' as const })),
     })
-    // sin velo: el título se lleva y las líneas de título ocupan los huecos (cardLinesMax)
+    // sin velo: el título se lleva y las líneas de título ocupan los huecos (cardLinesMax), con el título en su
+    // forma de pantalla (E3, docs/visual.md §13.5; 19d)
     expect(BROADCAST.cardLinesMax).toBe(3)
     const open = serveCast(full, worldHorizon, names, ctx)[2]!
-    expect(open.worn).toEqual({ kind: 'champion', title })
-    expect(open.lines).toEqual(lines.slice(0, BROADCAST.cardLinesMax))
+    expect(open.worn).toEqual({ kind: 'champion', title: championTitleView(title) })
+    expect(open.lines).toEqual(lines.slice(0, BROADCAST.cardLinesMax).map(distinctionView))
     expect(open.notoriety).toBe(4)
     // con el nacional velado: de equipación, sin las líneas de título, y la victoria de etapa, que el
     // corte se comía, sale y da la notoriedad: se degrada antes de cortar

@@ -1,3 +1,4 @@
+import type { TeamClassRow } from '@cyclingstar/db'
 import {
   type Eff,
   eff0,
@@ -16,6 +17,7 @@ import {
   type StageEffortView,
   type StageOrder,
   TREND_ARROW_CODE,
+  type TeamClassEntry,
   type TrendCode,
   attrProgress,
   attrStars,
@@ -127,6 +129,23 @@ export const trendCode = (delta28: number): TrendCode => TREND_ARROW_CODE[trendA
  * «siempre hay algo».
  */
 export const moraleStars = (morale: number): number => formStarsScale(morale)
+
+/**
+ * La clasificación por equipos en su forma de pantalla (E3, §13.5; PR 19d): en su orden, sin la suma de
+ * puestos, que desempata en la base y no se pinta. La sirven la etapa, el acta y la meta; el acta y la meta no
+ * pasan por el serializador (`responseCheck: 'tests'`), así que la quita esto.
+ */
+export function teamClassView(rows: readonly TeamClassRow[]): TeamClassEntry[] {
+  return rows.map((r) => ({
+    teamId: r.teamId,
+    teamName: r.teamName,
+    country: r.country,
+    kit: r.kit,
+    tiempoS: r.tiempoS,
+    stagesScored: r.stagesScored,
+    out: r.out,
+  }))
+}
 
 /**
  * Una orden en su forma de pantalla (19c): sin el disparo `attack`, el único que nombra a un corredor. La web

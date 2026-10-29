@@ -15,8 +15,8 @@ import {
   trendResponseSchema,
   triggerCondViewSchema,
 } from './contracts.js'
-import type { ChampionTitle } from './jerseys.js'
-import { type NewsPayload, newsPayloadViewSchema } from './news.js'
+import { type ChampionTitle, championTitleView } from './jerseys.js'
+import { type NewsPayload, newsPayloadView, newsPayloadViewSchema } from './news.js'
 import { ATTRIBUTES, TREND_ARROWS, TREND_ARROW_CODE, trendArrow } from './rider.js'
 
 /**
@@ -156,15 +156,15 @@ describe('lo que la pantalla pinta y nada más (§13.5; 19c)', () => {
   }
 
   // Lo que no se pinta de las rutas de la web de ayer (la ruta de etapa, las noticias y la última carrera)
-  // se lee sin ello desde el 19c, y se guarda si viene: la web del 19b lo pide, así que la API lo sigue
-  // mandando hasta el 19d (regla 6 de §17.1; D-50).
-  it('el título de campeón se lee sin hasta cuándo vale ni si es provisional, y los guarda si vienen', () => {
-    expect(championTitleViewSchema.parse(vista)).toEqual(vista)
-    expect(championTitleViewSchema.parse(titulo)).toEqual(titulo)
-    expect(championsSchema.parse({ r1: vista, r2: titulo })).toEqual({ r1: vista, r2: titulo })
+  // fue opcional en el 19c, y se siguió mandando para la web del 19b; desde el 19d, que ya ninguna web lo
+  // pide, no cruza (regla 6 de §17.1; D-50).
+  it('el título de campeón cruza sin hasta cuándo vale ni si es provisional (19d)', () => {
+    expect(championTitleView(titulo)).toEqual(vista)
+    expect(championTitleViewSchema.parse(titulo)).toEqual(vista)
+    expect(championsSchema.parse({ r1: titulo })).toEqual({ r1: vista })
   })
 
-  it('la noticia se lee sin la salud de antes ni el equipo del que viene, y los guarda si vienen', () => {
+  it('la noticia cruza sin la salud de antes ni el equipo del que viene (19d)', () => {
     const lesion: NewsPayload = {
       kind: 'injury',
       raceId: 'race-france',
@@ -200,15 +200,27 @@ describe('lo que la pantalla pinta y nada más (§13.5; 19c)', () => {
       relocateCountry: null,
       housingCovered: false,
     }
-    for (const p of [lesion, fichaje, lesionSin, fichajeSin])
-      expect(newsPayloadViewSchema.parse(p)).toEqual(p)
-    // lo demás de la noticia sigue pedido
+    expect(newsPayloadView(lesion)).toEqual(lesionSin)
+    expect(newsPayloadView(fichaje)).toEqual(fichajeSin)
+    expect(newsPayloadViewSchema.parse(lesion)).toEqual(lesionSin)
+    expect(newsPayloadViewSchema.parse(fichaje)).toEqual(fichajeSin)
+    // las demás, enteras
+    const victoria: NewsPayload = {
+      kind: 'stage_win',
+      raceId: 'race-france',
+      season: 0,
+      stageDay: 3,
+      riderId: 'r1',
+      teamId: 't1',
+    }
+    expect(newsPayloadView(victoria)).toEqual(victoria)
+    // y lo demás de la noticia sigue pedido
     const { days, ...sinDias } = lesionSin
     expect(days).toBe(9)
     expect(pasa(newsPayloadViewSchema, sinDias)).toBe(false)
   })
 
-  it('la suma de puestos y la bonificación, igual: se leen sin ellas y se guardan si vienen', () => {
+  it('la clasificación por equipos cruza sin la suma de puestos, y la última carrera sin la bonificación (19d)', () => {
     const fila = {
       teamId: 't1',
       teamName: 'Team t1',
@@ -218,13 +230,8 @@ describe('lo que la pantalla pinta y nada más (§13.5; 19c)', () => {
       stagesScored: 1,
       out: false,
     }
-    expect(teamClassEntrySchema.parse(fila)).toEqual(fila)
-    expect(teamClassEntrySchema.parse({ ...fila, sumaPuestos: 6 })).toEqual({
-      ...fila,
-      sumaPuestos: 6,
-    })
-    expect(riderRaceReportSchema.shape.bonusS.parse(undefined)).toBeUndefined()
-    expect(riderRaceReportSchema.shape.bonusS.parse(4)).toBe(4)
+    expect(teamClassEntrySchema.parse({ ...fila, sumaPuestos: 6 })).toEqual(fila)
+    expect('bonusS' in riderRaceReportSchema.shape).toBe(false)
   })
 
   it('el disparo de una orden cruza sin el corredor que lo dispara: la web no ofrece `attack`', () => {

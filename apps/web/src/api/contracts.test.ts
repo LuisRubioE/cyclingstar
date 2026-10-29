@@ -8,6 +8,7 @@ import {
   ATTRIBUTES,
   type Attribute,
   calendarResponseSchema,
+  championTitleView,
   coachViewResponseSchema,
   enterableRacesResponseSchema,
   formResponseSchema,
@@ -630,7 +631,7 @@ describe('contratos: mundo, equipo y dinero', () => {
     expect(
       publicRiderDetailResponseSchema.parse({ rider: { ...rider, champion: title } }).rider
         .champion,
-    ).toEqual(title)
+    ).toEqual(championTitleView(title))
     // un alcance que no existe no pasa
     expect(
       publicRiderDetailResponseSchema.safeParse({
@@ -639,7 +640,7 @@ describe('contratos: mundo, equipo y dinero', () => {
     ).toBe(false)
     const stage = { day: 3, name: 'Stage 3', km: 196, run: true, altimetry: '<svg/>' }
     expect(stageReplaySchema.parse({ ...stage, champions: { r1: title } }).champions).toEqual({
-      r1: title,
+      r1: championTitleView(title),
     })
   })
 

@@ -647,12 +647,12 @@ export const championTitleSchema = z.object({
 }) satisfies z.ZodType<ChampionTitle>
 
 /**
- * EL TÍTULO SERVIDO (E3, §13.5; PR 19c): `validToDay` y `provisional` no se pintan, y desde el 19c son
- * opcionales y se siguen mandando, porque la web de ayer, la del 19b, los pide en la ruta de etapa (regla 6
- * de §17.1; D-50); salen en el 19d. El de arriba, entero, es el del reparto grabado (el códec); este, el de
- * las tablas, la ficha y el rótulo de la cabecera.
+ * EL TÍTULO SERVIDO (E3, §13.5; PR 19c y 19d): sin `validToDay` ni `provisional`, que no se pintan; el 19c
+ * los dejó opcionales y servidos para la web de ayer (regla 6 de §17.1; D-50), y el 19d los quita. El de
+ * arriba, entero, es el del reparto grabado (el códec); este, el de las tablas, la ficha y el rótulo de la
+ * cabecera.
  */
-export const championTitleViewSchema = championTitleSchema.partial({
+export const championTitleViewSchema = championTitleSchema.omit({
   validToDay: true,
   provisional: true,
 }) satisfies z.ZodType<ChampionTitleView>
@@ -737,12 +737,8 @@ export const teamClassEntrySchema = z.object({
   kit: teamKitSchema,
   /** Suma de tiempos: la de la etapa, o la acumulada de la carrera. */
   tiempoS: z.number(),
-  /**
-   * Suma de los puestos de los corredores que puntúan (primer desempate). No se pinta: desde el 19c es
-   * opcional y se sigue mandando, porque la web de ayer la pide en la ruta de etapa (regla 6 de §17.1; D-50),
-   * y sale en el 19d (E3, §13.5).
-   */
-  sumaPuestos: z.number().int().optional(),
+  // la suma de puestos desempata, en la base, y no se pinta: no cruza (E3, §13.5; opcional en el 19c para la
+  // web de ayer, fuera en el 19d)
   /** Etapas puntuadas (1 en la clasificación de una etapa). */
   stagesScored: z.number().int(),
   /** Fuera de la clasificación: se quedó sin tres clasificados en alguna etapa. */
@@ -963,8 +959,8 @@ export const takeOverResponseSchema = z.object({
  */
 const newsDataFields = {
   /**
-   * Los datos del titular (news.data), en su forma de pantalla, con lo que no se pinta opcional hasta el 19d
-   * (19c); null en las filas viejas y en las que no validan.
+   * Los datos del titular (news.data), en su forma de pantalla (19c y 19d); null en las filas viejas y en
+   * las que no validan.
    */
   payload: newsPayloadViewSchema.nullish(),
   /** La semilla de la variante (D-46). */
@@ -2009,11 +2005,7 @@ export const riderRaceReportSchema = z.object({
   timeGapToWinnerS: z.number(),
   sprintPoints: z.number(),
   komPoints: z.number(),
-  /**
-   * La bonificación no se pinta: desde el 19c es opcional y se sigue mandando, porque la web de ayer la pide
-   * (regla 6 de §17.1; D-50, y `yesterday.test.ts`), y sale en el 19d (E3, §13.5).
-   */
-  bonusS: z.number().optional(),
+  // la bonificación no se pinta: no cruza (E3, §13.5; opcional en el 19c para la web de ayer, fuera en el 19d)
   winnerName: z.string().nullable(),
   /**
    * Los momentos del corredor en la etapa re-simulada, solo `{ km, plantilla }`. Desde el paso 12 de E2

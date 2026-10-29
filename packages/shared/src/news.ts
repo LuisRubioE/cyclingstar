@@ -206,34 +206,52 @@ export const newsPayloadSchema = z.discriminatedUnion('kind', [
 ]) satisfies z.ZodType<NewsPayload>
 
 /**
- * LA NOTICIA SERVIDA (E3, docs/visual.md §13.5; PR 19c): la salud de antes de una lesión (`prevHealth` y
- * `prevUntilDay`, que guarda el velo para la máscara de sup. P5) y el equipo del que viene un fichaje
- * (`fromTeamId`) no los usa el titular ni los lee la web. Desde el 19c son opcionales y se siguen mandando: la
- * web de ayer, la del 19b, los pide en `/api/news` y `/api/teams/:id/news` (regla 6 de §17.1; D-50), y salen
- * en el 19d, cuando ninguna web los pide. Lo guardado en news.data sigue entero.
+ * LA NOTICIA SERVIDA (E3, docs/visual.md §13.5; PR 19c y 19d): sin la salud de antes de una lesión
+ * (`prevHealth` y `prevUntilDay`, que guarda el velo para la máscara de sup. P5) ni el equipo del que viene un
+ * fichaje (`fromTeamId`): el titular no los usa y la web no los lee. El 19c los dejó opcionales y servidos
+ * para la web de ayer (regla 6 de §17.1; D-50), y el 19d los quita. Lo guardado en news.data sigue entero.
  */
-type InjuryPayload = Extract<NewsPayload, { readonly kind: 'injury' }>
-type ContractPayload = Extract<NewsPayload, { readonly kind: 'contract' }>
 export type NewsPayloadView =
   | Exclude<NewsPayload, { readonly kind: 'injury' } | { readonly kind: 'contract' }>
-  | (Omit<InjuryPayload, 'prevHealth' | 'prevUntilDay'> & {
-      readonly prevHealth?: InjuryPayload['prevHealth'] | undefined
-      readonly prevUntilDay?: InjuryPayload['prevUntilDay'] | undefined
-    })
-  | (Omit<ContractPayload, 'fromTeamId'> & {
-      readonly fromTeamId?: ContractPayload['fromTeamId'] | undefined
-    })
+  | Omit<Extract<NewsPayload, { readonly kind: 'injury' }>, 'prevHealth' | 'prevUntilDay'>
+  | Omit<Extract<NewsPayload, { readonly kind: 'contract' }>, 'fromTeamId'>
 
-/** La de las respuestas: la de lo guardado, con esos tres campos opcionales. */
+/** La de las respuestas: la de lo guardado, sin esos tres campos. */
 export const newsPayloadViewSchema = z.discriminatedUnion('kind', [
   newsOption.result,
   newsOption.jersey,
   newsOption.abandon,
-  newsOption.injury.partial({ prevHealth: true, prevUntilDay: true }),
-  newsOption.contract.partial({ fromTeamId: true }),
+  newsOption.injury.omit({ prevHealth: true, prevUntilDay: true }),
+  newsOption.contract.omit({ fromTeamId: true }),
   newsOption.retirement,
   newsOption.kit,
 ]) satisfies z.ZodType<NewsPayloadView>
+
+/** Una noticia guardada, en su forma de pantalla: la que sirven las rutas que no pasan por el serializador. */
+export function newsPayloadView(p: NewsPayload): NewsPayloadView {
+  switch (p.kind) {
+    case 'injury':
+      return {
+        kind: p.kind,
+        raceId: p.raceId,
+        season: p.season,
+        stageDay: p.stageDay,
+        riderId: p.riderId,
+        teamId: p.teamId,
+        days: p.days,
+      }
+    case 'contract':
+      return {
+        kind: p.kind,
+        riderId: p.riderId,
+        toTeamId: p.toTeamId,
+        relocateCountry: p.relocateCountry,
+        housingCovered: p.housingCovered,
+      }
+    default:
+      return p
+  }
+}
 
 /** Lo que decía ABANDON_DETAIL (stageRun.ts), que se retira: el motivo es un código y la frase se pone al leer. */
 const ABANDON_WORDS: Readonly<Record<AbandonReason, string>> = {

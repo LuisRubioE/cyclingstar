@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ChampionTitle, Distinction } from '../jerseys.js'
+import { type ChampionTitle, type Distinction, championTitleView } from '../jerseys.js'
 import type { KitCode } from '../kit.js'
 import { riderCardsOf, startStateOf } from './cards.js'
 import { BROADCAST } from './constants.js'
@@ -107,7 +107,16 @@ describe('riderCardsOf · el reparto servido (§7.8)', () => {
       kit: null,
     })
     expect(cards[3]!.team).toBeNull()
-    expect(cards[2]!.worn).toEqual({ kind: 'champion', title: title() })
+    expect(cards[2]!.worn).toEqual({ kind: 'champion', title: championTitleView(title()) })
+  })
+
+  it('el título de campeón, en su forma de pantalla, en el maillot y en las líneas; lo grabado, entero (19d)', () => {
+    expect(cards[3]!.lines[0]).toEqual({
+      kind: 'champion',
+      title: championTitleView(title({ category: 'u23' })),
+    })
+    expect(JSON.stringify(cards)).not.toMatch(/validToDay|provisional/)
+    expect(CAST.riders[2]!.worn).toEqual({ kind: 'champion', title: title() })
   })
 
   it(`las líneas, cortadas a cardLinesMax (${BROADCAST.cardLinesMax}) en el orden en que vienen`, () => {

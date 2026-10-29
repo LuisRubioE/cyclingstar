@@ -270,7 +270,6 @@
         "country": "BE",
         "kit": "sides.blue.navy",
         "tiempoS": 173671,
-        "sumaPuestos": 117,
         "stagesScored": 5,
         "out": false
       },
@@ -280,7 +279,6 @@
         "country": "BE",
         "kit": "yoke.brown.blue",
         "tiempoS": 173929,
-        "sumaPuestos": 251,
         "stagesScored": 5,
         "out": false
       },
@@ -290,7 +288,6 @@
         "country": "ES",
         "kit": "yoke.red.black",
         "tiempoS": 174675,
-        "sumaPuestos": 317,
         "stagesScored": 5,
         "out": false
       },
@@ -300,7 +297,6 @@
         "country": "US",
         "kit": "sides.green.teal",
         "tiempoS": 174857,
-        "sumaPuestos": 354,
         "stagesScored": 5,
         "out": false
       },
@@ -310,7 +306,6 @@
         "country": "IT",
         "kit": "yoke.taupe.sky",
         "tiempoS": 175584,
-        "sumaPuestos": 355,
         "stagesScored": 5,
         "out": false
       },
@@ -320,7 +315,6 @@
         "country": "ES",
         "kit": "yoke.orange.brown",
         "tiempoS": 175656,
-        "sumaPuestos": 357,
         "stagesScored": 5,
         "out": false
       },
@@ -330,7 +324,6 @@
         "country": "FR",
         "kit": "plain.black",
         "tiempoS": 175764,
-        "sumaPuestos": 485,
         "stagesScored": 5,
         "out": false
       },
@@ -340,7 +333,6 @@
         "country": "IT",
         "kit": "sides.blue.sky",
         "tiempoS": 175821,
-        "sumaPuestos": 636,
         "stagesScored": 5,
         "out": false
       },
@@ -350,7 +342,6 @@
         "country": "BE",
         "kit": "band.blue.brown",
         "tiempoS": 176166,
-        "sumaPuestos": 554,
         "stagesScored": 5,
         "out": false
       },
@@ -360,7 +351,6 @@
         "country": "US",
         "kit": "yoke.navy.blue",
         "tiempoS": 176175,
-        "sumaPuestos": 636,
         "stagesScored": 5,
         "out": false
       },
@@ -370,7 +360,6 @@
         "country": "ES",
         "kit": "sash.pink.brown",
         "tiempoS": 176240,
-        "sumaPuestos": 571,
         "stagesScored": 5,
         "out": false
       },
@@ -380,7 +369,6 @@
         "country": "IT",
         "kit": "sides.brown.pink",
         "tiempoS": 176247,
-        "sumaPuestos": 467,
         "stagesScored": 5,
         "out": false
       },
@@ -390,7 +378,6 @@
         "country": "FR",
         "kit": "hoops.green.yellow",
         "tiempoS": 176775,
-        "sumaPuestos": 601,
         "stagesScored": 5,
         "out": false
       },
@@ -400,7 +387,6 @@
         "country": "CH",
         "kit": "yoke.sky.taupe",
         "tiempoS": 176819,
-        "sumaPuestos": 587,
         "stagesScored": 5,
         "out": false
       },
@@ -410,7 +396,6 @@
         "country": "CH",
         "kit": "band.teal.plum",
         "tiempoS": 176970,
-        "sumaPuestos": 617,
         "stagesScored": 5,
         "out": false
       },
@@ -420,7 +405,6 @@
         "country": "ES",
         "kit": "sides.sky.red",
         "tiempoS": 177446,
-        "sumaPuestos": 645,
         "stagesScored": 5,
         "out": false
       },
@@ -430,7 +414,6 @@
         "country": "ES",
         "kit": "hoops.red.orange",
         "tiempoS": 177746,
-        "sumaPuestos": 558,
         "stagesScored": 5,
         "out": false
       },
@@ -440,7 +423,6 @@
         "country": "HU",
         "kit": "band.pink.brown",
         "tiempoS": 178768,
-        "sumaPuestos": 911,
         "stagesScored": 5,
         "out": false
       },
@@ -450,7 +432,6 @@
         "country": "FR",
         "kit": "plain.blue",
         "tiempoS": 179442,
-        "sumaPuestos": 1068,
         "stagesScored": 5,
         "out": false
       },
@@ -460,7 +441,6 @@
         "country": "ES",
         "kit": "hoops.purple.sky",
         "tiempoS": 181355,
-        "sumaPuestos": 1261,
         "stagesScored": 5,
         "out": false
       }
