@@ -180,6 +180,18 @@ export interface ChampionTitle {
   readonly provisional: boolean
 }
 
+/**
+ * EL TÍTULO COMO LO PINTA LA PANTALLA (E3, docs/visual.md §13.5; PR 19c): hasta cuándo vale y si es
+ * provisional no se pintan. Desde el 19c son opcionales y se siguen mandando, porque la web de ayer, la del
+ * 19b, los pide en la ruta de etapa (regla 6 de §17.1; D-50), y salen en el 19d. Lo llevan el rótulo
+ * servido, las tablas y la ficha; el título entero sigue en lo grabado (`CastRider.worn`, el códec) y en la
+ * base.
+ */
+export type ChampionTitleView = Omit<ChampionTitle, 'validToDay' | 'provisional'> & {
+  readonly validToDay?: number | undefined
+  readonly provisional?: boolean | undefined
+}
+
 /** EL maillot que se ve. Se graba en CastRider.worn al correr la etapa (D-15, D-24). */
 export type WornJersey =
   /** delegated: no es el primero de su tabla; from: la N−1 */
@@ -216,6 +228,18 @@ export type Distinction =
     }
   /** etapas ganadas en ESTA carrera hasta la N−1 */
   | { readonly kind: 'stage_wins'; readonly stages: readonly StageRef[] }
+
+/**
+ * EL MAILLOT Y LAS LÍNEAS DEL RÓTULO SERVIDO (E3, docs/visual.md §13.5; PR 19c): los de lo grabado con el
+ * título de campeón en su forma de pantalla (`ChampionTitleView`). Lo grabado (`CastRider.worn`, el códec)
+ * sigue con el título entero.
+ */
+export type WornJerseyView =
+  | Exclude<WornJersey, { readonly kind: 'champion' }>
+  | { readonly kind: 'champion'; readonly title: ChampionTitleView }
+export type DistinctionView =
+  | Exclude<Distinction, { readonly kind: 'champion' }>
+  | { readonly kind: 'champion'; readonly title: ChampionTitleView }
 
 /** La entrada de wornJerseys: todo de SALIDA, es decir, de tras la N−1. */
 export interface WornInput {
@@ -259,10 +283,10 @@ export interface RiderCard {
     readonly jerseySeed: string
     readonly kit: KitCode | null
   } | null
-  /** degradado: un `leader` cuyo `from` está velado pasa a { kind: 'team' } */
-  readonly worn: WornJersey
-  /** como mucho cardLinesMax; sin las de `from` velado */
-  readonly lines: readonly Distinction[]
+  /** degradado: un `leader` cuyo `from` está velado pasa a { kind: 'team' }; su título, en su forma (19c) */
+  readonly worn: WornJerseyView
+  /** como mucho cardLinesMax; sin las de `from` velado; los títulos, en su forma (19c) */
+  readonly lines: readonly DistinctionView[]
   /** staticNotoriety (§7.5) al servir, tras el velo y el corte; notorietyOf la ajusta durante la carrera */
   readonly notoriety: NotorietyLevel
   /** del espectador o de su equipo (R23.7) */
@@ -425,8 +449,8 @@ export function distinctions(
  * `distinctions` (7-g).
  */
 export function staticNotoriety(
-  worn: WornJersey,
-  lines: readonly Distinction[],
+  worn: WornJerseyView,
+  lines: readonly DistinctionView[],
   knownWins: number,
   dayCategory: 'elite' | 'u23',
   opts: { readonly gcThreatTop: number; readonly knownNameMinWins: number },

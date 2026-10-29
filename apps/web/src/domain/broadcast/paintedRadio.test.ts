@@ -73,7 +73,7 @@ const HEAD: BroadcastHead = {
     notoriety: 8 as const,
     own: c.rider === OWN,
   })),
-  startState: startStateOf(TL.cast, TL.riderIds.length),
+  startState: startStateOf(TL.cast),
   pace: [...BROADCAST.pace],
   estimateS: 1200,
   clock: 'exact',

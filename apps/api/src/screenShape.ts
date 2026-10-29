@@ -14,6 +14,7 @@ import {
   type HealthState,
   type OwnAttribute,
   type StageEffortView,
+  type StageOrder,
   TREND_ARROW_CODE,
   type TrendCode,
   attrProgress,
@@ -126,3 +127,11 @@ export const trendCode = (delta28: number): TrendCode => TREND_ARROW_CODE[trendA
  * «siempre hay algo».
  */
 export const moraleStars = (morale: number): number => formStarsScale(morale)
+
+/**
+ * Una orden en su forma de pantalla (19c): sin el disparo `attack`, el único que nombra a un corredor. La web
+ * no lo ofrece y lo pinta como «ninguno», así que sale como `null`.
+ */
+export function orderView(order: StageOrder): StageOrder {
+  return order.triggerOn?.at === 'attack' ? { ...order, triggerOn: null } : order
+}

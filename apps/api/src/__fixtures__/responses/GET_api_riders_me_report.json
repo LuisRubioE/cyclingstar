@@ -4,8 +4,6 @@
   "status": 200,
   "body": {
     "report": {
-      "fromDay": 23,
-      "toDay": 50,
       "rows": [
         {
           "attr": "RES",

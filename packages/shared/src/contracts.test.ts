@@ -2,14 +2,21 @@ import { describe, expect, it } from 'vitest'
 import {
   arrowSchema,
   barSchema,
+  championTitleViewSchema,
+  championsSchema,
   formResponseSchema,
   markSchema,
   myRiderResponseSchema,
   publicRiderDetailSchema,
+  riderRaceReportSchema,
   riderSummarySchema,
   starsSchema,
+  teamClassEntrySchema,
   trendResponseSchema,
+  triggerCondViewSchema,
 } from './contracts.js'
+import type { ChampionTitle } from './jerseys.js'
+import { type NewsPayload, newsPayloadViewSchema } from './news.js'
 import { ATTRIBUTES, TREND_ARROWS, TREND_ARROW_CODE, trendArrow } from './rider.js'
 
 /**
@@ -55,7 +62,6 @@ describe('los contratos del corredor, en su forma de pantalla (§13.5; 19b)', ()
     country: 'ES',
     gender: 'F',
     archetype: 'escalada',
-    birthSeason: 0,
   }
 
   it('el propio: estrellas y marca por atributo; un 63,4172 no pasa', () => {
@@ -81,7 +87,6 @@ describe('los contratos del corredor, en su forma de pantalla (§13.5; 19b)', ()
       seasonPoints: 0,
       seasonRank: 1,
       fieldSize: 1,
-      fame: 0,
       attributes: conAtributos({ stars: 2.5, mark: 2 }),
       health: { state: 'sano', untilDay: null },
     }
@@ -116,7 +121,6 @@ describe('los contratos del corredor, en su forma de pantalla (§13.5; 19b)', ()
       teamName: null,
       money: 0,
       moraleStars: 3,
-      fame: 0,
       seasonPoints: 0,
       seasonRank: 1,
       fieldSize: 1,
@@ -126,5 +130,106 @@ describe('los contratos del corredor, en su forma de pantalla (§13.5; 19b)', ()
     }
     expect(riderSummarySchema.parse(resumen)).toEqual(resumen)
     expect(pasa(riderSummarySchema, { ...resumen, moraleStars: 57.31415 })).toBe(false)
+  })
+})
+
+describe('lo que la pantalla pinta y nada más (§13.5; 19c)', () => {
+  const titulo: ChampionTitle = {
+    scope: 'national',
+    country: 'IT',
+    discipline: 'road',
+    category: 'elite',
+    season: 0,
+    validFromDay: 179,
+    validToDay: 543,
+    source: { raceKey: 'nc-it-road:s0', stageDay: 1 },
+    provisional: true,
+  }
+  const vista = {
+    scope: 'national',
+    country: 'IT',
+    discipline: 'road',
+    category: 'elite',
+    season: 0,
+    validFromDay: 179,
+    source: { raceKey: 'nc-it-road:s0', stageDay: 1 },
+  }
+
+  // Lo que no se pinta de las rutas de la web de ayer (la ruta de etapa, las noticias y la última carrera)
+  // se lee sin ello desde el 19c, y se guarda si viene: la web del 19b lo pide, así que la API lo sigue
+  // mandando hasta el 19d (regla 6 de §17.1; D-50).
+  it('el título de campeón se lee sin hasta cuándo vale ni si es provisional, y los guarda si vienen', () => {
+    expect(championTitleViewSchema.parse(vista)).toEqual(vista)
+    expect(championTitleViewSchema.parse(titulo)).toEqual(titulo)
+    expect(championsSchema.parse({ r1: vista, r2: titulo })).toEqual({ r1: vista, r2: titulo })
+  })
+
+  it('la noticia se lee sin la salud de antes ni el equipo del que viene, y los guarda si vienen', () => {
+    const lesion: NewsPayload = {
+      kind: 'injury',
+      raceId: 'race-france',
+      season: 0,
+      stageDay: 3,
+      riderId: 'r1',
+      teamId: 't1',
+      days: 9,
+      prevHealth: 'sano',
+      prevUntilDay: null,
+    }
+    const fichaje: NewsPayload = {
+      kind: 'contract',
+      riderId: 'r1',
+      toTeamId: 't2',
+      fromTeamId: 't1',
+      relocateCountry: null,
+      housingCovered: false,
+    }
+    const lesionSin = {
+      kind: 'injury',
+      raceId: 'race-france',
+      season: 0,
+      stageDay: 3,
+      riderId: 'r1',
+      teamId: 't1',
+      days: 9,
+    }
+    const fichajeSin = {
+      kind: 'contract',
+      riderId: 'r1',
+      toTeamId: 't2',
+      relocateCountry: null,
+      housingCovered: false,
+    }
+    for (const p of [lesion, fichaje, lesionSin, fichajeSin])
+      expect(newsPayloadViewSchema.parse(p)).toEqual(p)
+    // lo demás de la noticia sigue pedido
+    const { days, ...sinDias } = lesionSin
+    expect(days).toBe(9)
+    expect(pasa(newsPayloadViewSchema, sinDias)).toBe(false)
+  })
+
+  it('la suma de puestos y la bonificación, igual: se leen sin ellas y se guardan si vienen', () => {
+    const fila = {
+      teamId: 't1',
+      teamName: 'Team t1',
+      country: 'ES',
+      kit: null,
+      tiempoS: 100,
+      stagesScored: 1,
+      out: false,
+    }
+    expect(teamClassEntrySchema.parse(fila)).toEqual(fila)
+    expect(teamClassEntrySchema.parse({ ...fila, sumaPuestos: 6 })).toEqual({
+      ...fila,
+      sumaPuestos: 6,
+    })
+    expect(riderRaceReportSchema.shape.bonusS.parse(undefined)).toBeUndefined()
+    expect(riderRaceReportSchema.shape.bonusS.parse(4)).toBe(4)
+  })
+
+  it('el disparo de una orden cruza sin el corredor que lo dispara: la web no ofrece `attack`', () => {
+    expect(pasa(triggerCondViewSchema, { at: 'km', km: 12 })).toBe(true)
+    expect(pasa(triggerCondViewSchema, { at: 'gap', overS: 60 })).toBe(true)
+    expect(pasa(triggerCondViewSchema, { at: 'attack', byRiderId: 'r9' })).toBe(false)
   })
 })

@@ -61,7 +61,6 @@ const ctxOf = (tl: StageTimeline): InstantContext => ({
   start: {
     leaders: { gc: null, points: null, kom: null },
     gcTop: [],
-    racingAtStart: tl.riderIds.length,
   },
   photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
 })

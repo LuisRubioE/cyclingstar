@@ -40,10 +40,10 @@ import { kitCodeSchema } from '../kit.js'
 import {
   type SchemaMatches,
   type StoredTimelineV1,
-  distinctionSchema,
+  distinctionViewSchema,
   profileStripSchema,
-  stageWeatherSchema,
-  wornJerseySchema,
+  stageWeatherViewSchema,
+  wornJerseyViewSchema,
 } from './codec.js'
 import { BROADCAST } from './constants.js'
 import type { LiveLine } from './cues.js'
@@ -61,6 +61,14 @@ import type {
 } from './timeline.js'
 
 // ----------------------------------------------------------------- los tipos que viajan (§4.10, §4.11)
+
+/**
+ * EL TIEMPO SERVIDO (E3, docs/visual.md §13.5; PR 19c): el grabado sin la dirección del viento, que no se
+ * pinta (`stageWeatherViewSchema`).
+ */
+export type StageWeatherView = Omit<StageWeather, 'spans'> & {
+  readonly spans: readonly Omit<StageWeather['spans'][number], 'windDir'>[]
+}
 
 /** BROADCAST_WATCH y SPOILER_MODE (§14.6), publicados en /health.features. */
 export type SwitchMode = 'off' | 'admins' | 'on'
@@ -89,7 +97,7 @@ export interface StartState {
     readonly rank: number
     readonly gapS: number
   }[]
-  readonly racingAtStart: number
+  // cuántos tomaron la salida no se pinta, y no cruza (E3, docs/visual.md §13.5; PR 19c)
 }
 
 /** GET …/broadcast: recorrido, reparto y salida; nada de la carrera. */
@@ -118,7 +126,7 @@ export interface BroadcastHead {
     readonly blocks: number
   }
   readonly profile: ProfileStrip
-  readonly weather: StageWeather
+  readonly weather: StageWeatherView
   /** por RiderIx */
   readonly cast: readonly RiderCard[]
   readonly startState: StartState
@@ -220,7 +228,7 @@ export type StageReport = StageReplay
 /** La previa: cuatro cuadros de BROADCAST.previewCardS s (D-22, I-22). */
 export interface StagePreview {
   readonly route: ProfileStrip
-  readonly weather: StageWeather
+  readonly weather: StageWeatherView
   readonly jerseysInPlay: readonly {
     readonly jersey: JerseyKind
     readonly holder: RiderIx
@@ -291,8 +299,7 @@ export interface HorizonSummary {
     /** las etapas veladas, en orden */
     readonly stages: readonly number[]
     readonly reason: GuardReason
-    /** el día de juego en que se levanta su velo: su última etapa más SPOILER.expiryGameDays (§10.5) */
-    readonly expiresOnDay: number
+    // el día en que se levanta su velo no se pinta, y no cruza (E3, §13.5; PR 19c)
   }[]
   /** las etapas a medias (`Continue watching`) */
   readonly watching: readonly {
@@ -360,19 +367,18 @@ const riderCardSchema = z.object({
       kit: kitCodeSchema.nullable().default(null),
     })
     .nullable(),
-  worn: wornJerseySchema,
-  lines: z.array(distinctionSchema).max(BROADCAST.cardLinesMax),
+  worn: wornJerseyViewSchema,
+  lines: z.array(distinctionViewSchema).max(BROADCAST.cardLinesMax),
   notoriety: z.literal([0, 1, 2, 3, 4, 5, 6, 7, 8]),
   own: z.boolean(),
 }) satisfies z.ZodType<RiderCard>
 const startStateSchema = z.object({
   leaders: z.object({ gc: ix.nullable(), points: ix.nullable(), kom: ix.nullable() }),
   gcTop: z.array(z.object({ rider: ix, rank: int.min(1), gapS: z.number() })),
-  racingAtStart: int,
 }) satisfies z.ZodType<StartState>
 const stagePreviewSchema = z.object({
   route: profileStripSchema,
-  weather: stageWeatherSchema,
+  weather: stageWeatherViewSchema,
   jerseysInPlay: z.array(z.object({ jersey: jerseyKindSchema, holder: ix, threats: z.array(ix) })),
   favourites: z.array(
     z.object({ rider: ix, why: z.enum(['gc', 'sprint', 'hills', 'climb', 'tt', 'cobbles']) }),
@@ -415,7 +421,7 @@ export const broadcastHeadSchema = z.object({
     blocks: int.min(1),
   }),
   profile: profileStripSchema,
-  weather: stageWeatherSchema,
+  weather: stageWeatherViewSchema,
   cast: z.array(riderCardSchema),
   startState: startStateSchema,
   pace: z.array(z.object({ aboveKm: z.number(), x: z.number().positive() })).min(1),
@@ -471,7 +477,6 @@ export const horizonSummarySchema = z.object({
       raceName: z.string(),
       stages: z.array(int.min(1)),
       reason: z.enum(['own_rider', 'own_team', 'follow', 'headline']),
-      expiresOnDay: int,
     }),
   ),
   watching: z.array(

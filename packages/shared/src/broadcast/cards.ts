@@ -66,10 +66,11 @@ export function riderCardsOf(
 
 /**
  * LA SALIDA (§4.11): quién LLEVA cada maillot (el de líder de `worn`, delegado o no; todo null el primer
- * día), los `virtualGcTop` primeros de la general de salida con su déficit y cuántos salen. Sale del
- * reparto ya degradado, así que un maillot o un puesto que vienen de una etapa velada no están (B13).
+ * día) y los `virtualGcTop` primeros de la general de salida con su déficit; cuántos salen ya no cruza (E3,
+ * §13.5; 19c). Sale del reparto ya degradado, así que un maillot o un puesto que vienen de una etapa velada no
+ * están (B13).
  */
-export function startStateOf(cast: TimelineCast, racingAtStart: number): StartState {
+export function startStateOf(cast: TimelineCast): StartState {
   const leaders: { gc: RiderIx | null; points: RiderIx | null; kom: RiderIx | null } = {
     gc: null,
     points: null,
@@ -83,5 +84,5 @@ export function startStateOf(cast: TimelineCast, racingAtStart: number): StartSt
         : [],
     )
     .sort((x, y) => x.rank - y.rank || x.rider - y.rider)
-  return { leaders, gcTop, racingAtStart }
+  return { leaders, gcTop }
 }

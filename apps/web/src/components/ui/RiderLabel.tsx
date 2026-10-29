@@ -1,9 +1,9 @@
 import {
-  type ChampionTitle,
+  type ChampionTitleView,
   type JerseyKind,
   KIT_PX,
   type KitSize,
-  type WornJersey,
+  type WornJerseyView,
 } from '@cyclingstar/shared'
 import type { ReactNode } from 'react'
 import { NO_TEAM_LABEL } from '../../domain/labels'
@@ -49,11 +49,11 @@ export interface RiderLabelProps {
   /** el equipo de ese día; null, un agente libre (`Individual`) */
   readonly team?: WornTeam | null
   /** donde llega `RiderCard.worn` (`Watch`, `Report`): el que lleva ese día; manda sobre los dos de abajo */
-  readonly worn?: WornJersey
+  readonly worn?: WornJerseyView
   /** en una tabla, el de líder de la clasificación que enseña: `jerseyOf(leaders, riderId)` (§6.1) */
   readonly leader?: JerseyKind | null
   /** en una tabla, el título que lleva ese día: `champions[riderId]` (§6.1, desde el 17a) */
-  readonly champion?: ChampionTitle | null
+  readonly champion?: ChampionTitleView | null
   /** por defecto true; false dentro de una celda que ya enlaza */
   readonly link?: boolean
   readonly inline?: boolean
@@ -64,7 +64,7 @@ export interface RiderLabelProps {
 /** El maillot que le toca en ese sitio, por orden (D-00c). */
 export type RiderJerseyChoice =
   | { readonly kind: 'leader'; readonly jersey: JerseyKind }
-  | { readonly kind: 'champion'; readonly title: ChampionTitle }
+  | { readonly kind: 'champion'; readonly title: ChampionTitleView }
   | { readonly kind: 'team'; readonly team: WornTeam }
   /** un agente libre: el hueco de su ancho (§9.10) */
   | { readonly kind: 'none' }

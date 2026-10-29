@@ -24,7 +24,7 @@ import {
   type ProfileStrip,
   type RiderCard,
   type RiderIx,
-  type StageWeather,
+  type StageWeatherView,
   clockText,
   groupLabelText,
   nameOf,
@@ -89,7 +89,7 @@ export function routeLines(route: ProfileStrip, lengthKm: number): string[] {
  * si llueve desde la salida y `rain from km 120` si entra después; el viento del día o `No wind`; y los
  * tramos de viento lateral, fundidos los seguidos. Ni punto cardinal ni rumbo (6-k).
  */
-export function weatherLines(w: StageWeather, lengthKm: number): string[] {
+export function weatherLines(w: StageWeatherView, lengthKm: number): string[] {
   const rainy = w.spans.find((s) => s.rain > 0)
   const rain =
     rainy === undefined

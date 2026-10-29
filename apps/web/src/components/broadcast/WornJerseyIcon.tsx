@@ -1,4 +1,4 @@
-import type { KitSize, RiderCard, WornJersey } from '@cyclingstar/shared'
+import type { KitSize, RiderCard, WornJerseyView } from '@cyclingstar/shared'
 import { memo } from 'react'
 import { ChampionJersey } from '../ui/ChampionJersey'
 import type { KitSurface } from '../ui/Kit'
@@ -15,7 +15,7 @@ import { TeamJersey, type WornTeam, wornTeam } from '../ui/TeamJersey'
  */
 
 export interface WornJerseyIconProps {
-  readonly worn: WornJersey
+  readonly worn: WornJerseyView
   readonly team: WornTeam | null
   /** 28 o más (D-00b) */
   readonly size: KitSize

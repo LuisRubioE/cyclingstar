@@ -307,4 +307,30 @@ describe('la frontera, hoja por hoja (§13.2, punto 3; PR 19a)', () => {
         .map((l) => l.path),
     ).toEqual(['rider.attributes.*.stars'])
   })
+
+  it('lo que el 19c saca ya no está en su esquema, tampoco lo que la comprobación por nombre daba por leído (§13.5)', () => {
+    const hojas = (route: string): string[] => {
+      const e = entries.find((x) => `${x.method} ${x.url}` === route)
+      return Object.values(e?.response ?? {}).flatMap((s) => leavesOf(s).map((l) => l.path))
+    }
+    const FUERA_19C: readonly (readonly [string, string])[] = [
+      // `season` se lee en otros sitios, así que el nombre no la cazaba
+      ['GET /api/riders/me/coach-view', 'coachView.season'],
+      ['GET /api/riders/me/coach-view', 'coachView.facilities'],
+      ['GET /api/riders/me/summary', 'summary.fame'],
+      ['GET /api/riders/:id', 'rider.fame'],
+      ['GET /api/riders/me', 'rider.birthSeason'],
+      ['GET /api/riders/me/plan', 'plan.goalRaceId'],
+      ['GET /api/names/generate', 'firstName'],
+      ['GET /api/my-orders', 'orders[].triggerOn.byRiderId'],
+      ['GET /api/me/horizon', 'ready[].expiresOnDay'],
+      ['GET /api/races/:raceId/stages/:day/broadcast', 'startState.racingAtStart'],
+      ['GET /api/races/:raceId/stages/:day/broadcast', 'weather.spans[].windDir'],
+      ['GET /api/calendar/:raceId', 'stages[].arch.geo'],
+    ]
+    for (const [route, field] of FUERA_19C) {
+      expect(hojas(route).length, route).toBeGreaterThan(0)
+      expect(hojas(route), `${route} ${field}`).not.toContain(field)
+    }
+  })
 })

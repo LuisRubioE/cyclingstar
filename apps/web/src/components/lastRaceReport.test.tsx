@@ -31,7 +31,6 @@ const report = (over: Partial<RiderRaceReport> = {}): RiderRaceReport => ({
   timeGapToWinnerS: 34,
   sprintPoints: 0,
   komPoints: 0,
-  bonusS: 0,
   winnerName: 'Bea Soler',
   // los de la etapa re-simulada: se siguen mandando y ya no se pintan
   personalEvents: [{ km: 88, plantilla: 'peloton_selection' }],

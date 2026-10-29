@@ -670,7 +670,6 @@ describe('B12 · la aritmética del horizonte (§10.14)', () => {
       raceName: race('race-catalonia').name,
       stages: [3, 4, 5, 6, 7],
       reason: 'own_rider',
-      expiresOnDay: OWN_LAST_DAY + SPOILER.expiryGameDays,
     })
     expect(s.watching).toEqual([{ raceKey: OWN, stageDay: 3, reachedS: 1200, toGoKm: 42.5 }])
     expect(asked).toEqual([`${OWN}#3@1200`])

@@ -1,4 +1,4 @@
-import type { RiderCard, RiderIx, WornJersey } from '@cyclingstar/shared'
+import type { RiderCard, RiderIx, WornJerseyView } from '@cyclingstar/shared'
 
 /**
  * LA LÍNEA DE EQUIPOS DE UN GRUPO (E3, docs/visual.md §14.4; PR 17a; D-00b, 14-d y 14-f). Doce maillots
@@ -18,7 +18,7 @@ export const TEAM_KIT_LINES_MAX = 2
 export interface FrontChip {
   readonly kind: 'front'
   readonly rider: RiderIx
-  readonly worn: Extract<WornJersey, { kind: 'leader' } | { kind: 'champion' }>
+  readonly worn: Extract<WornJerseyView, { kind: 'leader' } | { kind: 'champion' }>
   /** las dos letras del país del campeón nacional; null en el de líder y en el mundial */
   readonly letters: string | null
 }

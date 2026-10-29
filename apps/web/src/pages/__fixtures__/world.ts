@@ -119,7 +119,7 @@ export function broadcastHeadWith(
     profile: strip,
     weather,
     cast: [],
-    startState: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 0 },
+    startState: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
     pace: [...BROADCAST.pace],
     estimateS: 540,
     clock: 'exact',

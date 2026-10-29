@@ -8,8 +8,7 @@
       "startDay": 51,
       "blocks": ["construccion", "especifico", "afinado", "recuperacion"],
       "focusAttr": null,
-      "intensity": "normal",
-      "goalRaceId": null
+      "intensity": "normal"
     },
     "currentDay": 50
   }

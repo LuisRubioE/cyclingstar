@@ -11,8 +11,7 @@
         "archetype": "escalada",
         "age": 27,
         "isBot": true,
-        "seasonPoints": 150,
-        "fame": 0
+        "seasonPoints": 150
       },
       {
         "id": "cb8a4840-8295-4f2c-a9c9-fb48df251543",
@@ -21,8 +20,7 @@
         "archetype": "puncheur",
         "age": 26,
         "isBot": true,
-        "seasonPoints": 140,
-        "fame": 0
+        "seasonPoints": 140
       },
       {
         "id": "0a97fe87-152e-4543-91d5-3b0fc8e64eac",
@@ -31,8 +29,7 @@
         "archetype": "gregario",
         "age": 29,
         "isBot": true,
-        "seasonPoints": 125,
-        "fame": 0
+        "seasonPoints": 125
       }
     ]
   }

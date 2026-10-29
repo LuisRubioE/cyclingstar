@@ -16,6 +16,7 @@ import {
   conditionDay,
   conditionToday,
   moraleStars,
+  orderView,
   ownAttributes,
   trendCode,
 } from './screenShape.js'
@@ -180,5 +181,29 @@ describe('la forma de pantalla (§13.5; 19b)', () => {
     expect(moraleStars(100)).toBe(5)
     for (let m = 0; m <= 100; m += 0.5)
       expect(pasa(starsSchema, moraleStars(m)), String(m)).toBe(true)
+  })
+})
+
+describe('lo que no tiene lector se queda en la API (§13.5; 19c)', () => {
+  it('una orden con el disparo `attack`, que la web no ofrece y pinta como ninguno, sale sin él', () => {
+    const orden = {
+      stageDay: 3,
+      role: 'libre' as const,
+      targetRiderId: null,
+      mentality: 'oportunista' as const,
+      effort: 'normal' as const,
+      triggerKm: null,
+      contestSprints: false,
+      contestClimbs: true,
+    }
+    expect(
+      orderView({ ...orden, triggerOn: { at: 'attack', byRiderId: 'r9' } }).triggerOn,
+    ).toBeNull()
+    expect(orderView({ ...orden, triggerOn: { at: 'km', km: 12 } }).triggerOn).toEqual({
+      at: 'km',
+      km: 12,
+    })
+    expect(orderView({ ...orden, triggerOn: null }).triggerOn).toBeNull()
+    expect(orderView(orden)).toEqual(orden)
   })
 })

@@ -265,7 +265,7 @@ describe('namedRidersOf · a quién se nombra en cada grupo (§7.7)', () => {
   const cast = Array.from({ length: 40 }, (_, i) => card(i, `Rider ${i}`))
   const ctx = (over: Partial<InstantContext> = {}): InstantContext => ({
     own: new Set(),
-    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 40 },
+    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
     photoBlocks: [],
     ...over,
   })
@@ -331,7 +331,6 @@ describe('namedRidersOf · a quién se nombra en cada grupo (§7.7)', () => {
           { rider: 12, rank: BROADCAST.namedGcTop, gapS: 60 },
           { rider: 13, rank: BROADCAST.namedGcTop + 1, gapS: 70 },
         ],
-        racingAtStart: 40,
       },
     })
     const got = namedRidersOf(group(members, detail), withJersey, [event([28])], c)

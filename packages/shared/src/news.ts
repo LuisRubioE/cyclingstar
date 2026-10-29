@@ -142,9 +142,9 @@ export const abandonReasonSchema = z.enum([
   'voluntario',
 ]) satisfies z.ZodType<AbandonReason>
 
-/** Lo que lee la API de news.data. Una fila que no valida se pinta con su `text`, o no se pinta (§14.2). */
-export const newsPayloadSchema = z.discriminatedUnion('kind', [
-  z.object({
+/** Las variantes de news.data, por separado para armar con ellas la de lo guardado y la de lo servido. */
+const newsOption = {
+  result: z.object({
     kind: z.enum([
       'stage_win',
       'tt_win',
@@ -159,21 +159,21 @@ export const newsPayloadSchema = z.discriminatedUnion('kind', [
     stageDay,
     ...who,
   }),
-  z.object({
+  jersey: z.object({
     kind: z.literal('jersey_taken'),
     ...ofRace,
     stageDay,
     ...who,
     jersey: z.enum(['points', 'kom']),
   }),
-  z.object({
+  abandon: z.object({
     kind: z.literal('abandon'),
     ...ofRace,
     stageDay: stageDay.nullable(),
     ...who,
     reason: abandonReasonSchema,
   }),
-  z.object({
+  injury: z.object({
     kind: z.literal('injury'),
     ...ofRace,
     stageDay,
@@ -182,7 +182,7 @@ export const newsPayloadSchema = z.discriminatedUnion('kind', [
     prevHealth: z.enum(HEALTH_STATES),
     prevUntilDay: z.number().int().nullable(),
   }),
-  z.object({
+  contract: z.object({
     kind: z.literal('contract'),
     riderId: z.string().min(1),
     toTeamId: z.string().min(1),
@@ -190,9 +190,50 @@ export const newsPayloadSchema = z.discriminatedUnion('kind', [
     relocateCountry: z.string().length(2).nullable(),
     housingCovered: z.boolean(),
   }),
-  z.object({ kind: z.literal('retirement'), ...who, age: z.number().int().min(0) }),
-  z.object({ kind: z.enum(TEAM_NEWS_KINDS), teamId: z.string().min(1), kit: kitCodeSchema }),
+  retirement: z.object({ kind: z.literal('retirement'), ...who, age: z.number().int().min(0) }),
+  kit: z.object({ kind: z.enum(TEAM_NEWS_KINDS), teamId: z.string().min(1), kit: kitCodeSchema }),
+}
+
+/** Lo que lee la API de news.data. Una fila que no valida se pinta con su `text`, o no se pinta (§14.2). */
+export const newsPayloadSchema = z.discriminatedUnion('kind', [
+  newsOption.result,
+  newsOption.jersey,
+  newsOption.abandon,
+  newsOption.injury,
+  newsOption.contract,
+  newsOption.retirement,
+  newsOption.kit,
 ]) satisfies z.ZodType<NewsPayload>
+
+/**
+ * LA NOTICIA SERVIDA (E3, docs/visual.md §13.5; PR 19c): la salud de antes de una lesión (`prevHealth` y
+ * `prevUntilDay`, que guarda el velo para la máscara de sup. P5) y el equipo del que viene un fichaje
+ * (`fromTeamId`) no los usa el titular ni los lee la web. Desde el 19c son opcionales y se siguen mandando: la
+ * web de ayer, la del 19b, los pide en `/api/news` y `/api/teams/:id/news` (regla 6 de §17.1; D-50), y salen
+ * en el 19d, cuando ninguna web los pide. Lo guardado en news.data sigue entero.
+ */
+type InjuryPayload = Extract<NewsPayload, { readonly kind: 'injury' }>
+type ContractPayload = Extract<NewsPayload, { readonly kind: 'contract' }>
+export type NewsPayloadView =
+  | Exclude<NewsPayload, { readonly kind: 'injury' } | { readonly kind: 'contract' }>
+  | (Omit<InjuryPayload, 'prevHealth' | 'prevUntilDay'> & {
+      readonly prevHealth?: InjuryPayload['prevHealth'] | undefined
+      readonly prevUntilDay?: InjuryPayload['prevUntilDay'] | undefined
+    })
+  | (Omit<ContractPayload, 'fromTeamId'> & {
+      readonly fromTeamId?: ContractPayload['fromTeamId'] | undefined
+    })
+
+/** La de las respuestas: la de lo guardado, con esos tres campos opcionales. */
+export const newsPayloadViewSchema = z.discriminatedUnion('kind', [
+  newsOption.result,
+  newsOption.jersey,
+  newsOption.abandon,
+  newsOption.injury.partial({ prevHealth: true, prevUntilDay: true }),
+  newsOption.contract.partial({ fromTeamId: true }),
+  newsOption.retirement,
+  newsOption.kit,
+]) satisfies z.ZodType<NewsPayloadView>
 
 /** Lo que decía ABANDON_DETAIL (stageRun.ts), que se retira: el motivo es un código y la frase se pone al leer. */
 const ABANDON_WORDS: Readonly<Record<AbandonReason, string>> = {

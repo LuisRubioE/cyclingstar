@@ -259,7 +259,6 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
             start: {
               leaders: { gc: null, points: null, kom: null },
               gcTop: [],
-              racingAtStart: tl.riderIds.length,
             },
             photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
           }).toGoKm

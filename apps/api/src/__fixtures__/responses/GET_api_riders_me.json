@@ -9,7 +9,6 @@
       "country": "ES",
       "gender": "M",
       "archetype": "escalada",
-      "birthSeason": 2,
       "attributes": {
         "RES": {
           "stars": 1.5,

@@ -11,9 +11,6 @@
       {
         "day": 1,
         "name": "Stage 1",
-        "from": "Draguignan",
-        "to": "Draguignan",
-        "label": "Circuit",
         "kind": "clasica",
         "timeTrial": false,
         "km": 199,
@@ -22,7 +19,9 @@
           "lluvia": 9,
           "grados": 9,
           "fiabilidad": 71
-        }
+        },
+        "from": "Draguignan",
+        "to": "Draguignan"
       }
     ],
     "orders": [],

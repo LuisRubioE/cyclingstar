@@ -20,7 +20,13 @@
  */
 import type { PullMotive } from '../contracts.js'
 import { COUNTRIES } from '../countries.js'
-import type { ChampionTitle, Distinction, JerseyKind, RiderCard, WornJersey } from '../jerseys.js'
+import type {
+  ChampionTitleView,
+  DistinctionView,
+  JerseyKind,
+  RiderCard,
+  WornJerseyView,
+} from '../jerseys.js'
 import type { NameResolver } from '../news.js'
 import { BROADCAST } from './constants.js'
 import type { Cue } from './cues.js'
@@ -152,7 +158,7 @@ export const WITH_THE: ReadonlySet<string> = new Set([
  */
 export function championTitleText(
   _locale: 'en',
-  t: ChampionTitle,
+  t: ChampionTitleView,
   n: Pick<NameResolver, 'country'>,
 ): string {
   const kind = `${t.category === 'u23' ? 'U23 ' : ''}${t.discipline === 'itt' ? 'time trial ' : ''}champion`
@@ -174,7 +180,7 @@ export function championTitleText(
  * delegado (`Leader, general classification`) y el título del campeón; nada para el delegado (su línea
  * `wears_for` ya lo dice) ni para el de equipo.
  */
-export function cardCaption(worn: WornJersey, n: Pick<NameResolver, 'country'>): string | null {
+export function cardCaption(worn: WornJerseyView, n: Pick<NameResolver, 'country'>): string | null {
   switch (worn.kind) {
     case 'leader':
       return worn.delegated ? null : `Leader, ${CLASS_NAME[worn.jersey]}`
@@ -186,7 +192,7 @@ export function cardCaption(worn: WornJersey, n: Pick<NameResolver, 'country'>):
 }
 
 /** UNA LÍNEA DEL RÓTULO (§7.1), en el orden en que las da `distinctions` (§7.2). */
-export function cardLineText(d: Distinction, n: Pick<NameResolver, 'country'>): string {
+export function cardLineText(d: DistinctionView, n: Pick<NameResolver, 'country'>): string {
   switch (d.kind) {
     case 'wears_for':
       return `${JERSEY_NAME[d.jersey]} (${ordinal(d.rank)} in the classification)`
@@ -232,13 +238,14 @@ export const COUNTRY_NAMES: Pick<NameResolver, 'country'> = {
  * `n` resuelve el país del título.
  */
 function notableForm(c: RiderCard, n: Pick<NameResolver, 'country'>): string {
-  const titleOf = (): ChampionTitle | null =>
+  const titleOf = (): ChampionTitleView | null =>
     c.worn.kind === 'champion'
       ? c.worn.title
-      : (c.lines.find((d): d is Extract<Distinction, { kind: 'champion' }> => d.kind === 'champion')
-          ?.title ?? null)
+      : (c.lines.find(
+          (d): d is Extract<DistinctionView, { kind: 'champion' }> => d.kind === 'champion',
+        )?.title ?? null)
   /** El título con la primera letra en minúscula, salvo U23 (§7.6). */
-  const titleForm = (t: ChampionTitle): string => {
+  const titleForm = (t: ChampionTitleView): string => {
     const text = championTitleText('en', t, n)
     return `the ${text.startsWith('U23') ? text : text.charAt(0).toLowerCase() + text.slice(1)}`
   }
@@ -259,12 +266,12 @@ function notableForm(c: RiderCard, n: Pick<NameResolver, 'country'>): string {
         ? `${c.name} in the ${JERSEY_NAME[c.worn.jersey].toLowerCase()}`
         : c.name
     case 5: {
-      const gc = c.lines.find((d): d is Extract<Distinction, { kind: 'gc' }> => d.kind === 'gc')
+      const gc = c.lines.find((d): d is Extract<DistinctionView, { kind: 'gc' }> => d.kind === 'gc')
       return gc === undefined ? c.name : `${c.name} (${ordinal(gc.rank)} overall)`
     }
     case 6: {
       const wins = c.lines.find(
-        (d): d is Extract<Distinction, { kind: 'stage_wins' }> => d.kind === 'stage_wins',
+        (d): d is Extract<DistinctionView, { kind: 'stage_wins' }> => d.kind === 'stage_wins',
       )
       const last = wins?.stages.at(-1)
       return last === undefined ? c.name : `stage ${last.stageDay} winner ${c.name}`

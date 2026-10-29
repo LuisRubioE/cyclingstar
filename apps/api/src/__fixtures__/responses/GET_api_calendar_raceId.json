@@ -32,8 +32,7 @@
         "edicion": 1,
         "arch": {
           "frase": "Two hills of 5.8 and 4.5 km and a wall of 1.7 km at 12%; last hill of 4.3 km at 6%, then 28 km of valley to the finish",
-          "skeleton": "et_media_valle",
-          "geo": "levante"
+          "skeleton": "et_media_valle"
         },
         "cambiosRespectoAnterior": []
       },
@@ -51,8 +50,7 @@
         "edicion": 1,
         "arch": {
           "frase": "Time trial of 18 km with a hill of 3.3 km at 6%; finish 8 km after the hill",
-          "skeleton": "et_crono",
-          "geo": "levante"
+          "skeleton": "et_crono"
         },
         "cambiosRespectoAnterior": []
       },
@@ -70,8 +68,7 @@
         "edicion": 1,
         "arch": {
           "frase": "Three passes of 18, 18 and 18 km; summit finish of 6 km at 9%",
-          "skeleton": "et_reina_alto_corto",
-          "geo": "levante"
+          "skeleton": "et_reina_alto_corto"
         },
         "cambiosRespectoAnterior": []
       },
@@ -89,8 +86,7 @@
         "edicion": 1,
         "arch": {
           "frase": "Long drag of 23 km at 3% and a hill of 3.3 km at 7%; last hill of 4.1 km at 6%, then 39 km of valley to the finish",
-          "skeleton": "et_media_tendida",
-          "geo": "levante"
+          "skeleton": "et_media_tendida"
         },
         "cambiosRespectoAnterior": []
       },
@@ -108,8 +104,7 @@
         "edicion": 1,
         "arch": {
           "frase": "Flat with a long drag of 12 km at 2.2%; sprint finish",
-          "skeleton": "et_llana",
-          "geo": "levante"
+          "skeleton": "et_llana"
         },
         "cambiosRespectoAnterior": []
       }
@@ -122,10 +117,8 @@
         "country": "BE",
         "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
         "teamName": "Noord Wielrennen",
-        "tiempoTotalS": 57825,
-        "puntosVolante": 41,
-        "puntosMontana": 17,
         "isBot": true,
+        "tiempoTotalS": 57825,
         "dnf": false
       },
       {
@@ -134,10 +127,8 @@
         "country": "IT",
         "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
         "teamName": "Noord Wielrennen",
-        "tiempoTotalS": 57931,
-        "puntosVolante": 32,
-        "puntosMontana": 5,
         "isBot": true,
+        "tiempoTotalS": 57931,
         "dnf": false
       },
       {
@@ -146,10 +137,8 @@
         "country": "BE",
         "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
         "teamName": "Vuur Racing",
-        "tiempoTotalS": 57936,
-        "puntosVolante": 16,
-        "puntosMontana": 2,
         "isBot": true,
+        "tiempoTotalS": 57936,
         "dnf": false
       }
     ],
@@ -528,8 +517,6 @@
     "history": [
       {
         "season": 0,
-        "raceName": "Race Valencia",
-        "winnerId": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
         "winnerName": "Gilles Roelants",
         "winnerCountry": "BE"
       }

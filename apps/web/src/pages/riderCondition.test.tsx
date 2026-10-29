@@ -31,7 +31,6 @@ const MIO: MyRider = {
   country: 'ES',
   gender: 'F',
   archetype: 'escalada',
-  birthSeason: 0,
   attributes: Object.fromEntries(
     ATTRIBUTES.map((a) => [a, a === 'MON' ? { stars: 3, mark: 1 } : { stars: 2, mark: 0 }]),
   ) as MyRider['attributes'],
@@ -50,7 +49,6 @@ const ficha = (id: string, name: string): PublicRiderDetail => ({
   seasonPoints: 120,
   seasonRank: 40,
   fieldSize: 400,
-  fame: 0,
   attributes: Object.fromEntries(ATTRIBUTES.map((a) => [a, { stars: 2.5 }])) as Record<
     Attribute,
     { stars: number }
@@ -73,7 +71,6 @@ const RESUMEN: RiderSummary = {
   teamName: null,
   money: 1200,
   moraleStars: 3,
-  fame: 0,
   seasonPoints: 120,
   seasonRank: 40,
   fieldSize: 400,

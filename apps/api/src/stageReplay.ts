@@ -513,7 +513,7 @@ async function radioOf(
     own: new Set(ixs(own)),
     nameableAt: radioNameableAt(tl, {
       wearing: cast.riders.filter((c) => c.worn.kind !== 'team').map((c) => c.rider),
-      gcTop: startStateOf(cast, tl.riderIds.length).gcTop,
+      gcTop: startStateOf(cast).gcTop,
       extra: ixs(firstTen),
     }),
   })

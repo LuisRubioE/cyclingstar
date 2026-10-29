@@ -53,7 +53,6 @@ describe('contratos: el ciclista del jugador', () => {
       country: 'ES',
       gender: 'F',
       archetype: 'escalada',
-      birthSeason: 0,
       attributes: propios,
     }
     expect(myRiderResponseSchema.parse({ rider })).toEqual({ rider })
@@ -66,7 +65,6 @@ describe('contratos: el ciclista del jugador', () => {
       country: 'ES',
       gender: 'F',
       archetype: 'trialera',
-      birthSeason: 0,
       attributes: propios,
     }
     expect(myRiderResponseSchema.safeParse({ rider }).success).toBe(false)
@@ -81,7 +79,6 @@ describe('contratos: el ciclista del jugador', () => {
       country: 'ES',
       gender: 'F',
       archetype: 'crono',
-      birthSeason: 0,
       attributes: incompletos,
     }
     expect(myRiderResponseSchema.safeParse({ rider }).success).toBe(false)
@@ -243,7 +240,7 @@ describe('contratos: calendario y carrera', () => {
     altimetry: '<svg/>',
     routeSource: 'edicion',
     edicion: 1,
-    arch: { frase: 'Flat; sprint finish', skeleton: 'et_llana', geo: 'meseta' },
+    arch: { frase: 'Flat; sprint finish', skeleton: 'et_llana' },
     cambiosRespectoAnterior: [],
   }
 
@@ -334,7 +331,7 @@ describe('contratos: calendario y carrera', () => {
       altimetry: '<svg/>',
       routeSource: 'generado',
       edicion: 3,
-      arch: { frase: 'Flat; sprint finish', skeleton: 'et_llana', geo: 'meseta' },
+      arch: { frase: 'Flat; sprint finish', skeleton: 'et_llana' },
       cambiosRespectoAnterior: ['192 km → 201 km'],
     }
     expect(raceStagePlanSchema.parse(generada)).toEqual(generada)
@@ -583,7 +580,6 @@ describe('contratos: mundo, equipo y dinero', () => {
       seasonPoints: 120,
       seasonRank: 12,
       fieldSize: 900,
-      fame: 30,
       attributes: estrellas,
       health: { state: 'lesionado', untilDay: 143 },
       champion: null,
@@ -626,7 +622,6 @@ describe('contratos: mundo, equipo y dinero', () => {
       seasonPoints: 120,
       seasonRank: 12,
       fieldSize: 900,
-      fame: 30,
       attributes: estrellas,
       health: { state: 'sano', untilDay: null },
     }

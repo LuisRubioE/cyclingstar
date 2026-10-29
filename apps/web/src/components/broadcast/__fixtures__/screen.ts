@@ -182,15 +182,14 @@ export function headOf(
       tempC: 21.4,
       rain: 0,
       spans: [
-        { fromKm: 0, rain: 0, windDir: 90, windKmh: 18, crosswind: false },
-        { fromKm: 80, rain: 0.4, windDir: 90, windKmh: 18, crosswind: true },
+        { fromKm: 0, rain: 0, windKmh: 18, crosswind: false },
+        { fromKm: 80, rain: 0.4, windKmh: 18, crosswind: true },
       ],
     },
     cast: [...cast],
     startState: {
       leaders: { gc: null, points: null, kom: null },
       gcTop: [],
-      racingAtStart: cast.length,
     },
     pace: [...BROADCAST.pace],
     estimateS: 790,

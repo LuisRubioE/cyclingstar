@@ -331,7 +331,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           kits: await kitsOn(db, teamIds, stageGameDay(ctx.raceKey, ctx.day)),
         },
       )
-      const startState = startStateOf(veilCast(tl.cast, a.h), tl.riderIds.length)
+      const startState = startStateOf(veilCast(tl.cast, a.h))
       // El nombre, la etiqueta y el tipo, como la ruta de etapa para una etapa corrida (stageHead).
       const raced = (await lineSourceOf(db, tl, ctx.raceKey, ctx.day)).racedProfile
       // Las cimas que el grabador dejó sin pie, con el de su recorrido (nota 5 del 3c, 6b).
@@ -515,7 +515,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       // la hora de destino, como la busca la web al aterrizar: sobre la línea, con el reparto de quien mira
       const ctx: InstantContext = {
         own: await ownOf(request, tl),
-        start: startStateOf(veilCast(tl.cast, a.h), tl.riderIds.length),
+        start: startStateOf(veilCast(tl.cast, a.h)),
         photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
       }
       const destDs = firstDsAtKm(

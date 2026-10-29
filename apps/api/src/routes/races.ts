@@ -37,6 +37,7 @@ import {
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
+import { orderView } from '../screenShape.js'
 import { stageAccessOf } from '../spoiler.js'
 import { calendarStageSpec } from '../stageHistory.js'
 import { stageContextOf, stageReplayOf, stageShellOf } from '../stageReplay.js'
@@ -170,7 +171,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
                 },
         }
       })
-      const orders = await getStageOrders(db, raceKey, rider.id)
+      // el disparo `attack`, que la web no ofrece, sale como null (E3, docs/visual.md §13.5; 19c)
+      const orders = (await getStageOrders(db, raceKey, rider.id)).map(orderView)
       const teammates = await getRosterTeammates(db, raceKey, rider.id)
       const rivals = await getRaceRivals(db, raceKey, rider.id)
       const teams = await getRaceTeams(db, raceKey, rider.id)

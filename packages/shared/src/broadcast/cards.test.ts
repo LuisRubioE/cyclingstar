@@ -140,23 +140,21 @@ describe('riderCardsOf · el reparto servido (§7.8)', () => {
 })
 
 describe('startStateOf · la salida (§4.11)', () => {
-  it('quién lleva cada maillot (delegado o no), los virtualGcTop primeros de la general y cuántos salen', () => {
-    expect(startStateOf(CAST, 176)).toEqual({
+  it('quién lleva cada maillot (delegado o no) y los virtualGcTop primeros de la general', () => {
+    expect(startStateOf(CAST)).toEqual({
       leaders: { gc: 0, points: null, kom: 1 },
       gcTop: [
         { rider: 0, rank: 1, gapS: 0 },
         { rider: 1, rank: 4, gapS: 75 },
       ],
-      racingAtStart: 176,
     })
   })
 
   it('el primer día, nadie lleva nada ni sale con general', () => {
     const first: TimelineCast = { ...CAST, riders: [rider(0), rider(1)] }
-    expect(startStateOf(first, 2)).toEqual({
+    expect(startStateOf(first)).toEqual({
       leaders: { gc: null, points: null, kom: null },
       gcTop: [],
-      racingAtStart: 2,
     })
   })
 })

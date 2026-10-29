@@ -32,7 +32,6 @@ const RIDER: MyRider = {
   country: 'ES',
   gender: 'M',
   archetype: 'escalada',
-  birthSeason: 1,
   attributes: Object.fromEntries(
     ATTRIBUTES.map((a) => [a, { stars: 3, mark: 1 }]),
   ) as MyRider['attributes'],
@@ -153,7 +152,6 @@ function mundo(mode: TrainingPlanResponse['mode']) {
       blocks: [...BLOQUES],
       focusAttr: null,
       intensity: 'normal',
-      goalRaceId: null,
     },
     currentDay: 50,
   }

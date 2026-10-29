@@ -46,6 +46,7 @@ import {
   radioFromTimeline,
   stageGateErrorSchema,
   stageReplaySchema,
+  stageWeatherViewSchema,
   startStateOf,
   visibilityOf,
   watchResponseSchema,
@@ -380,7 +381,10 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect(head.profile.altM).toEqual(tl!.profile.altM)
         expect(tl!.profile.climbs.some((c) => c.lenKm === 0)).toBe(true)
         expect(head.profile.climbs.every((c) => c.lenKm > 0)).toBe(true)
-        expect(head.weather).toEqual(tl!.weather)
+        // el tiempo, el grabado sin la dirección del viento, que no se pinta y no cruza (E3, §13.5; 19c)
+        expect(head.weather).toEqual(stageWeatherViewSchema.parse(tl!.weather))
+        expect(tl!.weather.spans.length).toBeGreaterThan(0)
+        expect(res.body).not.toContain('"windDir"')
       })
 
       it('los tramos, uno tras otro, hasta la meta: la marca de salida de verdad en el primero y la voz a su hora', async () => {
@@ -1196,7 +1200,7 @@ describe('las rutas de la retransmisión (§14.2)', () => {
     const destOf = (km: number): number => {
       const ctx = {
         own: new Set<number>(),
-        start: startStateOf(tl.cast, tl.riderIds.length),
+        start: startStateOf(tl.cast),
         photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
       }
       let lo = 0

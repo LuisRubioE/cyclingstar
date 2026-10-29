@@ -3,8 +3,6 @@
   "url": "/api/names/generate?country=ES&gender=M&seed=s",
   "status": 200,
   "body": {
-    "firstName": "Eduardo",
-    "surname": "Delgado",
     "fullName": "Eduardo Delgado"
   }
 }

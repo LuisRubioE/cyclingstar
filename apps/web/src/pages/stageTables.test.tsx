@@ -271,7 +271,7 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     profile: strip,
     weather,
     cast: [],
-    startState: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 0 },
+    startState: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
     pace: [...BROADCAST.pace],
     estimateS: 3600,
     clock: 'exact',

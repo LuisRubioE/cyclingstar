@@ -394,7 +394,7 @@ describe('adaptRadioStage · la línea degradada de una etapa sin línea (§3.8)
   it('el instante sobre la línea: la fuga delante, el pelotón de catorce a 30 s', () => {
     const ctx = {
       own: new Set<number>(),
-      start: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 16 },
+      start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
       photoBlocks: photoBlocksOf(3, 0.1),
     }
     const now = instantAt(tl, 150, ctx)

@@ -1,9 +1,10 @@
 /**
- * LA FRONTERA (E3, docs/visual.md §13; D-53, D-54, D-55; PR 19a y 19b). Toda respuesta de la API es un
+ * LA FRONTERA (E3, docs/visual.md §13; D-53, D-54, D-55; PR 19a a 19d). Toda respuesta de la API es un
  * subconjunto de lo que una pantalla enseña a quien la pide, en su forma de pantalla: un número interno no
  * cruza nunca, y lo que cruza, alguien lo lee en la web. `frontera.test.ts` recorre los esquemas de
  * respuesta del registro hoja por hoja y lo comprueba; lo que hoy no cumple va aquí, con su motivo y su PR
- * de salida, y la lista solo encoge.
+ * de salida, y la lista solo encoge. Desde el 19c quedan las cuatro de las rutas de la web de ayer, que
+ * salen en el 19d.
  */
 
 /** Los nombres de los números internos: una hoja que se llama así no cruza (§13.2, punto 3). */
@@ -36,12 +37,12 @@ export interface FronteraException {
   readonly fields: readonly [string, ...string[]]
   readonly breaks: FronteraBreak
   readonly why: string
-  /** el PR que la quita: desde el 19b, solo queda el 19c, que deja la lista vacía */
-  readonly until: '19c'
+  /** el PR que la quita: desde el 19c, solo queda el 19d, que deja la lista vacía */
+  readonly until: '19d'
 }
 
-/** Solo encoge: añadir una entrada pide subir el tope, y eso se revisa en el PR (13-e). 22 en el 19a. */
-export const FRONTERA_SIN_USO_MAX = 16
+/** Solo encoge: añadir una entrada pide subir el tope, y eso se revisa en el PR (13-e). 22 en el 19a, 16 en el 19b. */
+export const FRONTERA_SIN_USO_MAX = 4
 
 /** Las rutas de la etapa que llevan los títulos de campeón y la clasificación por equipos. */
 const ETAPA = 'GET /api/races/:raceId/stages/:day'
@@ -50,82 +51,20 @@ const ACTA = 'GET /api/races/:raceId/stages/:day/report'
 const CABECERA = 'GET /api/races/:raceId/stages/:day/broadcast'
 
 /**
- * La tabla de §13.2, el día que entra el 19a (con lo de la vista previa ya fuera en el 13b, §11.2), y lo
- * que el test encontró además al entrar, con su salida en el 19c (§13.2: «el 19a los añade con su motivo
- * y su salida, y sube FRONTERA_SIN_USO_MAX una vez»). El 19b quitó las seis primeras: los atributos, la
- * condición, la flecha y la moral cruzan ya en su forma (§13.5). Los campos van con `[]` por cada array,
- * `*` por un tramo cualquiera y `**` por los que sean.
+ * La tabla de §13.2, con lo que el 19a encontró además al entrar. El 19b quitó las seis primeras (los
+ * atributos, la condición, la flecha y la moral cruzan en su forma) y el 19c doce de las dieciséis que
+ * quedaban, que salieron de sus esquemas de respuesta (§13.5). Las cuatro que siguen son de las rutas de la
+ * web de ayer (la de etapa, las noticias y la última carrera): la web del 19b las pide, así que desde el 19c
+ * son opcionales y se siguen mandando, y salen en el 19d, cuando ninguna web las pide (regla 6 de §17.1;
+ * D-50). Los campos van con `[]` por cada array, `*` por un tramo cualquiera y `**` por los que sean.
  */
 export const FRONTERA_SIN_USO: readonly FronteraException[] = [
-  // --- las tres de §13.2 que quedan
-  {
-    routes: ['GET /api/riders/me/coach-view'],
-    fields: ['coachView.facilities'],
-    breaks: 'sin_lector',
-    why: 'no se pinta; season tampoco, pero la comprobación por nombre la da por leída (sale también en el 19c)',
-    until: '19c',
-  },
-  {
-    routes: [
-      'GET /api/riders/me/summary',
-      'GET /api/riders/:id',
-      'GET /api/countries/:code',
-      'GET /api/free-agents',
-    ],
-    fields: ['**.fame'],
-    breaks: 'sin_lector',
-    why: 'vale siempre 0: la columna no se escribe (schema.ts)',
-    until: '19c',
-  },
-  {
-    routes: ['GET /api/riders/me/plan'],
-    fields: ['plan.goalRaceId'],
-    breaks: 'sin_lector',
-    why: 'el objetivo D1 no tiene control',
-    until: '19c',
-  },
-  // --- lo que el test encontró al entrar, sin lector en la web (19c)
-  {
-    routes: ['GET /api/names/generate'],
-    fields: ['firstName', 'surname'],
-    breaks: 'sin_lector',
-    why: 'la web pinta fullName',
-    until: '19c',
-  },
-  {
-    routes: ['GET /api/riders/me'],
-    fields: ['rider.birthSeason'],
-    breaks: 'sin_lector',
-    why: 'no se lee: la edad que pinta la ficha llega ya hecha, en age, con la ficha pública',
-    until: '19c',
-  },
-  {
-    routes: ['GET /api/riders/me/last-race'],
-    fields: ['report.bonusS'],
-    breaks: 'sin_lector',
-    why: 'la bonificación no se pinta',
-    until: '19c',
-  },
-  {
-    routes: ['GET /api/riders/me/report'],
-    fields: ['report.fromDay', 'report.toDay'],
-    breaks: 'sin_lector',
-    why: 'el informe del bloque no pinta sus días',
-    until: '19c',
-  },
-  {
-    routes: ['POST /api/riders/me/races/:raceKey/retire'],
-    fields: ['alreadyOut'],
-    breaks: 'sin_lector',
-    why: 'la web no distingue si ya estaba fuera',
-    until: '19c',
-  },
   {
     routes: ['GET /api/riders/:id', ETAPA, CABECERA, META, ACTA, 'GET /api/calendar/:raceId'],
     fields: ['**.validToDay', '**.provisional'],
     breaks: 'sin_lector',
-    why: 'el título de campeón se pinta por su ámbito y su país, no hasta cuándo vale ni si es provisional',
-    until: '19c',
+    why: 'el título de campeón se pinta por su ámbito y su país, no hasta cuándo vale ni si es provisional; opcionales desde el 19c, porque la web de ayer los pide en la ruta de etapa',
+    until: '19d',
   },
   {
     routes: ['GET /api/teams/:id/news', 'GET /api/news', META],
@@ -135,50 +74,22 @@ export const FRONTERA_SIN_USO: readonly FronteraException[] = [
       'news[].payload.fromTeamId',
     ],
     breaks: 'sin_lector',
-    why: 'el texto de la noticia (newsText, packages/shared/src/news.ts) no los usa',
-    until: '19c',
-  },
-  {
-    routes: ['GET /api/my-orders'],
-    fields: ['orders[].triggerOn.byRiderId'],
-    breaks: 'sin_lector',
-    why: 'la orden se pinta sin el corredor que la dispara',
-    until: '19c',
+    why: 'el texto de la noticia (newsText, packages/shared/src/news.ts) no los usa; opcionales desde el 19c, porque la web de ayer los pide en las noticias',
+    until: '19d',
   },
   {
     routes: [ETAPA, META, ACTA, 'GET /api/calendar/:raceId'],
     fields: ['**.sumaPuestos'],
     breaks: 'sin_lector',
-    why: 'la clasificación por equipos pinta el puesto y el tiempo, no la suma con que se desempata',
-    until: '19c',
+    why: 'la clasificación por equipos pinta el puesto y el tiempo, no la suma con que se desempata; opcional desde el 19c, porque la web de ayer la pide en la ruta de etapa',
+    until: '19d',
   },
   {
-    routes: [CABECERA],
-    fields: ['weather.spans[].windDir', 'preview.weather.spans[].windDir'],
+    routes: ['GET /api/riders/me/last-race'],
+    fields: ['report.bonusS'],
     breaks: 'sin_lector',
-    why: 'el viento se pinta con su fuerza y si es de costado, no con su dirección',
-    until: '19c',
-  },
-  {
-    routes: [CABECERA],
-    fields: ['startState.racingAtStart'],
-    breaks: 'sin_lector',
-    why: 'no se pinta',
-    until: '19c',
-  },
-  {
-    routes: ['GET /api/me/horizon'],
-    fields: ['ready[].expiresOnDay'],
-    breaks: 'sin_lector',
-    why: 'no se pinta',
-    until: '19c',
-  },
-  {
-    routes: ['GET /api/calendar/:raceId'],
-    fields: ['stages[].arch.geo'],
-    breaks: 'sin_lector',
-    why: 'no se pinta',
-    until: '19c',
+    why: 'la bonificación no se pinta; opcional desde el 19c, porque la web de ayer la pide (yesterday.test.ts)',
+    until: '19d',
   },
 ]
 
