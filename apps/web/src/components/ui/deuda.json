@@ -1,7 +1,7 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2021,
+    "tema": 2013,
     "arbitrarios": 32,
     "espaciado": 29,
     "layout": 0
@@ -416,7 +416,7 @@
       "layout": 0
     },
     "apps/web/src/pages/Team.tsx": {
-      "tema": 23,
+      "tema": 15,
       "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0

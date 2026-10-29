@@ -217,24 +217,34 @@ export const BIB_CUFFS = 'M0 37H48V40H0Z'
 export const BIB_STYLES = ['black', 'black.panel', 'base', 'base.panel'] as const
 export type BibStyle = (typeof BIB_STYLES)[number]
 
-/** Los colores del culote, en hexadecimal: el cuerpo (y los tirantes), los paneles si los hay y los puños. */
+/** Los colores del culote, por su nombre: el cuerpo (y los tirantes) y los paneles, si se ven. */
+export interface BibColors {
+  readonly body: KitColorName
+  readonly panels: KitColorName | null
+}
+
+/**
+ * Los colores de un estilo sobre un maillot: el cuerpo negro o de la base; los paneles, del segundo color,
+ * o de la base en un `plain`. Un estilo que no ofrece `bibStylesFor` también se pinta, porque `teams.bib`
+ * puede venir de un maillot anterior: unos paneles del color del cuerpo no se ven, y no se pintan.
+ */
+export function bibColors(kit: Kit, style: BibStyle): BibColors {
+  const body = style === 'black' || style === 'black.panel' ? 'black' : kit.base
+  const panel = kit.figure === 'plain' ? kit.base : kit.secondary
+  return { body, panels: style.endsWith('.panel') && panel !== body ? panel : null }
+}
+
+/** Lo mismo en hexadecimal, con los puños: como los paneles, o como el cuerpo si no hay paneles. */
 export interface BibPaint {
   readonly body: string
   readonly panels: string | null
   readonly cuffs: string
 }
 
-/**
- * Los colores de un estilo sobre un maillot: el cuerpo negro o de la base; los paneles, del segundo color,
- * o de la base en un `plain`; los puños, como los paneles, o como el cuerpo si no hay. Un estilo que no
- * ofrece `bibStylesFor` también se pinta, porque `teams.bib` puede venir de un maillot anterior: unos
- * paneles del color del cuerpo no se ven, y no se pintan.
- */
 export function bibPaint(kit: Kit, style: BibStyle): BibPaint {
-  const body = KIT_COLORS[style === 'black' || style === 'black.panel' ? 'black' : kit.base]
-  const panel = KIT_COLORS[kit.figure === 'plain' ? kit.base : kit.secondary]
-  const panels = style.endsWith('.panel') && panel !== body ? panel : null
-  return { body, panels, cuffs: panels ?? body }
+  const { body, panels } = bibColors(kit, style)
+  const hex = panels === null ? null : KIT_COLORS[panels]
+  return { body: KIT_COLORS[body], panels: hex, cuffs: hex ?? KIT_COLORS[body] }
 }
 
 /**

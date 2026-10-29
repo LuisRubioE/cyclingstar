@@ -28,6 +28,7 @@ import {
   TORSO,
   TORSO_BACK,
   applySponsor,
+  bibColors,
   bibPaint,
   bibStylesFor,
   canonicalKit,
@@ -407,6 +408,14 @@ describe('shared: el maillot en grande (E3, §8.10; PR 17c)', () => {
     // un liso con cuerpo negro lleva los paneles en su base
     expect(bibPaint(parseKit('plain.red')!, 'black.panel')).toMatchObject({
       panels: KIT_COLORS.red,
+      cuffs: KIT_COLORS.red,
+    })
+    // y por su nombre, para escribirlo; unos paneles del color del cuerpo no se ven
+    expect(bibColors(hoops, 'base.panel')).toEqual({ body: 'navy', panels: 'yellow' })
+    expect(bibColors(parseKit('plain.red')!, 'base.panel')).toEqual({ body: 'red', panels: null })
+    expect(bibPaint(parseKit('plain.red')!, 'base.panel')).toEqual({
+      body: KIT_COLORS.red,
+      panels: null,
       cuffs: KIT_COLORS.red,
     })
   })

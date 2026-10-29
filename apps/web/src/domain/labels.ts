@@ -7,9 +7,13 @@
  * página tradujera y otra mostrara la clave interna en crudo.
  */
 
-import { ARCHETYPE_LABELS } from '@cyclingstar/shared'
+import { ARCHETYPE_LABELS, bibColors } from '@cyclingstar/shared'
 import type {
+  BibStyle,
   Effort,
+  Kit,
+  KitColorName,
+  KitFigure,
   Mentality,
   RaceClass,
   RaceFormat,
@@ -206,6 +210,50 @@ const NEWS_KIND_LABEL: Record<string, string> = {
 
 export function newsLabel(kind: string): string {
   return NEWS_KIND_LABEL[kind] ?? 'News'
+}
+
+/** Las siete figuras del maillot, por su nombre (E3, docs/visual.md §8.1; 17c). */
+export const KIT_FIGURE_LABEL: Record<KitFigure, string> = {
+  plain: 'Plain',
+  band: 'Chest band',
+  hoops: 'Hoops',
+  halves: 'Halves',
+  yoke: 'Yoke',
+  sides: 'Sides',
+  sash: 'Sash',
+}
+
+/** Los quince colores del maillot, por su nombre (§8.1). */
+export const KIT_COLOR_LABEL: Record<KitColorName, string> = {
+  black: 'Black',
+  navy: 'Navy',
+  blue: 'Blue',
+  sky: 'Sky',
+  teal: 'Teal',
+  green: 'Green',
+  orange: 'Orange',
+  red: 'Red',
+  pink: 'Pink',
+  purple: 'Purple',
+  taupe: 'Taupe',
+  brown: 'Brown',
+  plum: 'Plum',
+  yellow: 'Yellow',
+  white: 'White',
+}
+
+/** El maillot en palabras (§8.10): `Hoops · Navy · Yellow`; un liso, `Plain · Red`. */
+export function kitWords(kit: Kit): string {
+  const partes = [KIT_FIGURE_LABEL[kit.figure], KIT_COLOR_LABEL[kit.base]]
+  if (kit.figure !== 'plain') partes.push(KIT_COLOR_LABEL[kit.secondary])
+  return partes.join(' · ')
+}
+
+/** El culote en palabras (§8.10): `Black shorts`; `Navy shorts with yellow panels`. */
+export function bibWords(kit: Kit, style: BibStyle): string {
+  const { body, panels } = bibColors(kit, style)
+  const cuerpo = `${KIT_COLOR_LABEL[body]} shorts`
+  return panels === null ? cuerpo : `${cuerpo} with ${KIT_COLOR_LABEL[panels].toLowerCase()} panels`
 }
 
 /** Clase de la carrera tal como se escribe en el ciclismo real (.WT, .Pro, .1…). */

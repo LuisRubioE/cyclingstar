@@ -2,17 +2,22 @@ import {
   CHAMPION_RAINBOW,
   CHAMPION_SILVER,
   CHAMPION_STAR_EDGE,
+  COLLAR,
   type ChampionTitle,
+  KIT_COLORS,
   KIT_PX,
   type KitSize,
   LOGO_STAR,
+  SPONSOR_ZONES,
   TORSO,
+  TORSO_BACK,
   WORLD_STAR,
   starTransform,
 } from '@cyclingstar/shared'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ChampionJersey } from './ChampionJersey'
+import { KIT_INK, TextMeasureContext } from './kitText'
 import { FLAG_INK } from './flagInk.generated'
 import { FLAG_CELLS } from './flagSprite.generated'
 import { loadFlagSvg } from './flagSvg'
@@ -132,5 +137,68 @@ describe('ChampionJersey', () => {
     )
     expect(html(title(), 28, 'dark')).toContain('stroke="rgb(255 255 255 / 0.6)"')
     expect(html(WORLD, 28, 'light')).toContain('stroke="rgb(0 0 0 / 0.35)"')
+  })
+})
+
+describe('ChampionJersey en grande (§8.10; PR 17c)', () => {
+  const back = (t: ChampionTitle, size: 160 | 320 = KIT_PX.showcase) =>
+    renderToStaticMarkup(<ChampionJersey title={t} view="back" size={size} />)
+
+  it('la espalda del mundial, blanca: sin estrella, sin cuello y sobre TORSO_BACK', () => {
+    const s = back(WORLD)
+    expect(s).toContain('data-view="back"')
+    expect(s).toContain('aria-label="World champion, back"')
+    expect(s).toContain(`<path d="${TORSO_BACK}" fill="#ffffff"`)
+    expect(s).not.toContain(`d="${TORSO}"`)
+    expect(s).not.toContain(LOGO_STAR)
+    expect(s).not.toContain(COLLAR)
+  })
+
+  it('la del nacional, su bandera sin reflejar recortada por la espalda, y sin letras aunque sea grande', () => {
+    const s = back(title(), KIT_PX.poster)
+    expect(s).toMatch(/<clipPath id="[^"]+-torso"><path d="([^"]+)"/)
+    expect(/<clipPath id="[^"]+-torso"><path d="([^"]+)"/.exec(s)?.[1]).toBe(TORSO_BACK)
+    // la misma caja que por delante: ni `scale(-1 1)` ni otra x
+    expect(s).toContain('x="1.3333333333333333" y="8" width="45.333333333333336" height="34"')
+    expect(s).not.toContain('scale(-1')
+    expect(s).not.toContain('<text')
+  })
+
+  it('el pecho es suyo: un patrocinador solo compra la espalda y las mangas, que se pintan en grande', () => {
+    const medida = () => 10
+    const voltra = { name: 'Voltra Energy', mark: 'VE', color: KIT_COLORS.blue }
+    const s = renderToStaticMarkup(
+      <TextMeasureContext value={medida}>
+        <ChampionJersey
+          title={WORLD}
+          view="back"
+          size={320}
+          sponsors={{ back: voltra, sleeves: voltra }}
+        />
+      </TextMeasureContext>,
+    )
+    // sobre el blanco del mundial, kit-ink; la espalda, de nombre; las mangas, en vertical
+    expect(s).toMatch(/<text data-zone="back"[^>]*fill="#10202f"[^>]*>Voltra Energy<\/text>/)
+    expect(s.match(/<text data-zone="sleeves"[^>]*transform="rotate\(-90 [^"]+\)"/g)).toHaveLength(
+      2,
+    )
+    expect(s).toContain(
+      'aria-label="World champion, back, Voltra Energy on the back, Voltra Energy on the sleeves"',
+    )
+    expect(KIT_INK).toBe('#10202f')
+    // por delante, las mangas sí, y el pecho no existe en su tipo
+    const delante = renderToStaticMarkup(
+      <TextMeasureContext value={medida}>
+        <ChampionJersey title={WORLD} size={320} sponsors={{ sleeves: voltra }} />
+      </TextMeasureContext>,
+    )
+    expect(delante.match(/data-zone="sleeves"/g)).toHaveLength(SPONSOR_ZONES.sleeves.boxes.length)
+    // @ts-expect-error el pecho de un campeón no se vende (8-p; DD-23)
+    renderToStaticMarkup(<ChampionJersey title={WORLD} size={320} sponsors={{ chest: voltra }} />)
+  })
+
+  it('la espalda solo a 160 y a 320', () => {
+    // @ts-expect-error la espalda no compila por debajo de 160 (§8.10)
+    renderToStaticMarkup(<ChampionJersey title={WORLD} view="back" size={96} />)
   })
 })

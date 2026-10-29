@@ -1,3 +1,4 @@
+import { KIT_COLORS, KIT_FIGURES, parseKit } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import {
   EFFORT_DESC,
@@ -10,7 +11,11 @@ import {
   STAGE_ROLE_DESC,
   STAGE_ROLE_LABEL,
   STAGE_ROLE_OPTIONS,
+  KIT_COLOR_LABEL,
+  KIT_FIGURE_LABEL,
+  bibWords,
   editionLabel,
+  kitWords,
   ledgerKindLabel,
   mentalityLabel,
   newsLabel,
@@ -118,5 +123,29 @@ describe('web: los días de viaje se anuncian de ida Y vuelta (docs/agenda.md §
 
   it('en casa no hay viaje y no se pinta nada', () => {
     expect(travelDaysLabel(0)).toBe('')
+  })
+})
+
+describe('web: el maillot en palabras (E3, docs/visual.md §8.1 y §8.10; 17c)', () => {
+  it('las siete figuras y los quince colores, cada uno con su nombre de pantalla', () => {
+    expect(Object.keys(KIT_FIGURE_LABEL)).toEqual([...KIT_FIGURES])
+    expect(Object.keys(KIT_COLOR_LABEL)).toEqual(Object.keys(KIT_COLORS))
+    expect(KIT_FIGURE_LABEL.band).toBe('Chest band')
+  })
+
+  it('la figura, la base y el segundo color; el liso, sin segundo', () => {
+    expect(kitWords(parseKit('hoops.navy.yellow')!)).toBe('Hoops · Navy · Yellow')
+    expect(kitWords(parseKit('plain.red')!)).toBe('Plain · Red')
+  })
+
+  it('el culote: su cuerpo y, si se ven, sus paneles', () => {
+    const hoops = parseKit('hoops.navy.yellow')!
+    expect(bibWords(hoops, 'black')).toBe('Black shorts')
+    expect(bibWords(hoops, 'black.panel')).toBe('Black shorts with yellow panels')
+    expect(bibWords(hoops, 'base')).toBe('Navy shorts')
+    expect(bibWords(hoops, 'base.panel')).toBe('Navy shorts with yellow panels')
+    // un liso con cuerpo negro lleva los paneles en su base; con el cuerpo de su color, no se ven
+    expect(bibWords(parseKit('plain.red')!, 'black.panel')).toBe('Black shorts with red panels')
+    expect(bibWords(parseKit('plain.red')!, 'base.panel')).toBe('Red shorts')
   })
 })

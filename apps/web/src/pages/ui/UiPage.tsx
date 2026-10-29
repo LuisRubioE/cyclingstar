@@ -1,4 +1,4 @@
-import { type ChampionTitle, KIT_PX, type KitCode } from '@cyclingstar/shared'
+import { type ChampionTitle, KIT_COLORS, KIT_PX, type KitCode } from '@cyclingstar/shared'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
@@ -17,6 +17,8 @@ import { Icon } from '../../components/ui/Icon'
 import { ICONS } from '../../components/ui/icons'
 import { InfoButton } from '../../components/ui/InfoButton'
 import { Kit } from '../../components/ui/Kit'
+import { KitShowcase } from '../../components/ui/KitShowcase'
+import type { KitSponsors } from '../../components/ui/kitText'
 import { LeaderJersey } from '../../components/ui/LeaderJersey'
 import { LegacyJersey } from '../../components/ui/LegacyJersey'
 import { Meter } from '../../components/ui/Meter'
@@ -31,6 +33,7 @@ import { RiderHeader } from '../../components/ui/RiderHeader'
 import { RiderLabel } from '../../components/ui/RiderLabel'
 import { Scale5 } from '../../components/ui/Scale5'
 import { Segmented } from '../../components/ui/Segmented'
+import { Sheet } from '../../components/ui/Sheet'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { StarRating } from '../../components/ui/StarRating'
 import { Stat } from '../../components/ui/Stat'
@@ -649,6 +652,9 @@ function Cabeceras() {
           role="Sprinter"
         />
       </Estado>
+      <Estado name="ready · racing today: its kit opens the front and the back with its number">
+        <RiderHeader rider={PROPIA.rider} team={NOORD} player role="Climber" bib={214} />
+      </Estado>
       <Estado name="ready · the longest name, a free agent">
         <RiderHeader rider={LARGO.rider} team={null} player={false} role="All-rounder" />
       </Estado>
@@ -703,6 +709,34 @@ const CAMPEONES: readonly ChampionTitle[] = [
   { ...ITALY_TITLE, country: 'MA' },
 ]
 
+/** Un equipo con su maillot, para las vistas grandes (§8.10). */
+const NOORD = { name: 'Noord Cycling', kit: 'hoops.navy.yellow' } as const satisfies WornTeam
+
+/** Un equipo aún sin traducir: la semilla de su dibujo de antes (§8.6). */
+const SIN_TRADUCIR = {
+  name: 'Mistral Racing',
+  legacySeed: 'cyclingstar-2:team:WT:1:jersey',
+} as const satisfies WornTeam
+
+/** Un patrocinador de prueba en cada zona: la interfaz para E8, que hoy nadie llena (§9.9). */
+const VOLTRA = { name: 'Voltra Energy', mark: 'VE', color: KIT_COLORS.blue }
+const PATROCINADO: KitSponsors = { chest: VOLTRA, back: VOLTRA, sleeves: VOLTRA, bibSides: VOLTRA }
+
+/** La hoja a pantalla completa, que se abre con su botón. */
+function HojaDeEjemplo() {
+  const [abierta, setAbierta] = useState(false)
+  return (
+    <>
+      <Button onClick={() => setAbierta(true)}>Open a sheet</Button>
+      <Sheet open={abierta} title="Noord Cycling kit" onClose={() => setAbierta(false)}>
+        <div className="flex justify-center">
+          <Kit code={NOORD.kit} teamName={NOORD.name} size={KIT_PX.poster} />
+        </div>
+      </Sheet>
+    </>
+  )
+}
+
 function Equipaciones() {
   return (
     <>
@@ -714,15 +748,97 @@ function Equipaciones() {
             ))}
           </div>
         </Estado>
-        <Estado name="one kit at each size">
+        <Estado name="one kit at each size, up to 96">
           <div className="flex flex-wrap items-end gap-3">
-            {Object.values(KIT_PX).map((size) => (
-              <Kit key={size} code="sash.teal.white" teamName="Mistral Racing" size={size} />
-            ))}
+            {Object.values(KIT_PX)
+              .filter((size) => size <= KIT_PX.hero)
+              .map((size) => (
+                <Kit key={size} code="sash.teal.white" teamName="Mistral Racing" size={size} />
+              ))}
+          </div>
+        </Estado>
+        <Estado name="at 160: the front, the back with its number, and the shorts">
+          <div className="flex flex-wrap items-end gap-3">
+            <Kit code={NOORD.kit} teamName={NOORD.name} size={KIT_PX.showcase} />
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              view="back"
+              size={KIT_PX.showcase}
+              number={214}
+            />
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              view="bib"
+              size={KIT_PX.showcase}
+              bib="black.panel"
+            />
+          </div>
+        </Estado>
+        <Estado name="a sponsor in each zone, at 160">
+          <div className="flex flex-wrap items-end gap-3">
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              size={KIT_PX.showcase}
+              sponsors={PATROCINADO}
+            />
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              view="back"
+              size={KIT_PX.showcase}
+              sponsors={PATROCINADO}
+            />
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              view="bib"
+              size={KIT_PX.showcase}
+              bib="base.panel"
+              sponsors={PATROCINADO}
+            />
           </div>
         </Estado>
         <Estado name="hidden · a code that doesn't match">
           <Kit code={'zigzag.red.blue' as KitCode} teamName="Mistral Racing" size={KIT_PX.row} />
+        </Estado>
+      </Demo>
+      <DemoAncho
+        name="Kit at 320"
+        estados={[
+          [
+            'the poster, edge to edge below 640, with a sponsor in each zone',
+            <div key="poster" className="flex justify-center">
+              <Kit
+                code={NOORD.kit}
+                teamName={NOORD.name}
+                size={KIT_PX.poster}
+                sponsors={PATROCINADO}
+              />
+            </div>,
+          ],
+        ]}
+      />
+      <Demo name="KitShowcase">
+        <Estado name="ready · tap the kit for the full screen">
+          <Panel ariaLabel="Noord Cycling kit">
+            <KitShowcase team={NOORD} bib="black.panel">
+              <p>1,207 season points</p>
+              <p>Budget 6,236,433</p>
+              <p>Hoops · Navy · Yellow</p>
+              <p>Black shorts with yellow panels</p>
+            </KitShowcase>
+          </Panel>
+        </Estado>
+        <Estado name="hidden · a team not yet translated, the drawing of before">
+          <KitShowcase team={SIN_TRADUCIR} bib="black" />
+        </Estado>
+      </Demo>
+      <Demo name="Sheet">
+        <Estado name="closed · it opens with its button">
+          <HojaDeEjemplo />
         </Estado>
       </Demo>
       <Demo name="LeaderJersey">
@@ -749,6 +865,18 @@ function Equipaciones() {
           <div className="flex flex-wrap items-center gap-3">
             {CAMPEONES.map((t) => (
               <ChampionJersey key={`${t.scope}-${t.country}`} title={t} size={KIT_PX.page} />
+            ))}
+          </div>
+        </Estado>
+        <Estado name="the back, at 160: white, or the flag unmirrored and without letters">
+          <div className="flex flex-wrap items-center gap-3">
+            {CAMPEONES.map((t) => (
+              <ChampionJersey
+                key={`${t.scope}-${t.country}`}
+                title={t}
+                view="back"
+                size={KIT_PX.showcase}
+              />
             ))}
           </div>
         </Estado>

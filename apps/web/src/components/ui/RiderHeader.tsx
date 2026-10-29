@@ -1,11 +1,21 @@
 import { type ChampionTitle, KIT_PX } from '@cyclingstar/shared'
+import { useId, useState } from 'react'
 import { Chip } from './Chip'
 import { ErrorState } from './ErrorState'
 import { Flag } from './Flag'
-import { ChosenJersey, type RiderLabelProps, riderJerseyOf } from './RiderLabel'
+import { Kit } from './Kit'
+import { KIT_VIEW_TABS, SHOW_FULL_SCREEN } from './KitShowcase'
+import {
+  ChosenJersey,
+  type RiderJerseyChoice,
+  type RiderLabelProps,
+  riderJerseyOf,
+} from './RiderLabel'
+import { Sheet } from './Sheet'
 import { Skeleton } from './Skeleton'
+import { Tabs, tabId } from './Tabs'
 import type { WornTeam } from './TeamJersey'
-import { withLayout } from './styles'
+import { FOCUS, withLayout } from './styles'
 import { gluedLastWord } from './TextLink'
 import type { Layout, Tone } from './types'
 
@@ -19,7 +29,8 @@ import type { Layout, Tone } from './types'
  * línea de 20 (PR 10); no encontrado, `This rider doesn't exist.`; con un fallo, `ErrorState` con
  * `Try again`. El maillot se pega a la última palabra como en `RiderLabel`.
  *
- * El maillot no se pulsa todavía: abre la `Sheet` con `Front` y `Back` desde el 17c (§8.10), que la trae.
+ * El maillot es un botón de 44 × 44 (PR 17c; §8.10): abre la `Sheet` con `Front`, el mismo a 320, y, si es
+ * el de su equipo, `Back`, el `Kit` de su equipo por detrás con su dorsal si corre ese día (`#214`).
  */
 
 export const RIDER_NOT_FOUND = "This rider doesn't exist."
@@ -37,6 +48,8 @@ interface RiderHeaderReady {
   readonly health?: { readonly text: string; readonly tone: Tone } | null
   /** el papel: `Climber` */
   readonly role: string
+  /** su dorsal, si corre ese día: en la espalda de la `Sheet` */
+  readonly bib?: number | null
   readonly layout?: Layout
 }
 
@@ -50,6 +63,110 @@ export type RiderHeaderProps =
       readonly retrying?: boolean
       readonly layout?: Layout
     }
+
+/** Las pestañas de la hoja del corredor: la espalda, solo con el maillot de su equipo (§8.10). */
+export const FRONT_BACK = [KIT_VIEW_TABS[0], KIT_VIEW_TABS[1]] as const
+export type FrontBack = (typeof FRONT_BACK)[number]['key']
+
+/**
+ * La hoja del maillot que lleva, a 320: `Front` y, si es el `Kit` de su equipo, `Back` con su dorsal. Un
+ * dibujo de antes de la traducción, un líder o un campeón, solo por delante y sin pestañas.
+ */
+export function RiderJerseySheet({
+  choice,
+  bib,
+  title,
+  view,
+  onView,
+  open,
+  onClose,
+}: {
+  readonly choice: RiderJerseyChoice
+  readonly bib: number | null
+  readonly title: string
+  readonly view: FrontBack
+  readonly onView: (view: FrontBack) => void
+  readonly open: boolean
+  readonly onClose: () => void
+}) {
+  const panelId = useId()
+  const team = choice.kind === 'team' && 'kit' in choice.team ? choice.team : null
+  const vista =
+    team !== null && view === 'back' ? (
+      <Kit
+        code={team.kit}
+        teamName={team.name}
+        view="back"
+        size={KIT_PX.poster}
+        {...(bib === null ? {} : { number: bib })}
+      />
+    ) : (
+      <ChosenJersey choice={choice} size={KIT_PX.poster} />
+    )
+  return (
+    <Sheet open={open} title={title} onClose={onClose}>
+      {team === null ? (
+        <div className="flex justify-center">{vista}</div>
+      ) : (
+        <>
+          <Tabs
+            label="Kit views"
+            options={FRONT_BACK}
+            value={view}
+            onChange={onView}
+            panelId={panelId}
+            layout="mx-3"
+          />
+          <div
+            id={panelId}
+            role="tabpanel"
+            aria-labelledby={tabId(panelId, view)}
+            className="flex justify-center pt-3"
+          >
+            {vista}
+          </div>
+        </>
+      )}
+    </Sheet>
+  )
+}
+
+/** El maillot de 40 en un botón de 44 × 44 que abre su hoja; sin maillot que enseñar, el de siempre. */
+function JerseyButton({
+  choice,
+  bib,
+  title,
+}: {
+  readonly choice: RiderJerseyChoice
+  readonly bib: number | null
+  readonly title: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [view, setView] = useState<FrontBack>('front')
+  if (choice.kind === 'none' || choice.kind === 'unknown')
+    return <ChosenJersey choice={choice} size={KIT_PX.card} />
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={SHOW_FULL_SCREEN}
+        onClick={() => setOpen(true)}
+        className={`-my-1 inline-flex size-11 items-center justify-center rounded-ui ${FOCUS}`}
+      >
+        <ChosenJersey choice={choice} size={KIT_PX.card} />
+      </button>
+      <RiderJerseySheet
+        choice={choice}
+        bib={bib}
+        title={title}
+        view={view}
+        onView={setView}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
+    </>
+  )
+}
 
 export function RiderHeader(props: RiderHeaderProps) {
   const raiz = (state: string, variant = 'default') => ({
@@ -83,7 +200,7 @@ export function RiderHeader(props: RiderHeaderProps) {
       </header>
     )
 
-  const { rider, team, champion, player, health, role } = props
+  const { rider, team, champion, player, health, role, bib } = props
   const choice = riderJerseyOf({ team, champion: champion ?? null })
   return (
     <header {...raiz('ready', player ? 'player' : 'rider')}>
@@ -91,7 +208,7 @@ export function RiderHeader(props: RiderHeaderProps) {
         <Flag country={rider.country} height={24} layout="mr-2" />
         <h1 className="inline">{gluedLastWord(rider.name)}</h1>
         <span className="ml-2 inline-flex align-middle">
-          <ChosenJersey choice={choice} size={KIT_PX.card} />
+          <JerseyButton choice={choice} bib={bib ?? null} title={rider.name} />
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">

@@ -1,16 +1,18 @@
-import { COUNTRIES } from '@cyclingstar/shared'
+import { COUNTRIES, parseKit } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
-import { Flag } from '../components/Flag'
 import { DiagnosticStrip } from '../components/StageGate'
-import { TeamJersey, wornTeam } from '../components/ui/TeamJersey'
-import { Panel, SectionBar } from '../components/Panel'
+import { wornTeam } from '../components/ui/TeamJersey'
+import { Panel } from '../components/Panel'
 import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager } from '../components/TeamManager'
+import { bibWords, kitWords } from '../domain/labels'
 import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { KitShowcase } from '../components/ui/KitShowcase'
+import { PageHeader } from '../components/ui/PageHeader'
 import { Panel as UiPanel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 
@@ -59,38 +61,29 @@ export function Team() {
   const isMyTeam = control?.team?.id === data.id
   const canTakeOver = isMyTeam && !data.human && control?.premium === true
 
+  // La línea de estado (E3, §8.10): la división, el país y quién lo lleva; la bandera de al lado se va
+  // (D-00c). El maillot a 160 con sus vistas, y a su derecha las cifras y el maillot en palabras.
+  const status = [
+    DIVISION_LABEL[data.division] ?? data.division,
+    ...(data.country === null
+      ? []
+      : [COUNTRIES.find((c) => c.code === data.country)?.name ?? data.country]),
+    data.human ? 'Player-managed' : 'NPC',
+  ].join(' · ')
+  const kit = data.kit === null ? null : parseKit(data.kit)
+
   return (
     <section className="space-y-4">
-      <Link to="/world/teams" className="text-xs text-slate-400 hover:text-slate-600">
-        ← Teams
-      </Link>
-      <SectionBar
-        action={
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              data.human ? 'bg-white/25 text-white' : 'bg-black/15 text-white'
-            }`}
-          >
-            {data.human ? 'Player-managed' : 'NPC'}
-          </span>
-        }
-      >
-        {data.name}
-      </SectionBar>
+      <PageHeader title={data.name} back={{ to: '/world/teams', label: 'Teams' }} status={status} />
       <VeilNotice kind="results" />
-      <Panel bodyClassName="p-4">
-        <div className="flex items-center gap-3">
-          <TeamJersey team={wornTeam(data.name, data.kit, data.jerseySeed)} size={40} />
-          {data.country && <Flag code={data.country} size={30} />}
-          <p className="text-sm text-slate-500">
-            {DIVISION_LABEL[data.division] ?? data.division}
-            {data.country
-              ? ` · ${COUNTRIES.find((c) => c.code === data.country)?.name ?? data.country}`
-              : ''}{' '}
-            · {data.pointsSeason} season points · budget {data.budget.toLocaleString('en-US')}
-          </p>
-        </div>
-      </Panel>
+      <UiPanel ariaLabel={`${data.name} kit`}>
+        <KitShowcase team={wornTeam(data.name, data.kit, data.jerseySeed)} bib={data.bib}>
+          <p>{data.pointsSeason.toLocaleString('en-US')} season points</p>
+          <p>Budget {data.budget.toLocaleString('en-US')}</p>
+          {kit !== null && <p>{kitWords(kit)}</p>}
+          {kit !== null && <p>{bibWords(kit, data.bib)}</p>}
+        </KitShowcase>
+      </UiPanel>
 
       {canTakeOver && (
         <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
