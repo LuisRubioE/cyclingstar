@@ -5,6 +5,7 @@ import {
   BIB,
   BIB_CUFFS,
   BIB_PANELS,
+  BIB_PANELS_SEEN,
   BIB_STRAPS,
   BIB_STYLES,
   type BibStyle,
@@ -419,6 +420,17 @@ describe('shared: el maillot en grande (E3, §8.10; PR 17c)', () => {
       panels: null,
       cuffs: KIT_COLORS.red,
     })
+  })
+
+  it('BIB_PANELS_SEEN es la regla de contraste ya contada: lo que pasa en las cinco vistas, y nada más (18b)', () => {
+    for (const body of KIT_BASES)
+      expect(BIB_PANELS_SEEN[body], body).toEqual(
+        KIT_SECONDARIES.filter(
+          (p) =>
+            p !== body &&
+            VIEWS.every((v) => distance(KIT_COLORS[body], KIT_COLORS[p], v) >= KIT_CONTRAST_MIN),
+        ),
+      )
   })
 
   it('no se ofrece lo que no pasa la regla de contraste: ni base.panel en un liso, ni base con base negra', () => {

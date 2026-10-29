@@ -103,6 +103,23 @@ async function cambiaElBloque(page: Page): Promise<void> {
   await bloque.selectOption(otro)
 }
 
+/**
+ * La 16 (PR 18b): otro color de base que se pueda elegir, sin guardar (§8.7). La web de antes del 18b no
+ * tiene el editor; en ella se cambia el nombre del equipo, el primer campo de la página, para que el CI
+ * también pueda medir con esta edición la web de la base.
+ */
+async function cambiaLaBase(page: Page): Promise<void> {
+  const libres = page.locator(
+    '[data-ui="KitPicker"] button[data-pick="base"][data-state="inactive"]:not([aria-disabled="true"])',
+  )
+  if ((await libres.count()) > 0) {
+    await libres.first().click()
+    return
+  }
+  const nombre = page.locator('input').first()
+  await nombre.fill(`${await nombre.inputValue()} X`)
+}
+
 export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
   { id: '_ui', path: '/_ui', account: 'visitante', answer: null, tool: false },
   {
@@ -195,13 +212,14 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
     answer: 'Panel',
     tool: true,
   },
-  // La 16 gana su edición (cambiar el color de base) con el editor, en el 18b.
+  // La 16, con su edición desde el 18b: otro color de base (§8.7).
   {
     id: '16-team-identity',
     path: '/team/identity',
     account: 'manager',
     answer: 'KitPicker',
     tool: true,
+    edit: cambiaLaBase,
   },
   { id: '17-home-jugador', path: '/', account: 'jugador', answer: 'Panel', tool: false },
   { id: '18-home-visitante', path: '/', account: 'visitante', answer: 'Panel', tool: false },

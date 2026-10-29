@@ -7,10 +7,10 @@ import { wornTeam } from '../components/ui/TeamJersey'
 import { Panel } from '../components/Panel'
 import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
-import { TeamManager } from '../components/TeamManager'
 import { bibWords, kitWords } from '../domain/labels'
 import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { Button } from '../components/ui/Button'
 import { KitShowcase } from '../components/ui/KitShowcase'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel as UiPanel } from '../components/ui/Panel'
@@ -111,7 +111,11 @@ export function Team() {
           )}
         </div>
       )}
-      {isMyTeam && data.human && control?.team?.ownedByMe && <TeamManager team={data} />}
+      {/* El nombre, el país y el maillot se cambian en `My Team → Identity`, con un solo guardado (E3,
+          docs/visual.md §8.7; 18b, 8-h). */}
+      {isMyTeam && data.human && control?.team?.ownedByMe && (
+        <Button to="/team/identity">Edit name, country and kit</Button>
+      )}
 
       {/* La plantilla, la de `My Team → Squad` (§6.1; PR 12b): la respuesta de la pantalla 12. */}
       <UiPanel title={`Roster (${data.roster.length})`} variant="bleed">

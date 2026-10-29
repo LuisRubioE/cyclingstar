@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2013,
+    "tema": 1976,
     "arbitrarios": 32,
-    "espaciado": 29,
+    "espaciado": 28,
     "layout": 0
   },
   "ficheros": {
@@ -155,12 +155,6 @@
       "tema": 5,
       "arbitrarios": 0,
       "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/TeamManager.tsx": {
-      "tema": 31,
-      "arbitrarios": 0,
-      "espaciado": 1,
       "layout": 0
     },
     "apps/web/src/components/TextField.tsx": {
@@ -428,7 +422,7 @@
       "layout": 0
     },
     "apps/web/src/pages/TeamIdentity.tsx": {
-      "tema": 11,
+      "tema": 5,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0

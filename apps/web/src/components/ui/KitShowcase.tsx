@@ -35,6 +35,12 @@ export interface KitShowcaseProps {
   readonly sponsors?: KitSponsors
   /** `compact`: solo por delante, con las pestañas en la `Sheet` (8-x) */
   readonly variant?: 'default' | 'compact'
+  /**
+   * La vista, si la lleva quien lo pinta: el editor la pasa a `Shorts` al elegir un culote (§8.7; PR 18b).
+   * Sin ella, la lleva el propio `KitShowcase`, por delante al empezar.
+   */
+  readonly view?: KitView
+  readonly onViewChange?: (view: KitView) => void
   /** lo que va a la derecha del maillot, en `meta` `ink-2` */
   readonly children?: ReactNode
   readonly layout?: Layout
@@ -131,10 +137,17 @@ export function KitShowcase({
   bib,
   sponsors,
   variant = 'default',
+  view: given,
+  onViewChange,
   children,
   layout,
 }: KitShowcaseProps) {
-  const [view, setView] = useState<KitView>('front')
+  const [own, setOwn] = useState<KitView>('front')
+  const view = given ?? own
+  const setView = (next: KitView) => {
+    setOwn(next)
+    onViewChange?.(next)
+  }
   const [full, setFull] = useState(false)
   const panelId = useId()
   const compact = variant === 'compact'

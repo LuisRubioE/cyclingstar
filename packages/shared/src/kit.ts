@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { type View, VISIONS, distance } from './colorMath.js'
+import { distance } from './colorMath.js'
 import type { JerseyKind } from './jerseys.js'
 
 /**
@@ -153,8 +153,27 @@ export const KIT_CONTRAST_MIN = 20
  * equipo no cuenta, y lo que pone la traducción, un patrocinio o un moderador, tampoco (`kitChangeAllowed`).
  */
 export const KIT_CHANGES_PER_SEASON = 1
-/** Las cinco vistas de la regla de contraste: las cuatro visiones y los grises (I-25). */
-const CONTRAST_VIEWS: readonly View[] = [...VISIONS, 'gray']
+/**
+ * Los paneles del culote que se ven sobre cada cuerpo (§8.10): los colores a `KIT_CONTRAST_MIN` o más del
+ * cuerpo en las cinco vistas de la regla de contraste, las cuatro visiones y los grises (I-25). Es la cuenta
+ * ya hecha, y no la cuenta, para que la distancia CIEDE2000 no viaje con el arranque de la web ahora que el
+ * editor ofrece los culotes (H-03; PR 18b); `kit.test.ts` la rehace con `distance` y la compara entera.
+ */
+export const BIB_PANELS_SEEN: Readonly<Record<KitBase, readonly KitColorName[]>> = {
+  black: ['blue', 'sky', 'teal', 'orange', 'red', 'pink', 'taupe', 'yellow', 'white'],
+  navy: ['blue', 'sky', 'teal', 'orange', 'pink', 'taupe', 'yellow', 'white'],
+  blue: ['black', 'navy', 'sky', 'brown', 'yellow', 'white'],
+  sky: ['black', 'navy', 'blue', 'green', 'red', 'purple', 'taupe', 'brown', 'plum'],
+  teal: ['black', 'navy', 'green', 'purple', 'brown', 'plum', 'yellow', 'white'],
+  green: ['sky', 'teal', 'orange', 'pink', 'yellow', 'white'],
+  orange: ['black', 'navy', 'green', 'red', 'purple', 'brown', 'plum', 'white'],
+  red: ['black', 'sky', 'orange', 'yellow', 'white'],
+  pink: ['black', 'navy', 'green', 'brown', 'yellow', 'white'],
+  purple: ['sky', 'teal', 'orange', 'yellow', 'white'],
+  taupe: ['black', 'navy', 'sky', 'brown', 'yellow', 'white'],
+  brown: ['blue', 'sky', 'teal', 'orange', 'pink', 'taupe', 'yellow', 'white'],
+  plum: ['sky', 'teal', 'orange', 'yellow', 'white'],
+}
 
 // --------------------------------------------------------------------------------- el dibujo
 
@@ -254,17 +273,16 @@ export function bibPaint(kit: Kit, style: BibStyle): BibPaint {
 
 /**
  * Los estilos que se ofrecen para un maillot (§8.10): sin `base` si la base es `black`, que sería el
- * negro, y sin los paneles que no pasan la regla de contraste (`KIT_CONTRAST_MIN` en las cinco vistas),
+ * negro, y sin los paneles que no pasan la regla de contraste (`BIB_PANELS_SEEN`),
  * como `base.panel` en un `plain`, con los paneles del color del cuerpo.
  */
 export function bibStylesFor(kit: Kit): BibStyle[] {
   return BIB_STYLES.filter((style) => {
     if (kit.base === 'black' && style.startsWith('base')) return false
     if (!style.endsWith('.panel')) return true
-    const { body, panels } = bibPaint(kit, style)
-    return (
-      panels !== null && CONTRAST_VIEWS.every((v) => distance(body, panels, v) >= KIT_CONTRAST_MIN)
-    )
+    const body: KitBase = style === 'black.panel' ? 'black' : kit.base
+    const { panels } = bibColors(kit, style)
+    return panels !== null && BIB_PANELS_SEEN[body].includes(panels)
   })
 }
 

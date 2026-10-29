@@ -1,4 +1,4 @@
-import { KIT_COLORS, KIT_FIGURES, parseKit } from '@cyclingstar/shared'
+import { BIB_STYLES, KIT_COLORS, KIT_FIGURES, parseKit } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import {
   EFFORT_DESC,
@@ -11,6 +11,7 @@ import {
   STAGE_ROLE_DESC,
   STAGE_ROLE_LABEL,
   STAGE_ROLE_OPTIONS,
+  BIB_STYLE_LABEL,
   KIT_COLOR_LABEL,
   KIT_FIGURE_LABEL,
   bibWords,
@@ -148,5 +149,10 @@ describe('web: el maillot en palabras (E3, docs/visual.md §8.1 y §8.10; 17c)',
     // un liso con cuerpo negro lleva los paneles en su base; con el cuerpo de su color, no se ven
     expect(bibWords(parseKit('plain.red')!, 'black.panel')).toBe('Black shorts with red panels')
     expect(bibWords(parseKit('plain.red')!, 'base.panel')).toBe('Red shorts')
+  })
+
+  it('los cuatro culotes, en los botones del editor (§8.7; 18b)', () => {
+    expect(Object.keys(BIB_STYLE_LABEL)).toEqual([...BIB_STYLES])
+    expect(BIB_STYLE_LABEL['base.panel']).toBe('Main colour + panels')
   })
 })

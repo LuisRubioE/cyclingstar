@@ -1,4 +1,13 @@
-import { type ChampionTitle, KIT_COLORS, KIT_PX, type KitCode } from '@cyclingstar/shared'
+import {
+  type BibStyle,
+  type ChampionTitle,
+  KIT_COLORS,
+  KIT_PX,
+  type KitBlockedWhy,
+  type KitCode,
+  type KitVerdict,
+  parseKit,
+} from '@cyclingstar/shared'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
@@ -17,6 +26,7 @@ import { Icon } from '../../components/ui/Icon'
 import { ICONS } from '../../components/ui/icons'
 import { InfoButton } from '../../components/ui/InfoButton'
 import { Kit } from '../../components/ui/Kit'
+import { KitPicker, KitVerdictLine } from '../../components/ui/KitPicker'
 import { KitShowcase } from '../../components/ui/KitShowcase'
 import type { KitSponsors } from '../../components/ui/kitText'
 import { LeaderJersey } from '../../components/ui/LeaderJersey'
@@ -53,6 +63,17 @@ import {
   WORLD,
 } from '../../domain/nav'
 import { worldClock } from '../../domain/words'
+import {
+  type CheckState,
+  type KitDraft,
+  type PickerState,
+  bibFor,
+  draftCode,
+  draftKit,
+  draftOf,
+  lockedText,
+  scheduledText,
+} from '../../domain/kitPicker'
 import { NO_TEAM_LABEL } from '../../domain/labels'
 import {
   GC_ROWS,
@@ -893,6 +914,155 @@ function Equipaciones() {
   )
 }
 
+/** El borrador del editor de `/_ui`: el maillot de Noord. */
+const NOORD_DRAFT: KitDraft = draftOf(parseKit(NOORD.kit) ?? { figure: 'plain', base: 'navy' })
+
+/** Lo que no se puede elegir en el editor de `/_ui` (inventado): una de cada porqué. */
+const TACHADAS = new Map<KitCode, KitBlockedWhy>([
+  ['hoops.navy.black', 'contraste'],
+  ['hoops.navy.red', 'ocupado'],
+  ['hoops.blue.yellow', 'rival'],
+  ['hoops.green.yellow', 'reservado'],
+])
+
+/** Un veredicto de mentira para `/_ui`. */
+const veredicto = (over: Partial<KitVerdict>): CheckState => ({
+  status: 'done',
+  verdict: {
+    ok: false,
+    code: null,
+    conflict: null,
+    reserved: null,
+    takenBy: null,
+    nextChangeDay: null,
+    ...over,
+  },
+})
+
+/** Cada línea del veredicto de la tabla de §8.7, con su `data-state`. */
+const VEREDICTOS: readonly {
+  readonly name: string
+  readonly state: PickerState
+  readonly check: CheckState
+}[] = [
+  { name: 'busy · checking', state: 'busy', check: { status: 'busy' } },
+  { name: 'dirty · free', state: 'dirty', check: veredicto({ ok: true }) },
+  {
+    name: 'dirty · already worn',
+    state: 'dirty',
+    check: veredicto({
+      code: 'kit_ocupado',
+      takenBy: { teamId: 'mistral', teamName: 'Mistral Racing' },
+    }),
+  },
+  {
+    name: 'dirty · too close to a rival, for colour-blind viewers',
+    state: 'dirty',
+    check: veredicto({
+      code: 'kit_se_confunde',
+      conflict: { teamId: 'mistral', teamName: 'Mistral Racing', vision: 'deutan' },
+    }),
+  },
+  {
+    name: 'dirty · reserved',
+    state: 'dirty',
+    check: veredicto({ code: 'kit_reservado', reserved: 'leader:gc' }),
+  },
+  {
+    name: 'dirty · a national champion (D-00h)',
+    state: 'dirty',
+    check: veredicto({ code: 'kit_reservado', reserved: 'champion:MA' }),
+  },
+  {
+    name: 'disabled · no contrast',
+    state: 'disabled',
+    check: veredicto({ code: 'kit_contraste' }),
+  },
+  { name: 'error · the verdict failed', state: 'error', check: { status: 'error' } },
+]
+
+/** El editor que se toca en `/_ui`: el veredicto, inventado (libre si cambia algo). */
+function EditorDeEjemplo() {
+  const [draft, setDraft] = useState<KitDraft>(NOORD_DRAFT)
+  const [bib, setBib] = useState<BibStyle>('black')
+  const cambiado = draftCode(draft) !== draftCode(NOORD_DRAFT)
+  return (
+    <Panel title="Your kit">
+      <KitPicker
+        mode="edit"
+        teamName={NOORD.name}
+        draft={draft}
+        onDraft={setDraft}
+        bib={bibFor(draftKit(draft), bib)}
+        onBib={setBib}
+        blocked={TACHADAS}
+        scheduled={null}
+        state={cambiado ? 'dirty' : 'ready'}
+        check={cambiado ? veredicto({ ok: true }) : { status: 'idle' }}
+        onRetry={nada}
+        lockedReason={null}
+      />
+    </Panel>
+  )
+}
+
+function EditorDelMaillot() {
+  const comun = {
+    mode: 'edit',
+    teamName: NOORD.name,
+    draft: NOORD_DRAFT,
+    onDraft: nada,
+    bib: 'black',
+    onBib: nada,
+    blocked: TACHADAS,
+    onRetry: nada,
+  } as const
+  return (
+    <Demo name="KitPicker">
+      <Estado name="ready · try it: the struck swatches say why when tapped">
+        <EditorDeEjemplo />
+      </Estado>
+      <Estado name="the verdict line, in each state of the table">
+        <div className="flex flex-col gap-3">
+          {VEREDICTOS.map((v) => (
+            <div key={v.name} className="flex flex-col gap-1">
+              <p className="text-caption text-ink-3">{v.name}</p>
+              <KitVerdictLine state={v.state} check={v.check} lockedReason={null} onRetry={nada} />
+            </div>
+          ))}
+        </div>
+      </Estado>
+      <Estado name="ready · scheduled">
+        <Panel title="Your kit">
+          <KitPicker
+            {...comun}
+            scheduled={scheduledText(51, 50)}
+            state="ready"
+            check={{ status: 'idle' }}
+            lockedReason={null}
+          />
+        </Panel>
+      </Estado>
+      <Estado name="disabled · changed this season (D-00k)">
+        <Panel title="Your kit">
+          <KitPicker
+            {...comun}
+            scheduled={null}
+            state="disabled"
+            check={{ status: 'idle' }}
+            lockedReason={lockedText(364)}
+          />
+        </Panel>
+      </Estado>
+      <Estado name="readonly · a rider of the team">
+        <Panel title="Team kit">
+          <KitPicker mode="readonly" team={NOORD} bib="base.panel" />
+        </Panel>
+      </Estado>
+    </Demo>
+  )
+}
+
 function Clasificaciones() {
   return (
     <Demo name="RankTable">
@@ -1305,6 +1475,7 @@ export function UiPage() {
       <Cabeceras />
       <Maillots />
       <Equipaciones />
+      <EditorDelMaillot />
       <Clasificaciones />
       <Filas />
       <Escalas />

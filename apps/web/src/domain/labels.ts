@@ -251,6 +251,14 @@ export function kitWords(kit: Kit): string {
   return partes.join(' · ')
 }
 
+/** Los cuatro culotes, por su nombre, en los botones del editor (§8.7; 18b). */
+export const BIB_STYLE_LABEL: Record<BibStyle, string> = {
+  black: 'Black',
+  'black.panel': 'Black + panels',
+  base: 'Main colour',
+  'base.panel': 'Main colour + panels',
+}
+
 /** El culote en palabras (§8.10): `Black shorts`; `Navy shorts with yellow panels`. */
 export function bibWords(kit: Kit, style: BibStyle): string {
   const { body, panels } = bibColors(kit, style)

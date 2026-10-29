@@ -171,7 +171,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/components/StarRating.tsx',
   'apps/web/src/components/Tabs.tsx',
   'apps/web/src/components/TeamFeed.tsx',
-  'apps/web/src/components/TeamManager.tsx',
   'apps/web/src/components/TextField.tsx',
   'apps/web/src/components/VeilNotice.tsx',
   'apps/web/src/components/WatchBlocks.tsx',

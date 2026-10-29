@@ -56,6 +56,19 @@ describe('KitShowcase', () => {
   })
 })
 
+describe('KitShowcase con la vista de quien lo pinta (PR 18b)', () => {
+  it('la vista que le dan, con su pestaña activa: el editor la pasa a Shorts al elegir un culote', () => {
+    const s = renderToStaticMarkup(
+      <KitShowcase team={NOORD} bib="base.panel" view="bib" onViewChange={() => undefined} />,
+    )
+    expect(s).toMatch(/role="tab" aria-selected="true"[^>]*>Shorts</)
+    expect(s).toMatch(/role="tab" aria-selected="false"[^>]*>Front</)
+    expect(s).toMatch(/data-view="bib" width="160" height="160"/)
+    const panel = /<div id="([^"]+)" role="tabpanel" aria-labelledby="([^"]+)">/.exec(s)
+    expect(panel?.[2]).toBe(`${panel?.[1]}-tab-bib`)
+  })
+})
+
 describe('KitShowcase compact: las pestañas, en la hoja (8-x)', () => {
   const c = renderToStaticMarkup(
     <KitShowcase team={NOORD} bib="black" variant="compact">
