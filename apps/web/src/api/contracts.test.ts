@@ -31,8 +31,18 @@ import {
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 
-/** Los 10 atributos siempre viajan completos (la API los rellena a 0 si faltan en la BD). */
-const attributes = Object.fromEntries(ATTRIBUTES.map((a) => [a, 50])) as Record<Attribute, number>
+/**
+ * Los 10 atributos siempre viajan completos (la API los rellena a 0 si faltan en la BD), y en su forma de
+ * pantalla (E3, §13.5; 19b): los del propio con sus estrellas y su marca, los de cualquiera con sus estrellas.
+ */
+const propios = Object.fromEntries(ATTRIBUTES.map((a) => [a, { stars: 2.5, mark: 1 }])) as Record<
+  Attribute,
+  { stars: number; mark: number }
+>
+const estrellas = Object.fromEntries(ATTRIBUTES.map((a) => [a, { stars: 2.5 }])) as Record<
+  Attribute,
+  { stars: number }
+>
 
 describe('contratos: el ciclista del jugador', () => {
   it('acepta la respuesta de /api/riders/me con y sin ciclista', () => {
@@ -44,7 +54,7 @@ describe('contratos: el ciclista del jugador', () => {
       gender: 'F',
       archetype: 'escalada',
       birthSeason: 0,
-      attributes,
+      attributes: propios,
     }
     expect(myRiderResponseSchema.parse({ rider })).toEqual({ rider })
   })
@@ -57,13 +67,13 @@ describe('contratos: el ciclista del jugador', () => {
       gender: 'F',
       archetype: 'trialera',
       birthSeason: 0,
-      attributes,
+      attributes: propios,
     }
     expect(myRiderResponseSchema.safeParse({ rider }).success).toBe(false)
   })
 
   it('rechaza un ciclista al que le falta un atributo', () => {
-    const incompletos: Partial<Record<Attribute, number>> = { ...attributes }
+    const incompletos: Partial<Record<Attribute, { stars: number; mark: number }>> = { ...propios }
     delete incompletos.RES
     const rider = {
       id: 'r1',
@@ -196,8 +206,8 @@ describe('contratos: la opinión del entrenador', () => {
 describe('contratos: forma y salud', () => {
   it('acepta la respuesta con salud y la respuesta sin ciclista (sin campo health)', () => {
     const conSalud = {
-      log: [{ gameDay: 1, ctl: 10, atl: 5, tsb: 5, tss: 40, activity: 'fondo' }],
-      form: { stars: 3, freshness: 0.6 },
+      log: [{ gameDay: 1, fitness: 11, freshness: 61, load: 2, activity: 'fondo' }],
+      form: { stars: 3, freshness: 61, matches: 3 },
       health: { state: 'molestias', untilDay: 20 },
     }
     // …y el PARTE del día llega a `null` cuando no viene (v47): un día de entrenamiento no tiene
@@ -574,7 +584,7 @@ describe('contratos: mundo, equipo y dinero', () => {
       seasonRank: 12,
       fieldSize: 900,
       fame: 30,
-      attributes,
+      attributes: estrellas,
       health: { state: 'lesionado', untilDay: 143 },
       champion: null,
     }
@@ -617,7 +627,7 @@ describe('contratos: mundo, equipo y dinero', () => {
       seasonRank: 12,
       fieldSize: 900,
       fame: 30,
-      attributes,
+      attributes: estrellas,
       health: { state: 'sano', untilDay: null },
     }
     // sin el campo (una API de antes del 17a), null

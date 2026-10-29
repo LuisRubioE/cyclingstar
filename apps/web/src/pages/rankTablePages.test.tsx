@@ -338,7 +338,7 @@ describe('la plantilla (§6.1)', () => {
       teamId: 't1',
       teamName: 'Mistral Racing',
       money: 0,
-      morale: 60,
+      moraleStars: 3,
       fame: 0,
       seasonPoints: 0,
       seasonRank: 0,

@@ -1,4 +1,6 @@
+import type { LoadLevel } from '@cyclingstar/shared'
 import type { FormPoint } from '../api/form'
+import { LOAD_WORD } from '../domain/words'
 import { StageRoute } from './StageRoute'
 
 /**
@@ -11,7 +13,8 @@ import { StageRoute } from './StageRoute'
  * exactamente lo que te deja sin piernas mañana.
  *
  * Esto no narra: CONTABILIZA. Los cinco conceptos son los mismos cinco sitios en los que el motor
- * descuenta depósito, así que la barra y el total no pueden discrepar.
+ * descuenta depósito, así que la barra y el total no pueden discrepar. La carga del día va en palabras,
+ * como en el cuadro (`Load: hard`; E3, docs/visual.md §10.7, PR 19b): el TSS ya no cruza la API.
  */
 
 const CONCEPTOS = [
@@ -72,7 +75,7 @@ export function RaceEffortLog({ points, max = 8 }: { points: FormPoint[]; max?: 
                 <StageRoute from={p.from} to={p.to} className="ml-1.5 font-normal text-slate-500" />
               </span>
               <span className="text-xs text-slate-400 tabular-nums">
-                day {p.gameDay} · TSS {Math.round(p.tss)}
+                day {p.gameDay} · Load: {LOAD_WORD[p.load as LoadLevel].toLowerCase()}
               </span>
             </div>
             <div className="mt-1.5 flex h-2 w-full overflow-hidden rounded-full bg-slate-100">

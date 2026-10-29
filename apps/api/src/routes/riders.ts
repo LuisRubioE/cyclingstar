@@ -27,6 +27,7 @@ import {
   getCoachView,
   getRiderHealth,
   getRiderLastRaceReport,
+  getRiderMorale,
   getRiderRaceDays,
   getRiderTravelDays,
   getRiderRaceResults,
@@ -48,7 +49,7 @@ import {
   type ProjectedTrainingDay,
   projectTraining,
 } from '@cyclingstar/db'
-import { formStars, freshnessBar, generateRiderGenome, stageCities } from '@cyclingstar/engine'
+import { generateRiderGenome, stageCities } from '@cyclingstar/engine'
 import {
   type OrdersDay,
   PLAYER_START_AGE,
@@ -91,6 +92,14 @@ import { z } from 'zod'
 import { riderChampion } from '../champions.js'
 import type { ChronicleEntry } from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
+import {
+  attributeStars,
+  conditionDay,
+  conditionToday,
+  moraleStars,
+  ownAttributes,
+  trendCode,
+} from '../screenShape.js'
 import { preStageInfoOf, riderMomentsOf, stageContextOf } from '../stageReplay.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseUuid } from './params.js'
@@ -195,7 +204,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
-      return { rider: await getRiderForUser(db, userId) }
+      const rider = await getRiderForUser(db, userId)
+      // en su forma de pantalla (E3, §13.5; 19b): las estrellas y la marca, no el valor del que salen
+      return { rider: rider && { ...rider, attributes: ownAttributes(rider.attributes) } }
     },
   )
 
@@ -626,15 +637,20 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       const rider = await getRiderForUser(db, userId)
       if (!rider) return { log: [], form: null }
       const h = await request.horizon()
-      const log = (await getDailyLog(db, h, rider.id, 90)).map((p) => ({
-        ...p,
-        ...ciudadesDelDia(p.activity, p.gameDay),
-      }))
-      const latest = log[log.length - 1]
-      const form = latest
-        ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
-        : null
+      const rows = await getDailyLog(db, h, rider.id, 90)
       const health = await getRiderHealth(db, h, rider.id)
+      // En su forma de pantalla (E3, §13.5; 19b): cada día en sus dos barras y su carga en palabras, y la
+      // condición de hoy con los cerillos que cuenta el motor; el ctl, la atl, el tsb y el TSS no cruzan.
+      const log = rows.map((p) => conditionDay({ ...p, ...ciudadesDelDia(p.activity, p.gameDay) }))
+      const latest = rows[rows.length - 1]
+      const form = latest
+        ? conditionToday(
+            latest,
+            health?.state ?? null,
+            await getRiderMorale(db, rider.id),
+            rider.attributes,
+          )
+        : null
       return { log, form, health }
     },
   )
@@ -663,7 +679,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       const rider = await getRiderForUser(db, userId)
       const world = await getCurrentWorld(db)
       if (!rider || !world) return { trend: [] }
-      return { trend: await getAttrTrend(db, await request.horizon(), rider.id, world.currentDay) }
+      const trend = await getAttrTrend(db, await request.horizon(), rider.id, world.currentDay)
+      // la flecha en su código (E3, §13.2; 13-a, 19b): el Δ28 no cruza
+      return { trend: trend.map((t) => ({ attr: t.attr, arrow: trendCode(t.delta28) })) }
     },
   )
 
@@ -786,7 +804,11 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       if (!userId) return unauthorized(reply)
       const rider = await getRiderForUser(db, userId)
       if (!rider) return { summary: null }
-      return { summary: await getRiderSummary(db, await request.horizon(), rider.id) }
+      const summary = await getRiderSummary(db, await request.horizon(), rider.id)
+      if (!summary) return { summary: null }
+      // la moral en medias estrellas (E3, §13.7; DD-12, 19b): la exacta no cruza
+      const { morale, ...rest } = summary
+      return { summary: { ...rest, moraleStars: moraleStars(morale) } }
     },
   )
 
@@ -1040,7 +1062,8 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       // El maillot de `RiderHeader` (E3, docs/visual.md §8.5; 4-l, 17a): su título vigente de mayor
       // alcance, sin los de un campeonato que quien mira no ha visto.
       const champion = world === null ? null : await riderChampion(db, h, world, riderId)
-      return { rider: { ...rider, champion } }
+      // de un corredor cualquiera, sus estrellas y nada más (E3, §13.5; 19b)
+      return { rider: { ...rider, attributes: attributeStars(rider.attributes), champion } }
     },
   )
 }

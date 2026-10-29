@@ -6,35 +6,33 @@
     "log": [
       {
         "gameDay": 1,
-        "ctl": 44.52381,
-        "atl": 42.83323,
-        "tsb": 0,
-        "tss": 25,
+        "fitness": 47,
+        "freshness": 55,
+        "load": 1,
         "activity": "descanso_activo",
         "parte": null
       },
       {
         "gameDay": 2,
-        "ctl": 45.606575,
-        "atl": 47.946552,
-        "tsb": 1.69058,
-        "tss": 90,
+        "fitness": 48,
+        "freshness": 57,
+        "load": 3,
         "activity": "fondo",
         "parte": null
       },
       {
         "gameDay": 3,
-        "ctl": 47.2588,
-        "atl": 55.215775,
-        "tsb": -2.339977,
-        "tss": 115,
+        "fitness": 50,
+        "freshness": 52,
+        "load": 4,
         "activity": "puertos",
         "parte": null
       }
     ],
     "form": {
       "stars": 1.5,
-      "freshness": 19.665805408026806
+      "freshness": 20,
+      "matches": 1
     },
     "health": {
       "state": "sano",

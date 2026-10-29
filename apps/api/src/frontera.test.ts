@@ -2,6 +2,13 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  arrowSchema,
+  barSchema,
+  loadLevelSchema,
+  markSchema,
+  starsSchema,
+} from '@cyclingstar/shared'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
@@ -16,11 +23,11 @@ import {
 import { ADMIN_VEIL, type RouteEntry } from './spoiler.js'
 
 /**
- * NINGÚN CAMPO SIN LECTOR, NINGÚN NÚMERO INTERNO (E3, docs/visual.md §13.2, punto 3; D-54; PR 19a).
+ * NINGÚN CAMPO SIN LECTOR, NINGÚN NÚMERO INTERNO (E3, docs/visual.md §13.2, punto 3; D-54; PR 19a y 19b).
  *
  * Recorre los esquemas de respuesta del registro hoja por hoja (con `[]` por cada array y `.*` por cada
  * registro) y falla si una hoja se llama como un número interno (`INTERNAL_NUMBER_NAMES`), si es un
- * `attributes` de números o si nadie la lee en `apps/web/src`. La lectura se busca con el AST de
+ * número dentro de un `attributes` sin su forma de pantalla (`FORMAS`) o si nadie la lee en `apps/web/src`. La lectura se busca con el AST de
  * TypeScript, como `noEngine.test.ts`: el nombre de la hoja tiene que salir en algún fuente de la web como
  * acceso a propiedad (`r.points`), como desestructuración (`{ points }`) o como clave literal
  * (`r['points']`). Es una comprobación por nombre, gruesa a propósito (no distingue dos `name`), y por eso
@@ -79,12 +86,25 @@ function webReads(): ReadonlySet<string> {
   return out
 }
 
-/** Una hoja de un esquema: su camino, el nombre de su campo y si es un número. */
+/** Una hoja de un esquema: su camino, el nombre de su campo, si es un número y su esquema, ya abierto. */
 interface Leaf {
   readonly path: string
   readonly name: string
   readonly number: boolean
+  readonly schema: z.ZodType
 }
+
+/**
+ * Las formas de pantalla de un número (§13.2, punto 2): las estrellas, la barra, la marca y la carga en
+ * palabras. Un número declarado con una de ellas ya cruza en su forma, aunque vaya dentro de un `attributes`
+ * (los de la ficha, desde el 19b); se reconocen por identidad, así que hay que usarlas tal cual.
+ */
+const FORMAS: ReadonlySet<z.ZodType> = new Set([
+  starsSchema,
+  barSchema,
+  markSchema,
+  loadLevelSchema,
+])
 
 interface Def {
   readonly type: string
@@ -134,7 +154,7 @@ function leavesOf(schema: z.ZodType, path = '', name = '', depth = 0): Leaf[] {
     case 'intersection':
       return uniq([...next(d.left!, path, name), ...next(d.right!, path, name)])
     default:
-      return [{ path, name, number: d.type === 'number' || d.type === 'bigint' }]
+      return [{ path, name, number: d.type === 'number' || d.type === 'bigint', schema }]
   }
 }
 const uniq = (leaves: readonly Leaf[]): Leaf[] => [
@@ -144,7 +164,8 @@ const uniq = (leaves: readonly Leaf[]): Leaf[] => [
 /** Lo que rompe una hoja, el peor; null si nada. */
 function breaksOf(leaf: Leaf, reads: ReadonlySet<string>): FronteraBreak | null {
   if ((INTERNAL_NUMBER_NAMES as readonly string[]).includes(leaf.name)) return 'numero_interno'
-  if (leaf.number && leaf.path.split(/\.|\[\]/).includes('attributes')) return 'resolucion'
+  if (leaf.number && !FORMAS.has(leaf.schema) && leaf.path.split(/\.|\[\]/).includes('attributes'))
+    return 'resolucion'
   if (leaf.name !== '' && !reads.has(leaf.name)) return 'sin_lector'
   return null
 }
@@ -180,7 +201,8 @@ const cubierta = (f: Falta) =>
       x.fields.some((p) => fieldMatches(f.field, p)),
   )
 
-// La sonda: un día con su `tsb`, unos atributos con decimales y un campo que la web no lee.
+// La sonda: un día con su `tsb`, unos atributos con decimales y un campo que la web no lee; y unos atributos
+// en su forma, que no rompen nada aunque sean números dentro de un `attributes` (19b).
 const sondaSchema = z.object({
   id: z.string(),
   days: z.array(z.object({ gameDay: z.number().int(), tsb: z.number() })),
@@ -188,6 +210,9 @@ const sondaSchema = z.object({
     id: z.string(),
     attributes: z.record(z.string(), z.number()),
     nickname: z.string().nullable(),
+  }),
+  mine: z.object({
+    attributes: z.record(z.string(), z.object({ stars: starsSchema, mark: markSchema })),
   }),
 })
 
@@ -237,7 +262,7 @@ describe('la frontera, hoja por hoja (§13.2, punto 3; PR 19a)', () => {
   })
 
   it('la comprobación caza lo que tiene que cazar (sondas)', () => {
-    const reads = new Set(['days', 'gameDay', 'id'])
+    const reads = new Set(['days', 'gameDay', 'id', 'mine', 'stars', 'mark'])
     const sonda: RouteEntry = {
       method: 'GET',
       url: '/api/sonda',
@@ -252,5 +277,34 @@ describe('la frontera, hoja por hoja (§13.2, punto 3; PR 19a)', () => {
       { route: 'GET /api/sonda', field: 'rider.attributes.*', breaks: 'resolucion' },
       { route: 'GET /api/sonda', field: 'rider.nickname', breaks: 'sin_lector' },
     ])
+  })
+
+  it('lo que el 19b pasa a su forma cruza con su esquema de forma, y un ajeno no lleva la marca (§13.5)', () => {
+    const hojas = (route: string): Leaf[] => {
+      const e = entries.find((x) => `${x.method} ${x.url}` === route)
+      return Object.values(e?.response ?? {}).flatMap((s) => leavesOf(s))
+    }
+    const forma = (route: string, field: string) =>
+      hojas(route).find((l) => l.path === field)?.schema ?? null
+    const FORMA_19B: readonly (readonly [string, string, z.ZodType])[] = [
+      ['GET /api/riders/me', 'rider.attributes.*.stars', starsSchema],
+      ['GET /api/riders/me', 'rider.attributes.*.mark', markSchema],
+      ['GET /api/riders/:id', 'rider.attributes.*.stars', starsSchema],
+      ['GET /api/riders/me/form', 'log[].fitness', barSchema],
+      ['GET /api/riders/me/form', 'log[].freshness', barSchema],
+      ['GET /api/riders/me/form', 'log[].load', loadLevelSchema],
+      ['GET /api/riders/me/form', 'form.stars', starsSchema],
+      ['GET /api/riders/me/form', 'form.freshness', barSchema],
+      ['GET /api/riders/me/trend', 'trend[].arrow', arrowSchema],
+      ['GET /api/riders/me/summary', 'summary.moraleStars', starsSchema],
+    ]
+    for (const [route, field, schema] of FORMA_19B)
+      expect(forma(route, field) === schema, `${route} ${field}`).toBe(true)
+    // «nada más para un ajeno»: de un corredor cualquiera, solo sus estrellas
+    expect(
+      hojas('GET /api/riders/:id')
+        .filter((l) => l.path.startsWith('rider.attributes'))
+        .map((l) => l.path),
+    ).toEqual(['rider.attributes.*.stars'])
   })
 })

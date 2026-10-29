@@ -31,14 +31,16 @@ import type { PreStageInfo, StageGate, SwitchMode, WatchState } from './broadcas
 import type { ChampionTitle, RaceLeaders } from './jerseys.js'
 import { BIB_STYLES, kitCodeSchema } from './kit.js'
 import { newsPayloadSchema } from './news.js'
-import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
+import { maxMatchCount } from './engineCopies.js'
+import { ATTRIBUTES, GENDERS, HEALTH_STATES, VOCATIONS } from './rider.js'
 import { INTENSITIES, SESSIONS } from './training.js'
 import { TRAINING_DAY_SOURCES } from './trainingDay.js'
 
 // --- Piezas comunes ------------------------------------------------------------------------
 
 // La resolución en el tipo (E3, docs/visual.md §13.2; D-54; PR 19a): un campo que la pantalla pinta como
-// estrellas, barra, flecha o marca se declara con su forma, y un `63.4172` no pasa el contrato.
+// estrellas, barra, flecha, marca o carga en palabras se declara con su forma, y un `63.4172` no pasa el
+// contrato. Desde el 19b los llevan los atributos, la condición, la flecha y la moral.
 
 /** Medias estrellas de 0 a 5: lo que pinta StarRating (`attrStars`, rider.ts). */
 export const starsSchema = z.number().multipleOf(0.5).min(0).max(5)
@@ -46,8 +48,12 @@ export const starsSchema = z.number().multipleOf(0.5).min(0).max(5)
 export const barSchema = z.number().int().min(0).max(100)
 /** La flecha de 28 días, en sus cinco niveles: los códigos de `TREND_ARROW_CODE` (rider.ts; 13-a). */
 export const arrowSchema = z.enum(['sube_mucho', 'sube', 'igual', 'baja', 'baja_mucho'])
+/** El código de la flecha de 28 días. */
+export type TrendCode = z.infer<typeof arrowSchema>
 /** El cuarto de banda de un atributo propio, de 0 a 3 (`attrProgress`; 13-b). */
 export const markSchema = z.number().int().min(0).max(3)
+/** La carga de un día en palabras, de `Rest` (0) a `Very hard` (4): `loadLevelOf`. Nunca un TSS (13b). */
+export const loadLevelSchema = z.number().int().min(0).max(4)
 
 /**
  * EL MAILLOT DE UN EQUIPO UN DÍA (E3, docs/visual.md §8.5; PR 16b): su código, o `null` mientras la
@@ -69,7 +75,18 @@ export type SavedResponse = z.infer<typeof savedResponseSchema>
 /** Cuerpo de error uniforme de la API (`setErrorHandler`). */
 export const apiErrorBodySchema = z.object({ ok: z.literal(false).optional(), error: z.string() })
 
-export const attributesSchema = z.record(z.enum(ATTRIBUTES), z.number())
+/**
+ * LOS DIEZ ATRIBUTOS, EN SU FORMA DE PANTALLA (E3, docs/visual.md §13.5; D-55; PR 19b). De cualquier
+ * corredor, sus medias estrellas y nada más; del propio, además, la marca de cuarto de banda. El valor del
+ * que salen no cruza: `attrStars` y `attrProgress` corren en la API (`apps/api/src/screenShape.ts`). Van
+ * los diez siempre, que la API rellena a 0 en la base.
+ */
+export const attributeStarsSchema = z.object({ stars: starsSchema })
+export type AttributeStars = z.infer<typeof attributeStarsSchema>
+export const ownAttributeSchema = z.object({ stars: starsSchema, mark: markSchema })
+export type OwnAttribute = z.infer<typeof ownAttributeSchema>
+const attributeStarsByAttrSchema = z.record(z.enum(ATTRIBUTES), attributeStarsSchema)
+const ownAttributesSchema = z.record(z.enum(ATTRIBUTES), ownAttributeSchema)
 
 export const genderSchema = z.enum(GENDERS)
 export const vocationSchema = z.enum(VOCATIONS)
@@ -103,18 +120,23 @@ export type Effort = z.infer<typeof effortSchema>
 
 // --- /api/riders/me y compañía (el ciclista del jugador) ------------------------------------
 
-/** Vista pública del ciclista propio; debe cuadrar con la interfaz `PublicRider` de SPEC 3. */
-export const publicRiderSchema = z.object({
+/**
+ * El ciclista propio, `GET /api/riders/me`: el `PublicRider` de SPEC 3 con los atributos en su forma de
+ * pantalla, sus estrellas y su marca (19b). `PublicRider` (rider.ts) sigue siendo lo que leen la API y la
+ * base, con los valores.
+ */
+export const myRiderSchema = z.object({
   id: z.string(),
   name: z.string(),
   country: z.string(),
   gender: genderSchema,
   archetype: vocationSchema,
   birthSeason: z.number().int(),
-  attributes: attributesSchema,
-}) satisfies z.ZodType<PublicRider>
+  attributes: ownAttributesSchema,
+})
+export type MyRider = z.infer<typeof myRiderSchema>
 
-export const myRiderResponseSchema = z.object({ rider: publicRiderSchema.nullable() })
+export const myRiderResponseSchema = z.object({ rider: myRiderSchema.nullable() })
 
 // --- La ficha del corredor: tendencia, opinión e informe (docs/entrenamiento.md §2.3 y §4.6) ---
 
@@ -128,7 +150,8 @@ export const myRiderResponseSchema = z.object({ rider: publicRiderSchema.nullabl
 
 export const attrTrendRowSchema = z.object({
   attr: z.enum(ATTRIBUTES),
-  delta28: z.number(),
+  /** La flecha de 28 días, en su código (13-a; 19b): el Δ28 del que sale no cruza. */
+  arrow: arrowSchema,
 })
 export type AttrTrendRow = z.infer<typeof attrTrendRowSchema>
 export const trendResponseSchema = z.object({ trend: z.array(attrTrendRowSchema) })
@@ -309,7 +332,11 @@ export const riderSummarySchema = z.object({
   teamId: z.string().nullable(),
   teamName: z.string().nullable(),
   money: z.number(),
-  morale: z.number(),
+  /**
+   * La moral en medias estrellas (DD-12, §13.7; 19b), con la escala de la forma (`formStarsScale`): una
+   * magnitud de 0 a 100 sin umbrales de dominio. La exacta no cruza.
+   */
+  moraleStars: starsSchema,
   fame: z.number(),
   seasonPoints: z.number(),
   seasonRank: z.number(),
@@ -360,10 +387,14 @@ export type StageEffortView = z.infer<typeof stageEffortSchema>
 
 export const formPointSchema = z.object({
   gameDay: z.number().int(),
-  ctl: z.number(),
-  atl: z.number(),
-  tsb: z.number(),
-  tss: z.number(),
+  /**
+   * El fondo y la frescura del día, en barras enteras de 0 a 100 (§4.8 y §13.5; 19b): lo que hacía
+   * `conditionBars` en la web, ya en la API. El ctl, la atl y el tsb del diario no cruzan.
+   */
+  fitness: barSchema,
+  freshness: barSchema,
+  /** La carga del día en palabras (§10.7; D-41, D-00o; 19b): el TSS no cruza. */
+  load: loadLevelSchema,
   activity: z.string(),
   /**
    * El parte de ese día si fue de CARRERA. `nullish` con default a propósito: un día de
@@ -384,7 +415,18 @@ export type RiderHealth = z.infer<typeof riderHealthSchema>
 
 export const formResponseSchema = z.object({
   log: z.array(formPointSchema),
-  form: z.object({ stars: z.number(), freshness: z.number() }).nullable(),
+  /**
+   * La condición de hoy (19b): la forma en medias estrellas, la frescura en barra y los cerillos del día
+   * (SPEC 6.6), que cuenta la API con las funciones del motor, de 0 a `maxMatchCount()`; null sin la salud o
+   * sin la moral.
+   */
+  form: z
+    .object({
+      stars: starsSchema,
+      freshness: barSchema,
+      matches: z.number().int().min(0).max(maxMatchCount()).nullable(),
+    })
+    .nullable(),
   // Sin ciclista la API no envía `health` (solo `{ log, form }`).
   health: riderHealthSchema.nullable().optional(),
 })
@@ -403,8 +445,6 @@ export type TrainingOrder = z.infer<typeof trainingOrderSchema>
 
 /** Quién decide un día: los siete orígenes de `resolveTrainingDay`, en su orden. */
 export const trainingDaySourceSchema = z.enum(TRAINING_DAY_SOURCES)
-/** La carga de un día en palabras, de `Rest` (0) a `Very hard` (4): `loadLevelOf`. Nunca un TSS. */
-export const loadLevelSchema = z.number().int().min(0).max(4)
 const dayBlockSchema = z.object({ code: coachBlockSchema, week: z.number().int().min(1).max(4) })
 
 /**
@@ -949,7 +989,8 @@ export const publicRiderDetailSchema = z.object({
   seasonRank: z.number(),
   fieldSize: z.number(),
   fame: z.number(),
-  attributes: attributesSchema,
+  /** Solo sus estrellas: de un corredor cualquiera, nada más (§13.5; 19b). */
+  attributes: attributeStarsByAttrSchema,
   /**
    * Estado de salud, PÚBLICO a propósito: en el ciclismo real una lesión es noticia y un rival
    * querría saberla. Lo que sigue siendo privado es el detalle fino (frescura, fatiga, forma), que

@@ -3,6 +3,7 @@ import {
   type CoachBlock,
   type LoadLevel,
   type TrainingMode,
+  type TrendCode,
   seasonPosition,
 } from '@cyclingstar/shared'
 
@@ -48,6 +49,18 @@ export const LOAD_WORD: Readonly<Record<LoadLevel, string>> = {
   2: 'Steady',
   3: 'Hard',
   4: 'Very hard',
+}
+
+/**
+ * La flecha de 28 días de un atributo propio (§4.10; 13-a; PR 19b), del código que manda `GET /trend`.
+ * Siempre con el icono `trend` girado; nunca una flecha sin su texto (`▲`).
+ */
+export const TREND_WORD: Readonly<Record<TrendCode, string>> = {
+  sube_mucho: 'Improving fast',
+  sube: 'Improving',
+  igual: 'Steady',
+  baja: 'Slipping',
+  baja_mucho: 'Slipping fast',
 }
 
 /** Un abandono: sin puesto y al final de la tabla (§4.5). Nunca el nombre tachado. */

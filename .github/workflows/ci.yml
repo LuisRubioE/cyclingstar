@@ -250,9 +250,9 @@ jobs:
   # EL TRINQUETE, CONTRA LA BASE Y SOBRE EL MISMO MUNDO (PR 2b; 7-h, generalizada). El mundo no sale igual
   # en dos construcciones del mismo código, y aquí se reconstruye cuando cambia su clave, cuando caduca su
   # caché y en cada push a `main`, que no ve la caché de los PR. Así que no se compara con las cifras de
-  # `telefono-baseline.json`, medidas sobre otro mundo: en la misma ejecución se compila la web de la base
-  # (un `worktree`), se sirve sobre el mismo mundo y se mide; el PR falla si una cifra sube sobre ella, o si
-  # baja y `telefono-baseline.json` no lo apunta. Si la base no tiene ese fichero, el PR lo crea (el 2b).
+  # `telefono-baseline.json`, medidas sobre otro mundo: en la misma ejecución se compila la base (un
+  # `worktree`), se sirve con su propia API y su web sobre el mismo mundo y se mide; el PR falla si una cifra
+  # sube sobre ella, o si baja y `telefono-baseline.json` no lo apunta. Si la base no tiene ese fichero, el PR lo crea (el 2b).
   # Y si el PR toca el instrumento o cambia la clave del mundo (§7.4, regla 1; desde el 12b), puede
   # reescribirlo entero, y solo cuenta que nada suba.
   #
@@ -327,7 +327,7 @@ jobs:
         env:
           TELEFONO_MUNDO: ${{ github.workspace }}/apps/web/e2e/world/.mundo/mundo-50.tar.gz
         run: pnpm exec vitest run apps/api/src/routes/planPreviewDiary.test.ts --reporter=verbose
-      - name: La web de la base, sobre el mismo mundo
+      - name: La base, con su API y su web, sobre el mismo mundo
         id: base
         if: steps.toca.outputs.correr == 'si'
         env:
@@ -356,8 +356,15 @@ jobs:
             echo 'instrumento=cambia' >> "$GITHUB_OUTPUT"
           fi
           git worktree add --detach "$RUNNER_TEMP/base" "$BASE"
-          (cd "$RUNNER_TEMP/base" && pnpm install --frozen-lockfile --prefer-offline && pnpm --filter '@cyclingstar/web...' build)
-          node apps/web/e2e/world/serve.mjs --port 3006 --web "$RUNNER_TEMP/base/apps/web/dist" > "$RUNNER_TEMP/serve-base.log" 2>&1 &
+          # LA BASE, CON SU PROPIA API (E3, docs/visual.md §7.4; PR 19b). Hasta el 19a se servía la web de la
+          # base con la API del PR, y la web de la base no lee un contrato que el PR cambia: con los del
+          # corredor del 19b, la portada, el cuadro y la ficha daban su estado de error, y la medida esperaba en
+          # vano, hasta el tope del trabajo, al control que mueve su `edit`. Así que se compila la base entera y
+          # se sirve con su `serve.mjs`, que carga su API y su web, sobre el mundo del PR.
+          (cd "$RUNNER_TEMP/base" && pnpm install --frozen-lockfile --prefer-offline && pnpm build)
+          node "$RUNNER_TEMP/base/apps/web/e2e/world/serve.mjs" --port 3006 \
+            --world "$GITHUB_WORKSPACE/apps/web/e2e/world/.mundo/mundo-50.tar.gz" \
+            --web "$RUNNER_TEMP/base/apps/web/dist" > "$RUNNER_TEMP/serve-base.log" 2>&1 &
           for i in $(seq 1 90); do
             grep -q '^listening ' "$RUNNER_TEMP/serve-base.log" && break
             sleep 1

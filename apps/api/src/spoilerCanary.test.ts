@@ -1,4 +1,5 @@
 import { anonHorizon, computeHorizon } from '@cyclingstar/db'
+import { fitnessFactor } from '@cyclingstar/engine'
 import { pageTitle } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { stageReadyEmail } from './emails.js'
@@ -84,9 +85,9 @@ async function plantCanary(w: SpoilerWorld): Promise<void> {
 
 /**
  * LOS TESTIGOS DE LA FRONTERA (E3, docs/visual.md §13.2, punto 4; I-09; PR 19a): tres números internos que
- * ninguna respuesta puede devolver con esa cifra, salvo donde `FRONTERA_SIN_USO` todavía lo deja, y hasta
- * su PR de salida. Una regla de nombres sola no basta: un campo con decimales y otro nombre la pasa, y esto
- * lo caza. Con su hoja, para buscar su excepción.
+ * ninguna respuesta puede devolver con esa cifra. Hasta el 19b los dejaba salir `FRONTERA_SIN_USO`, cada uno
+ * en su hoja; desde el 19b cruzan solo en su forma de pantalla. Una regla de nombres sola no basta: un
+ * campo con decimales y otro nombre la pasa, y esto lo caza. Con la hoja por la que salían.
  */
 const FRONTERA = [
   {
@@ -162,7 +163,7 @@ describe('B1a · el canario', () => {
       expect(w.app.spoilerRegistry.get(route)?.method).toBe('POST')
   })
 
-  it('los testigos de la frontera solo salen donde FRONTERA_SIN_USO aún los deja, y ahí salen (§13.2; 19a)', async () => {
+  it('los testigos de la frontera no salen en ninguna respuesta, y cruzan en su forma de pantalla (§13.2; 19b)', async () => {
     const bodies = new Map([...(await veiledSweep()), ...(await sweepPostReads(w))])
     const fuera = FRONTERA.flatMap((t) =>
       [...bodies]
@@ -170,12 +171,18 @@ describe('B1a · el canario', () => {
         .map(([k]) => `${t.what}: ${k}`),
     )
     expect(fuera).toEqual([])
-    // no vacío: cada testigo sale en la ruta que su excepción nombra
-    for (const t of FRONTERA)
-      expect(
-        [...bodies].some(([k, r]) => t.re.test(r.body) && excused(routeOf(k), t.field)),
-        t.what,
-      ).toBe(true)
+    // no vacío: los tres están plantados, y cada uno llega a la pantalla en su forma
+    const cuerpo = (route: string): unknown => {
+      const r = [...bodies].find(([k]) => routeOf(k) === route)
+      return r === undefined ? null : JSON.parse(r[1].body)
+    }
+    const me = cuerpo('GET /api/riders/me') as { rider: { attributes: Record<string, unknown> } }
+    // 63,4172: tres estrellas, en el segundo cuarto de su banda
+    expect(me.rider.attributes.MON).toEqual({ stars: 3, mark: 1 })
+    const form = cuerpo('GET /api/riders/me/form') as { log: { fitness: number }[] }
+    expect(form.log.at(-1)?.fitness).toBe(Math.round(100 * fitnessFactor(61.98765)))
+    const summary = cuerpo('GET /api/riders/me/summary') as { summary: { moraleStars: number } }
+    expect(summary.summary.moraleStars).toBe(3)
   })
 
   it('ni el título, ni las og:, ni el aviso llevan al ganador; el robot sin cookie sí lo ve en el acta, marcado', async () => {

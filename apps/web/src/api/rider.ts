@@ -1,7 +1,7 @@
 import {
   type Gender,
   type GeneratedName,
-  type PublicRider,
+  type MyRider,
   type RetireFromRaceResponse,
   type RiderSummary,
   type UpcomingRace,
@@ -88,7 +88,7 @@ export async function fetchGeneratedName(params: {
 }
 
 /** El ciclista del usuario. Sin sesión (401) devuelve null: la home pública también lo pide. */
-export async function fetchMyRider(): Promise<PublicRider | null> {
+export async function fetchMyRider(): Promise<MyRider | null> {
   const data = await requestOptionalAuth('/api/riders/me', myRiderResponseSchema, {
     errorMessage: 'Could not load your rider.',
   })

@@ -18,16 +18,36 @@
       "fieldSize": 3902,
       "fame": 0,
       "attributes": {
-        "RES": 32.30045,
-        "REC": 21.258818,
-        "LLA": 17.393246,
-        "MON": 28.31946,
-        "COL": 23.41881,
-        "CRI": 16.530907,
-        "SPR": 23.69193,
-        "DES": 15.520884,
-        "PAV": 22.854782,
-        "TAC": 14.464183
+        "RES": {
+          "stars": 1.5
+        },
+        "REC": {
+          "stars": 1
+        },
+        "LLA": {
+          "stars": 1
+        },
+        "MON": {
+          "stars": 1.5
+        },
+        "COL": {
+          "stars": 1
+        },
+        "CRI": {
+          "stars": 1
+        },
+        "SPR": {
+          "stars": 1
+        },
+        "DES": {
+          "stars": 1
+        },
+        "PAV": {
+          "stars": 1
+        },
+        "TAC": {
+          "stars": 0.5
+        }
       },
       "health": {
         "state": "sano",

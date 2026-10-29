@@ -6,43 +6,43 @@
     "trend": [
       {
         "attr": "RES",
-        "delta28": 4.061218
+        "arrow": "sube_mucho"
       },
       {
         "attr": "REC",
-        "delta28": 2.970342
+        "arrow": "sube_mucho"
       },
       {
         "attr": "LLA",
-        "delta28": 1.6284108
+        "arrow": "sube_mucho"
       },
       {
         "attr": "MON",
-        "delta28": 1.3887165
+        "arrow": "sube_mucho"
       },
       {
         "attr": "COL",
-        "delta28": 0
+        "arrow": "igual"
       },
       {
         "attr": "CRI",
-        "delta28": 0
+        "arrow": "igual"
       },
       {
         "attr": "SPR",
-        "delta28": 0
+        "arrow": "igual"
       },
       {
         "attr": "DES",
-        "delta28": 0.15733437
+        "arrow": "igual"
       },
       {
         "attr": "PAV",
-        "delta28": 0
+        "arrow": "igual"
       },
       {
         "attr": "TAC",
-        "delta28": 0
+        "arrow": "igual"
       }
     ]
   }

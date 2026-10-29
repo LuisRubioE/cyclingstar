@@ -5,14 +5,14 @@ import {
   type Attribute,
   type CeilingOpinion,
   SESSION_CATALOG,
-  attrProgress,
-  attrStars,
+  type TrendCode,
   sessionsForAttribute,
-  trendArrow,
 } from '@cyclingstar/shared'
 import { useState } from 'react'
 import { COACH_OPINION_TEXT } from '../domain/coachOpinion'
+import { TREND_WORD } from '../domain/words'
 import { StarRating } from './StarRating'
+import { Icon } from './ui/Icon'
 
 /**
  * The extra layer that only YOUR OWN sheet gets (docs/entrenamiento.md §2.3): the progress mark
@@ -20,8 +20,11 @@ import { StarRating } from './StarRating'
  * stars and nothing else — scouting someone else's potential isn't a thing you can do yet.
  */
 export interface AttributeDetail {
-  /** Δ over the last 28 days, per attribute. Missing means it didn't move. */
-  trend?: Partial<Record<Attribute, number>>
+  /**
+   * The 28-day arrow per attribute, as the code `GET /trend` sends (E3, 13-a): the Δ it comes from stays on
+   * the server. Missing means it didn't move.
+   */
+  trend?: Partial<Record<Attribute, TrendCode>>
   /**
    * What the coach makes of each attribute: RELATIVE to the rest of this rider, and vaguer the less
    * he knows him (docs/agenda.md §4.20). Never a level, never stars.
@@ -30,14 +33,15 @@ export interface AttributeDetail {
 }
 
 /**
- * Four segments under the stars: which quarter of its band the attribute sits in.
+ * Four segments under the stars: which quarter of its band the attribute sits in, as the API sends it
+ * (`mark`, 0 to 3; E3, 13-b).
  *
  * Four and not a continuous bar, on purpose: a continuous bar over a 16-point band would resolve
  * the attribute to under half a point, which is more resolution than the half-stars themselves and
  * amounts to showing the internal number through the back door.
  */
-function ProgressMark({ value }: { value: number }) {
-  const filled = attrProgress(value)
+function ProgressMark({ mark }: { mark: number }) {
+  const filled = mark
   return (
     <span className="flex gap-[2px]" aria-label={`${filled + 1} of 4 through this band`}>
       {[0, 1, 2, 3].map((i) => (
@@ -50,40 +54,42 @@ function ProgressMark({ value }: { value: number }) {
   )
 }
 
-function TrendArrow({ delta28 }: { delta28: number }) {
-  const arrow = trendArrow(delta28)
+/** How far the `trend` icon turns for each code: up, up the diagonal, flat, down the diagonal, down. */
+const TREND_TURN: Readonly<Record<TrendCode, -90 | -45 | 0 | 45 | 90>> = {
+  sube_mucho: -90,
+  sube: -45,
+  igual: 0,
+  baja: 45,
+  baja_mucho: 90,
+}
+
+/** The 28-day arrow: the `trend` icon turned for its code, with its words (E3, 13-a). */
+function TrendArrow({ code }: { code: TrendCode }) {
   const tone =
-    arrow === '↑' || arrow === '↗'
+    code === 'sube_mucho' || code === 'sube'
       ? 'text-emerald-500'
-      : arrow === '↓' || arrow === '↘'
+      : code === 'baja_mucho' || code === 'baja'
         ? 'text-rose-400'
         : 'text-slate-300'
-  const words =
-    arrow === '↑'
-      ? 'Improving fast'
-      : arrow === '↗'
-        ? 'Improving'
-        : arrow === '→'
-          ? 'Steady'
-          : arrow === '↘'
-            ? 'Slipping'
-            : 'Slipping fast'
+  const words = TREND_WORD[code]
   return (
-    <span className={`text-xs ${tone}`} title={`${words} (last 28 days)`} aria-label={words}>
-      {arrow}
+    <span className={tone} title={`${words} (last 28 days)`}>
+      <Icon name="trend" size={16} turn={TREND_TURN[code]} label={words} />
     </span>
   )
 }
 
 /**
  * Attribute list with click-to-expand help (#8): tap an attribute to read what it is, what it's
- * for and which training sessions improve it. TAC also learns from racing.
+ * for and which training sessions improve it. TAC also learns from racing. The stars, and the mark of
+ * your own rider, come from the API already in their screen form (E3, §13.5): the value they come from
+ * never reaches the browser.
  */
 export function AttributeList({
   attributes,
   detail,
 }: {
-  attributes: Record<Attribute, number>
+  attributes: Readonly<Record<Attribute, { readonly stars: number; readonly mark?: number }>>
   detail?: AttributeDetail
 }) {
   const [open, setOpen] = useState<Attribute | null>(null)
@@ -92,7 +98,7 @@ export function AttributeList({
     <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
       {ATTRIBUTES.map((attr) => {
         const isOpen = open === attr
-        const value = attributes[attr] ?? 0
+        const { stars, mark } = attributes[attr]
         const trainedBy = sessionsForAttribute(attr).map((s) => SESSION_CATALOG[s].label)
         const opinion = detail?.opinion?.[attr]
         return (
@@ -110,10 +116,10 @@ export function AttributeList({
                 </span>
               </dt>
               <dd className="flex items-center gap-2">
-                {detail && <TrendArrow delta28={detail.trend?.[attr] ?? 0} />}
+                {detail && <TrendArrow code={detail.trend?.[attr] ?? 'igual'} />}
                 <span className="flex flex-col items-end gap-[3px]">
-                  <StarRating value={attrStars(value)} />
-                  {detail && <ProgressMark value={value} />}
+                  <StarRating value={stars} />
+                  {detail && mark !== undefined && <ProgressMark mark={mark} />}
                 </span>
               </dd>
             </button>

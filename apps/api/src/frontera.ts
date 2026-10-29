@@ -1,5 +1,5 @@
 /**
- * LA FRONTERA (E3, docs/visual.md §13; D-53, D-54, D-55; PR 19a). Toda respuesta de la API es un
+ * LA FRONTERA (E3, docs/visual.md §13; D-53, D-54, D-55; PR 19a y 19b). Toda respuesta de la API es un
  * subconjunto de lo que una pantalla enseña a quien la pide, en su forma de pantalla: un número interno no
  * cruza nunca, y lo que cruza, alguien lo lee en la web. `frontera.test.ts` recorre los esquemas de
  * respuesta del registro hoja por hoja y lo comprueba; lo que hoy no cumple va aquí, con su motivo y su PR
@@ -23,7 +23,7 @@ export type FronteraBreak =
   | 'sin_lector'
   /** se llama como un número interno */
   | 'numero_interno'
-  /** cruza con más resolución de la que enseña la pantalla: un `attributes` de números */
+  /** cruza con más resolución de la que enseña la pantalla: un número de un `attributes` sin su forma */
   | 'resolucion'
 
 /**
@@ -36,11 +36,12 @@ export interface FronteraException {
   readonly fields: readonly [string, ...string[]]
   readonly breaks: FronteraBreak
   readonly why: string
-  readonly until: '19b' | '19c'
+  /** el PR que la quita: desde el 19b, solo queda el 19c, que deja la lista vacía */
+  readonly until: '19c'
 }
 
-/** Solo encoge: añadir una entrada pide subir el tope, y eso se revisa en el PR (13-e). */
-export const FRONTERA_SIN_USO_MAX = 22
+/** Solo encoge: añadir una entrada pide subir el tope, y eso se revisa en el PR (13-e). 22 en el 19a. */
+export const FRONTERA_SIN_USO_MAX = 16
 
 /** Las rutas de la etapa que llevan los títulos de campeón y la clasificación por equipos. */
 const ETAPA = 'GET /api/races/:raceId/stages/:day'
@@ -51,53 +52,12 @@ const CABECERA = 'GET /api/races/:raceId/stages/:day/broadcast'
 /**
  * La tabla de §13.2, el día que entra el 19a (con lo de la vista previa ya fuera en el 13b, §11.2), y lo
  * que el test encontró además al entrar, con su salida en el 19c (§13.2: «el 19a los añade con su motivo
- * y su salida, y sube FRONTERA_SIN_USO_MAX una vez»). Los campos van con `[]` por cada array, `*` por un
- * tramo cualquiera y `**` por los que sean.
+ * y su salida, y sube FRONTERA_SIN_USO_MAX una vez»). El 19b quitó las seis primeras: los atributos, la
+ * condición, la flecha y la moral cruzan ya en su forma (§13.5). Los campos van con `[]` por cada array,
+ * `*` por un tramo cualquiera y `**` por los que sean.
  */
 export const FRONTERA_SIN_USO: readonly FronteraException[] = [
-  // --- las nueve de §13.2
-  {
-    routes: ['GET /api/riders/me/form'],
-    fields: ['log[].ctl', 'log[].tsb'],
-    breaks: 'numero_interno',
-    why: 'las lee conditionBars en la web para sus dos barras (condition.ts)',
-    until: '19b',
-  },
-  {
-    routes: ['GET /api/riders/me/form'],
-    fields: ['log[].atl', 'log[].tss'],
-    breaks: 'numero_interno',
-    why: 'la atl no la lee nadie; la tss la pinta el diario de carrera (RaceEffortLog, «TSS 105»)',
-    until: '19b',
-  },
-  {
-    routes: ['GET /api/riders/me'],
-    fields: ['rider.attributes.*'],
-    breaks: 'resolucion',
-    why: 'con decimales; la web pinta estrellas, marca y cerillos',
-    until: '19b',
-  },
-  {
-    routes: ['GET /api/riders/:id'],
-    fields: ['rider.attributes.*'],
-    breaks: 'resolucion',
-    why: 'con decimales, de cualquier corredor; la web pinta estrellas',
-    until: '19b',
-  },
-  {
-    routes: ['GET /api/riders/me/trend'],
-    fields: ['trend[].delta28'],
-    breaks: 'resolucion',
-    why: 'la web pinta la flecha',
-    until: '19b',
-  },
-  {
-    routes: ['GET /api/riders/me/summary'],
-    fields: ['summary.morale'],
-    breaks: 'resolucion',
-    why: 'con decimales; la web pinta el porcentaje',
-    until: '19b',
-  },
+  // --- las tres de §13.2 que quedan
   {
     routes: ['GET /api/riders/me/coach-view'],
     fields: ['coachView.facilities'],
