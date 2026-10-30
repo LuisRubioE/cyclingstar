@@ -2,6 +2,12 @@ import { COUNTRIES, VOCATIONS, VOCATION_LABELS, type Vocation } from '@cyclingst
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createRider, fetchGeneratedName, fetchGeoCountry } from '../api/rider'
+import { Button } from '../components/ui/Button'
+import { Field } from '../components/ui/Field'
+import { Flag } from '../components/ui/Flag'
+import { Notice } from '../components/ui/Notice'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 
 /**
  * Creación del ciclista (Paso 15). Solo ciclismo masculino por ahora, y la nacionalidad se fija por
@@ -17,17 +23,31 @@ import { createRider, fetchGeneratedName, fetchGeoCountry } from '../api/rider'
  * capas de red) y una API pública llamada DESDE EL NAVEGADOR, que se cae, se bloquea con cualquier
  * extensión de privacidad o se queda sin cuota. O sea que el registro entero —la puerta de entrada
  * del juego— dependía de que un tercero contestara. Ahora, si no se detecta, se elige a mano.
+ *
+ * CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21j): la cabecera en `PageHeader`; todo en el
+ * `Panel` que contesta a la 34 (§7.3); sin detectar, un `Notice` `warn` y el país en un `Field`, por su nombre
+ * (sin la bandera en emoji, que un `option` no pinta de otra forma); la vocación, cinco, en otro `Field`, que un
+ * `Segmented` es de 2 a 4; la nacionalidad y el nombre en un `dl`, con su bandera del catálogo y `Regenerate`;
+ * y crearlo, un `Button` deshabilitado con su porqué mientras no hay nombre.
  */
-export function CreateRider() {
+
+interface CreateState {
+  /** null, buscándolo; '', sin detectar; un código, el país fijado por IP */
+  readonly country: string | null
+  readonly geo: string
+  readonly name: string
+  readonly error: string | null
+}
+
+export function CreateRider({ initial = {} }: { initial?: Partial<CreateState> } = {}) {
   const navigate = useNavigate()
   const [vocation, setVocation] = useState<Vocation>('escalada')
-  // null = detectando; '' = país no disponible; código = país fijado por IP.
-  const [country, setCountry] = useState<string | null>(null)
+  const [country, setCountry] = useState<string | null>(initial.country ?? null)
   const [seedN, setSeedN] = useState(0)
-  const [name, setName] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [name, setName] = useState(initial.name ?? '')
+  const [error, setError] = useState<string | null>(initial.error ?? null)
   // Diagnóstico de la detección por IP, en pantalla mientras se depura (v58, a petición del dueño).
-  const [geo, setGeo] = useState<string>('')
+  const [geo, setGeo] = useState<string>(initial.geo ?? '')
   const [creating, setCreating] = useState(false)
 
   const seed = country ? `${country}-M-${seedN}` : ''
@@ -78,112 +98,107 @@ export function CreateRider() {
   // '' ya no es «tu país no está disponible» sino «no hemos podido averiguarlo»: se elige a mano.
   const sinDetectar = country === ''
   const countryInfo = country ? COUNTRIES.find((c) => c.code === country) : undefined
+  /*
+    EL PAÍS QUE SE HA DETECTADO, A LA VISTA. Es una ayuda de depuración pedida por el dueño
+    mientras se persigue por qué la detección falla en algunos despliegues, y se quita cuando
+    deje de hacer falta. No decide nada: solo cuenta lo que la detección vio. Desde el 21j, la
+    ayuda del país, en `meta` `ink-2` (DD-18).
+  */
+  const deteccion = `Your country: ${country === '' ? 'not detected' : country}${geo !== '' ? ` · ${geo}` : ''}`
 
   return (
-    <section className="mx-auto max-w-lg space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Create your rider</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Your vocation shapes your talent — but never guarantees it.
-        </p>
-      </div>
+    <section className="mx-auto grid max-w-form gap-4">
+      <PageHeader
+        title="Create your rider"
+        status="Your vocation shapes your talent — but never guarantees it."
+      />
+      <Panel ariaLabel="Create your rider" answer>
+        <div className="grid gap-4">
+          <p role="status" className="text-meta text-ink-2 empty:hidden">
+            {detecting ? 'Detecting your country…' : ''}
+          </p>
 
-      {detecting && <p className="text-sm text-slate-500">Detecting your country…</p>}
+          {sinDetectar && (
+            <>
+              <Notice tone="warn" title="We couldn't work out where you're riding from.">
+                Pick your country to carry on.
+              </Notice>
+              <Field
+                kind="select"
+                id="create-country"
+                label="Country"
+                value=""
+                onChange={(v) => {
+                  if (v !== '') setCountry(v)
+                }}
+                options={[
+                  { value: '', label: 'Choose your country…' },
+                  ...[...COUNTRIES]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => ({ value: c.code, label: c.name })),
+                ]}
+                help={deteccion}
+              />
+            </>
+          )}
 
-      {/*
-        EL PAÍS QUE SE HA DETECTADO, A LA VISTA. Es una ayuda de depuración pedida por el dueño
-        mientras se persigue por qué la detección falla en algunos despliegues, y se quita cuando
-        deje de hacer falta. No decide nada: solo cuenta lo que la detección vio.
-      */}
-      {!detecting && (
-        <p className="text-xs text-slate-400">
-          Your country:{' '}
-          <span className="font-mono">{country === '' ? 'not detected' : country}</span>
-          {geo !== '' && <> — {geo}</>}
-        </p>
-      )}
+          {country && countryInfo && (
+            <>
+              <Field
+                kind="select"
+                id="create-vocation"
+                label="Vocation"
+                value={vocation}
+                onChange={(v) => {
+                  const elegida = VOCATIONS.find((o) => o === v)
+                  if (elegida !== undefined) setVocation(elegida)
+                }}
+                options={VOCATIONS.map((o) => ({ value: o, label: VOCATION_LABELS[o] }))}
+              />
 
-      {sinDetectar && (
-        <div className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
-          <p>We couldn't work out where you're riding from. Pick your country to carry on.</p>
-          <select
-            aria-label="Country"
-            value=""
-            onChange={(event) => setCountry(event.target.value)}
-            className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-          >
-            <option value="" disabled>
-              Choose your country…
-            </option>
-            {[...COUNTRIES]
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.flag} {c.name}
-                </option>
-              ))}
-          </select>
-        </div>
-      )}
+              <dl className="grid gap-4">
+                <div className="grid gap-1">
+                  <dt className="text-meta font-semibold text-ink">Nationality</dt>
+                  <dd className="flex flex-wrap items-center gap-x-2 text-body text-ink">
+                    {/* su nombre va al lado: la bandera, para el ojo */}
+                    <span aria-hidden="true">
+                      <Flag country={country} />
+                    </span>
+                    {countryInfo.name}
+                    <span className="text-meta text-ink-2">from your location</span>
+                  </dd>
+                  <dd className="text-meta text-ink-2">{deteccion}</dd>
+                </div>
+                <div className="grid gap-1">
+                  <dt className="text-meta font-semibold text-ink">Name</dt>
+                  <dd className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-body font-semibold text-ink">{name || '…'}</span>
+                    <Button onClick={() => setSeedN((n) => n + 1)}>Regenerate</Button>
+                  </dd>
+                </div>
+              </dl>
 
-      {country && countryInfo && (
-        <>
-          <div className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">Vocation</span>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {VOCATIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setVocation(option)}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                    vocation === option
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-300 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  {VOCATION_LABELS[option]}
-                </button>
-              ))}
-            </div>
-          </div>
+              {error !== null && (
+                <p role="alert" className="text-meta text-bad">
+                  {error}
+                </p>
+              )}
 
-          <div className="space-y-1.5">
-            <span className="text-sm font-medium text-slate-700">Nationality</span>
-            <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
-              {countryInfo.flag} {countryInfo.name}
-              <span className="ml-2 text-xs text-slate-400">from your location</span>
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <span className="text-sm font-medium text-slate-700">Name</span>
-            <div className="flex items-center gap-3">
-              <span className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-medium text-slate-900">
-                {name || '…'}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSeedN((n) => n + 1)}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              <Button
+                variant="primary"
+                onClick={() => void onCreate()}
+                busy={creating}
+                busyLabel="Creating…"
+                {...(name.length === 0
+                  ? { disabledReason: 'Waiting for a name. Regenerate if it does not come.' }
+                  : {})}
               >
-                Regenerate
-              </button>
-            </div>
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <button
-            type="button"
-            onClick={onCreate}
-            disabled={creating || name.length === 0}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
-          >
-            {creating ? 'Creating…' : 'Create rider'}
-          </button>
-        </>
-      )}
+                Create rider
+              </Button>
+            </>
+          )}
+        </div>
+      </Panel>
     </section>
   )
 }

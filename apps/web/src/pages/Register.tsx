@@ -1,15 +1,36 @@
 import { type FormEvent, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { authClient } from '../auth/client'
-import { TextField } from '../components/TextField'
+import { Button } from '../components/ui/Button'
+import { Field } from '../components/ui/Field'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
+import { TextLink } from '../components/ui/TextLink'
+import { type FieldProblem, registerProblem } from '../domain/entryForms'
+
+/**
+ * CREAR LA CUENTA, CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21j): la cabecera en
+ * `PageHeader`; el formulario en el `Panel` que contesta a la 32 (§7.3), con cada campo en su `Field` y crearla
+ * en un `Button` ocupado mientras pregunta; lo que falta lo dice su campo (`registerProblem`), y lo que dice el
+ * servidor, debajo, en `role="alert"`.
+ */
+
+type Resend = 'idle' | 'sending' | 'sent'
 
 /**
  * Después de registrarse: la cuenta existe pero NO hay sesión hasta confirmar el correo. Se dice
  * a qué dirección ha ido el enlace (una errata en el correo es la causa más común de «no me
- * llega») y se ofrece reenviarlo.
+ * llega») y se ofrece reenviarlo. Desde el 21j, reenviado lo dice su región de estado, que está desde el
+ * principio para que el lector la oiga, y el botón sigue donde estaba: deshabilitado, el catálogo lo pinta de
+ * nuevo y el foco se perdería.
  */
-function CheckInbox({ email }: { email: string }) {
-  const [resend, setResend] = useState<'idle' | 'sending' | 'sent'>('idle')
+export function CheckInbox({
+  email,
+  initialResend = 'idle',
+}: {
+  email: string
+  initialResend?: Resend
+}) {
+  const [resend, setResend] = useState<Resend>(initialResend)
 
   async function onResend() {
     setResend('sending')
@@ -18,45 +39,60 @@ function CheckInbox({ email }: { email: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-sm">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Check your inbox</h1>
-        <p className="mt-3 text-sm text-slate-600">
-          We have sent a link to <span className="font-medium">{email}</span>. Open it to confirm
-          your email and start playing. It expires in one hour.
-        </p>
-        <p className="mt-2 text-xs text-slate-400">
-          Nothing there? Check the spam folder, or make sure the address above is right.
-        </p>
-        <button
-          type="button"
-          onClick={onResend}
-          disabled={resend !== 'idle'}
-          className="mt-5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-        >
-          {resend === 'sent' ? 'Sent again' : resend === 'sending' ? 'Sending…' : 'Send it again'}
-        </button>
-      </div>
-      <p className="mt-4 text-center text-sm text-slate-500">
+    <section className="mx-auto grid max-w-form gap-4">
+      <PageHeader title="Check your inbox" />
+      <Panel ariaLabel="Check your inbox" answer>
+        <div className="grid gap-3">
+          <p className="text-body text-ink-2">
+            We have sent a link to <strong className="font-semibold text-ink">{email}</strong>. Open
+            it to confirm your email and start playing. It expires in one hour.
+          </p>
+          <p className="text-meta text-ink-2">
+            Nothing there? Check the spam folder, or make sure the address above is right.
+          </p>
+          <Button
+            onClick={() => void onResend()}
+            busy={resend === 'sending'}
+            busyLabel="Sending…"
+            layout="justify-self-start"
+          >
+            Send it again
+          </Button>
+          <p role="status" className="text-meta text-good empty:hidden">
+            {resend === 'sent' ? 'Sent again. Give it a minute to arrive.' : ''}
+          </p>
+        </div>
+      </Panel>
+      <p className="text-meta text-ink-2">
         Already confirmed?{' '}
-        <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+        <TextLink to="/login" inline>
           Log in
-        </Link>
+        </TextLink>
       </p>
-    </div>
+    </section>
   )
 }
 
-export function Register() {
+interface RegisterState {
+  readonly problem: FieldProblem<'email' | 'password'> | null
+  readonly error: string | null
+}
+
+export function Register({ initial = {} }: { initial?: Partial<RegisterState> } = {}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [problem, setProblem] = useState(initial.problem ?? null)
+  const [error, setError] = useState<string | null>(initial.error ?? null)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
+    if (loading) return
     setError(null)
+    const falta = registerProblem(email, password)
+    setProblem(falta)
+    if (falta !== null) return
     setLoading(true)
     // No se pide el nombre: better-auth requiere el campo, así que lo derivamos del email.
     const name = email.split('@')[0] ?? email
@@ -80,44 +116,57 @@ export function Register() {
 
   if (done) return <CheckInbox email={email} />
 
+  const errorOf = (field: 'email' | 'password') =>
+    problem?.field === field ? { error: problem.msg } : {}
+
   return (
-    <div className="mx-auto max-w-sm">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Create your account</h1>
-        <p className="mt-1 text-sm text-slate-500">Start building your rider.</p>
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <TextField
-            label="Email"
-            value={email}
-            onChange={setEmail}
+    <section className="mx-auto grid max-w-form gap-4">
+      <PageHeader title="Create your account" status="Start building your rider." />
+      <Panel ariaLabel="Create your account" answer>
+        <form onSubmit={onSubmit} className="grid gap-3">
+          <Field
+            kind="input"
             type="email"
+            id="register-email"
+            label="Email"
             autoComplete="email"
+            value={email}
+            onChange={(v) => {
+              setEmail(v)
+              setProblem(null)
+            }}
+            {...errorOf('email')}
           />
-          <TextField
-            label="Password"
-            value={password}
-            onChange={setPassword}
+          <Field
+            kind="input"
             type="password"
+            id="register-password"
+            label="Password"
             autoComplete="new-password"
-            minLength={8}
-            hint="At least 8 characters."
+            help="At least 8 characters."
+            value={password}
+            onChange={(v) => {
+              setPassword(v)
+              setProblem(null)
+            }}
+            {...errorOf('password')}
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
-          >
-            {loading ? 'Creating…' : 'Create account'}
-          </button>
+          {error !== null && (
+            <p role="alert" className="text-meta text-bad">
+              {error}
+            </p>
+          )}
+          <Button variant="primary" type="submit" busy={loading} busyLabel="Creating…">
+            Create account
+          </Button>
         </form>
-      </div>
-      <p className="mt-4 text-center text-sm text-slate-500">
+      </Panel>
+      <p className="text-meta text-ink-2">
         Already have an account?{' '}
-        <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+        <TextLink to="/login" inline>
           Log in
-        </Link>
+        </TextLink>
       </p>
-    </div>
+    </section>
   )
 }

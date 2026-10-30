@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 697,
+    "tema": 422,
     "arbitrarios": 13,
-    "espaciado": 11,
+    "espaciado": 4,
     "layout": 0
   },
   "ficheros": {
@@ -61,12 +61,6 @@
       "espaciado": 1,
       "layout": 0
     },
-    "apps/web/src/components/StarRating.tsx": {
-      "tema": 2,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/components/Tabs.tsx": {
       "tema": 18,
       "arbitrarios": 2,
@@ -75,12 +69,6 @@
     },
     "apps/web/src/components/TeamFeed.tsx": {
       "tema": 5,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/TextField.tsx": {
-      "tema": 11,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
@@ -115,20 +103,8 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/pages/CreateRider.tsx": {
-      "tema": 62,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
     "apps/web/src/pages/Finances.tsx": {
       "tema": 21,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/ForgotPassword.tsx": {
-      "tema": 23,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
@@ -136,18 +112,6 @@
     "apps/web/src/pages/HallOfFame.tsx": {
       "tema": 14,
       "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/HowToPlay.tsx": {
-      "tema": 39,
-      "arbitrarios": 0,
-      "espaciado": 3,
-      "layout": 0
-    },
-    "apps/web/src/pages/Login.tsx": {
-      "tema": 32,
-      "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },
@@ -163,27 +127,9 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/pages/Privacy.tsx": {
-      "tema": 13,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
     "apps/web/src/pages/Rankings.tsx": {
       "tema": 15,
       "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Register.tsx": {
-      "tema": 43,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/pages/ResetPassword.tsx": {
-      "tema": 20,
-      "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },
@@ -209,12 +155,6 @@
       "tema": 18,
       "arbitrarios": 0,
       "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/VerifyEmail.tsx": {
-      "tema": 30,
-      "arbitrarios": 0,
-      "espaciado": 1,
       "layout": 0
     }
   }
