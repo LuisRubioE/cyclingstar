@@ -112,7 +112,7 @@ export const GroupBar = memo(function GroupBar({
       data-ui="GroupBar"
       data-variant={expanded ? 'expanded' : 'default'}
       data-state={open === null ? 'closed' : 'open'}
-      className="divide-y divide-slate-100"
+      className="divide-y divide-line"
       aria-live="off"
     >
       {groups.map((g) => {
@@ -143,7 +143,7 @@ export const GroupBar = memo(function GroupBar({
         </div>
       )}
       {own !== null && (
-        <p data-your-rider="" className="py-1.5 pl-7 text-xs font-medium text-cyan-700">
+        <p data-your-rider="" className="py-1.5 pl-6 text-caption font-semibold text-accent">
           {own}
         </p>
       )}
@@ -165,11 +165,11 @@ function PullingRow({
   if (line === null) return null
   return (
     <>
-      <p data-pulling="desktop" className="hidden pl-7 text-xs text-slate-500 sm:block">
+      <p data-pulling="desktop" className="hidden pl-6 text-caption text-ink-2 sm:block">
         {pullingText(line, cast)}
       </p>
       {mobile && (
-        <p data-pulling="mobile" className="pl-7 text-xs text-slate-500 sm:hidden">
+        <p data-pulling="mobile" className="pl-6 text-caption text-ink-2 sm:hidden">
           {pullingText(line, cast, true)}
         </p>
       )}
@@ -211,7 +211,7 @@ export function GroupRow({
         onClick={onToggle}
         className="flex min-h-11 w-full items-center gap-2 text-left text-meta"
       >
-        <span className="w-5 shrink-0 text-right text-caption font-semibold tabular-nums text-ink-3">
+        <span className="w-4 shrink-0 text-right text-caption font-semibold tabular-nums text-ink-3">
           {g.number}
         </span>
         {/* el rótulo y los maillots de líder parten de línea en vez de cortar ([DUEÑO 17]; §6.4): a 28,
@@ -222,21 +222,21 @@ export function GroupRow({
             g.jerseys.map((j) => <LeaderJersey key={j} kind={j} size={28} />)}
           {g.own && (
             <span
-              className="h-2 w-2 shrink-0 rounded-full bg-cyan-500"
+              className="h-2 w-2 shrink-0 rounded-full bg-accent"
               role="img"
               aria-label="Your rider"
               title="Your rider"
             />
           )}
         </span>
-        <span className="ml-auto shrink-0 text-xs tabular-nums text-slate-400">
+        <span className="ml-auto shrink-0 text-caption tabular-nums text-ink-3">
           km {clock === 'estimated' && g.number > 1 ? '~' : ''}
           {g.km.toFixed(1)}
         </span>
         {/* la fila 1 no lleva hueco: es la cabeza de la pantalla; salvo unos segundos, si la que
             iba delante acaba de morir con los suyos en carrera y aún no tienen grupo (10a) */}
         {(g.number > 1 || g.gap.toHeadS >= BROADCAST.sameTimeS) && !quiet && (
-          <span className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">
+          <span className="min-w-14 shrink-0 text-right text-meta font-semibold tabular-nums text-ink">
             {mainGapText(g.gap.toHeadS)}
           </span>
         )}
@@ -245,7 +245,7 @@ export function GroupRow({
         <TeamLine group={g} cast={cast} mobile={g.number === 1 || g.own} onMore={onToggle} />
       )}
       {t !== undefined && (t.back > 0 || t.across > 0) && (
-        <p className="pl-7 text-xs text-slate-500">
+        <p className="pl-6 text-caption text-ink-2">
           {t.back > 0 && <span>↓ {t.back} dropping back</span>}
           {t.back > 0 && t.across > 0 && ' · '}
           {t.across > 0 && <span>↑ {t.across} bridging across</span>}
@@ -305,9 +305,11 @@ function RowName({ group, cast }: { group: GroupNow; cast: readonly RiderCard[] 
     )
   const word = groupLabelText('en', group.label, group.role, 'bar', nameOf(cast))
   return (
-    <span className="min-w-0 break-words text-slate-800">
-      <span className="font-semibold uppercase tracking-wide">{word}</span>
-      <span className="text-slate-500"> · {group.size}</span>
+    <span className="min-w-0 break-words text-caption text-ink">
+      <span data-caps="" className="font-semibold uppercase tracking-caps">
+        {word}
+      </span>
+      <span className="tabular-nums text-ink-2"> · {group.size}</span>
     </span>
   )
 }

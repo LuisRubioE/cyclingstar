@@ -10,6 +10,7 @@ import {
 } from '@cyclingstar/shared'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
+import { CueCard } from '../../components/broadcast/CueCard'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
 import { ActionRow } from '../../components/ui/ActionRow'
 import { AppHeader } from '../../components/ui/AppHeader'
@@ -87,6 +88,7 @@ import {
   SEEN_AT,
   SHORT_CONSEQUENCE,
   TEAM_ROWS,
+  UI_CUES,
   UI_TEAMS,
   UI_QUERIES,
   type UiGcRow,
@@ -1452,6 +1454,23 @@ function AmbitoOscuro() {
   )
 }
 
+/**
+ * EL RÓTULO DE `Watch` (E3, docs/visual.md §14.5; H-07, 14-a; PR 20): no es del catálogo, pero su título más
+ * largo vive aquí para que la prueba del teléfono mire cada día que va entero y a 12 px o más, y de noche
+ * con la letra al doble (§16.5). Lleva su propio ámbito oscuro, con los fondos de sus tres clases.
+ */
+function Rotulos() {
+  return (
+    <Demo name="Cue card (Watch)">
+      {UI_CUES.map(([name, cls, title, detail], i) => (
+        <Estado key={name} name={name}>
+          <CueCard cue={{ text: { title, detail }, cls, seq: i + 1 }} />
+        </Estado>
+      ))}
+    </Demo>
+  )
+}
+
 export function UiPage() {
   return (
     <main className="mx-auto flex max-w-page flex-col gap-8 px-3 py-6 sm:px-4">
@@ -1483,6 +1502,7 @@ export function UiPage() {
       <Marcos />
       <Iconos />
       <AmbitoOscuro />
+      <Rotulos />
     </main>
   )
 }
