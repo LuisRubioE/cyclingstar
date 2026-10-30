@@ -1,8 +1,8 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1456,
-    "arbitrarios": 27,
+    "tema": 1414,
+    "arbitrarios": 24,
     "espaciado": 15,
     "layout": 0
   },
@@ -305,12 +305,6 @@
       "tema": 15,
       "arbitrarios": 0,
       "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/pages/TeamCalendar.tsx": {
-      "tema": 42,
-      "arbitrarios": 3,
-      "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/TeamIdentity.tsx": {

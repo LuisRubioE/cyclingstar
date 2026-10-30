@@ -204,7 +204,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/pages/ResetPassword.tsx',
   'apps/web/src/pages/RiderProfile.tsx',
   'apps/web/src/pages/Team.tsx',
-  'apps/web/src/pages/TeamCalendar.tsx',
   'apps/web/src/pages/TeamIdentity.tsx',
   'apps/web/src/pages/TeamSquad.tsx',
   'apps/web/src/pages/Teams.tsx',
