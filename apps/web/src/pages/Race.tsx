@@ -1,4 +1,4 @@
-import type { HorizonSummary, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
+import type { HorizonSummary } from '@cyclingstar/shared'
 import {
   type UseQueryResult,
   keepPreviousData,
@@ -85,17 +85,6 @@ const KIND_DOT: Record<string, string> = {
   reina: 'bg-bad',
   cri: 'bg-accent',
   clasica: 'bg-gold',
-}
-
-/**
- * El tono de la marca de origen (docs/generador.md §11.4), en un `Chip` desde el PR 21a: `good` solo lo
- * real, `warn` lo que tiene ciudades y distancia reales con el relieve generado, y `neutral` lo inventado.
- */
-const SOURCE_TONE: Record<RouteSource | RaceRouteSource, Tone> = {
-  real: 'good',
-  edicion: 'warn',
-  mixto: 'warn',
-  generado: 'neutral',
 }
 
 const DIVISION_LABEL: Record<string, string> = {
@@ -223,10 +212,11 @@ function StageLine({ stage, oneDay }: { stage: RaceStagePlan; oneDay: boolean })
         La ETIQUETA del calendario, no el tipo. Son dos vocabularios para lo mismo —«Summit finish»
         contra «Mountain», «Uphill finish» contra «Hilly»— y el del calendario es el preciso: sabe
         distinguir la reina que muere arriba de la que baja a meta. El tipo sigue mandando en el
-        color del punto, que es para lo que sirve.
+        color del punto, que es para lo que sirve. A todo ancho desde la revisión del 21a: en el
+        teléfono iba en `hidden`, y el tipo lo decía solo el color del punto (D-13); la línea parte.
       */}
-      {!oneDay && <span className="hidden text-caption text-ink-3 sm:inline">{stage.label}</span>}
-      <StageRoute from={stage.from} to={stage.to} className="truncate text-ink-2" />
+      {!oneDay && <span className="text-caption text-ink-3">{stage.label}</span>}
+      <StageRoute from={stage.from} to={stage.to} className="min-w-0 text-ink-2" />
       {stage.timeTrial && <span className="text-caption font-semibold text-accent">ITT</span>}
       <span className="ml-auto shrink-0 tabular-nums text-ink-3">{stage.km} km</span>
     </>
@@ -249,7 +239,7 @@ function StageRouteNote({ stage }: { stage: RaceStagePlan }) {
   return (
     <div className="mb-1.5 space-y-1 pl-4 text-caption">
       <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-        <Chip tone={SOURCE_TONE[stage.routeSource]}>{ROUTE_SOURCE_LABEL[stage.routeSource]}</Chip>
+        <Chip tone="neutral">{ROUTE_SOURCE_LABEL[stage.routeSource]}</Chip>
         {!real && <span className="text-ink-3">{editionLabel(stage.edicion)}</span>}
       </p>
       {!real && stage.arch && <p className="text-ink-2">{stage.arch.frase}</p>}
@@ -276,7 +266,7 @@ function RouteTab({ data }: { data: RaceView }) {
         {data.stages.map((stage) => (
           <Fragment key={stage.index}>
             <li>
-              <div className="mb-1 flex items-center gap-2 text-meta">
+              <div className="mb-1 flex flex-wrap items-center gap-x-2 text-meta">
                 <StageLine stage={stage} oneDay={oneDay} />
               </div>
               <StageRouteNote stage={stage} />
@@ -340,7 +330,7 @@ function StagesTab({
           return (
             <Fragment key={stage.index}>
               <li className="border-b border-line py-1.5 last:border-0">
-                <div className="flex items-center gap-2 text-meta">
+                <div className="flex flex-wrap items-center gap-x-2 text-meta">
                   <StageLine stage={stage} oneDay={data.stages.length === 1} />
                 </div>
                 <div className="flex min-h-11 items-center gap-2 pl-4 text-meta">
@@ -796,9 +786,7 @@ export function Race() {
         {/* La marca de origen de la carrera entera (§11.4) y, si algo en ella se genera, su edición
             en este mundo: lo real no cambia de un año a otro y no tiene edición que contar. */}
         <p className="flex flex-wrap items-center gap-2 text-caption">
-          <Chip tone={SOURCE_TONE[data.race.routeSource]}>
-            {raceRouteSourceLabel(data.race.routeSource, data.stages)}
-          </Chip>
+          <Chip tone="neutral">{raceRouteSourceLabel(data.race.routeSource, data.stages)}</Chip>
           {data.race.routeSource !== 'real' && data.stages[0] && (
             <span className="text-ink-3">{editionLabel(data.stages[0].edicion)}</span>
           )}

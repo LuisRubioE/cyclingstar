@@ -380,6 +380,16 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     expect(markup).toContain(
       'id="stage-classification" role="tabpanel" aria-labelledby="stage-classification-tab-gc"',
     )
+    // con otra elegida (?cls=teams), su pestaña y su panel van juntos (la revisión del 21a)
+    const teams = page(
+      '/world/races/race-france/stages/7?tab=classifications&cls=teams',
+      'on',
+      seen,
+    )
+    expect(teams).toMatch(/role="tab" aria-selected="true"[^>]*id="stage-classification-tab-teams"/)
+    expect(teams).toContain(
+      'id="stage-classification" role="tabpanel" aria-labelledby="stage-classification-tab-teams"',
+    )
   })
 
   it('no es vacío: vista, ?tab=result pinta el resultado (en Report con Watch, en Result sin él)', () => {

@@ -1,6 +1,7 @@
 import type {
   HorizonSummary,
   RacePref,
+  RaceStartlist,
   RaceView,
   StageReplay as StageReplayData,
 } from '@cyclingstar/shared'
@@ -50,6 +51,7 @@ function page(
     horizon = horizonWith({ rev: REV }),
     stage,
     prefs = [],
+    startlist,
   }: {
     watch?: 'on' | 'off'
     view: RaceView
@@ -57,6 +59,8 @@ function page(
     stage?: StageReplayData
     /** los objetivos del corredor de quien mira (E3, PR 21a) */
     prefs?: RacePref[]
+    /** la lista de salida (la revisión del 21a) */
+    startlist?: RaceStartlist
   },
 ): string {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -65,6 +69,7 @@ function page(
   client.setQueryData(['horizon'], horizon)
   client.setQueryData(['admin-whoami'], null)
   client.setQueryData(['race-prefs'], prefs)
+  if (startlist !== undefined) client.setQueryData(['race-startlist', raceId], startlist)
   client.setQueryData(raceViewKey(raceId, false, REV), view)
   if (stage !== undefined) {
     client.setQueryData(stageReplayKey(raceId, 1, false, REV), stage)
@@ -226,7 +231,10 @@ describe('una vuelta en guardia, conocida hasta la 9 con la 12 corrida (§11.5; 
     expect(markup.split('Not raced yet').length - 1).toBe(9)
     // re-sellado en el 21a (E3, §17.21): el contador va en el `Tabs` del catálogo, con su cifra en un `Chip`
     // que el lector no oye y la frase entera en `sr-only`, y no en un `aria-label` sobre un `span`
-    expect(markup).toContain('<span class="sr-only">3 stages ready to watch</span>')
+    // dentro de la pestaña `Stages` (la revisión del 21a: con un `toContain` suelto valía en cualquier sitio)
+    expect(markup).toMatch(
+      /id="race-section-tab-stages"[^>]*>Stages<span aria-hidden="true"><span data-ui="Chip"[^>]*>3<\/span><\/span><span class="sr-only">3 stages ready to watch<\/span><\/button>/,
+    )
   })
 
   it('terminada con la final velada: Finished · ready to watch en lugar del ganador', () => {
@@ -274,7 +282,7 @@ describe('una vuelta en guardia, conocida hasta la 9 con la 12 corrida (§11.5; 
  * LA FICHA CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21a): la cabecera, el estado y la
  * marca de origen en `Chip`, el velo en un `Notice`, el objetivo en `Button` con su porqué en un
  * `InfoButton` (nada vive solo en un `title`, ui/4), las pestañas del catálogo con su contador, las
- * clasificaciones en un `Segmented` de 44 y cada pestaña en su `Panel`. Los textos, los de hoy.
+ * clasificaciones en las pestañas del catálogo, de 44, y cada pestaña en su `Panel`. Los textos, los de hoy.
  */
 describe('la ficha de carrera con el sistema (§17.21; PR 21a)', () => {
   const tour = raceViewWith(21, { status: 'racing', runDays: [1, 2, 3] })
@@ -298,20 +306,20 @@ describe('la ficha de carrera con el sistema (§17.21; PR 21a)', () => {
     expect(markup).toMatch(/<h1[^>]*>[\s\S]*?Race France<\/h1>/)
   })
 
-  it('el estado y la marca de origen, en Chip: Racing now good, Finished info, Upcoming neutral; lo real, good', () => {
+  it('el estado y la marca de origen, en Chip: Racing now good, Finished info, Upcoming neutral; el origen, siempre neutral (§4.7; H-14, D-59)', () => {
     expect(chips(page('/world/races/race-france', { view: tour }))).toEqual([
       'good:Racing now',
-      'good:Real route (source cited)',
+      'neutral:Real route (source cited)',
     ])
     expect(chips(page('/world/races/race-france', { view: raceViewWith(21) }))[0]).toBe(
       'info:Finished',
     )
     const upcoming = raceViewWith(21, { status: 'upcoming', runDays: [] })
     expect(chips(page('/world/races/race-france', { view: upcoming }))[0]).toBe('neutral:Upcoming')
-    const generated = raceViewWith(21, {
-      race: { ...raceViewWith(21).race, routeSource: 'generado' },
-    })
-    expect(chips(page('/world/races/race-france', { view: generated }))[1]).toMatch(/^neutral:/)
+    for (const routeSource of ['generado', 'mixto'] as const) {
+      const view = raceViewWith(21, { race: { ...raceViewWith(21).race, routeSource } })
+      expect(chips(page('/world/races/race-france', { view }))[1], routeSource).toMatch(/^neutral:/)
+    }
   })
 
   it('el velo, un Notice info que está desde el principio, con la primera por ver de acción', () => {
@@ -368,9 +376,11 @@ describe('la ficha de carrera con el sistema (§17.21; PR 21a)', () => {
   })
 
   it('las pestañas de la carrera, las del catálogo en page', () => {
+    // anclada a su nombre (la revisión del 21a): la de las clasificaciones, abierta, también es del catálogo
     const markup = page('/world/races/race-france', { view: tour })
-    expect(markup).toMatch(/<div data-ui="Tabs" data-variant="page" data-state="ready"/)
-    expect(markup).toContain('role="tablist" aria-label="Race"')
+    expect(markup).toMatch(
+      /<div data-ui="Tabs" data-variant="page" data-state="ready"[^>]*><div role="tablist" aria-label="Race"/,
+    )
   })
 
   it('las clasificaciones, en las pestañas del catálogo, de 44, con su panel: sus cuatro no caben en un Segmented a 320', () => {
@@ -393,7 +403,32 @@ describe('la ficha de carrera con el sistema (§17.21; PR 21a)', () => {
     expect(markup).not.toContain('data-ui="Segmented"')
   })
 
+  it('con otra clasificación elegida (?cls=teams), su pestaña y su panel van juntos', () => {
+    const markup = page('/world/races/race-france?tab=classifications&cls=teams', {
+      view: raceViewWith(21, { status: 'racing', runDays: [1, 2, 3], points: [], kom: [] }),
+    })
+    expect(markup).toMatch(/role="tab" aria-selected="true"[^>]*id="race-classification-tab-teams"/)
+    expect(markup).toContain(
+      'id="race-classification" role="tabpanel" aria-labelledby="race-classification-tab-teams"',
+    )
+  })
+
+  it('el tipo de cada etapa, con su palabra a todo ancho: en el teléfono no lo dice solo el color del punto (D-13)', () => {
+    const markup = page('/world/races/race-france?tab=stages', { view: raceViewWith(21) })
+    expect(markup).toContain('<span class="text-caption text-ink-3">Flat</span>')
+    expect(markup).not.toMatch(/class="hidden text-caption text-ink-3 sm:inline">Flat</)
+  })
+
   it('Startlist, Stages, Route y Roll of honour, cada una en su Panel con su título', () => {
+    // la lista de salida, la de una carrera que va a empezar (la revisión del 21a: el test no la pintaba)
+    const upcoming = raceViewWith(21, { status: 'upcoming', runDays: [] })
+    const startlist = page('/world/races/race-france?tab=startlist', {
+      view: upcoming,
+      startlist: { upcoming: true, daysUntil: 3, frozen: false, teams: [], freeAgents: [] },
+    })
+    expect(startlist).toMatch(
+      /<section data-ui="Panel"[^>]*><div[^>]*><h2[^>]*>Provisional startlist<\/h2>/,
+    )
     for (const [tab, title] of [
       ['stages', 'Stages'],
       ['route', 'Stage profiles'],
