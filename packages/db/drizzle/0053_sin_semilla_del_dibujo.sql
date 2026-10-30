@@ -1,0 +1,1 @@
+ALTER TABLE "teams" DROP COLUMN "jersey_style_seed";
