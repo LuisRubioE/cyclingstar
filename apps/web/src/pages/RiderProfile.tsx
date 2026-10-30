@@ -33,7 +33,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { Flag } from '../components/ui/Flag'
 import { FormChart } from '../components/ui/FormChart'
 import { InfoButton } from '../components/ui/InfoButton'
-import { Meter } from '../components/ui/Meter'
+import { METER_EMPTY, Meter } from '../components/ui/Meter'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
@@ -44,6 +44,7 @@ import { TextLink } from '../components/ui/TextLink'
 import { conditionLabel, conditionLevel } from '../domain/condition'
 import { HEALTH_LOOK, healthChip, healthNote, healthTone, healthUntilLabel } from '../domain/health'
 import { archetypeLabel, palmaresLabel } from '../domain/labels'
+import { type RaceNames, raceNamesOf } from '../domain/raceDay'
 import { rowTeam } from '../domain/tableIdentity'
 import { formatGameDay } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
@@ -75,6 +76,15 @@ const COACH_NOTE_TEXT: Record<CoachNote, string> = {
 /** La palabra de una barra de 0 a 100, en minúscula tras los dos puntos (§4.6): `Fitness: good`. */
 const palabra = (v: number): string => conditionLabel(v).toLowerCase()
 
+/** Una lectura de 0 a 100 en su `Meter`, con su palabra; sin dato, `No data yet` (§4.8). */
+function Lectura({ label, value }: { label: string; value: number | null }) {
+  return value === null ? (
+    <Meter label={label} value={null} />
+  ) : (
+    <Meter label={label} value={conditionLevel(value)} valueText={palabra(value)} />
+  )
+}
+
 /** Un medidor con su porqué al lado, que parte de línea si no cabe (§4.3). */
 function ConPorque({ children, about, why }: { children: ReactNode; about: string; why: string }) {
   return (
@@ -90,10 +100,13 @@ function Condicion({
   data,
   morale,
   gameDay,
+  raceNames,
 }: {
   readonly data: FormResponse
-  readonly morale: number | null
+  /** las estrellas de la moral: undefined, mientras llega el resumen; null, si no llegó */
+  readonly morale: number | null | undefined
   readonly gameDay: number | null
+  readonly raceNames: RaceNames
 }) {
   const { form, health, log } = data
   const last = log[log.length - 1] ?? null
@@ -110,39 +123,30 @@ function Condicion({
       {/*
         Las DOS magnitudes que ve el jugador, ambas 0-100 y acotadas por el motor: el fondo que ha construido y
         lo descansado que está hoy, en su `Meter` con la palabra y nunca la cifra (§4.8). La fatiga no necesita
-        número propio: la frescura ES su cara legible (MVP.md Paso 20).
+        número propio: la frescura ES su cara legible (MVP.md Paso 20). Siempre en su sitio: sin días todavía,
+        `No data yet`, y no un hueco (la revisión del 21h).
       */}
-      {last && (
-        <div className="grid gap-1">
-          <ConPorque
-            about="About fitness"
-            why="Your training base: the condition you have built up over the past weeks. It grows with steady work and fades with rest."
-          >
-            <Meter
-              label="Fitness"
-              value={conditionLevel(last.fitness)}
-              valueText={palabra(last.fitness)}
-            />
-          </ConPorque>
-          <ConPorque
-            about="About freshness"
-            why="Your race readiness: how rested you are today. High = fresh and race-ready; low = fatigued from hard training. Easing off before a goal raises it: peaking is high fitness with high freshness."
-          >
-            <Meter
-              label="Freshness"
-              value={conditionLevel(last.freshness)}
-              valueText={palabra(last.freshness)}
-            />
-          </ConPorque>
-          {/* los cerillos del día, de 2 a 5 (SPEC §6.6), uno a uno en un `Meter` de cinco (decisión 4-c) */}
-          <ConPorque
-            about="About matches"
-            why="Hard efforts you can make today. Every attack, chase or surge burns one. With none left you can still ride, but you cannot answer a move. Racing tired costs you one before the start."
-          >
-            <Meter label="Matches" value={form?.matches ?? null} steps={5} />
-          </ConPorque>
-        </div>
-      )}
+      <div className="grid gap-1">
+        <ConPorque
+          about="About fitness"
+          why="Your training base: the condition you have built up over the past weeks. It grows with steady work and fades with rest."
+        >
+          <Lectura label="Fitness" value={last?.fitness ?? null} />
+        </ConPorque>
+        <ConPorque
+          about="About freshness"
+          why="Your race readiness: how rested you are today. High = fresh and race-ready; low = fatigued from hard training. Easing off before a goal raises it: peaking is high fitness with high freshness."
+        >
+          <Lectura label="Freshness" value={last?.freshness ?? null} />
+        </ConPorque>
+        {/* los cerillos del día, de 2 a 5 (SPEC §6.6), uno a uno en un `Meter` de cinco (decisión 4-c) */}
+        <ConPorque
+          about="About matches"
+          why="Hard efforts you can make today. Every attack, chase or surge burns one. With none left you can still ride, but you cannot answer a move. Racing tired costs you one before the start."
+        >
+          <Meter label="Matches" value={form?.matches ?? null} steps={5} />
+        </ConPorque>
+      </div>
 
       {health && (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -154,15 +158,20 @@ function Condicion({
         </p>
       )}
 
-      {morale !== null && (
-        // en medias estrellas (DD-12, §13.7), en su `dl`, como en la portada
-        <dl className="grid gap-1">
-          <dt className="text-caption font-semibold tracking-caps text-ink-3 uppercase">Morale</dt>
-          <dd className="flex min-h-10 items-center">
-            <StarRating value={morale} size={20} />
-          </dd>
-        </dl>
-      )}
+      {/*
+        La moral en medias estrellas (DD-12, §13.7), en su `dl`, como en la portada; siempre en su sitio: mientras
+        llega el resumen, su renglón guardado, y si no llegó, `No data yet` (la revisión del 21h).
+      */}
+      <dl className="grid gap-1">
+        <dt className="text-caption font-semibold tracking-caps text-ink-3 uppercase">Morale</dt>
+        <dd className="flex min-h-10 items-center">
+          {morale === null ? (
+            <span className="text-meta text-ink-2">{METER_EMPTY}</span>
+          ) : (
+            morale !== undefined && <StarRating value={morale} size={20} />
+          )}
+        </dd>
+      </dl>
 
       <FormChart points={log} />
 
@@ -173,7 +182,7 @@ function Condicion({
       */}
       <Disclosure showLabel="Where the energy went" hideLabel="Hide where the energy went">
         <div className="px-3">
-          <RaceEffortLog points={log} />
+          <RaceEffortLog points={log} raceNames={raceNames} />
         </div>
       </Disclosure>
     </div>
@@ -185,7 +194,7 @@ function Condicion({
  * consultas (`/api/riders/me/...`) no se disparan nunca en la vista pública. Es la respuesta de la propia, y
  * contesta también mientras llega `/form`, con su espera (§7.3).
  */
-function OwnerCondition() {
+function OwnerCondition({ raceNames }: { readonly raceNames: RaceNames }) {
   const rev = useHorizonRev()
   const formQuery = useQuery({
     queryKey: horizonKey(['rider', 'form'], rev),
@@ -198,14 +207,17 @@ function OwnerCondition() {
     enabled: rev !== undefined,
   })
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
+  // la moral: mientras llega el resumen, nada que decir todavía; si no llegó, que no hay dato
+  const morale = summaryQuery.data?.moraleStars ?? (summaryQuery.isError ? null : undefined)
   return (
     <Panel title="Condition" answer>
       <QueryView query={formQuery} label="your condition" skeleton={{ kind: 'panel' }}>
         {(data) => (
           <Condicion
             data={data}
-            morale={summaryQuery.data?.moraleStars ?? null}
+            morale={morale}
             gameDay={healthQuery.data?.gameDay ?? null}
+            raceNames={raceNames}
           />
         )}
       </QueryView>
@@ -260,7 +272,10 @@ function Dato({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/** Los datos del corredor, detrás de lo demás (§4.6): la edad, de dónde es, dónde vive, el equipo, el papel. */
+/**
+ * Los datos del corredor, detrás de lo demás (§4.6): la edad, de dónde es, dónde vive, el equipo, el papel; y en
+ * la ajena, su salud con su porqué, que la cabecera no lleva (la propia lo dice en `Condition`).
+ */
 function RiderFacts({
   rider,
   owner,
@@ -278,18 +293,28 @@ function RiderFacts({
     <Panel title="Rider">
       <dl className="grid">
         <Dato label="Age">
-          {`${rider.age} · born day ${birthdayDayOfSeason(rider.id)} of the season`}
+          {`${rider.age} · born on ${formatGameDay(birthdayDayOfSeason(rider.id), null)}`}
           {declining && <Chip tone="warn">Declining</Chip>}
         </Dato>
+        {!owner && rider.health.state !== 'sano' && (
+          <Dato label="Health">
+            <span className="text-meta text-ink-2">{HEALTH_LOOK[rider.health.state].note}</span>
+          </Dato>
+        )}
         <Dato label="Nation">
-          <Flag country={rider.country} height={16} />
+          {/* la bandera, para el ojo: su nombre lo dice el texto de al lado, que el lector no oiga dos veces */}
+          <span aria-hidden="true">
+            <Flag country={rider.country} height={16} />
+          </span>
           <TextLink to={`/world/nations/${rider.country}`}>
             {country?.name ?? rider.country}
           </TextLink>
         </Dato>
         {abroad && (
           <Dato label="Lives in">
-            <Flag country={rider.residence} height={16} />
+            <span aria-hidden="true">
+              <Flag country={rider.residence} height={16} />
+            </span>
             {residence?.name ?? rider.residence}
           </Dato>
         )}
@@ -415,7 +440,10 @@ export function RiderProfile() {
 
   const coach = coachQuery.data ?? null
   const detail: AttributeDetail = {
-    trend: Object.fromEntries((trendQuery.data ?? []).map((t) => [t.attr, t.arrow])),
+    // la flecha, cuando llega: antes, ninguna, y no un `Steady` que no se sabe (la revisión del 21h)
+    ...(trendQuery.data !== undefined && {
+      trend: Object.fromEntries(trendQuery.data.map((t) => [t.attr, t.arrow])),
+    }),
     opinion: Object.fromEntries((coach?.ceilings ?? []).map((c) => [c.attr, c.opinion])),
   }
   const notes = coach?.notes ?? []
@@ -423,6 +451,8 @@ export function RiderProfile() {
   const gameDay = clock.data?.gameDay ?? null
   const palmares = palmaresQuery.data ?? []
   const results = resultsQuery.data ?? []
+  // el nombre de cada carrera, de sus resultados: el de un día de carrera del diario (`Race Liège · Stage 2`)
+  const raceNames = raceNamesOf(results)
 
   return (
     <section className="grid gap-4">
@@ -436,7 +466,7 @@ export function RiderProfile() {
       />
       <VeilNotice kind="results" />
 
-      {owner && <OwnerCondition />}
+      {owner && <OwnerCondition raceNames={raceNames} />}
 
       <Panel title="Attributes" answer={!owner}>
         <div className="grid gap-3">
@@ -504,7 +534,7 @@ export function RiderProfile() {
 
       <RiderFacts rider={rider} owner={owner} declining={declining} />
 
-      {owner && <BlockReport />}
+      {owner && <BlockReport raceNames={raceNames} />}
       {owner && <LastRaceReport />}
     </section>
   )

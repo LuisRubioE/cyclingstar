@@ -7,7 +7,7 @@ import {
 } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { fetchBlockReport } from '../api/sheet'
-import { raceDayTitle } from '../domain/raceDay'
+import { type RaceNames, raceDayTitle } from '../domain/raceDay'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { Panel } from './ui/Panel'
 
@@ -20,7 +20,8 @@ import { Panel } from './ui/Panel'
  *
  * Con el sistema desde el 21h de E3 (docs/visual.md §4.6): su `Panel`, el total de cada atributo en su tono
  * (`good` o `bad`) y las sesiones con su nombre, también las de carrera, que decían su clave cruda
- * (`carrera:race-jaen:e1`). El `0 race days` de la cabecera es el DD-24 de E2, que E3 no toca.
+ * (`carrera:race-jaen:e1`) y ahora la carrera por su nombre, el de los resultados del corredor (`Race Jaén ·
+ * Stage 1`). El `0 race days` de la cabecera es el DD-24 de E2, que E3 no toca.
  */
 
 const SOURCE_LABEL: Record<AttrLogSource, string> = {
@@ -35,15 +36,20 @@ function isSession(activity: string): activity is Session {
   return (SESSIONS as readonly string[]).includes(activity)
 }
 
-function activityLabel(activity: string): string {
+function activityLabel(activity: string, raceNames: RaceNames | undefined): string {
   if (activity === 'carrera') return 'Race days'
   if (isSession(activity)) return SESSION_CATALOG[activity].label
-  return raceDayTitle(activity) ?? activity
+  return raceDayTitle(activity, raceNames) ?? activity
 }
 
 const signed = (x: number): string => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(1)}`
 
-export function BlockReport() {
+export function BlockReport({
+  raceNames,
+}: {
+  /** el nombre de cada carrera, de los resultados del corredor; sin él, el de su clave */
+  raceNames?: RaceNames | undefined
+}) {
   const rev = useHorizonRev()
   const report = useQuery({
     queryKey: horizonKey(['block-report'], rev),
@@ -93,7 +99,9 @@ export function BlockReport() {
 
         {data.sessions.length > 0 && (
           <p className="border-t border-line pt-3 text-meta text-ink-2">
-            {data.sessions.map((s) => `${activityLabel(s.activity)} ×${s.days}`).join(' · ')}
+            {data.sessions
+              .map((s) => `${activityLabel(s.activity, raceNames)} ×${s.days}`)
+              .join(' · ')}
           </p>
         )}
       </div>

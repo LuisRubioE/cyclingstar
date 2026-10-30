@@ -37,7 +37,7 @@ describe('Badges (§4.6; PR 21h)', () => {
     )
     expect(html).not.toContain('title=')
     expect(html).not.toMatch(
-      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+      /\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\d/,
     )
   })
 

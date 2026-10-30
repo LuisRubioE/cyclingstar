@@ -1,6 +1,6 @@
-import { type LoadLevel, seasonPosition } from '@cyclingstar/shared'
+import { type LoadLevel, seasonPosition, stageRouteText } from '@cyclingstar/shared'
 import type { FormPoint } from '../api/form'
-import { raceDayTitle } from '../domain/raceDay'
+import { type RaceNames, raceDayTitle } from '../domain/raceDay'
 import { LOAD_WORD, formatGameDay } from '../domain/words'
 import { StageRoute } from './StageRoute'
 
@@ -17,8 +17,9 @@ import { StageRoute } from './StageRoute'
  * descuenta depósito, así que la barra y el total no pueden discrepar. La carga del día va en palabras,
  * como en el cuadro (`Load: hard`; E3, docs/visual.md §10.7, PR 19b): el TSS ya no cruza la API.
  *
- * Con el sistema desde el 21h de E3 (§4.6): el día de la temporada (`Day 52`) y el título de la etapa de su
- * clave (`France · Stage 3`); la barra, un SVG con un tramo por concepto en sus tokens, sin el `title` que el
+ * Con el sistema desde el 21h de E3 (§4.6): el día de la temporada (`Day 52`) y el título de la etapa, con el
+ * nombre de la carrera de los resultados del corredor (`Race France · Stage 3`), y su recorrido tras su `·`
+ * (§4.10); la barra, un SVG con un tramo por concepto en sus tokens, sin el `title` que el
  * dedo no abre, y lo que dice, en palabras para el lector (`Where it went, most first: …`); y la leyenda en
  * `caption`.
  */
@@ -71,7 +72,16 @@ function Barra({ gasto }: { readonly gasto: Gasto }) {
   )
 }
 
-export function RaceEffortLog({ points, max = 8 }: { points: FormPoint[]; max?: number }) {
+export function RaceEffortLog({
+  points,
+  max = 8,
+  raceNames,
+}: {
+  points: FormPoint[]
+  max?: number
+  /** el nombre de cada carrera, de los resultados del corredor; sin él, el de su clave */
+  raceNames?: RaceNames | undefined
+}) {
   const dias = points
     .filter((p) => p.parte != null)
     .slice(-max)
@@ -103,9 +113,10 @@ export function RaceEffortLog({ points, max = 8 }: { points: FormPoint[]; max?: 
           <li key={p.gameDay} className="grid gap-1.5 py-3">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3">
               <span className="text-row font-semibold text-ink">
-                {raceDayTitle(p.activity) ?? p.activity}
-                {/* de dónde a dónde fue la etapa */}
-                <StageRoute from={p.from} to={p.to} className="ml-1.5 font-normal text-ink-2" />
+                {raceDayTitle(p.activity, raceNames) ?? p.activity}
+                {/* de dónde a dónde fue la etapa, como toda etapa (§4.10): `Stage 3 · Gandia → Alcoi` */}
+                {stageRouteText(p.from, p.to) !== null && ' · '}
+                <StageRoute from={p.from} to={p.to} className="font-normal text-ink-2" />
               </span>
               <span className="text-caption tabular-nums text-ink-3">
                 {formatGameDay(seasonPosition(p.gameDay).dayOfSeason, null)} · Load:{' '}

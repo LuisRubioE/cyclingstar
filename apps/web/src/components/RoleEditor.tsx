@@ -1,9 +1,20 @@
 import { VOCATIONS, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
-import { useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { setArchetype } from '../api/rider'
 import { Button } from './ui/Button'
 import { Field } from './ui/Field'
+
+/**
+ * Lo que se vuelve a pedir tras guardar el papel: el corredor propio y su ficha pública, de donde salen el papel
+ * de la cabecera y el del editor (la revisión del 21h: solo se pedía el primero, y los dos seguían en el viejo).
+ */
+export async function afterRoleChange(qc: QueryClient): Promise<void> {
+  await Promise.all([
+    qc.invalidateQueries({ queryKey: ['rider', 'me'] }),
+    qc.invalidateQueries({ queryKey: ['public-rider'] }),
+  ])
+}
 
 /**
  * Cambiar la vocación declarada (la etiqueta) del corredor (#50). Solo cambia el tipo: alinear el
@@ -36,7 +47,7 @@ export function RoleEditor({
     setError(null)
     try {
       await setArchetype(value)
-      await qc.invalidateQueries({ queryKey: ['rider', 'me'] })
+      await afterRoleChange(qc)
       setOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')

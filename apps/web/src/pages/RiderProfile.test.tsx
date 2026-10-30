@@ -15,11 +15,12 @@ import {
   type TeamListItem,
   maxMatchCount,
 } from '@cyclingstar/shared'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, type QueryKey } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { lastRaceKey } from '../api/lastRace'
+import { ApiError } from '../api/request'
 import { horizonKey } from '../queryClient'
 import { RiderProfile } from './RiderProfile'
 import { healthWith } from './__fixtures__/world'
@@ -214,33 +215,61 @@ const ULTIMA: RiderRaceReport = {
 }
 
 interface Cache {
-  readonly forma?: boolean
+  /** la forma: false, mientras llega; o una distinta */
+  readonly forma?: boolean | FormResponse
   readonly equipos?: boolean
   readonly entrenador?: CoachView
+  /** el corredor propio: null, sin corredor; `cargando`, mientras llega */
+  readonly mio?: MyRider | null | 'cargando'
+  /** la ficha pública del propio */
+  readonly propia?: PublicRiderDetail
+  /** el resumen, de donde sale la moral: false, mientras llega */
+  readonly resumen?: RiderSummary | false
+  /** la flecha de los 28 días: false, mientras llega */
+  readonly tendencia?: boolean
+  /** una consulta que falla, y se queda así en el primer pintado */
+  readonly falla?: { readonly key: QueryKey; readonly error: Error }
 }
 
 function pinta(
   path: string,
-  { forma = true, equipos = true, entrenador = ENTRENADOR }: Cache = {},
+  {
+    forma = true,
+    equipos = true,
+    entrenador = ENTRENADOR,
+    mio = MIO,
+    propia = PROPIA,
+    resumen = RESUMEN,
+    tendencia = true,
+    falla,
+  }: Cache = {},
 ) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  // un fallo se queda en el primer pintado: sin volver a pedirlo al montar
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, retryOnMount: false } },
+  })
   client.setQueryData(['health'], healthWith('on', 'off'))
   client.setQueryData(['admin-whoami'], null)
-  client.setQueryData(key('rider', 'me'), MIO)
-  for (const r of [PROPIA, AJENA]) {
+  if (mio !== 'cargando') client.setQueryData(key('rider', 'me'), mio)
+  for (const r of [propia, AJENA]) {
     client.setQueryData(key('public-rider', r.id), r)
     client.setQueryData(key('public-rider', r.id, 'palmares'), PALMARES)
     client.setQueryData(key('public-rider', r.id, 'results'), RESULTADOS)
     client.setQueryData(key('badges', r.id), LOGROS)
   }
-  if (forma) client.setQueryData(key('rider', 'form'), FORMA)
+  if (forma) client.setQueryData(key('rider', 'form'), forma === true ? FORMA : forma)
   if (equipos) client.setQueryData(key('teams'), EQUIPOS)
-  client.setQueryData(key('rider', 'summary'), RESUMEN)
-  client.setQueryData(key('rider-trend'), TENDENCIA)
+  if (resumen) client.setQueryData(key('rider', 'summary'), resumen)
+  if (tendencia) client.setQueryData(key('rider-trend'), TENDENCIA)
   client.setQueryData(['coach-view'], entrenador)
   client.setQueryData(key('rider', 'race-prefs'), OBJETIVOS)
   client.setQueryData(key('block-report'), BLOQUE)
   client.setQueryData(lastRaceKey('world'), { report: ULTIMA, ready: null })
+  if (falla !== undefined)
+    client
+      .getQueryCache()
+      .build(client, { queryKey: falla.key })
+      .setState({ status: 'error', error: falla.error, fetchStatus: 'idle' })
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
@@ -261,6 +290,10 @@ const panel = (markup: string, title: string): string =>
 const respuestas = (markup: string): number => markup.match(/data-answer=""/g)?.length ?? 0
 const titulos = (markup: string): string[] =>
   [...markup.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1] ?? '')
+const cabecera = (markup: string): string =>
+  /<header data-ui="RiderHeader"[\s\S]*?<\/header>/.exec(markup)?.[0] ?? ''
+/** Lo que se ve sin abrir nada: fuera las cajas de los `InfoButton`, que van con `hidden`. */
+const aLaVista = (s: string) => s.replace(/<span id="[^"]*" hidden=""[\s\S]*?<\/span><\/span>/g, '')
 
 describe('la ficha propia (§4.6; PR 21h)', () => {
   const propia = () => pinta('/me/profile')
@@ -272,7 +305,8 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
     expect(html).toMatch(/<h1[^>]*>[\s\S]*?Ruiz/)
     expect(html).toContain('aria-label="Show the kit full screen"')
     expect(html).toMatch(/data-ui="Chip" data-variant="accent"[\s\S]*?Player/)
-    expect(html).toContain('Climber')
+    // el papel, en la cabecera: no basta con que salga en `Rider` (la revisión del 21h)
+    expect(cabecera(html)).toContain('Climber')
     expect(html).not.toContain('brand-gold')
   })
 
@@ -333,7 +367,8 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
   })
 
   it('los atributos: la frase del entrenador a la vista junto al de techo más alto, y sus notas debajo', () => {
-    const a = panel(propia(), 'Attributes')
+    // a la vista, y no solo en la caja de su `InfoButton` (la revisión del 21h)
+    const a = aLaVista(panel(propia(), 'Attributes'))
     expect(a).toMatch(/Mountain<[\s\S]*?This is your thing: your biggest potential is here\./)
     expect(a).toContain('You recover quickly')
     expect(a).not.toContain('Tap an attribute')
@@ -343,7 +378,7 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
     const o = panel(propia(), 'Season objectives')
     expect(o).toMatch(/<a [^>]*href="\/world\/races\/race-var"[^>]*>Race Var<\/a>/)
     expect(o).toMatch(/data-ui="Chip" data-variant="good"[\s\S]*?Selected/)
-    expect(o).toContain('Day 205')
+    expect(o).toContain('Day 205 · in 5 days')
     expect(o).not.toContain('GD')
     expect(o).not.toContain('Race Nada')
   })
@@ -369,7 +404,8 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
 
   it('el corredor: la edad, la nación, dónde vive, el equipo, el papel con su editor y el puesto, en un dl', () => {
     const r = panel(propia(), 'Rider')
-    expect(r).toMatch(/<dt[^>]*>Age<\/dt><dd[^>]*>24 · born day \d+ of the season/)
+    // el día como todo día (§4.10): `born on Day 112`
+    expect(r).toMatch(/<dt[^>]*>Age<\/dt><dd[^>]*>24 · born on Day \d+</)
     expect(r).toMatch(
       /<dt[^>]*>Nation<\/dt><dd[^>]*>[\s\S]*?href="\/world\/nations\/ES"[\s\S]*?Spain/,
     )
@@ -379,6 +415,11 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
     )
     expect(r).toMatch(/<dt[^>]*>Role<\/dt><dd[^>]*>[\s\S]*?Change role/)
     expect(r).toMatch(/<dt[^>]*>Season rank<\/dt><dd[^>]*>#40 of 400/)
+    // la bandera, para el ojo: su nombre lo dice el texto de al lado, que el lector no oiga dos veces
+    expect(r.match(/data-ui="Flag"/g)).toHaveLength(2)
+    expect(r.match(/<span aria-hidden="true"><span data-ui="Flag"/g)).toHaveLength(2)
+    // la salud, en `Condition`, y no también aquí
+    expect(r).not.toContain('>Health<')
   })
 
   it('en declive, su Chip, sin title', () => {
@@ -394,6 +435,75 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
     const html = pinta('/me/profile', { equipos: false })
     expect(html).toContain('data-ui="RiderHeader"')
     expect(html).not.toContain('aria-label="Show the kit full screen"')
+  })
+
+  it('sin días todavía, la condición no se calla: el fondo y la frescura dicen No data yet, y los cerillos, los suyos', () => {
+    const c = panel(pinta('/me/profile', { forma: { ...FORMA, log: [] } }), 'Condition')
+    expect(c).toContain('Fitness: No data yet')
+    expect(c).toContain('Freshness: No data yet')
+    expect(c).toContain('Matches: 3 of 5')
+    // y sin la forma de hoy, tampoco los cerillos
+    const nada = panel(
+      pinta('/me/profile', { forma: { ...FORMA, log: [], form: null } }),
+      'Condition',
+    )
+    expect(nada).toContain('Matches: No data yet')
+  })
+
+  it('la moral, siempre en su sitio: mientras llega el resumen, su renglón guardado; y si falla, No data yet', () => {
+    const llega = panel(pinta('/me/profile', { resumen: false }), 'Condition')
+    expect(llega).toMatch(/Morale<\/dt><dd class="[^"]*min-h-10[^"]*"><\/dd>/)
+    const falla = panel(
+      pinta('/me/profile', {
+        resumen: false,
+        falla: { key: key('rider', 'summary'), error: new ApiError('No.', 500) },
+      }),
+      'Condition',
+    )
+    expect(falla).toMatch(/Morale<\/dt><dd[^>]*>(?:<[^>]+>)*No data yet</)
+  })
+
+  it('mientras llega la tendencia, ni flechas ni sus 28 días: no dice Steady de lo que aún no sabe', () => {
+    const a = panel(pinta('/me/profile', { tendencia: false }), 'Attributes')
+    expect(a).not.toContain('data-variant="trend"')
+    expect(a).not.toContain('Last 28 days')
+    expect(a).toContain('through this band')
+  })
+
+  it('los días de carrera, con el nombre de la carrera de sus resultados: Race Oman, y no Oman (la revisión del 21h)', () => {
+    const carrera = {
+      gameDay: 197,
+      fitness: 63,
+      freshness: 40,
+      load: 3,
+      activity: 'carrera:race-oman:e2',
+      parte: {
+        kmAlFrente: 0,
+        kmEnFuga: 0,
+        kmDescolgado: 0,
+        ataques: 0,
+        saltos: 0,
+        cerillos: 1,
+        reservaGastadaS: 0,
+        gasto: { rodar: 30, relevo: 0, reserva: 0, cerillos: 5, banderas: 0 },
+        pajaraKm: null,
+        descuelgueKm: null,
+      },
+      from: 'Al Rustaq',
+      to: 'Muscat',
+    }
+    const html = pinta('/me/profile', { forma: { ...FORMA, log: [carrera, ...FORMA.log] } })
+    expect(panel(html, 'Condition')).toMatch(
+      />Race Oman · Stage 2 · <span data-ui="StageRoute"[^>]*>Al Rustaq → Muscat</,
+    )
+    expect(panel(html, 'Last 4 weeks')).toContain('Race Oman · Stage 2 ×1')
+  })
+
+  it('lesionado, la salud con su porqué en Condition, y no otra vez en Rider', () => {
+    const html = pinta('/me/profile', {
+      propia: { ...PROPIA, health: { state: 'lesionado', untilDay: 205 } },
+    })
+    expect(panel(html, 'Rider')).not.toContain('>Health<')
   })
 
   it('ninguna clase de la paleta ni del tema de antes, ni un title', () => {
@@ -432,5 +542,51 @@ describe('la ficha ajena (§4.6; PR 21h)', () => {
     expect(html).not.toContain('data-variant="trend"')
     expect(html).not.toContain('Coach:')
     expect(html).not.toContain('Change role')
+  })
+
+  it('nada del entrenador, ni sus notas ni Declining, aunque estén en la caché (la revisión del 21h)', () => {
+    const html = pinta('/world/riders/r2', { entrenador: { ...ENTRENADOR, declining: true } })
+    expect(html).not.toContain('You recover quickly')
+    expect(html).not.toContain('Declining')
+  })
+
+  it('el corredor: su salud con su porqué, que la cabecera no lleva; y sin Lives in, que vive en su país', () => {
+    const r = panel(ajena(), 'Rider')
+    expect(r).toMatch(/<dt[^>]*>Health<\/dt><dd[^>]*>[\s\S]*?Out with an injury/)
+    expect(r).not.toContain('Lives in')
+    // sana, sin el renglón
+    expect(panel(pinta('/world/riders/p1', { mio: null }), 'Rider')).not.toContain('>Health<')
+  })
+})
+
+describe('los estados de la ficha, cada uno con su respuesta (§7.3; PR 21h)', () => {
+  it('sin corredor: No rider yet, en su PageHeader, y el vacío que contesta con Create your rider', () => {
+    const html = pinta('/me/profile', { mio: null })
+    expect(html).toMatch(/<h1[^>]*>No rider yet<\/h1>/)
+    expect(respuestas(html)).toBe(1)
+    expect(html).toMatch(/data-ui="EmptyState"[^>]*data-answer=""/)
+    expect(html).toMatch(/href="\/create"[^>]*>[\s\S]*?Create your rider/)
+  })
+
+  it('mientras llega el corredor propio, su espera, que contesta', () => {
+    const html = pinta('/me/profile', { mio: 'cargando' })
+    expect(html).toMatch(/data-ui="QueryView" data-state="loading"/)
+    expect(respuestas(html)).toBe(1)
+  })
+
+  it('un corredor que no existe lo dice, y contesta', () => {
+    const html = pinta('/world/riders/zz', {
+      falla: { key: key('public-rider', 'zz'), error: new ApiError('Not found.', 404) },
+    })
+    expect(html).toContain('This rider doesn&#x27;t exist.')
+    expect(respuestas(html)).toBe(1)
+  })
+
+  it('con un fallo, su error con Try again, que contesta', () => {
+    const html = pinta('/world/riders/zz', {
+      falla: { key: key('public-rider', 'zz'), error: new ApiError('Boom.', 500) },
+    })
+    expect(html).toContain('Try again')
+    expect(respuestas(html)).toBe(1)
   })
 })

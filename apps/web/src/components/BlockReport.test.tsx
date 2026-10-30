@@ -34,13 +34,13 @@ const INFORME: Informe = {
   ],
 }
 
-function pinta(report: Informe | null): string {
+function pinta(report: Informe | null, raceNames?: ReadonlyMap<string, string>): string {
   const client = new QueryClient()
   client.setQueryData(['health'], healthWith('on', 'off'))
   client.setQueryData(horizonKey(['block-report'], 'world'), report)
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
-      <BlockReport />
+      <BlockReport raceNames={raceNames} />
     </QueryClientProvider>,
   )
 }
@@ -58,7 +58,7 @@ describe('Last 4 weeks (§4.6; PR 21h)', () => {
     expect(html).toMatch(/Sprint<[\s\S]*?class="[^"]*text-bad[^"]*"[^>]*>−0\.6</)
     expect(html).toContain('+4.4 training · −0.3 age')
     expect(html).not.toMatch(
-      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+      /\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\d/,
     )
   })
 
@@ -67,6 +67,11 @@ describe('Last 4 weeks (§4.6; PR 21h)', () => {
     expect(html).toContain('Jaen · Stage 1 ×1')
     expect(html).toContain('Race days ×2')
     expect(html).not.toContain('carrera:')
+  })
+
+  it('la de carrera, con el nombre de la carrera de los resultados del corredor (la revisión del 21h)', () => {
+    const html = pinta(INFORME, new Map([['race-jaen', 'Race Jaén']]))
+    expect(html).toContain('Race Jaén · Stage 1 ×1')
   })
 
   it('sin nada que contar, lo dice', () => {

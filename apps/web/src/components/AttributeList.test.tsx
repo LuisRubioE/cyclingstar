@@ -69,8 +69,9 @@ describe('la lista de atributos con el sistema (§4.6; PR 21h)', () => {
   it('diez filas de 44 en una lista, con sus estrellas a 20 y la marca en los segmentos del Meter', () => {
     const html = renderToStaticMarkup(<AttributeList attributes={propios} detail={{}} />)
     expect(html).toMatch(/^<ul/)
+    // cada fila, de 44: la `li` misma, no los `InfoButton` que lleva dentro (la revisión del 21h)
     expect(cuenta(html, '<li class="')).toBe(10)
-    expect(cuenta(html, 'min-h-11')).toBeGreaterThanOrEqual(10)
+    expect(cuenta(html, '<li class="flex min-h-11 ')).toBe(10)
     expect(cuenta(html, 'data-ui="StarRating" data-variant="page"')).toBe(10)
     // la marca: cuatro segmentos por atributo, los llenos del MON, dos
     expect(cuenta(html, 'data-segment=')).toBe(40)
@@ -100,8 +101,19 @@ describe('la lista de atributos con el sistema (§4.6; PR 21h)', () => {
     )
     expect(html).toContain('Last 28 days: Improving fast')
     expect(html).not.toMatch(
-      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+      /\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\d/,
     )
+  })
+
+  it('mientras no llega la tendencia, ni flecha ni sus 28 días: no dice Steady de lo que aún no sabe', () => {
+    const html = renderToStaticMarkup(
+      <AttributeList attributes={propios} detail={{ opinion: opiniones('lo_tuyo', 'normal') }} />,
+    )
+    expect(html).not.toContain('data-variant="trend"')
+    expect(html).not.toContain('Last 28 days')
+    // la marca y la opinión, que no la esperan, sí
+    expect(cuenta(html, 'through this band<')).toBe(10)
+    expect(html).toContain('This is your thing')
   })
 
   it('la frase del entrenador, a la vista junto al atributo de techo más alto: lo_tuyo', () => {

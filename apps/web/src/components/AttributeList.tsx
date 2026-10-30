@@ -23,7 +23,8 @@ import { StarRating } from './ui/StarRating'
 export interface AttributeDetail {
   /**
    * The 28-day arrow per attribute, as the code `GET /trend` sends (E3, 13-a): the Δ it comes from stays on
-   * the server. Missing means it didn't move.
+   * the server. Missing means it didn't move; and no `trend` at all, that it hasn't arrived: then no arrow and
+   * no `Last 28 days`, rather than a `Steady` it doesn't know (the 21h review).
    */
   trend?: Partial<Record<Attribute, TrendCode>>
   /**
@@ -105,7 +106,7 @@ export function AttributeList({
         const { stars, mark } = attributes[attr]
         const trainedBy = sessionsForAttribute(attr).map((s) => SESSION_CATALOG[s].label)
         const opinion = detail?.opinion?.[attr]
-        const trend = detail?.trend?.[attr] ?? 'igual'
+        const trend = detail?.trend === undefined ? undefined : (detail.trend[attr] ?? 'igual')
         return (
           <li
             key={attr}
@@ -113,7 +114,7 @@ export function AttributeList({
           >
             <span className="text-row text-ink">{ATTRIBUTE_LABELS[attr]}</span>
             <span className="ml-auto flex items-center gap-2">
-              {detail && <TrendArrow code={trend} />}
+              {trend !== undefined && <TrendArrow code={trend} />}
               <span className="grid justify-items-end gap-1">
                 <StarRating value={stars} size={20} />
                 {detail && mark !== undefined && <ProgressMark mark={mark} />}
@@ -126,7 +127,9 @@ export function AttributeList({
                 {trainedBy.length > 0 ? trainedBy.join(', ') : 'racing experience'}
                 {attr === 'TAC' && trainedBy.length > 0 && ', and racing'}
               </span>
-              {detail && <span className="block pt-2">{`Last 28 days: ${TREND_WORD[trend]}`}</span>}
+              {trend !== undefined && (
+                <span className="block pt-2">{`Last 28 days: ${TREND_WORD[trend]}`}</span>
+              )}
               {opinion && (
                 <span className="block pt-2">
                   <span className="font-semibold text-ink">Coach: </span>

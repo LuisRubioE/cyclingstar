@@ -84,9 +84,11 @@ describe('Your last race con el sistema (E3, docs/visual.md §4.6; PR 21h)', () 
   it('su Panel, con la carrera, la etapa y su recorrido, y el veredicto', () => {
     const html = card({ report: report({ from: 'Lyon', to: 'Grenoble' }), ready: null })
     expect(html).toMatch(/^<section data-ui="Panel"[\s\S]*?<h2[^>]*>Your last race<\/h2>/)
-    expect(html).toContain('Race France · Stage 3')
-    expect(html).toContain('Lyon → Grenoble')
+    // la etapa y su recorrido, como toda etapa (§4.10): `Stage 3 · Gandia → Alcoi`
+    expect(html).toMatch(/Race France · Stage 3 · <span data-ui="StageRoute"[^>]*>Lyon → Grenoble</)
     expect(html).toContain('A strong ride near the front.')
+    // sin ciudades, la etapa sola, sin su ·
+    expect(card({ report: report(), ready: null })).toContain('Race France · Stage 3</p>')
   })
 
   it('sus cuatro cifras, en Stat', () => {
@@ -113,7 +115,7 @@ describe('Your last race con el sistema (E3, docs/visual.md §4.6; PR 21h)', () 
     expect(html).toMatch(/data-variant="race"[\s\S]*?Bea Soler[\s\S]*?took the win\./)
     expect(html).not.toContain('🏁')
     expect(html).not.toMatch(
-      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+      /\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\d/,
     )
     expect(html).not.toContain('rounded-2xl')
   })

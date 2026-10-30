@@ -45,6 +45,20 @@ describe('FormChart (§4.8; PR 21h)', () => {
     expect(dibujo).toContain('preserveAspectRatio="none"')
   })
 
+  it('arriba el 100 y abajo el 0: la línea sube con su valor, y los rótulos, de arriba abajo, 100, 50 y 0', () => {
+    const markup = pinta({
+      points: [
+        { gameDay: 1, fitness: 0, freshness: 100 },
+        { gameDay: 2, fitness: 100, freshness: 0 },
+      ],
+    })
+    const [fondo = '', frescura = ''] = svg(markup).match(/<polyline[^>]*>/g) ?? []
+    // los 120 del dibujo con su margen de 8: el 0 en 112 y el 100 en 8
+    expect(fondo).toContain('points="0.0,112.0 300.0,8.0"')
+    expect(frescura).toContain('points="0.0,8.0 300.0,112.0"')
+    expect(markup).toMatch(/>100<\/span><span>50<\/span><span>0<\/span>/)
+  })
+
   it('ningún <text> en el SVG: los rótulos de los dos ejes, en HTML (14-h)', () => {
     const markup = pinta({ points: dias(90) })
     expect(svg(markup)).not.toContain('<text')
@@ -113,6 +127,25 @@ describe('FormChart (§4.8; PR 21h)', () => {
     expect(marcas.map((m) => m[3])).toEqual(['Day 198', 'Day 199'])
     expect(marcas[0]?.[1]).not.toContain('translate')
     expect(marcas[1]?.[1]).toContain('-translate-x-full')
+  })
+
+  it('cada marca, centrada en su día; y cerca de un borde, arrimada hacia dentro', () => {
+    const anclas = (markup: string) =>
+      [...markup.matchAll(/<span class="([^"]*)" style="left:[^"%]+%">Day \d+</g)].map((m) =>
+        (m[1] ?? '').replace('absolute top-0 whitespace-nowrap', '').trim(),
+      )
+    // con noventa días, las tres lejos de los bordes
+    expect(anclas(pinta({ points: dias(90) }))).toEqual([
+      '-translate-x-1/2',
+      '-translate-x-1/2',
+      '-translate-x-1/2',
+    ])
+    // con tres, la primera en el borde izquierdo, la del medio centrada y la última en el derecho
+    expect(anclas(pinta({ points: dias(3, 10) }))).toEqual([
+      '',
+      '-translate-x-1/2',
+      '-translate-x-full',
+    ])
   })
 
   it('el layout, en su raíz', () => {
