@@ -1,7 +1,7 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1117,
+    "tema": 1044,
     "arbitrarios": 19,
     "espaciado": 14,
     "layout": 0
@@ -151,12 +151,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/components/WorldClock.tsx": {
-      "tema": 5,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/domain/health.ts": {
       "tema": 12,
       "arbitrarios": 0,
@@ -208,12 +202,6 @@
     "apps/web/src/pages/HallOfFame.tsx": {
       "tema": 14,
       "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Home.tsx": {
-      "tema": 68,
-      "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     },

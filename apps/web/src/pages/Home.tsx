@@ -1,7 +1,5 @@
-import { raceIdFromKey } from '@cyclingstar/shared'
+import { raceIdFromKey, seasonPosition } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
 import { fetchLastRace, lastRaceKey } from '../api/lastRace'
@@ -12,24 +10,44 @@ import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary } from '../api/ri
 import { fetchTrainingPlan } from '../api/sheet'
 import { fetchOrders } from '../api/training'
 import { authClient } from '../auth/client'
-import { Logo } from '../components/Logo'
 import { LastRaceReady } from '../components/LastRaceReady'
-import { InfoRow, Panel, SectionBar } from '../components/Panel'
+import { Logo } from '../components/Logo'
 import { StageRoute } from '../components/StageRoute'
-import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
 import { WatchBlocks } from '../components/WatchBlocks'
-import { WorldClock } from '../components/WorldClock'
+import { ActionRow } from '../components/ui/ActionRow'
 import { Button } from '../components/ui/Button'
+import { Chip } from '../components/ui/Chip'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Meter } from '../components/ui/Meter'
+import { Notice } from '../components/ui/Notice'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
-import { StarRating as UiStarRating } from '../components/ui/StarRating'
+import { StarRating } from '../components/ui/StarRating'
+import { Stat } from '../components/ui/Stat'
+import { TextLink } from '../components/ui/TextLink'
 import { conditionLabel, conditionLevel } from '../domain/condition'
 import { type DashboardAction, buildDashboard } from '../domain/dashboard'
 import { raceVerdict } from '../domain/narration'
 import { livePlan } from '../domain/trainingPlan'
 import { horizonKey, useHorizonRev, veilApplies } from '../queryClient'
+
+/**
+ * LA PORTADA CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21g): sus tres caras, cada una con su
+ * `PageHeader` y su respuesta (§7.3). El visitante, con el `Panel` de bienvenida y `Create account` (la 18);
+ * el nuevo, con su `EmptyState` (la 44); y el jugador, con `Next up`, los avisos de `dashboard.ts` (la 17),
+ * que contesta siempre, también sin avisos, y va arriba, antes de lo que tiene por ver. Fuera el reloj de la
+ * portada (`WorldClock`), que ya dice la cabecera desde el PR 11 y decía `GD` (§4.10), y las flechas de
+ * texto (ui/10).
+ */
+
+/** El día del mundo en palabras de la temporada (§4.10): `Day 50 · Season 1`, y nunca `GD 50`. */
+function gameDayText(gameDay: number | null): string {
+  if (gameDay === null || gameDay < 1) return 'the game has not started yet'
+  const { season, dayOfSeason } = seasonPosition(gameDay)
+  return `Day ${dayOfSeason} · Season ${season}`
+}
 
 function SystemStatus() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
@@ -37,12 +55,25 @@ function SystemStatus() {
     <Panel title="System status">
       <QueryView query={health} label="the server status" skeleton={{ kind: 'panel' }}>
         {(h) => (
-          <div>
-            <InfoRow label="Server">{h.ok ? 'Online' : 'Degraded'}</InfoRow>
-            <InfoRow label="Engine version">{h.engineVersion}</InfoRow>
-            <InfoRow label="Game day">{h.gameDay ?? 'the game has not started yet'}</InfoRow>
-            <InfoRow label="Database">{h.migrationsApplied ? 'ready' : 'not migrated'}</InfoRow>
-          </div>
+          // palabras y no cifras: en `Stat` irían a 32 px
+          <dl className="grid text-meta">
+            {(
+              [
+                ['Server', h.ok ? 'Online' : 'Degraded'],
+                ['Engine version', String(h.engineVersion)],
+                ['Game day', gameDayText(h.gameDay)],
+                ['Database', h.migrationsApplied ? 'ready' : 'not migrated'],
+              ] as const
+            ).map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between gap-3 border-b border-line py-2 last:border-0"
+              >
+                <dt className="font-semibold text-ink">{label}</dt>
+                <dd className="text-right tabular-nums text-ink-2">{value}</dd>
+              </div>
+            ))}
+          </dl>
         )}
       </QueryView>
     </Panel>
@@ -52,7 +83,7 @@ function SystemStatus() {
 /**
  * Guest landing: hero + how-to-play + system status. Quien vuelve sin sesión con `cs_viewer` lee el mundo
  * con el velo de su cuenta (§10.8): la portada de invitado no enseña resultados, y se lo dice (E2, §11.4;
- * 9b).
+ * 9b). Desde el PR 21g, la bienvenida es el `Panel` que contesta a la 18 (§7.3), con `Create account`.
  */
 function GuestHome() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
@@ -61,28 +92,22 @@ function GuestHome() {
       {/* Solo con el velo para todos: con `admins`, un invitado no lo tiene, y preguntar por su cookie
           sería una petición más en cada portada de invitado. */}
       {health.data?.features?.spoilerMode === 'on' && <CookieReaderNotice />}
-      <div className="space-y-4">
-        <Logo size={96} className="mb-2" />
-        <SectionBar>Race. Train. Rise.</SectionBar>
-        <p className="max-w-xl text-slate-600">
-          A persistent cycling world where your rider trains, gets called up, races a full season,
-          signs contracts and builds a palmarès — and the world keeps moving without you.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to="/register"
-            className="rounded-md bg-brand-cyan px-4 py-2.5 font-medium text-white transition hover:bg-brand-cyan-light"
-          >
-            Create account
-          </Link>
-          <Link
-            to="/how-to-play"
-            className="rounded-md border border-slate-300 px-4 py-2.5 font-medium text-slate-700 transition hover:bg-slate-100"
-          >
-            How to play
-          </Link>
+      <Logo size={96} />
+      <PageHeader title="Race. Train. Rise." />
+      <Panel ariaLabel="Welcome" answer>
+        <div className="grid gap-3">
+          <p className="text-body text-ink-2">
+            A persistent cycling world where your rider trains, gets called up, races a full season,
+            signs contracts and builds a palmarès — and the world keeps moving without you.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button to="/register" variant="primary">
+              Create account
+            </Button>
+            <Button to="/how-to-play">How to play</Button>
+          </div>
         </div>
-      </div>
+      </Panel>
       <SystemStatus />
     </section>
   )
@@ -93,14 +118,11 @@ function CookieReaderNotice() {
   const rev = useHorizonRev()
   if (!veilApplies(rev)) return null
   return (
-    <p
-      role="note"
-      className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200"
-    >
-      <Link to="/login" className="font-medium underline">
-        Sign in to see results as you know them
-      </Link>
-    </p>
+    <Notice
+      tone="info"
+      title="Sign in to see results as you know them"
+      action={{ label: 'Sign in', to: '/login' }}
+    />
   )
 }
 
@@ -108,71 +130,97 @@ function CookieReaderNotice() {
 function NewPlayerHome() {
   return (
     <section className="space-y-4">
-      <div className="space-y-4">
-        <Logo size={80} className="mb-2" />
-        <SectionBar>Welcome to Cycling Star</SectionBar>
-        {/* Sin corredor, el vacío dice por qué y qué hacer (E3, PR 10): la respuesta de la pantalla 44. */}
-        <EmptyState
-          icon="rider"
-          text="You don't have a rider yet. Create one to enter the world — pick a specialty and a name, and you're on the start line."
-          action={
-            <div className="flex flex-wrap gap-3">
-              <Button to="/create" variant="primary">
-                Create your rider
-              </Button>
-              <Button to="/how-to-play">How to play</Button>
-            </div>
-          }
-          answer
-        />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          { title: 'Stars', text: 'Your abilities are shown in stars, never raw numbers.' },
-          { title: 'Matches', text: 'A limited stock of efforts to burn wisely in a race.' },
-          { title: 'Form', text: 'Train to improve, ease off to peak fresh for a goal.' },
-        ].map((c) => (
-          <div key={c.title} className="rounded-md bg-white p-4 shadow-sm ring-1 ring-black/5">
-            <h3 className="text-sm font-semibold text-slate-800">{c.title}</h3>
-            <p className="mt-0.5 text-xs text-slate-500">{c.text}</p>
+      <Logo size={80} />
+      <PageHeader title="Welcome to Cycling Star" />
+      {/* Sin corredor, el vacío dice por qué y qué hacer (E3, PR 10): la respuesta de la pantalla 44. */}
+      <EmptyState
+        icon="rider"
+        text="You don't have a rider yet. Create one to enter the world — pick a specialty and a name, and you're on the start line."
+        action={
+          <div className="flex flex-wrap gap-3">
+            <Button to="/create" variant="primary">
+              Create your rider
+            </Button>
+            <Button to="/how-to-play">How to play</Button>
           </div>
-        ))}
-      </div>
+        }
+        answer
+      />
+
+      <Panel title="How it works">
+        <dl className="grid gap-3 sm:grid-cols-3">
+          {[
+            { title: 'Stars', text: 'Your abilities are shown in stars, never raw numbers.' },
+            { title: 'Matches', text: 'A limited stock of efforts to burn wisely in a race.' },
+            { title: 'Form', text: 'Train to improve, ease off to peak fresh for a goal.' },
+          ].map((c) => (
+            <div key={c.title}>
+              <dt className="text-row font-semibold text-ink">{c.title}</dt>
+              <dd className="text-meta text-ink-2">{c.text}</dd>
+            </div>
+          ))}
+        </dl>
+      </Panel>
     </section>
   )
 }
 
-const TONE_CLASS: Record<DashboardAction['tone'], string> = {
-  urgent: 'border-l-4 border-l-rose-500 bg-rose-50/60',
-  warn: 'border-l-4 border-l-amber-500 bg-amber-50/60',
-  info: 'border-l-4 border-l-slate-300 bg-white',
+/** El tono de un aviso, con su palabra (D-13): lo informativo no lleva chapa. */
+const TONE_CHIP: Record<DashboardAction['tone'], { tone: 'bad' | 'warn'; text: string } | null> = {
+  urgent: { tone: 'bad', text: 'Urgent' },
+  warn: { tone: 'warn', text: 'Soon' },
+  info: null,
 }
 
-/** Un aviso accionable: qué pasa, por qué importa y el único botón que lo resuelve. */
-function ActionRow({ action }: { action: DashboardAction }) {
+/**
+ * LO SIGUIENTE (E3, §7.3; PR 21g): los avisos accionables, cada uno una `ActionRow` con qué pasa, por qué
+ * importa y el único enlace que lo resuelve, con su nombre entero para el lector (`Set orders: You race
+ * tomorrow: Race Var`); el tono, con su palabra. Es la respuesta de la 17, y contesta siempre: sin avisos,
+ * con su vacío dentro (hasta aquí, sin avisos no había bloque). Se exporta para su test, que siembra sus
+ * avisos a mano.
+ */
+export function NextUp({ actions }: { actions: readonly DashboardAction[] }) {
   return (
-    <li
-      className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md px-4 py-3 ring-1 ring-black/5 ${TONE_CLASS[action.tone]}`}
-    >
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-800">{action.title}</p>
-        {action.detail && <p className="text-xs text-slate-600">{action.detail}</p>}
-      </div>
-      <Link
-        to={action.to}
-        className="shrink-0 rounded-md bg-brand-cyan px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-cyan-light"
-      >
-        {action.cta} →
-      </Link>
-    </li>
+    <Panel title="Next up" answer>
+      {actions.length === 0 ? (
+        <EmptyState icon="check" text="Nothing needs you right now." />
+      ) : (
+        <ul className="divide-y divide-line">
+          {actions.map((action) => {
+            const chip = TONE_CHIP[action.tone]
+            return (
+              <ActionRow
+                key={action.id}
+                title={
+                  <>
+                    {action.title}
+                    {chip !== null && (
+                      <>
+                        {' '}
+                        <Chip tone={chip.tone}>{chip.text}</Chip>
+                      </>
+                    )}
+                  </>
+                }
+                meta={action.detail ?? ''}
+                action={{
+                  label: action.cta,
+                  ariaLabel: `${action.cta}: ${action.title}`,
+                  to: action.to,
+                }}
+              />
+            )
+          })}
+        </ul>
+      )}
+    </Panel>
   )
 }
 
 /**
  * Crónica de la última carrera corrida, con enlace a la etapa completa. Bajo el velo (E2, §11.4; sup. H1;
  * 9b), la de la última etapa CONOCIDA; si la última que corrió su corredor está velada, `Your last race ·
- * Race France, Stage 8 · Ready to watch` con `Watch` en lugar de `Full story →`.
+ * Race France, Stage 8 · Ready to watch` con `Watch` en lugar de `Full story`.
  */
 function LastRaceCard() {
   const rev = useHorizonRev()
@@ -203,38 +251,31 @@ function LastRaceCard() {
     <Panel
       title="Last race"
       action={
-        <Link
-          to={`/world/races/${raceIdFromKey(data.raceId)}/stages/${data.stageDay}`}
-          className="text-xs font-medium text-white/90 hover:text-white hover:underline"
-        >
-          Full story →
-        </Link>
+        <TextLink to={`/world/races/${raceIdFromKey(data.raceId)}/stages/${data.stageDay}`}>
+          Full story
+        </TextLink>
       }
     >
-      <p className="text-sm font-semibold text-slate-800">
-        {data.raceName} — {data.stageName}
-        <StageRoute from={data.from} to={data.to} className="ml-2 font-normal text-slate-500" />
-      </p>
-      <p className="mt-0.5 text-sm text-slate-600">
-        <span className="font-bold tabular-nums text-slate-800">{data.position}</span>
-        {data.fieldSize > 0 && <span className="text-slate-400"> / {data.fieldSize}</span>}
-        <span className="mx-1.5 text-slate-300">·</span>
-        {gap}
-        {highlight && (
-          <>
-            <span className="mx-1.5 text-slate-300">·</span>
-            in the action at km {highlight.km}
-          </>
-        )}
-      </p>
-      <p className="mt-1 text-sm text-brand-cyan">{raceVerdict(data)}</p>
+      <div className="grid gap-1">
+        <p className="text-row font-semibold text-ink">
+          {data.raceName} · {data.stageName}{' '}
+          <StageRoute from={data.from} to={data.to} className="font-normal text-ink-2" />
+        </p>
+        <p className="text-meta text-ink-2">
+          <span className="font-semibold tabular-nums text-ink">{data.position}</span>
+          {data.fieldSize > 0 && <span className="text-ink-3"> / {data.fieldSize}</span>}
+          {' · '}
+          {gap}
+          {highlight && ` · in the action at km ${highlight.km}`}
+        </p>
+        <p className="text-meta text-accent">{raceVerdict(data)}</p>
+      </div>
     </Panel>
   )
 }
 
 /** Panel del jugador: qué hago hoy, cómo estoy y qué pasó en mi última carrera. */
 export function PlayerHome({ name }: { name: string }) {
-  const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   const rev = useHorizonRev()
   const summary = useQuery({
     queryKey: horizonKey(['rider', 'summary'], rev),
@@ -319,81 +360,65 @@ export function PlayerHome({ name }: { name: string }) {
     bookedRaces: (upcoming.data?.length ?? 0) + pendingEntries,
   })
 
-  const stats: { label: string; value: ReactNode }[] = summary.data
-    ? [
-        { label: 'Season points', value: summary.data.seasonPoints.toLocaleString('en-US') },
-        { label: 'Money', value: summary.data.money.toLocaleString('en-US') },
-        // en medias estrellas (E3, §13.7; DD-12, 19b): el porcentaje con decimales ya no cruza
-        { label: 'Morale', value: <UiStarRating value={summary.data.moraleStars} /> },
-      ]
-    : []
-
   return (
     <section className="space-y-4">
-      <div className="space-y-1">
-        <SectionBar>{name}</SectionBar>
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1">
-          <p className="text-sm text-slate-500">
-            {summary.data?.teamName ? (
-              <TeamLink teamId={summary.data.teamId} name={summary.data.teamName} />
-            ) : (
-              'Free agent'
-            )}
-          </p>
-          {health.data && (
-            <WorldClock
-              gameDay={health.data.gameDay}
-              tickIntervalMinutes={health.data.tickIntervalMinutes}
-              nextTickAtMs={health.data.nextTickAtMs ?? null}
-            />
+      <div className="grid gap-1">
+        <PageHeader title={name} />
+        {/* el equipo, enlazado: la línea de estado de `PageHeader` es texto, y lo perdería */}
+        <p className="text-meta text-ink-2">
+          {summary.data?.teamName ? (
+            <TeamLink teamId={summary.data.teamId} name={summary.data.teamName} />
+          ) : (
+            'Free agent'
           )}
-        </div>
+        </p>
       </div>
 
+      {/* Lo siguiente, la respuesta de la 17 (§7.3), arriba: lo que se decide antes de que caduque. */}
+      <NextUp actions={actions} />
+
       {/* Lo que tiene por ver (E2, §11.4; 9b): a medias, listo para ver y lo que pasó mientras no
-          estaba. Sin velo para él, nada. */}
+          estaba. Sin velo para él, nada. Encima de la última carrera, como en E2. */}
       <WatchBlocks />
 
-      {/* Solo lo accionable: si no hay nada que decidir, este bloque no existe. */}
-      {actions.length > 0 && (
-        <ul className="space-y-2">
-          {actions.map((action) => (
-            <ActionRow key={action.id} action={action} />
-          ))}
-        </ul>
-      )}
-
-      <Panel
-        title="Condition"
-        action={form.data?.form && <StarRating value={form.data.form.stars} />}
-      >
-        {form.data?.form ? (
-          // en el medidor y con su palabra, nunca la cifra (E3, §13.7; D-44, 19b): `Freshness: low`
-          <Meter
-            label="Freshness"
-            value={conditionLevel(form.data.form.freshness)}
-            valueText={conditionLabel(form.data.form.freshness).toLowerCase()}
-          />
-        ) : (
-          <p className="text-sm text-slate-400">No training data yet.</p>
-        )}
-        {stats.length > 0 && (
-          <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.label} className="rounded-md bg-slate-50 p-2.5">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  {s.label}
+      <Panel title="Condition">
+        <div className="grid gap-3">
+          {form.data?.form ? (
+            <>
+              <p className="flex items-center gap-2 text-meta font-semibold text-ink">
+                Form
+                <StarRating value={form.data.form.stars} />
+              </p>
+              {/* en el medidor y con su palabra, nunca la cifra (E3, §13.7; D-44, 19b): `Freshness: low` */}
+              <Meter
+                label="Freshness"
+                value={conditionLevel(form.data.form.freshness)}
+                valueText={conditionLabel(form.data.form.freshness).toLowerCase()}
+              />
+            </>
+          ) : (
+            <p className="text-meta text-ink-2">No training data yet.</p>
+          )}
+          {summary.data && (
+            // en un renglón que parte en el teléfono, como las cifras del 21c
+            <div className="flex flex-wrap gap-x-6 gap-y-3">
+              <Stat label="Season points" value={summary.data.seasonPoints} />
+              <Stat label="Money" value={summary.data.money} />
+              {/* en medias estrellas (E3, §13.7; DD-12, 19b): no es una cifra, y no va en `Stat` */}
+              <dl className="grid gap-1">
+                <dt className="text-caption font-semibold tracking-caps text-ink-3 uppercase">
+                  Morale
                 </dt>
-                <dd className="mt-0.5 text-sm font-bold tabular-nums text-slate-800">{s.value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-        <p className="mt-3 text-xs">
-          <Link to="/me/profile" className="font-medium text-brand-cyan hover:underline">
-            See the full profile →
-          </Link>
-        </p>
+                <dd className="flex min-h-10 items-center">
+                  <StarRating value={summary.data.moraleStars} size={20} />
+                </dd>
+              </dl>
+            </div>
+          )}
+          <TextLink to="/me/profile" layout="justify-self-start">
+            See the full profile
+          </TextLink>
+        </div>
       </Panel>
 
       <LastRaceCard />
@@ -413,7 +438,7 @@ export function Home() {
   if (!session) return <GuestHome />
   // Los estados, con `QueryView` (E3, PR 10): un fallo ya no se pinta como «no tienes corredor».
   if (riderQuery.data === undefined)
-    return <QueryView query={riderQuery} label="your rider" skeleton={{ kind: 'panel' }} />
+    return <QueryView query={riderQuery} label="your rider" skeleton={{ kind: 'panel' }} answer />
   if (riderQuery.data === null) return <NewPlayerHome />
   return <PlayerHome name={riderQuery.data.name} />
 }
