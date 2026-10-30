@@ -39,6 +39,30 @@ describe('CueCard · el rótulo del momento, uno a la vez (§6.5)', () => {
     )
   })
 
+  it('sobre bad, el secundario va en ink y nunca en ink-2, que ahí no está medido (14-a)', () => {
+    const cast = castOf(30, {
+      1: {
+        lines: [
+          { kind: 'gc', rank: 3, deficitS: 40, from: { raceKey: 'race-france:s0', stageDay: 6 } },
+        ],
+      },
+    })
+    const head = headOf(cast, { clock: 'exact' })
+    const instant = instantOf([
+      { members: [1, 2, 3], km: 70 },
+      { members: range(4, 30), km: 69, gapS: 40, kind: 'peloton' },
+    ])
+    const { text, ...body } = cueBodyOf(
+      { kind: 'rider', t: 100, rider: 1, context: 'break_round' },
+      { cast, instant, profile: head.profile, own: new Set() },
+    )
+    const onBad = renderToStaticMarkup(<CueCard cue={{ text, cls: 3, seq: 1, body }} />)
+    expect(onBad).toContain('data-rider-card="1"')
+    expect(onBad).not.toMatch(/\btext-ink-2\b/)
+    const onNavy = renderToStaticMarkup(<CueCard cue={{ text, cls: 2, seq: 1, body }} />)
+    expect(onNavy).toMatch(/\btext-ink-2\b/)
+  })
+
   it('las tres clases, en el ámbito oscuro: la meta, la caza y el corte; las de oscuro; y las demás (14-a)', () => {
     for (const cls of [1, 2, 3] as const) {
       const html = renderToStaticMarkup(

@@ -197,6 +197,13 @@ describe('revelar sin castigo (§11.11, DD-17)', () => {
     expect(markup).toContain('id="stage-result"')
     // sin la pestaña de clasificaciones, ese salto no sale
     expect(html(<StageReportView data={data} />)).not.toContain('>Classifications<')
+    // y un salto no pierde la pestaña ni la búsqueda de la página
+    const inTab = renderToStaticMarkup(
+      <MemoryRouter initialEntries={['/world/races/race-france/stages/7?tab=report']}>
+        <StageReportView data={data} />
+      </MemoryRouter>,
+    )
+    expect(inTab).toContain('href="/world/races/race-france/stages/7?tab=report#stage-chronicle"')
   })
 })
 
