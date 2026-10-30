@@ -16,7 +16,7 @@ describe('Checkbox', () => {
   it('una fila de 44 con su rótulo a la vista, que nombra a la casilla', () => {
     const s = html(false)
     expect(s).toMatch(
-      /^<label data-ui="Checkbox" data-variant="default" data-state="off" class="[^"]*min-h-11/,
+      /^<label data-ui="Checkbox" data-variant="default" data-state="inactive" class="[^"]*min-h-11/,
     )
     expect(s).toMatch(/<input type="checkbox"[^>]*>[\s\S]*Team Sol<\/span><\/label>$/)
   })
@@ -35,7 +35,7 @@ describe('Checkbox', () => {
 
   it('marcada: su estado, la caja en accent y su check', () => {
     const s = html(true)
-    expect(s).toContain('data-state="on"')
+    expect(s).toContain('data-state="active"')
     expect(/<input[^>]*>/.exec(s)?.[0]).toContain('checked=""')
     expect(s).toMatch(/<span aria-hidden="true" class="[^"]*bg-accent[^"]*text-on-accent/)
     expect(s).toContain('data-variant="check"')

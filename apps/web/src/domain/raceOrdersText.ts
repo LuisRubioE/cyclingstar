@@ -51,12 +51,12 @@ export function orderStageTitle(
   return route === null ? nombre : `${nombre} · ${route}`
 }
 
-/** El resumen de arriba: si hay órdenes que chocan y dónde mirar, sin el `⚠` de antes. */
+/** El resumen de arriba: si hay órdenes que chocan y dónde mirar, sin el `⚠` de antes, con el texto de 3-d. */
 export function clashSummary(roadStages: number, clashing: number): string {
   const etapas = plural(roadStages, 'road stage')
   return clashing === 0
     ? `${etapas}, no clashing orders.`
-    : `${etapas} · ${clashing} with orders that clash: look for the warnings below.`
+    : `${etapas} · ${clashing} with orders that clash. Look for the warning below.`
 }
 
 /**
@@ -70,4 +70,14 @@ export function ordersConsequence(raceName: string, stages: readonly string[]): 
   const ultima = stages[stages.length - 1]!
   const resto = stages.slice(0, -1)
   return `${raceName}: ${resto.length === 0 ? ultima : `${resto.join(', ')} and ${ultima}`}`
+}
+
+/** `Race France · in 2 days`, `Race Var · racing now`: la carrera del selector (§4.10), sin el `(in 2d)` de antes. */
+export function raceOptionLabel(r: {
+  readonly raceName: string
+  readonly ongoing: boolean
+  readonly daysUntil: number
+}): string {
+  if (r.ongoing) return `${r.raceName} · racing now`
+  return r.daysUntil > 0 ? `${r.raceName} · in ${plural(r.daysUntil, 'day')}` : r.raceName
 }

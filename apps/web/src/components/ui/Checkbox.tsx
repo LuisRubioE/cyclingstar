@@ -1,13 +1,14 @@
 import { Icon } from './Icon'
 import { withLayout } from './styles'
-import type { Layout } from './types'
+import type { Layout, UiState } from './types'
 
 /**
  * LA CASILLA (E3, PR 21i). La pide lo que se marca de varios a la vez, que ni `Segmented` (de 2 a 4, una sola)
  * ni `Field` eligen: los equipos con los que no se tira, en la pantalla de órdenes. Una fila de 44 a todo lo
  * ancho, con su rótulo a la vista en `row`, que nombra a la casilla. El `input` nativo, invisible, cubre la
  * fila entera, que es lo que el dedo toca; la caja de 24 que se ve la pinta su vecina, con el borde
- * `line-strong` y, marcada, en `accent` con su `check`, y en ella el anillo del foco.
+ * `line-strong` y, marcada, en `accent` con su `check`, y en ella el anillo del foco. Su estado, el de `UiState`:
+ * `active`, marcada, o `inactive`.
  */
 
 export interface CheckboxProps {
@@ -18,11 +19,12 @@ export interface CheckboxProps {
 }
 
 export function Checkbox({ label, checked, onChange, layout }: CheckboxProps) {
+  const estado: UiState = checked ? 'active' : 'inactive'
   return (
     <label
       data-ui="Checkbox"
       data-variant="default"
-      data-state={checked ? 'on' : 'off'}
+      data-state={estado}
       className={withLayout(
         'relative flex min-h-11 cursor-pointer items-center gap-3 text-row text-ink',
         layout,

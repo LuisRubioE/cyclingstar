@@ -130,9 +130,9 @@ export function Field(props: FieldProps) {
         readOnly={disabled}
         {...(props.autoComplete !== undefined ? { autoComplete: props.autoComplete } : {})}
         {...(props.placeholder !== undefined ? { placeholder: props.placeholder } : {})}
-        {...(props.min !== undefined ? { min: props.min } : {})}
-        {...(props.max !== undefined ? { max: props.max } : {})}
-        {...(props.step !== undefined ? { step: props.step } : {})}
+        min={props.min}
+        max={props.max}
+        step={props.step}
         onChange={(e) => props.onChange(e.target.value)}
         className={`${CONTROL} min-h-12 fine:min-h-10 ${borde} ${color}`}
       />

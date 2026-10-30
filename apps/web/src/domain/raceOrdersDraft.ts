@@ -12,7 +12,7 @@
  * seleccionada, sencillamente no se aplica (ni se muestra ni se guarda).
  */
 
-import type { RaceStage, StageOrder } from '../api/raceOrders'
+import type { RaceStage, StageOrder, StageRole } from '../api/raceOrders'
 
 /** Órdenes por día de etapa. */
 export type OrdersByDay = Record<number, StageOrder>
@@ -100,6 +100,9 @@ function mentalidadDelRol(current: StageOrder, patch: Partial<StageOrder>): Part
   return patch
 }
 
+/** Los papeles que trabajan para otro o lo marcan: los únicos que llevan objetivo, y los que lo enseñan. */
+export const NEEDS_TARGET: readonly StageRole[] = ['lanzador', 'gregario', 'marcador']
+
 /** Un valor con sus claves en orden, para comparar dos disparos sin mirar en qué orden se escribieron. */
 function estable(v: unknown): unknown {
   if (v === null || typeof v !== 'object' || Array.isArray(v)) return v
@@ -111,23 +114,29 @@ function estable(v: unknown): unknown {
 }
 
 /**
- * Una orden en la forma que se compara: las cuatro palancas del 17a sin preferencia valen lo mismo sin
- * llegar, a null o, los equipos, vacías («no hay preferencia», `contracts.ts`), y los equipos, sin su orden.
+ * Una orden en la forma que se compara, campo a campo: todos los que traiga, también los que aún no existan,
+ * para que nada que se toque se quede sin poder guardarse; sin llegar vale lo mismo que null («no hay
+ * preferencia», `contracts.ts`), y los equipos vacíos, lo mismo que sin equipos, y sin su orden. Y lo que no se
+ * ve no cuenta (la revisión del 21i): el objetivo de un papel que no lo lleva, y el disparo de una orden de
+ * antes, con el kilómetro solo en `triggerKm`, que la pantalla enseña como `At a kilometre`.
  */
-function forma(o: StageOrder): string {
-  return JSON.stringify({
-    role: o.role,
-    targetRiderId: o.targetRiderId,
-    mentality: o.mentality,
-    effort: o.effort,
-    triggerKm: o.triggerKm,
-    contestSprints: o.contestSprints,
-    contestClimbs: o.contestClimbs,
-    triggerOn: estable(o.triggerOn ?? null),
-    chasePolicy: o.chasePolicy ?? null,
+function forma(o: StageOrder): Record<string, unknown> {
+  // todo menos el día, que es de qué etapa es y no lo que se le ordena
+  return {
+    ...Object.fromEntries(Object.entries(o).filter(([k]) => k !== 'stageDay')),
+    targetRiderId: NEEDS_TARGET.includes(o.role) ? (o.targetRiderId ?? null) : null,
+    triggerOn: o.triggerOn ?? (o.triggerKm != null ? { at: 'km', km: o.triggerKm } : null),
     refuseRelayTeams: [...(o.refuseRelayTeams ?? [])].sort(),
-    dayGoal: o.dayGoal ?? null,
-  })
+  }
+}
+
+/** Dos órdenes que dicen lo mismo, campo a campo. */
+function sameOrder(a: StageOrder, b: StageOrder): boolean {
+  const x = forma(a)
+  const y = forma(b)
+  return [...new Set([...Object.keys(x), ...Object.keys(y)])].every(
+    (k) => JSON.stringify(estable(x[k] ?? null)) === JSON.stringify(estable(y[k] ?? null)),
+  )
 }
 
 /**
@@ -139,8 +148,7 @@ export function changedStages(serverOrders: OrdersByDay, orders: OrdersByDay): n
     .map(Number)
     .filter((day) => {
       const visto = orders[day]
-      const guardado = serverOrders[day] ?? defaultOrder(day)
-      return visto !== undefined && forma(visto) !== forma(guardado)
+      return visto !== undefined && !sameOrder(visto, serverOrders[day] ?? defaultOrder(day))
     })
     .sort((a, b) => a - b)
 }

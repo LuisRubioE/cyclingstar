@@ -95,6 +95,60 @@ describe('el cazaetapas no sale reservón', () => {
  */
 describe('changedStages (PR 21i)', () => {
   const server = buildServerOrders(stages, [])
+  const cambia = (patch: Partial<StageOrder>, base = server): number[] =>
+    changedStages(base, resolveOrders(base, withOrderPatch(null, TOUR, base, 1, patch), TOUR))
+
+  it('cada campo de la orden cuenta, uno a uno', () => {
+    const patches: Partial<StageOrder>[] = [
+      { role: 'sprinter' },
+      { mentality: 'combativo' },
+      { effort: 'a_tope' },
+      { triggerKm: 30, triggerOn: { at: 'km', km: 30 } },
+      { contestSprints: true },
+      { contestClimbs: true },
+      { chasePolicy: 'siempre' },
+      { dayGoal: 'ganar' },
+      { refuseRelayTeams: ['t-a'] },
+      { role: 'gregario', targetRiderId: 'm1' },
+    ]
+    for (const patch of patches) expect(cambia(patch), JSON.stringify(patch)).toEqual([1])
+  })
+
+  it('un campo que aún no existe, también: lo que no se compara no se podría guardar (la revisión del 21i)', () => {
+    const futuro = { tempo: 'alto' } as unknown as Partial<StageOrder>
+    expect(cambia(futuro)).toEqual([1])
+  })
+
+  it('el objetivo que no se ve, con un papel que no lo pide, no es un cambio (la revisión del 21i)', () => {
+    const ida = withOrderPatch(null, TOUR, server, 1, { role: 'gregario', targetRiderId: 'm1' })
+    const vuelta = withOrderPatch(ida, TOUR, server, 1, { role: 'libre' })
+    expect(changedStages(server, resolveOrders(server, vuelta, TOUR))).toEqual([])
+    // con un papel que lo pide, cambiar el objetivo sí lo es
+    const gregario = buildServerOrders(stages, [{ ...defaultOrder(1), role: 'gregario' }])
+    expect(cambia({ targetRiderId: 'm1' }, gregario)).toEqual([1])
+  })
+
+  it('el triggerKm que no casa con el disparo, que es lo que lee el motor, sí es un cambio', () => {
+    const km = buildServerOrders(stages, [
+      { ...defaultOrder(1), triggerOn: { at: 'km', km: 40 }, triggerKm: 40 },
+    ])
+    expect(cambia({ triggerKm: null }, km)).toEqual([1])
+  })
+
+  it('una orden de antes con el kilómetro solo en triggerKm, tocada y vuelta, no es un cambio (la revisión del 21i)', () => {
+    const vieja = buildServerOrders(stages, [
+      { ...defaultOrder(1), triggerKm: 40, triggerOn: null },
+    ])
+    const ida = withOrderPatch(null, TOUR, vieja, 1, {
+      triggerOn: { at: 'km', km: 41 },
+      triggerKm: 41,
+    })
+    const vuelta = withOrderPatch(ida, TOUR, vieja, 1, {
+      triggerOn: { at: 'km', km: 40 },
+      triggerKm: 40,
+    })
+    expect(changedStages(vieja, resolveOrders(vieja, vuelta, TOUR))).toEqual([])
+  })
 
   it('sin tocar nada, ninguna', () => {
     expect(changedStages(server, resolveOrders(server, null, TOUR))).toEqual([])

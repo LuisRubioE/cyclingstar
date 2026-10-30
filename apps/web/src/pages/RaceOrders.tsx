@@ -11,7 +11,7 @@ import {
 } from '../api/raceOrders'
 import { fetchMyUpcomingRaces } from '../api/rider'
 import { OrdersGate } from '../components/OrdersGate'
-import { ActionBar, type ActionBarStatus } from '../components/ui/ActionBar'
+import { ActionBar } from '../components/ui/ActionBar'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
 import { Disclosure } from '../components/ui/Disclosure'
@@ -51,23 +51,35 @@ import {
 } from '../domain/labels'
 import { orderAdvice } from '../domain/raceOrdersAdvice'
 import {
+  NEEDS_TARGET,
   type OrdersDraft,
   buildServerOrders,
   changedStages,
   defaultOrder,
-  defaultRaceKey,
   resolveOrders,
   withOrderPatch,
 } from '../domain/raceOrdersDraft'
+import {
+  type OrdersSave,
+  barStatus,
+  copyPatch,
+  copyTargets,
+  kmPatch,
+  ordersToSave,
+  releaseAfterSave,
+  selectedRaceKey,
+  teamsPatch,
+  triggerPatch,
+} from '../domain/raceOrdersEdit'
 import {
   clashSummary,
   forecastText,
   isOutlook,
   ordersConsequence,
   orderStageTitle,
+  raceOptionLabel,
 } from '../domain/raceOrdersText'
 import { waitingStage } from '../domain/veil'
-import { plural } from '../domain/words'
 import { horizonKey, useHorizon, useHorizonRev, veilApplies } from '../queryClient'
 
 /**
@@ -79,8 +91,6 @@ import { horizonKey, useHorizon, useHorizonRev, veilApplies } from '../queryClie
  * orders`), que dice qué cambia y sin cambios no se pinta. Lo que pesa cada orden no cambia: es de la línea
  * de táctica (H-08).
  */
-
-const NEEDS_TARGET: StageRole[] = ['lanzador', 'gregario', 'marcador']
 
 /**
  * LA CITA DEJA DE SER SOLO UN KILÓMETRO (paso 17a, R22 · S-214/S-321/S-322).
@@ -113,17 +123,6 @@ function Trigger({
   const kind: TriggerKindUi =
     t?.at === 'attack' ? 'ninguno' : ((t?.at as TriggerKindUi) ?? 'ninguno')
 
-  const setKind = (k: TriggerKindUi) => {
-    if (k === 'ninguno') return onChange({ triggerOn: null, triggerKm: null })
-    if (k === 'km') return onChange({ triggerOn: { at: 'km', km: 0 }, triggerKm: 0 })
-    if (k === 'climb')
-      return onChange({ triggerOn: { at: 'climb', which: 'last', part: 'pie' }, triggerKm: null })
-    if (k === 'gap') return onChange({ triggerOn: { at: 'gap', overS: 120 }, triggerKm: null })
-    if (k === 'weather')
-      return onChange({ triggerOn: { at: 'weather', cond: 'lluvia' }, triggerKm: null })
-    return onChange({ triggerOn: { at: 'sector', index: 1 }, triggerKm: null })
-  }
-
   return (
     <div className="grid content-start gap-3">
       <Field
@@ -133,7 +132,7 @@ function Trigger({
         value={kind}
         onChange={(v) => {
           const k = TRIGGER_KIND_OPTIONS.find((x) => x === v)
-          if (k !== undefined) setKind(k)
+          if (k !== undefined) onChange(triggerPatch(k))
         }}
         options={TRIGGER_KIND_OPTIONS.map((k) => ({ value: k, label: TRIGGER_KIND_LABEL[k] }))}
         help={
@@ -152,10 +151,7 @@ function Trigger({
           min={0}
           max={stageKm}
           value={String(t.km)}
-          onChange={(v) => {
-            const km = v === '' ? 0 : Number(v)
-            onChange({ triggerOn: { at: 'km', km }, triggerKm: km })
-          }}
+          onChange={(v) => onChange(kmPatch(v))}
         />
       )}
 
@@ -248,19 +244,20 @@ function Trigger({
  * Con el sistema desde el 21i: la palabra donde iba el emoji (`Rain 60% · 14°C`; 3-d), y la fiabilidad en su
  * `InfoButton`, donde iba en un `title` que el dedo no abre.
  */
-function Forecast({ f }: { f: NonNullable<RaceStage['forecast']> }) {
+function Forecast({ f, nombre }: { f: NonNullable<RaceStage['forecast']>; nombre: string }) {
   const outlook = isOutlook(f)
+  // sin caja propia: el porqué del `InfoButton` parte al renglón siguiente de la línea que lo lleva (§4.3)
   return (
-    <span className="inline-flex items-center">
+    <>
       <span className={outlook ? 'text-ink-3' : 'text-ink-2'}>
         {forecastText(f)}
         {outlook && ' (outlook)'}
       </span>
-      <InfoButton label="About the forecast">
+      <InfoButton label={`About the forecast for ${nombre}`}>
         {`${f.fiabilidad}% confidence.`}
         {outlook && ' A forecast this far out is closer to the local average than to the sky.'}
       </InfoButton>
-    </span>
+    </>
   )
 }
 
@@ -302,6 +299,7 @@ function StageOrders({
   stage,
   order,
   title,
+  nombre,
   answer,
   canCopy,
   teammates,
@@ -313,6 +311,8 @@ function StageOrders({
   stage: RaceStage
   order: StageOrder
   title: string
+  /** `Stage 2`, o la carrera de un día: lo que distingue los nombres que se repiten en cada etapa */
+  nombre: string
   answer: boolean
   /** con más de una etapa: copiar a las demás */
   canCopy: boolean
@@ -338,7 +338,7 @@ function StageOrders({
           {stage.forecast != null && (
             <>
               <span>·</span>
-              <Forecast f={stage.forecast} />
+              <Forecast f={stage.forecast} nombre={nombre} />
             </>
           )}
         </p>
@@ -469,6 +469,8 @@ function StageOrders({
                       : `Choose teams · ${vetados.length} chosen`
                   }
                   hideLabel="Hide the teams"
+                  name={nombre}
+                  region={false}
                 >
                   <div className="grid px-3">
                     {teams.map((t) => (
@@ -476,13 +478,7 @@ function StageOrders({
                         key={t.id}
                         label={t.name}
                         checked={vetados.includes(t.id)}
-                        onChange={(marcado) =>
-                          onChange({
-                            refuseRelayTeams: marcado
-                              ? [...vetados, t.id]
-                              : vetados.filter((x) => x !== t.id),
-                          })
-                        }
+                        onChange={(marcado) => onChange(teamsPatch(vetados, t.id, marcado))}
                       />
                     ))}
                   </div>
@@ -533,10 +529,20 @@ function StageOrders({
             hasta ahora había que rellenarlas una a una. En una de un día no hay demás. */}
         {!stage.timeTrial && canCopy && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => onCopy('iguales')}>
-              Copy to every {kindWord.toLowerCase()} stage
+            <Button
+              variant="secondary"
+              onClick={() => onCopy('iguales')}
+              ariaLabel={`Copy to every ${kindWord.toLowerCase()} stage, from ${nombre}`}
+              layout="w-full sm:w-auto"
+            >
+              {`Copy to every ${kindWord.toLowerCase()} stage`}
             </Button>
-            <Button variant="secondary" onClick={() => onCopy('siguientes')}>
+            <Button
+              variant="secondary"
+              onClick={() => onCopy('siguientes')}
+              ariaLabel={`Copy to the rest of the race, from ${nombre}`}
+              layout="w-full sm:w-auto"
+            >
               Copy to the rest of the race
             </Button>
           </div>
@@ -546,14 +552,13 @@ function StageOrders({
   )
 }
 
-/** `Race France · in 2 days`, `Race Var · racing now`: la carrera del selector (§4.10). */
-function raceOptionLabel(r: { raceName: string; ongoing: boolean; daysUntil: number }): string {
-  if (r.ongoing) return `${r.raceName} · racing now`
-  return r.daysUntil > 0 ? `${r.raceName} · in ${plural(r.daysUntil, 'day')}` : r.raceName
-}
-
 /** Consola de órdenes de etapa: el piloto automático para tus próximas carreras inscritas (Paso 29). */
-export function RaceOrders() {
+export function RaceOrders({
+  initialDraft = null,
+}: {
+  /** lo tocado sin guardar, para su test, que no puede pulsar (como `RoleEditor` y su `defaultOpen`) */
+  initialDraft?: OrdersDraft | null
+}) {
   const queryClient = useQueryClient()
   const rev = useHorizonRev()
   const upcoming = useQuery({
@@ -562,10 +567,21 @@ export function RaceOrders() {
     enabled: rev !== undefined,
   })
   const [searchParams] = useSearchParams()
-  // Por defecto: la carrera del enlace (?race=), si no la más próxima que aún no ha empezado. Al pintar, y no
-  // en un efecto: la hoja se pide desde el primer pintado (PR 21i).
+  // Borrador de ediciones sin guardar, SIEMPRE atado a su carrera: ni un refetch en segundo plano
+  // las pisa (antes un `useEffect` copiaba `data` al estado y las borraba) ni se pueden guardar
+  // contra otra carrera si el jugador cambia de selección antes de guardar.
+  const [draft, setDraft] = useState<OrdersDraft | null>(initialDraft)
+  // La carrera que se ve: la elegida; si no, la del borrador; y si no, la del enlace (?race=) o la más
+  // próxima que aún no ha empezado. Al pintar, y no en un efecto: la hoja se pide desde el primer pintado.
   const [chosen, setChosen] = useState<string | null>(null)
-  const selectedKey = chosen ?? defaultRaceKey(upcoming.data ?? [], searchParams.get('race'))
+  const selectedKey = selectedRaceKey({
+    chosen,
+    draftRace: draft?.raceKey ?? null,
+    races: upcoming.data ?? [],
+    requested: searchParams.get('race'),
+  })
+  // el guardado en marcha o el último, con su carrera: el de otra no sale en esta (la revisión del 21i)
+  const [save, setSave] = useState<OrdersSave>({ raceKey: null, status: 'idle' })
 
   const raceOrders = useQuery({
     queryKey: ['race-orders', selectedKey],
@@ -573,11 +589,6 @@ export function RaceOrders() {
     enabled: !!selectedKey,
   })
   const { data } = raceOrders
-  // Borrador de ediciones sin guardar, SIEMPRE atado a su carrera: ni un refetch en segundo plano
-  // las pisa (antes un `useEffect` copiaba `data` al estado y las borraba) ni se pueden guardar
-  // contra otra carrera si el jugador cambia de selección antes de guardar.
-  const [draft, setDraft] = useState<OrdersDraft | null>(null)
-  const [status, setStatus] = useState<ActionBarStatus>('idle')
 
   const serverOrders = useMemo(
     () => (data ? buildServerOrders(data.stages, data.orders) : {}),
@@ -587,41 +598,27 @@ export function RaceOrders() {
 
   const update = (day: number, patch: Partial<StageOrder>): void => {
     if (!selectedKey) return
+    // tocada, la carrera se queda: ya no la mueve la de por defecto
+    setChosen((c) => c ?? selectedKey)
     // lo tocado mientras se guarda espera a que acabe: la barra sigue `saving`
-    setStatus((s) => (s === 'saving' ? s : 'idle'))
+    setSave((s) =>
+      s.raceKey === selectedKey && s.status === 'saving'
+        ? s
+        : { raceKey: selectedKey, status: 'idle' },
+    )
     setDraft((prev) => withOrderPatch(prev, selectedKey, serverOrders, day, patch))
   }
 
   /**
    * COPIAR UNA ORDEN A LAS DEMÁS ETAPAS (v58). Rellenar veintiuna etapas a mano era el motivo real
-   * por el que casi nadie las tocaba, y una orden que no se toca es una orden que no se nota.
-   *
-   * Dos alcances, que son los dos que se usan de verdad: a las etapas del MISMO TIPO —el plan del
-   * velocista para las llanas, el del escalador para las reinas— y a todo lo que queda de carrera.
-   * La crono nunca recibe copia: allí no hay táctica de grupo que copiar.
-   *
-   * El objetivo (`targetRiderId`) viaja con la orden: si trabajas para tu jefe, trabajas para él
-   * todos los días, y si marcabas a un rival, lo sigues marcando.
+   * por el que casi nadie las tocaba, y una orden que no se toca es una orden que no se nota: a las del
+   * mismo tipo o a todo lo que queda de carrera (`copyTargets`), con su objetivo y su disparo (`copyPatch`).
    */
   const copiarA = (desdeDia: number, alcance: 'iguales' | 'siguientes'): void => {
     if (!selectedKey || !data) return
     const origen = orders[desdeDia]
-    const etapaOrigen = data.stages.find((st) => st.day === desdeDia)
-    if (!origen || !etapaOrigen) return
-    for (const st of data.stages) {
-      if (st.day === desdeDia || st.timeTrial) continue
-      if (alcance === 'iguales' && st.kind !== etapaOrigen.kind) continue
-      if (alcance === 'siguientes' && st.day < desdeDia) continue
-      update(st.day, {
-        role: origen.role,
-        mentality: origen.mentality,
-        effort: origen.effort,
-        triggerKm: origen.triggerKm,
-        targetRiderId: origen.targetRiderId,
-        contestSprints: origen.contestSprints,
-        contestClimbs: origen.contestClimbs,
-      })
-    }
+    if (!origen) return
+    for (const day of copyTargets(data.stages, desdeDia, alcance)) update(day, copyPatch(origen))
   }
 
   // LA PUERTA DE LA N+1 (E2, §11.12, DD-09; 9b): con una etapa corrida y sin ver, la página abre con el
@@ -632,19 +629,20 @@ export function RaceOrders() {
   const [ordersAnyway, setOrdersAnyway] = useState<ReadonlySet<string>>(new Set())
   const gated = waiting !== null && selectedKey !== null && !ordersAnyway.has(selectedKey)
 
-  // Solo se guarda lo que se está viendo: la carrera seleccionada Y ya cargada.
+  // Solo se guarda lo que se está viendo: la carrera seleccionada Y ya cargada, con las órdenes de todas
+  // sus etapas, como siempre (H-08).
   async function guardar(raceKey: string): Promise<void> {
     const enviado = draft
-    setStatus('saving')
+    setSave({ raceKey, status: 'saving' })
     try {
-      await saveRaceOrders(raceKey, Object.values(orders))
+      await saveRaceOrders(raceKey, ordersToSave(orders))
       // lo guardado, de nuevo, antes de soltar el borrador: la pantalla no vuelve a lo de antes un momento
       await queryClient.invalidateQueries({ queryKey: ['race-orders', raceKey] })
-      // se suelta lo mandado; lo tocado mientras tanto se queda, y la barra sigue con ello
-      setDraft((d) => (d === enviado ? null : d))
-      setStatus('saved')
+      // se suelta lo mandado, el de esta carrera; lo tocado mientras tanto se queda, y la barra lo cuenta
+      setDraft((d) => releaseAfterSave(d, enviado, raceKey))
+      setSave({ raceKey, status: 'saved' })
     } catch {
-      setStatus('failed')
+      setSave({ raceKey, status: 'failed' })
     }
   }
 
@@ -672,6 +670,7 @@ export function RaceOrders() {
     orderAdvice(orders[st.day] ?? defaultOrder(st.day), st).some((a) => a.level === 'warn'),
   ).length
   const changed = data === undefined ? [] : changedStages(serverOrders, orders)
+  // la etapa por su nombre, sin su recorrido: en la barra caben dos renglones (§4.9)
   const consequence =
     data === undefined
       ? ''
@@ -702,37 +701,34 @@ export function RaceOrders() {
         <p className="text-meta text-ink-2">{clashSummary(enLinea.length, conChoque)}</p>
       )}
 
-      {/* la hoja de la carrera elegida, con sus estados (E3, PR 10), que contestan mientras llega */}
-      {data === undefined && (
-        <QueryView query={raceOrders} label="the race" skeleton={{ kind: 'panel' }} answer />
-      )}
-
+      {/* la puerta, si espera una etapa; si no, la hoja, con sus estados (E3, PR 10): una sola respuesta */}
       {gated && selectedKey !== null && waiting !== null ? (
         <OrdersGate
           raceKey={selectedKey}
           stageDay={waiting}
           onGiveOrders={() => setOrdersAnyway((prev) => new Set([...prev, selectedKey]))}
         />
+      ) : data === undefined ? (
+        <QueryView query={raceOrders} label="the race" skeleton={{ kind: 'panel' }} answer />
       ) : (
-        data !== undefined && (
-          <div className="grid gap-4">
-            {data.stages.map((stage, i) => (
-              <StageOrders
-                key={stage.day}
-                stage={stage}
-                order={orders[stage.day] ?? defaultOrder(stage.day)}
-                title={orderStageTitle(stage, data.race.name, oneDay)}
-                answer={i === 0}
-                canCopy={!oneDay}
-                teammates={data.teammates}
-                rivals={data.rivals}
-                teams={data.teams}
-                onChange={(patch) => update(stage.day, patch)}
-                onCopy={(alcance) => copiarA(stage.day, alcance)}
-              />
-            ))}
-          </div>
-        )
+        <div className="grid gap-4">
+          {data.stages.map((stage, i) => (
+            <StageOrders
+              key={stage.day}
+              stage={stage}
+              order={orders[stage.day] ?? defaultOrder(stage.day)}
+              title={orderStageTitle(stage, data.race.name, oneDay)}
+              nombre={oneDay ? data.race.name : stage.name}
+              answer={i === 0}
+              canCopy={!oneDay}
+              teammates={data.teammates}
+              rivals={data.rivals}
+              teams={data.teams}
+              onChange={(patch) => update(stage.day, patch)}
+              onCopy={(alcance) => copiarA(stage.day, alcance)}
+            />
+          ))}
+        </div>
       )}
 
       {data !== undefined && selectedKey !== null && (
@@ -740,7 +736,7 @@ export function RaceOrders() {
           changes={changed.length}
           consequence={consequence}
           actionLabel="Save orders"
-          status={status}
+          status={barStatus(save, selectedKey, changed.length)}
           onSave={() => void guardar(selectedKey)}
         />
       )}
