@@ -68,14 +68,15 @@ describe('la puerta con el sistema (E3, docs/visual.md §17.21; PR 21i)', () => 
 
   it('verla, un Button primary que enlaza a la etapa; revelarla y ordenar igual, secondary', () => {
     const markup = gate('on')
+    // cada texto, DENTRO de su botón: sin el `(?!<\/…>)`, la búsqueda saltaba de un botón al siguiente
     expect(markup).toMatch(
-      /<a [^>]*data-ui="Button" data-variant="primary"[^>]*href="\/world\/races\/race-france\/stages\/6"[\s\S]*?Watch \(about 9 min\)/,
+      /<a [^>]*data-ui="Button" data-variant="primary"[^>]*href="\/world\/races\/race-france\/stages\/6"[^>]*>(?:(?!<\/a>)[\s\S])*Watch \(about 9 min\)/,
     )
     expect(markup).toMatch(
-      /<button [^>]*data-ui="Button" data-variant="secondary"[^>]*>[\s\S]*?Show result/,
+      /<button [^>]*data-ui="Button" data-variant="secondary"[^>]*>(?:(?!<\/button>)[\s\S])*Show result/,
     )
     expect(markup).toMatch(
-      /<button [^>]*data-ui="Button" data-variant="secondary"[^>]*>[\s\S]*?Give orders anyway/,
+      /<button [^>]*data-ui="Button" data-variant="secondary"[^>]*>(?:(?!<\/button>)[\s\S])*Give orders anyway/,
     )
   })
 

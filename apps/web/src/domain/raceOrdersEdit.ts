@@ -50,7 +50,8 @@ export function copyTargets(
 /**
  * Lo que copia: la orden, con su objetivo (si trabajas para tu jefe, trabajas para él todos los días) y el
  * disparo entero. Antes copiaba el `triggerKm` y no el `triggerOn`, y la etapa decía en pantalla una cita y el
- * motor leía otra (la revisión del 21i). Las cuatro palancas del 17a no viajan, como hasta hoy.
+ * motor leía otra (la revisión del 21i). De las cuatro palancas del 17a solo viaja el disparo; las otras tres
+ * (`chasePolicy`, `dayGoal` y `refuseRelayTeams`), no, como hasta hoy.
  */
 export function copyPatch(origen: StageOrder): Partial<StageOrder> {
   return {

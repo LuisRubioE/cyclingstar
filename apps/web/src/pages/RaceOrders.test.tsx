@@ -145,6 +145,14 @@ const marcada = (markup: string, grupo: string): string =>
   new RegExp(
     `aria-label="${grupo}"(?:(?!aria-label=)[\\s\\S])*?aria-checked="true"[^>]*>([^<]+)<`,
   ).exec(markup)?.[1] ?? ''
+/** Cuántas etiquetas siguen abiertas, dentro de `markup`, donde empieza `marca`: 0, un hijo directo. */
+function profundidad(markup: string, marca: string): number {
+  let abiertas = 0
+  for (const m of markup.slice(0, markup.indexOf(marca)).matchAll(/<(\/?)[a-zA-Z][^>]*?(\/?)>/g))
+    if (m[1] === '/') abiertas -= 1
+    else if (m[2] !== '/') abiertas += 1
+  return abiertas
+}
 
 describe('la pantalla de órdenes (§17.21; PR 21i)', () => {
   it('la cabecera en PageHeader, y la carrera en un Field select con su rótulo y sus días', () => {
@@ -191,9 +199,10 @@ describe('la pantalla de órdenes (§17.21; PR 21i)', () => {
     expect(llana).toContain('aria-label="About the forecast for Stage 1"')
     expect(llana).toContain('90% confidence.')
     // en la línea que parte, y no dentro de una caja que no parte: su porqué, al renglón siguiente (§4.3)
-    expect(llana).toMatch(
-      /<p class="flex flex-wrap[^"]*">(?:(?!<\/p>)[\s\S])*?Rain 60% · 14°C<\/span><span data-ui="InfoButton"/,
-    )
+    const linea =
+      /<p class="flex flex-wrap[^"]*">((?:(?!<\/p>)[\s\S])*)<\/p>/.exec(llana)?.[1] ?? ''
+    expect(linea).toContain('Rain 60% · 14°C</span><span data-ui="InfoButton"')
+    expect(profundidad(linea, '<span data-ui="InfoButton"')).toBe(0)
     const reina = panel(html, 'Stage 2')
     expect(reina).toMatch(/>Mountain</)
     expect(reina).toMatch(/class="text-ink-3">Showers 30% · 8°C \(outlook\)/)
