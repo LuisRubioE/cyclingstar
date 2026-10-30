@@ -37,6 +37,10 @@ import type { ColumnPriority, Layout } from './types'
  * sin puesto dice su porqué (`inactiveLabel`: `OTL` en la llegada, `OUT` en la de equipos); una columna
  * puede decir otra cosa en el segundo renglón (`second`: `2 overall`, donde la columna dice `2`); y la
  * plantilla las pinta todas (`all`).
+ *
+ * Desde el PR 21b, una fila puede llevar algo plegado (`detail`): debajo de la identidad y de su segundo
+ * renglón, en su celda y fuera de su enlace, que no puede llevar un control dentro. Es el desglose de
+ * etapas de `My races`, un `Disclosure` de 44.
  */
 
 export interface RankTableColumn<Row> {
@@ -68,6 +72,8 @@ export interface RankTableProps<Row> {
   readonly href?: (row: Row) => string
   readonly columns: readonly RankTableColumn<Row>[]
   readonly isOwn?: (row: Row) => boolean
+  /** lo plegado de una fila, debajo de su segundo renglón y fuera del enlace: un `Disclosure` (PR 21b) */
+  readonly detail?: (row: Row) => ReactNode
   /** lo que dice una fila sin puesto donde iría su valor: `DNF` por defecto; `OTL`, `OUT` */
   readonly inactiveLabel?: (row: Row) => string
   /** todas las filas, sin `Show all`: la plantilla de un equipo (§6.1) */
@@ -301,6 +307,7 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
                         <SegundoRenglon row={row} columns={columns} />
                       </Link>
                     )}
+                    {props.detail?.(row)}
                   </td>
                   {columns.map((c, j) => (
                     <td

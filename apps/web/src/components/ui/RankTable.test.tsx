@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { identityFromTeams } from '../../domain/tableIdentity'
 import { GcRankTable } from '../RaceRankTables'
+import { Disclosure } from './Disclosure'
 import { RankTable, type RankTableColumn, type RankTableProps, rankTableLines } from './RankTable'
 
 /**
@@ -269,6 +270,41 @@ describe('RankTable: lo que piden las tablas del 12b', () => {
       /<span data-column="gc" data-priority="secondary"[^>]*><span>2 overall<\/span>/,
     )
     expect(s).toMatch(/<td data-column="gc" data-priority="secondary"[^>]*>2<\/td>/)
+  })
+})
+
+describe('RankTable: lo plegado de una fila (PR 21b)', () => {
+  const plegado = (r: Fila) =>
+    r.id === 'r1' ? (
+      <Disclosure showLabel="Show the stages" hideLabel="Hide the stages">
+        <p>{`The stages of ${r.name}`}</p>
+      </Disclosure>
+    ) : null
+
+  it('debajo de la identidad y de su segundo renglón, y fuera del enlace, que no lleva un control dentro', () => {
+    const s = pinta({ rows: FILAS.slice(0, 3), detail: plegado })
+    expect(s).toMatch(
+      /<\/span><\/a><div data-ui="Disclosure"[^>]*>(?:(?!<\/td>).)*The stages of Rider 1/,
+    )
+    expect(s.match(/data-ui="Disclosure"/g)).toHaveLength(1)
+  })
+
+  it('sin href, igual: tras el bloque de la identidad', () => {
+    const sinEnlace: RankTableProps<Fila> = {
+      caption: BASE.caption,
+      rows: FILAS.slice(0, 3),
+      rowKey: BASE.rowKey,
+      identity: BASE.identity,
+      columns: BASE.columns,
+      detail: plegado,
+    }
+    const s = renderToStaticMarkup(
+      <MemoryRouter>
+        <RankTable {...sinEnlace} />
+      </MemoryRouter>,
+    )
+    expect(s).not.toContain('<a ')
+    expect(s).toMatch(/<\/span><\/span><div data-ui="Disclosure"/)
   })
 })
 

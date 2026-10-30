@@ -1,8 +1,8 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1504,
-    "arbitrarios": 28,
+    "tema": 1456,
+    "arbitrarios": 27,
     "espaciado": 15,
     "layout": 0
   },
@@ -250,12 +250,6 @@
     "apps/web/src/pages/Market.tsx": {
       "tema": 29,
       "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/MyRaces.tsx": {
-      "tema": 48,
-      "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
     },

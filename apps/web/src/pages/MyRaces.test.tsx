@@ -1,0 +1,208 @@
+import type {
+  EnterableRace,
+  RiderRaceResult,
+  RiderSummary,
+  UpcomingRace,
+} from '@cyclingstar/shared'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router-dom'
+import { describe, expect, it } from 'vitest'
+import { horizonKey } from '../queryClient'
+import { MyRaces } from './MyRaces'
+import { healthWith, horizonWith } from './__fixtures__/world'
+
+/**
+ * MIS CARRERAS CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21b), en estático con la caché ya
+ * llena: la cabecera en `PageHeader`, las pestañas del catálogo, cada lista en su `Panel` con la respuesta de
+ * su pantalla (§7.3: la 02, `On your programme`; la 03, la de la inscripción; la 37, la `RankTable` de los
+ * resultados), las cifras de la inscripción en `Stat` y el desglose de etapas en un `Disclosure` de 44.
+ */
+
+const REV = '200.1'
+
+const upcoming: UpcomingRace = {
+  raceId: 'race-valencia',
+  raceKey: 'race-valencia:s0',
+  raceName: 'Race Valencia',
+  raceClass: 'PRS',
+  country: 'ES',
+  startGameDay: 52,
+  daysUntil: 2,
+  stageCount: 5,
+  ongoing: false,
+  bib: 214,
+  travelOut: [],
+  travelBack: [],
+  travelPaid: null,
+}
+
+const enterable = (over: Partial<EnterableRace>): EnterableRace => ({
+  raceId: 'race-jaen',
+  name: 'Race Jaén',
+  country: 'ES',
+  startDay: 60,
+  raceClass: '1',
+  travelMoney: 1200,
+  travelDays: 1,
+  entered: false,
+  enrolled: false,
+  affordable: true,
+  ...over,
+})
+
+const result = (over: Partial<RiderRaceResult>): RiderRaceResult => ({
+  raceId: 'race-france',
+  raceName: 'Race France',
+  raceClass: 'WT',
+  season: 0,
+  stageCount: 3,
+  isOneDay: false,
+  gcPuesto: 7,
+  dnf: false,
+  finished: true,
+  stages: [
+    { stageDay: 1, puesto: 1, from: 'Lille', to: 'Arras' },
+    { stageDay: 2, puesto: 12, from: 'Arras', to: 'Reims' },
+    { stageDay: 3, puesto: 4, from: 'Reims', to: 'Paris' },
+  ],
+  ...over,
+})
+
+function page(
+  url: string,
+  {
+    freeAgent = false,
+    races = [upcoming],
+    entries = [],
+    results = [result({})],
+    money = 15000,
+  }: {
+    freeAgent?: boolean
+    races?: UpcomingRace[]
+    entries?: EnterableRace[]
+    results?: RiderRaceResult[]
+    money?: number
+  } = {},
+): string {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const summary: Partial<RiderSummary> = {
+    teamId: freeAgent ? null : 'team-1',
+    teamName: freeAgent ? null : 'Noord',
+    money,
+  }
+  client.setQueryData(['health'], healthWith('on', 'on'))
+  client.setQueryData(['horizon'], horizonWith({ rev: REV }))
+  client.setQueryData(horizonKey(['rider', 'summary'], REV), summary)
+  client.setQueryData(horizonKey(['rider', 'me'], REV), { id: 'rider-1' })
+  client.setQueryData(horizonKey(['rider', 'upcoming'], REV), races)
+  client.setQueryData(['race-entries'], entries)
+  client.setQueryData(horizonKey(['rider', 'results', 'rider-1'], REV), results)
+  return renderToStaticMarkup(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[url]}>
+        <MyRaces />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
+/** El `Panel` del catálogo que lleva ese título, entero. */
+const panel = (markup: string, title: string): string =>
+  new RegExp(
+    `<section data-ui="Panel"[^>]*>(?:(?!</section>)[\\s\\S])*?>${title}</h2>[\\s\\S]*?</section>`,
+  ).exec(markup)?.[0] ?? ''
+
+describe('mis carreras con el sistema (§17.21; PR 21b)', () => {
+  it('la cabecera, un PageHeader con My races; las pestañas, las del catálogo en page', () => {
+    const markup = page('/me/races')
+    expect(markup).toMatch(/<header data-ui="PageHeader"[^>]*>[\s\S]*?<h1[^>]*>My races<\/h1>/)
+    expect(markup).toMatch(/<div data-ui="Tabs" data-variant="page"/)
+    expect(markup).toContain('role="tablist" aria-label="My races sections"')
+  })
+
+  it('Upcoming: On your programme, el Panel que contesta a la 02 (§7.3)', () => {
+    const programme = panel(page('/me/races'), 'On your programme')
+    expect(programme).toMatch(
+      /^<section data-ui="Panel" data-variant="default" data-state="ready" data-answer=""/,
+    )
+    expect(programme).toContain('Set orders')
+  })
+
+  it('lo pedido que espera su lista, en su Panel, y cada carrera, un enlace de 44', () => {
+    const markup = page('/me/races', {
+      freeAgent: true,
+      races: [],
+      entries: [enterable({ entered: true })],
+    })
+    const waiting = panel(markup, 'Entered — waiting for the start list')
+    expect(waiting).toMatch(
+      /<a data-ui="TextLink"[^>]*class="[^"]*\bmin-h-11\b[^"]*" href="\/world\/races\/race-jaen"/,
+    )
+  })
+
+  it('Available to enter: el saldo, lo comprometido y lo pedido en Stat; lo comprometido, con su signo', () => {
+    const markup = page('/me/races?tab=enter', {
+      freeAgent: true,
+      entries: [enterable({ entered: true }), enterable({ raceId: 'race-b', name: 'Race B' })],
+    })
+    const stats = [
+      ...markup.matchAll(
+        /<dl data-ui="Stat" data-variant="([a-z]+)"[\s\S]*?<dt[^>]*>([^<]+)<\/dt><dd[^>]*>([^<]+)<\/dd>/g,
+      ),
+    ].map((m) => `${m[2]}:${m[1]}:${m[3]}`)
+    expect(stats).toEqual([
+      'Balance:default:15,000',
+      'Committed:signed:−1,200',
+      'Entered:default:1',
+    ])
+  })
+
+  it('sin nada comprometido, el cero sin signo ni rosa (captura 03)', () => {
+    const markup = page('/me/races?tab=enter', { freeAgent: true, entries: [enterable({})] })
+    expect(markup).toMatch(/<dt[^>]*>Committed<\/dt><dd class="[^"]*text-ink">0<\/dd>/)
+  })
+
+  it('la lista de lo que se puede pedir, el Panel que contesta a la 03 (§7.3)', () => {
+    const markup = page('/me/races?tab=enter', { freeAgent: true, entries: [enterable({})] })
+    const open = panel(markup, 'Still open')
+    expect(open).toMatch(/^<section data-ui="Panel"[^>]*data-answer=""/)
+    expect(open).toContain('Enter Race Jaén')
+  })
+
+  it('Results: una RankTable que contesta a la 37 (§7.3), con la carrera, su resultado y su puesto', () => {
+    const markup = page('/me/races?tab=results')
+    expect(markup).toMatch(/data-ui="RankTable"[^>]*data-answer=""/)
+    expect(markup).toContain('>Race France</a>')
+    expect(markup).not.toContain('<table class="w-full text-sm">')
+  })
+
+  it('el segundo renglón de cada carrera: su temporada y qué es su resultado (Season 1 · Overall)', () => {
+    const markup = page('/me/races?tab=results')
+    expect(markup).toMatch(
+      /<span data-column="season" data-priority="secondary"[^>]*><span>Season 1<\/span>/,
+    )
+    expect(markup).toMatch(
+      /<span data-column="result" data-priority="secondary"[^>]*><span>Overall<\/span>/,
+    )
+  })
+
+  it('el puesto, con su tono (placeTone): la victoria en good y el resto en ink-2', () => {
+    const win = page('/me/races?tab=results', { results: [result({ gcPuesto: 1 })] })
+    expect(win).toMatch(
+      /<td data-column="place"[^>]*><span class="font-bold text-good">1st<\/span><\/td>/,
+    )
+    const seventh = page('/me/races?tab=results')
+    expect(seventh).toMatch(
+      /<td data-column="place"[^>]*><span class="font-bold text-ink-2">7th<\/span><\/td>/,
+    )
+  })
+
+  it('el desglose de etapas, plegado en un Disclosure de 44, con un enlace por etapa', () => {
+    const markup = page('/me/races?tab=results')
+    const disclosure = /<div data-ui="Disclosure"[\s\S]*?<\/ul>/.exec(markup)?.[0] ?? ''
+    expect(disclosure).toContain('aria-expanded="false"')
+    expect(disclosure).toContain('href="/world/races/race-france/stages/2"')
+    expect(disclosure).toMatch(/>Stage 3 of 3</)
+  })
+})

@@ -1,23 +1,28 @@
-import { raceIdFromKey, seasonPosition } from '@cyclingstar/shared'
+import { type RiderRaceResult, raceIdFromKey, seasonPosition } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import type { RaceClass } from '../api/calendar'
 import { type EnterableRace, enterRace, fetchEnterableRaces, withdrawRace } from '../api/raceEntry'
 import { fetchRiderResults } from '../api/rankings'
 import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary, retireFromRace } from '../api/rider'
-import { Flag } from '../components/Flag'
-import { Panel, SectionBar } from '../components/Panel'
-import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { TOP_ROWS } from '../components/ShowAll'
 import { StageRoute } from '../components/StageRoute'
-import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { TabPanel, useTabParam } from '../components/Tabs'
 import { ActionRow } from '../components/ui/ActionRow'
 import { Button } from '../components/ui/Button'
+import { Disclosure } from '../components/ui/Disclosure'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Flag } from '../components/ui/Flag'
 import { Icon } from '../components/ui/Icon'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { RankTable, type RankTableColumn } from '../components/ui/RankTable'
 import { Segmented } from '../components/ui/Segmented'
 import { ShowAllRows } from '../components/ui/ShowAllRows'
+import { Stat } from '../components/ui/Stat'
+import { type TabOption, Tabs } from '../components/ui/Tabs'
+import { TextLink } from '../components/ui/TextLink'
 import { TONES } from '../components/ui/styles'
 import { raceClassLabel, travelDaysLabel } from '../domain/labels'
 import { programmeTravel } from '../domain/programme'
@@ -147,7 +152,8 @@ function UpcomingTab() {
       {races.length > 0 && (
         // las filas con su acción (E3, PR 12a): `Set orders`, y en una carrera por etapas en curso, la
         // retirada debajo
-        <Panel title="On your programme" bodyClassName="px-3 pb-3">
+        // la respuesta de la 02 (§7.3; desde el PR 21b, en el `Panel` del catálogo)
+        <Panel title="On your programme" answer>
           <ul className="divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0">
             {races.map((r) => (
               <ActionRow
@@ -199,7 +205,9 @@ function UpcomingTab() {
             ))}
           </ul>
           {retire.isError && (
-            <p className="text-meta text-bad">Could not withdraw from the race.</p>
+            <p role="alert" className="text-meta text-bad">
+              Could not withdraw from the race.
+            </p>
           )}
         </Panel>
       )}
@@ -214,26 +222,26 @@ function UpcomingTab() {
       )}
       {pending.length > 0 && (
         <Panel title="Entered — waiting for the start list">
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {pending.map((r) => (
-              <li key={r.raceId} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <Link
-                  to={`/world/races/${raceIdFromKey(r.raceId)}`}
-                  className="font-medium text-slate-700 hover:text-brand-cyan hover:underline"
-                >
-                  {r.country && <Flag code={r.country} size={14} className="mr-1.5" />}
-                  {r.name}
-                </Link>
-                <span className="shrink-0 text-xs text-slate-500">
+              <li
+                key={r.raceId}
+                className="flex flex-wrap items-center justify-between gap-x-3 text-meta"
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {r.country && <Flag country={r.country} />}
+                  <TextLink to={`/world/races/${raceIdFromKey(r.raceId)}`}>{r.name}</TextLink>
+                </span>
+                <span className="text-caption text-ink-2">
                   {formatGameDay(r.startDay, hoy)} · travel {r.travelMoney.toLocaleString('en-US')}
                   {r.travelDays > 0 && ` · ${travelDaysLabel(r.travelDays)}`}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-caption text-ink-2">
             You pay the trip when the race calls you up. Until then you can still withdraw from the{' '}
-            <span className="font-medium">Available to enter</span> tab.
+            <span className="font-semibold">Available to enter</span> tab.
           </p>
         </Panel>
       )}
@@ -346,71 +354,126 @@ function EnterTab({ money }: { money: number | null }) {
 
   return (
     <>
-      <p className="text-sm text-slate-600">
+      <p className="text-meta text-ink-2">
         As a free agent you enter continental races (.1/.2) yourself, and you pay your own travel —
         transport and hotel — out of your balance when the race calls you up. National championships
         you qualify for automatically.
       </p>
-      <div className="grid grid-cols-3 gap-3">
-        <Panel title="Balance">
-          <p className="text-lg font-bold tabular-nums text-slate-800">
-            {money != null ? money.toLocaleString('en-US') : '—'}
-          </p>
-        </Panel>
-        <Panel title="Committed">
-          <p className="text-lg font-bold tabular-nums text-rose-600">
-            −{committed.toLocaleString('en-US')}
-          </p>
-        </Panel>
-        <Panel title="Entered">
-          <p className="text-lg font-bold tabular-nums text-slate-800">
-            {data.filter((r) => r.entered).length}
-          </p>
-        </Panel>
+      {/* las cifras, en `Stat` (§4.4; desde el PR 21b): lo comprometido con su signo, y el cero sin él ni rosa
+          (captura 03); dos por renglón en el teléfono, donde tres de `display` no caben */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+        <Stat label="Balance" value={money ?? '—'} />
+        <Stat label="Committed" value={-committed} signed />
+        <Stat label="Entered" value={data.filter((r) => r.entered).length} />
       </div>
 
       {data.length === 0 ? (
         <EmptyState text="No continental races left to enter this season." />
       ) : (
-        // las filas con su acción (E3, PR 12a): de 193 filas en 19.914 px, a las 20 primeras
-        <Panel title="Still open" bodyClassName="flex flex-col gap-3 px-3 pt-3 pb-3">
-          <Segmented
-            label="Which races"
-            options={FILTROS}
-            value={filtro}
-            onChange={(f) => {
-              setFiltro(f)
-              setTodas(false)
-            }}
-          />
-          {lista.length === 0 ? (
-            <EmptyState text="You can't pay the trip to any race still open. Your balance grows with your prizes and your salary." />
-          ) : (
-            <ul className="divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0">
-              {(todas ? lista : lista.slice(0, TOP_ROWS)).map((race) => (
-                <EnterableRow
-                  key={race.raceId}
-                  race={race}
-                  hoy={hoy}
-                  busy={mutation.isPending && mutation.variables?.id === race.raceId}
-                  onEnter={(id) => mutation.mutate({ id, action: 'enter' })}
-                  onWithdraw={(id) => mutation.mutate({ id, action: 'withdraw' })}
-                />
-              ))}
-            </ul>
-          )}
-          <ShowAllRows total={lista.length} expanded={todas} onToggle={() => setTodas((t) => !t)} />
+        // las filas con su acción (E3, PR 12a): de 193 filas en 19.914 px, a las 20 primeras; la respuesta de
+        // la 03 (§7.3; desde el PR 21b, en el `Panel` del catálogo)
+        <Panel title="Still open" answer>
+          <div className="flex flex-col gap-3">
+            <Segmented
+              label="Which races"
+              options={FILTROS}
+              value={filtro}
+              onChange={(f) => {
+                setFiltro(f)
+                setTodas(false)
+              }}
+            />
+            {lista.length === 0 ? (
+              <EmptyState text="You can't pay the trip to any race still open. Your balance grows with your prizes and your salary." />
+            ) : (
+              <ul className="divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0">
+                {(todas ? lista : lista.slice(0, TOP_ROWS)).map((race) => (
+                  <EnterableRow
+                    key={race.raceId}
+                    race={race}
+                    hoy={hoy}
+                    busy={mutation.isPending && mutation.variables?.id === race.raceId}
+                    onEnter={(id) => mutation.mutate({ id, action: 'enter' })}
+                    onWithdraw={(id) => mutation.mutate({ id, action: 'withdraw' })}
+                  />
+                ))}
+              </ul>
+            )}
+            <ShowAllRows
+              total={lista.length}
+              expanded={todas}
+              onToggle={() => setTodas((t) => !t)}
+            />
+          </div>
         </Panel>
       )}
-      {mutation.isError && <p className="text-sm text-red-600">Could not update your entry.</p>}
+      {mutation.isError && (
+        <p role="alert" className="text-meta text-bad">
+          Could not update your entry.
+        </p>
+      )}
     </>
   )
 }
 
+/** El desglose de las etapas de una vuelta, plegado: el titular es la general (docs/navegacion.md §3.6). */
+function Etapas({ r }: { readonly r: RiderRaceResult }) {
+  return (
+    <Disclosure showLabel={stagesSummary(r)} hideLabel="Hide the stages">
+      <ul className="px-3 pb-1">
+        {r.stages.map((s) => (
+          // las cifras, tabulares: `Stage 1 of 5` y `Stage 2 of 5` miden lo mismo, y los recorridos empiezan a la
+          // vez
+          <li key={s.stageDay} className="flex items-center gap-2 text-meta tabular-nums">
+            <span
+              className={`w-10 shrink-0 text-right font-semibold ${
+                s.puesto === 1 ? TONES.good.text : 'text-ink-2'
+              }`}
+            >
+              {ordinal(s.puesto)}
+            </span>
+            <TextLink to={`/world/races/${r.raceId}/stages/${s.stageDay}`} layout="shrink-0">
+              {`Stage ${s.stageDay} of ${r.stageCount}`}
+            </TextLink>
+            <StageRoute from={s.from} to={s.to} className="min-w-0 text-ink-3" />
+          </li>
+        ))}
+      </ul>
+    </Disclosure>
+  )
+}
+
+/**
+ * Las columnas de mis resultados (§6.1): la temporada y qué es el resultado, en el segundo renglón hasta
+ * 640 (`Season 1 · Overall`); el puesto, siempre, con su tono (`placeTone`).
+ */
+const COLUMNAS: readonly RankTableColumn<RiderRaceResult>[] = [
+  {
+    key: 'season',
+    header: 'Season',
+    priority: 'secondary',
+    numeric: true,
+    render: (r) => r.season + 1,
+    second: (r) => `Season ${r.season + 1}`,
+  },
+  { key: 'result', header: 'Result', priority: 'secondary', render: raceResultKind },
+  {
+    key: 'place',
+    header: 'Place',
+    priority: 'primary',
+    numeric: true,
+    render: (r) => (
+      <span className={`font-bold ${TONES[placeTone(r)].text}`}>{raceResultPlace(r)}</span>
+    ),
+  },
+]
+
 /**
  * Pestaña "Results": mis carreras corridas. Una fila POR CARRERA con mi puesto en la general —el
  * resultado de una vuelta es la general, se gane o no (docs/navegacion.md §3.6)— y las etapas
- * plegadas debajo, cada una con su enlace a la crónica.
+ * plegadas debajo, cada una con su enlace a la crónica. Desde el PR 21b, en la `RankTable` del catálogo:
+ * la respuesta de la 37 (§7.3), sin puesto ni enlace de fila, porque la carrera enlaza en su nombre y
+ * cada etapa en el suyo; y las etapas, en un `Disclosure` de 44 debajo del segundo renglón (`detail`).
  */
 function ResultsTab({ riderId }: { riderId: string | null }) {
   const rev = useHorizonRev()
@@ -420,7 +483,6 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
     enabled: !!riderId && rev !== undefined,
   })
   const { data } = results
-  const [expanded, setExpanded] = useState(false)
 
   // Los estados, con `QueryView` (E3, PR 10). El corredor ya llegó (`MyRaces`): sin él, la consulta no
   // corre, y no se queda cargando para siempre.
@@ -432,110 +494,36 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
     )
   if (data.length === 0) return empty
 
-  // Regla común de tablas (§7.3): 20 filas y salida para ver el resto.
-  const visible = expanded ? data : data.slice(0, TOP_ROWS)
-
   return (
-    <Panel title="Races you have ridden" bodyClassName="p-0">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <caption className="sr-only">
-            Your races, most recent first: your overall place and the stages behind it
-          </caption>
-          <thead>
-            <tr className="border-b border-slate-200 text-left text-xs text-slate-400">
-              <th scope="col" className="px-3 py-2 font-medium">
-                Race
-              </th>
-              <th scope="col" className="px-2 py-2 font-medium">
-                Result
-              </th>
-              <th scope="col" className="px-3 py-2 text-right font-medium">
-                Place
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((r) => (
-              <tr
-                key={raceResultKey(r)}
-                className="border-b border-slate-100 align-top last:border-0"
-              >
-                <th scope="row" className="px-3 py-2 text-left font-normal">
-                  <Link
-                    to={`/world/races/${r.raceId}`}
-                    className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
-                  >
-                    {r.raceName}
-                  </Link>
-                  <span className="ml-2 text-xs text-slate-400">Season {r.season + 1}</span>
-                  {/* Con etapas en su velo (sup. H7; 9b): `Race France · 3 stages to watch`. */}
-                  {stagesToWatchText(r) !== null && (
-                    <span className="ml-2 text-xs font-medium text-emerald-700">
-                      · {stagesToWatchText(r)}
-                    </span>
-                  )}
-                  {/* Un día: la etapa ES la carrera, y su de dónde a dónde va junto al nombre. */}
-                  {r.isOneDay && (
-                    <StageRoute
-                      from={r.stages[0]?.from}
-                      to={r.stages[0]?.to}
-                      className="ml-2 text-xs text-slate-400"
-                    />
-                  )}
-                  {/* El desglose de etapas cuelga de la carrera, plegado: el titular es la general. */}
-                  {hasStageBreakdown(r) && (
-                    <details className="mt-0.5">
-                      <summary className="cursor-pointer list-none text-xs [&::-webkit-details-marker]:hidden text-slate-400 hover:text-brand-cyan">
-                        <span className="underline decoration-dotted underline-offset-2">
-                          {stagesSummary(r)}
-                        </span>
-                      </summary>
-                      <ul className="mt-1 space-y-0.5">
-                        {r.stages.map((s) => (
-                          <li key={s.stageDay} className="flex items-baseline gap-2 text-xs">
-                            <span
-                              className={`w-9 shrink-0 text-right font-semibold tabular-nums ${
-                                s.puesto === 1 ? 'text-amber-500' : 'text-slate-500'
-                              }`}
-                            >
-                              {ordinal(s.puesto)}
-                            </span>
-                            <Link
-                              to={`/world/races/${r.raceId}/stages/${s.stageDay}`}
-                              className="text-slate-500 hover:text-brand-cyan hover:underline"
-                            >
-                              Stage {s.stageDay} of {r.stageCount}
-                            </Link>
-                            <StageRoute
-                              from={s.from}
-                              to={s.to}
-                              className="truncate text-slate-400"
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                </th>
-                <td className="px-2 py-2 text-slate-500">{raceResultKind(r)}</td>
-                <td
-                  className={`px-3 py-2 text-right font-bold tabular-nums ${TONES[placeTone(r)].text}`}
-                >
-                  {raceResultPlace(r)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="px-3 pb-3">
-        <ShowAllButton
-          total={data.length}
-          expanded={expanded}
-          onToggle={() => setExpanded((v) => !v)}
-        />
-      </div>
+    <Panel title="Races you have ridden" variant="bleed">
+      <RankTable
+        caption="Your races, most recent first: your overall place and the stages behind it"
+        rows={data}
+        rowKey={raceResultKey}
+        identityHeader="Race"
+        identity={(r) => (
+          <>
+            <TextLink to={`/world/races/${r.raceId}`}>{r.raceName}</TextLink>
+            {/* con etapas en su velo (sup. H7; 9b): `3 stages to watch` */}
+            {stagesToWatchText(r) !== null && (
+              <span className={`block text-meta font-semibold ${TONES.good.text}`}>
+                {stagesToWatchText(r)}
+              </span>
+            )}
+            {/* un día: la etapa ES la carrera, y su de dónde a dónde va debajo del nombre */}
+            {r.isOneDay && (
+              <StageRoute
+                from={r.stages[0]?.from}
+                to={r.stages[0]?.to}
+                className="block text-meta text-ink-3"
+              />
+            )}
+          </>
+        )}
+        columns={COLUMNAS}
+        detail={(r) => (hasStageBreakdown(r) ? <Etapas r={r} /> : null)}
+        answer
+      />
     </Panel>
   )
 }
@@ -570,13 +558,12 @@ export function MyRaces() {
 
   return (
     <section className="space-y-4">
-      <SectionBar>My races</SectionBar>
+      <PageHeader title="My races" />
       <Tabs
         options={options}
         value={active}
         onChange={setActive}
         label="My races sections"
-        variant="underline"
         panelId={MY_RACES_PANEL}
       />
       <TabPanel panelId={MY_RACES_PANEL} active={active}>

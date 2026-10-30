@@ -195,7 +195,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/pages/HowToPlay.tsx',
   'apps/web/src/pages/Login.tsx',
   'apps/web/src/pages/Market.tsx',
-  'apps/web/src/pages/MyRaces.tsx',
   'apps/web/src/pages/News.tsx',
   'apps/web/src/pages/Privacy.tsx',
   'apps/web/src/pages/RaceOrders.tsx',
