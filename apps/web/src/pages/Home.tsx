@@ -1,4 +1,9 @@
-import { type RiderSummary, raceIdFromKey, seasonPosition } from '@cyclingstar/shared'
+import {
+  type RiderSummary,
+  raceIdFromKey,
+  seasonPosition,
+  stageRouteText,
+} from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
@@ -266,7 +271,9 @@ function LastRaceCard() {
     >
       <div className="grid gap-1">
         <p className="text-row font-semibold text-ink">
-          {data.raceName} · {data.stageName}{' '}
+          {/* La etapa y su recorrido, como toda etapa (§4.10): `Stage 3 · Gandia → Alcoi` */}
+          {data.raceName} · {data.stageName}
+          {stageRouteText(data.from, data.to) !== null && ' · '}
           <StageRoute from={data.from} to={data.to} className="font-normal text-ink-2" />
         </p>
         <p className="text-meta text-ink-2">

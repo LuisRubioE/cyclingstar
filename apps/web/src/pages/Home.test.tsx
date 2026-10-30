@@ -407,13 +407,23 @@ describe('el jugador (§17.21; PR 21g)', () => {
     const enlace = /<a ([^>]*)>Full story<\/a>/.exec(ultima)?.[1] ?? ''
     expect(enlace).toContain('href="/world/races/race-valencia/stages/3"')
     expect(enlace).toContain('data-ui="TextLink"')
-    expect(ultima).toContain('Race Valencia · Stage 3')
-    expect(ultima).toContain('Valencia → Castellón')
+    // la etapa y su recorrido, como toda etapa (§4.10): `Stage 3 · Gandia → Alcoi`
+    expect(ultima).toMatch(
+      /Race Valencia · Stage 3 · <span data-ui="StageRoute"[^>]*>Valencia → Castellón</,
+    )
     // el hueco, con formatTime (§4.10): `+1:12`, y nunca `+1'12"` (la revisión del 21g)
     expect(ultima).toMatch(/>4<\/span><span[^>]*> \/ 150<\/span> · \+1:12/)
     expect(ultima).not.toContain('&#x27;')
     expect(markup).not.toMatch(/ →</)
     expect(markup).not.toContain('bg-brand')
+  })
+
+  it('la última carrera sin ciudades: la etapa sola, sin su ·', () => {
+    const markup = pinta(<PlayerHome name="José Quintáns" />, {
+      ultima: { report: { ...ULTIMA, from: null, to: null }, ready: null },
+    })
+    const ultima = panel(markup, 'Last race')
+    expect(ultima).toContain('Race Valencia · Stage 3</p>')
   })
 
   it('la última carrera velada: Ready to watch, con Watch, un enlace de 44 a su etapa, en la cabecera del Panel', () => {
