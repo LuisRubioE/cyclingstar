@@ -108,8 +108,9 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
           <EmptyState icon="race" text="No upcoming races left to plan this season." />
         ) : (
           <div className="grid gap-3">
-            {/* las cifras, en `Stat` (§4.4), con el dinero de `money`: hoy, `17214` */}
-            <div className="grid gap-3 sm:grid-cols-2">
+            {/* las cifras, en `Stat` (§4.4), con el dinero de `money`: hoy, `17214`; en el teléfono, en un renglón
+                que parte, como las de `My races` (21b) */}
+            <div className="flex flex-wrap gap-x-6 gap-y-3 sm:grid sm:grid-cols-2">
               <Stat label="Races planned" value={draftedCount} />
               <Stat label="Planned travel cost" value={plannedCost} />
             </div>
@@ -158,10 +159,11 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
         )}
       </Panel>
 
-      {/* el presupuesto y la semana, en `Stat` con su signo; una por renglón en el teléfono: siete cifras en
-          `display` piden unos 178 px con DejaVu Sans, y media columna a 320 da 124 */}
+      {/* el presupuesto y la semana, en `Stat` con su signo; en el teléfono, en un renglón que parte, y no en
+          columnas: cada una mide lo que su cifra y la que no cabe baja, porque en `display` y con DejaVu Sans
+          `6,173,210` pide 180 px (medido) y media columna a 320 da 125 */}
       <Panel title="Team budget">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-wrap gap-x-6 gap-y-3 sm:grid sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="Budget" value={data.budget} />
           <Stat label="Weekly income" value={data.weeklyIncome} signed />
           <Stat label="Weekly wages" value={-data.weeklyWages} signed />

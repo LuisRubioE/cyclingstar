@@ -191,10 +191,13 @@ describe('el calendario del mánager (§17.21; PR 21c)', () => {
     )
   })
 
-  it('las cifras de dinero, una por renglón en el teléfono: siete cifras en display no caben en media columna a 320', () => {
+  it('las cifras de dinero, en un renglón que parte en el teléfono: 6,173,210 en display no cabe en media columna a 320', () => {
     const budget = panel(page(), 'Team budget')
     expect(budget).toMatch(
-      /<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><dl data-ui="Stat"/,
+      /<div class="flex flex-wrap gap-x-6 gap-y-3 sm:grid sm:grid-cols-2 lg:grid-cols-4"><dl data-ui="Stat"/,
+    )
+    expect(panel(page(), 'Race plan')).toMatch(
+      /<div class="flex flex-wrap gap-x-6 gap-y-3 sm:grid sm:grid-cols-2"><dl data-ui="Stat"/,
     )
   })
 
