@@ -130,6 +130,8 @@ describe('la lista de atributos con el sistema (§4.6; PR 21h)', () => {
         <AttributeList attributes={propios} detail={{ opinion: opiniones('apunta', 'quiza') }} />,
       ),
     )
-    expect(formandose).not.toContain("I think there's real room for you to grow here.")
+    // sin el apóstrofo, que el HTML escapa (`&#x27;`)
+    expect(formandose).not.toContain('real room for you to grow here.')
+    expect(formandose).toContain('data-ui="InfoButton"')
   })
 })

@@ -102,6 +102,12 @@ describe('Your last race con el sistema (E3, docs/visual.md §4.6; PR 21h)', () 
     ])
   })
 
+  it('quien llega con el ganador, s.t. (§4.10), y no +0:00', () => {
+    const html = card({ report: report({ position: 5, timeGapToWinnerS: 0 }), ready: null })
+    expect(html).toMatch(/<dt[^>]*>Gap to winner<\/dt><dd[^>]*>s\.t\.<\/dd>/)
+    expect(html).not.toContain('+0:00')
+  })
+
   it('el ganador, con el icono race y no con 🏁; sin colores de la paleta', () => {
     const html = card({ report: report(), ready: null })
     expect(html).toMatch(/data-variant="race"[\s\S]*?Bea Soler[\s\S]*?took the win\./)

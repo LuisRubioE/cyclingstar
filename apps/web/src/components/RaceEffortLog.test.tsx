@@ -76,6 +76,21 @@ describe('el diario de carrera (§10.7; 19b)', () => {
     )
   })
 
+  it('lo que dice la barra, del concepto que más gastó al que menos, sea cual sea su orden en la leyenda', () => {
+    const html = pinta([
+      {
+        ...etapa,
+        parte: {
+          ...etapa.parte!,
+          gasto: { rodar: 5, relevo: 20, reserva: 10, cerillos: 30, banderas: 0 },
+        },
+      },
+    ])
+    expect(html).toContain(
+      'Where it went, most first: attacks &amp; jumps, on the front, digging deep, riding in the bunch',
+    )
+  })
+
   it('la leyenda, en caption y con los tokens de la barra', () => {
     const html = pinta([etapa])
     expect(html).not.toContain('text-[11px]')
