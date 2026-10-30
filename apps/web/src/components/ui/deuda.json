@@ -1,8 +1,8 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1414,
-    "arbitrarios": 24,
+    "tema": 1318,
+    "arbitrarios": 22,
     "espaciado": 15,
     "layout": 0
   },
@@ -178,12 +178,6 @@
     "apps/web/src/pages/Account.tsx": {
       "tema": 93,
       "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/AdminNames.tsx": {
-      "tema": 96,
-      "arbitrarios": 2,
       "espaciado": 0,
       "layout": 0
     },

@@ -183,7 +183,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/domain/broadcast/screen.ts',
   'apps/web/src/domain/health.ts',
   'apps/web/src/pages/Account.tsx',
-  'apps/web/src/pages/AdminNames.tsx',
   'apps/web/src/pages/AdminPanel.tsx',
   'apps/web/src/pages/Countries.tsx',
   'apps/web/src/pages/Country.tsx',
