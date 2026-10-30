@@ -28,6 +28,17 @@ describe('Disclosure', () => {
     expect(s).toContain('Show the 28 days')
   })
 
+  it('sin región (region={false}), para muchos a la vez: el botón gobierna lo plegado y no hay punto de referencia (PR 21b)', () => {
+    const s = renderToStaticMarkup(
+      <Disclosure showLabel="3 stages" hideLabel="Hide the stages" region={false}>
+        <p>the stages</p>
+      </Disclosure>,
+    )
+    const regionId = /aria-controls="([^"]+)"/.exec(s)?.[1] ?? ''
+    expect(s).toContain(`<div id="${regionId}" hidden="">`)
+    expect(s).not.toContain('role="region"')
+  })
+
   it('open: Hide, aria-expanded true y la región a la vista', () => {
     const s = html(true)
     expect(s).toContain('data-state="open"')

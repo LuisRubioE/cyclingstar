@@ -130,10 +130,16 @@ function UpcomingTab() {
     },
   })
 
-  // Los estados, con `QueryView` (E3, PR 10).
+  // Los estados, con `QueryView` (E3, PR 10), y en cada uno la respuesta de la 02 (§7.3; desde la revisión
+  // del 21b): el programa; sin él, lo pedido, o lo que lo espera; y si no hay nada, el vacío
   if (upcoming.data === undefined)
     return (
-      <QueryView query={upcoming} label="your races" skeleton={{ kind: 'rows', rowHeight: 64 }} />
+      <QueryView
+        query={upcoming}
+        label="your races"
+        skeleton={{ kind: 'rows', rowHeight: 64 }}
+        answer
+      />
     )
 
   const races = upcoming.data ?? []
@@ -143,7 +149,10 @@ function UpcomingTab() {
   // El vacío, con las inscripciones ya en la mano: mientras llegan, o si fallan, no se dice que no hay nada.
   if (races.length === 0 && pending.length === 0 && entries.data !== undefined) {
     return (
-      <EmptyState text="No races on your programme yet. Your team enters you about two weeks before the start — and as a free agent you can enter races yourself." />
+      <EmptyState
+        text="No races on your programme yet. Your team enters you about two weeks before the start — and as a free agent you can enter races yourself."
+        answer
+      />
     )
   }
 
@@ -218,10 +227,11 @@ function UpcomingTab() {
           query={entries}
           label="your race entries"
           skeleton={{ kind: 'rows', rowHeight: 64 }}
+          answer={races.length === 0}
         />
       )}
       {pending.length > 0 && (
-        <Panel title="Entered — waiting for the start list">
+        <Panel title="Entered — waiting for the start list" answer={races.length === 0}>
           <ul className="divide-y divide-line">
             {pending.map((r) => (
               <li
@@ -343,6 +353,7 @@ function EnterTab({ money }: { money: number | null }) {
         query={entries}
         label="the races you can enter"
         skeleton={{ kind: 'rows', rowHeight: 64 }}
+        answer
       />
     )
 
@@ -360,15 +371,17 @@ function EnterTab({ money }: { money: number | null }) {
         you qualify for automatically.
       </p>
       {/* las cifras, en `Stat` (§4.4; desde el PR 21b): lo comprometido con su signo, y el cero sin él ni rosa
-          (captura 03); dos por renglón en el teléfono, donde tres de `display` no caben */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+          (captura 03). En el teléfono, en un renglón que parte, y no en columnas: cada una mide lo que su cifra
+          y la que no cabe baja, porque en `display` y con DejaVu Sans `100,000` pide 146 px y `−12,000` 150, y
+          media columna a 320 da 136 (medido; la revisión del 21b) */}
+      <div className="flex flex-wrap gap-x-6 gap-y-3 sm:grid sm:grid-cols-3">
         <Stat label="Balance" value={money ?? '—'} />
         <Stat label="Committed" value={-committed} signed />
         <Stat label="Entered" value={data.filter((r) => r.entered).length} />
       </div>
 
       {data.length === 0 ? (
-        <EmptyState text="No continental races left to enter this season." />
+        <EmptyState text="No continental races left to enter this season." answer />
       ) : (
         // las filas con su acción (E3, PR 12a): de 193 filas en 19.914 px, a las 20 primeras; la respuesta de
         // la 03 (§7.3; desde el PR 21b, en el `Panel` del catálogo)
@@ -419,11 +432,12 @@ function EnterTab({ money }: { money: number | null }) {
 /** El desglose de las etapas de una vuelta, plegado: el titular es la general (docs/navegacion.md §3.6). */
 function Etapas({ r }: { readonly r: RiderRaceResult }) {
   return (
-    <Disclosure showLabel={stagesSummary(r)} hideLabel="Hide the stages">
+    // sin región: una por fila, y abiertas, todas se llamarían `Hide the stages` (la revisión del 21b)
+    <Disclosure showLabel={stagesSummary(r)} hideLabel="Hide the stages" region={false}>
       <ul className="px-3 pb-1">
         {r.stages.map((s) => (
           // las cifras, tabulares: `Stage 1 of 5` y `Stage 2 of 5` miden lo mismo, y los recorridos empiezan a la
-          // vez
+          // vez mientras las etapas tengan las mismas cifras (en una de 21, de la 10 en adelante, uno más allá)
           <li key={s.stageDay} className="flex items-center gap-2 text-meta tabular-nums">
             <span
               className={`w-10 shrink-0 text-right font-semibold ${
@@ -486,11 +500,16 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
 
   // Los estados, con `QueryView` (E3, PR 10). El corredor ya llegó (`MyRaces`): sin él, la consulta no
   // corre, y no se queda cargando para siempre.
-  const empty = <EmptyState text="You haven't raced yet. Your results will land here." />
+  const empty = <EmptyState text="You haven't raced yet. Your results will land here." answer />
   if (!riderId) return empty
   if (data === undefined)
     return (
-      <QueryView query={results} label="your results" skeleton={{ kind: 'rows', rowHeight: 64 }} />
+      <QueryView
+        query={results}
+        label="your results"
+        skeleton={{ kind: 'rows', rowHeight: 64 }}
+        answer
+      />
     )
   if (data.length === 0) return empty
 
@@ -576,6 +595,7 @@ export function MyRaces() {
               query={rider}
               label="your rider"
               skeleton={{ kind: 'rows', rowHeight: 64 }}
+              answer
             />
           ) : (
             <ResultsTab riderId={rider.data?.id ?? null} />

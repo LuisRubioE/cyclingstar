@@ -1623,18 +1623,24 @@ Bajo. Solo cambia la web; la API, la base y el tick no se tocan, y los textos de
 
 - **La cabecera** (`pages/MyRaces.tsx`), un `PageHeader` (`My races`), y las pestañas, las del catálogo en `page`; fuera `SectionBar` y las pestañas de antes en `underline`, de las que quedan su `TabPanel` y su `useTabParam`.
 - **`Upcoming`**: `On your programme`, en el `Panel` del catálogo, es la respuesta de la 02 (§7.3); lo pedido que espera su lista de salida, en su `Panel`, con la bandera del catálogo y cada carrera en un `TextLink` de 44; el fallo de la retirada, en `role="alert"`.
-- **`Available to enter`**: el saldo, lo comprometido y lo pedido, en `Stat` (§4.4), que eran tres `Panel` haciendo de cifra; lo comprometido, dinero con su signo (`−1,200`, en `bad`), y el cero, sin signo ni rosa, donde hoy sale `−0` en rosa (captura 03); `Still open`, en el `Panel` del catálogo, es la respuesta de la 03; el fallo, en `role="alert"`.
+- **`Available to enter`**: el saldo, lo comprometido y lo pedido, en `Stat` (§4.4), que eran tres `Panel` haciendo de cifra, y en el teléfono en un renglón que parte; lo comprometido, dinero con su signo (`−1,200`, en `bad`), y el cero, sin signo ni rosa, donde hoy sale `−0` en rosa (captura 03); `Still open`, en el `Panel` del catálogo, es la respuesta de la 03; el fallo, en `role="alert"`.
 - **`Results`**: la `RankTable` del catálogo, la respuesta de la 37, sin puesto y sin enlace de fila: la carrera enlaza en su nombre, un `TextLink` de 44, y cada etapa en el suyo. La temporada y qué es el resultado (`Season 1 · Overall`), en el segundo renglón hasta 640 y en columna desde ahí; el puesto, siempre, con su tono (`placeTone`); y las 20 primeras con `Show all N`, las de la tabla, en lugar del `ShowAllButton` de antes.
-- **El desglose de etapas**, un `Disclosure` de 44 (`3 stages · 1 win`; abierto, `Hide the stages`), y no un `<details>` con un `summary` de 16 px que el dedo no acierta; cada etapa con su puesto, la victoria en `good`, y su enlace de 44, con las cifras tabulares para que los recorridos empiecen a la vez.
-- **`RankTable` gana `detail`**: lo plegado de una fila, debajo de su segundo renglón y fuera de su enlace.
+- **El desglose de etapas**, un `Disclosure` de 44 sin región (`3 stages · 1 win`; abierto, `Hide the stages`), y no un `<details>` con un `summary` de 16 px que el dedo no acierta; cada etapa con su puesto, la victoria en `good`, y su enlace de 44, con las cifras tabulares, para que los recorridos empiecen a la vez mientras las etapas tengan las mismas cifras.
+- **`RankTable` gana `detail`**: lo plegado de una fila, debajo de su segundo renglón y fuera de su enlace. **Y su identidad es la cabecera de su fila** (`th scope="row"`), en todas las tablas: el lector dice de quién es cada valor (`Race France, Place, 7th`), como en la tabla de antes de `My races`.
+- **`Disclosure` gana `region={false}`**, para cuando puede haber muchos abiertos: sin región, el botón sigue gobernando lo plegado.
+- **La respuesta, en cada estado de las tres pestañas** (§7.3): en `Upcoming`, el programa; sin él, lo pedido o lo que lo espera; y sin nada, el vacío; en las otras dos, también su vacío y su espera.
 - **`MyRaces.tsx` sale de `deuda.json`** (48 del tema y uno arbitrario) **y de `UI_HEREDADOS`** (23 avisos).
+- **Lo que arregló la revisión** (una lectura del diff por otros ojos; cada hallazgo, comprobado antes de tocarlo y con su test): abiertos, los desgloses eran regiones que se llamaban todas `Hide the stages` (`landmark-unique`, de axe), y van sin región; la identidad de la tabla había perdido la cabecera de fila que tenía; sin programa, la 02 se quedaba sin respuesta, y sus vacíos también; y seis tests pasaban con lo que miran roto: la lista de etapas fuera de lo plegado, el desglose encima del segundo renglón, la tabla sin su tope de 20, la victoria sin su tono, la carrera de un día sin su recorrido, y lo plegado dentro del bloque de la identidad. Al medir las cifras con DejaVu Sans salió además que lo comprometido, desde `−10,000`, y el saldo, desde `100,000`, se salían de su media columna a 320: van en un renglón que parte.
 
 ### Lo que se aparta del diseño, y por qué
 
 1. **`RankTable` gana una ranura, `detail`**, para el desglose de etapas, que §4.5 no prevé: dentro de la identidad, el `Disclosure` quedaba encima del segundo renglón, y a 320 `Season 1 · Overall` se leía debajo del botón que pliega las etapas, lejos del nombre al que se refiere. Va fuera del enlace de la fila, que no puede llevar un control dentro; en `My races` no lo hay, porque la tabla va sin `href`.
 2. **La temporada, una columna `secondary`** con su `second` (`Season 1`), donde hoy iba pegada al nombre en `xs`: así el segundo renglón dice `Season 1 · Overall`, y desde 640 son dos columnas, como las de las tablas del 12b.
 3. **La victoria de una etapa, en `good`**, como la de la general (`placeTone`, desde el 12b), y no en el `amber-500` de hoy, que no es un tono del sistema ni se lee (2,15:1 sobre blanco).
-4. **Las cifras de la inscripción, dos por renglón en el teléfono** y tres desde 640: tres `Stat` en `display` no caben a 320.
+4. **Las cifras de la inscripción, en un renglón que parte en el teléfono**, y tres columnas desde 640: cada una mide lo que su cifra, y la que no cabe baja. En `display` y con DejaVu Sans, `100,000` pide 146 px y `−12,000` 150 (medido), y media columna a 320 da 136; con las del mundo, las tres caben en un renglón.
+5. **La respuesta de la 03 es el `Panel` `Still open`**, el de la lista, que el 12a tituló así; §7.3 la llama por su pestaña, `Available to enter`.
+6. **`Disclosure` sin región (`region={false}`)**, que §4.3 no prevé: una por fila, abiertas, se llamarían todas igual, y la guía de ARIA pide no multiplicar las regiones (más de unas seis a la vez).
+7. **La identidad de `RankTable`, cabecera de su fila**, que §4.5 no pide (solo `scope="col"`): sin ella, el lector lee `Place, 7th` sin la carrera. Cambia todas las tablas, que se miden de nuevo en la prueba del teléfono.
 
 ### Las cifras (para la descripción del PR)
 
@@ -1655,4 +1661,5 @@ Bajo. Solo cambia la web; la API, la base y el tick no se tocan, y los textos so
 
 - El 21c es `TeamCalendar.tsx`. Sus filas ya son `ActionRow` (12a); le quedan las cifras que hacen de panel (captura 15), que piden `Stat` como las de aquí.
 - `detail` sirve a cualquier tabla con algo plegado por fila, sin meter un control en su enlace.
+- Los avisos de fallo de la retirada y de la inscripción (`role="alert"`) no los mira ningún test: piden una mutación fallida, que el render estático no pinta.
 - La respuesta de la 03 está a 485 px a 360, con 520 de límite: lo que se ponga encima de `Still open` (un aviso, otra cifra) la puede sacar de la comprobación 7.

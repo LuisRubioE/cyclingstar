@@ -8,6 +8,10 @@ import type { Layout } from './types'
  * `InfoButton`): el día a día del cuadro, que el dueño quiere debajo de la escalera ([DUEÑO 11]). Un botón
  * `quiet` a todo lo ancho, de 44, con su `chevron-down`, que gira al abrir (quieto con
  * `prefers-reduced-motion`), y la región debajo, nombrada por el botón.
+ *
+ * Desde el PR 21b, sin región (`region={false}`) cuando puede haber muchos abiertos a la vez, como el
+ * desglose de cada fila de una tabla: la guía de ARIA pide no multiplicar las regiones (más de unas seis
+ * a la vez), y abiertos, todos se llamarían igual (`Hide the stages`). El botón sigue gobernándolo.
  */
 
 export interface DisclosureProps {
@@ -17,6 +21,8 @@ export interface DisclosureProps {
   readonly hideLabel: string
   readonly children: ReactNode
   readonly defaultOpen?: boolean
+  /** lo plegado, una región con nombre; sin ella, cuando son muchos (PR 21b) */
+  readonly region?: boolean
   readonly layout?: Layout
 }
 
@@ -25,6 +31,7 @@ export function Disclosure({
   hideLabel,
   children,
   defaultOpen = false,
+  region = true,
   layout,
 }: DisclosureProps) {
   const [open, setOpen] = useState(defaultOpen)
@@ -52,7 +59,11 @@ export function Disclosure({
           <Icon name="chevron-down" size={20} />
         </span>
       </button>
-      <div id={regionId} role="region" aria-labelledby={buttonId} hidden={!open}>
+      <div
+        id={regionId}
+        {...(region ? { role: 'region', 'aria-labelledby': buttonId } : {})}
+        hidden={!open}
+      >
         {children}
       </div>
     </div>

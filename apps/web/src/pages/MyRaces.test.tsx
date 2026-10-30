@@ -156,6 +156,10 @@ describe('mis carreras con el sistema (§17.21; PR 21b)', () => {
       'Committed:signed:−1,200',
       'Entered:default:1',
     ])
+    // en el teléfono, en un renglón que parte: `100,000` y `−12,000` no caben en media columna a 320
+    expect(markup).toMatch(
+      /<div class="flex flex-wrap gap-x-6 gap-y-3 sm:grid sm:grid-cols-3"><dl data-ui="Stat"/,
+    )
   })
 
   it('sin nada comprometido, el cero sin signo ni rosa (captura 03)', () => {
@@ -200,9 +204,87 @@ describe('mis carreras con el sistema (§17.21; PR 21b)', () => {
 
   it('el desglose de etapas, plegado en un Disclosure de 44, con un enlace por etapa', () => {
     const markup = page('/me/races?tab=results')
-    const disclosure = /<div data-ui="Disclosure"[\s\S]*?<\/ul>/.exec(markup)?.[0] ?? ''
-    expect(disclosure).toContain('aria-expanded="false"')
+    const disclosure =
+      /<div data-ui="Disclosure"[\s\S]*?<\/ul><\/div><\/div>/.exec(markup)?.[0] ?? ''
+    // la lista, dentro de lo plegado (la revisión del 21b: el regex de antes valía con ella fuera)
+    expect(disclosure).toMatch(
+      /aria-expanded="false"[\s\S]*?<\/button><div id="[^"]+" hidden=""><ul /,
+    )
+    // sin región: abiertos, todos se llamarían `Hide the stages` (APG; la revisión del 21b)
+    expect(disclosure).not.toContain('role="region"')
     expect(disclosure).toContain('href="/world/races/race-france/stages/2"')
     expect(disclosure).toMatch(/>Stage 3 of 3</)
+    expect(disclosure).toContain(
+      '<span class="w-10 shrink-0 text-right font-semibold text-good">1st</span>',
+    )
+    expect(disclosure).toContain(
+      '<span class="w-10 shrink-0 text-right font-semibold text-ink-2">12th</span>',
+    )
+  })
+
+  it('lo plegado, debajo del segundo renglón (detail): Season 1 · Overall junto al nombre, y el desglose detrás', () => {
+    const cell = /<th scope="row"[\s\S]*?<\/th>/.exec(page('/me/races?tab=results'))?.[0] ?? ''
+    expect(cell).toMatch(
+      /data-column="season"[\s\S]*data-column="result"[\s\S]*<\/span><\/span><div data-ui="Disclosure"/,
+    )
+    expect(cell).toMatch(/<div data-ui="Disclosure"[\s\S]*<\/ul><\/div><\/div><\/th>$/)
+  })
+
+  it('los resultados, las 20 primeras y Show all N (§6.1)', () => {
+    const results = Array.from({ length: 25 }, (_, i) =>
+      result({ raceId: `race-${i}`, raceName: `Race ${i}` }),
+    )
+    const markup = page('/me/races?tab=results', { results })
+    expect(markup.match(/<th scope="row"/g)).toHaveLength(20)
+    expect(markup).toContain('Show all 25')
+  })
+
+  it('una carrera de un día: su recorrido debajo del nombre, sin desglose, y lo que tengo por ver, en good', () => {
+    const markup = page('/me/races?tab=results', {
+      results: [
+        result({
+          isOneDay: true,
+          stageCount: 1,
+          gcPuesto: null,
+          stagesToWatch: 1,
+          stages: [{ stageDay: 1, puesto: 3, from: 'Jaén', to: 'Úbeda' }],
+        }),
+      ],
+    })
+    expect(markup).toContain(
+      '<span data-ui="StageRoute" class="block text-meta text-ink-3">Jaén → Úbeda</span>',
+    )
+    expect(markup).toContain(
+      '<span class="block text-meta font-semibold text-good">1 stage to watch</span>',
+    )
+    expect(markup).not.toContain('data-ui="Disclosure"')
+  })
+
+  it('una sola respuesta en cada estado de Upcoming: el programa, lo pedido o el vacío (§7.3)', () => {
+    const respuestas = (m: string) => m.match(/data-answer=""/g)?.length ?? 0
+    const both = page('/me/races', { freeAgent: true, entries: [enterable({ entered: true })] })
+    expect(respuestas(both)).toBe(1)
+    expect(panel(both, 'On your programme')).toContain('data-answer=""')
+    const waiting = page('/me/races', {
+      freeAgent: true,
+      races: [],
+      entries: [enterable({ entered: true })],
+    })
+    expect(respuestas(waiting)).toBe(1)
+    expect(panel(waiting, 'Entered — waiting for the start list')).toMatch(
+      /^<section data-ui="Panel"[^>]*data-answer=""/,
+    )
+    const nothing = page('/me/races', { races: [] })
+    expect(respuestas(nothing)).toBe(1)
+    expect(nothing).toMatch(/data-ui="EmptyState"[^>]*data-answer=""/)
+  })
+
+  it('en la inscripción y en los resultados, el vacío también contesta', () => {
+    expect(page('/me/races?tab=enter', { freeAgent: true, entries: [] })).toMatch(
+      /data-ui="EmptyState"[^>]*data-answer=""/,
+    )
+    expect(page('/me/races?tab=results', { results: [] })).toMatch(
+      /data-ui="EmptyState"[^>]*data-answer=""/,
+    )
   })
 })

@@ -22,7 +22,8 @@ import type { ColumnPriority, Layout } from './types'
  *   `clip` (el nombre del equipo), con `…` y `data-clip-ok`. Las dos cosas se pintan y el tema decide
  *   cuál se ve (`sm:` y `lg:`), sin medir nada.
  * - **El enlace es la celda de identidad entera**, en bloque y de 44 al menos (O-28): uno por fila, y un
- *   control para la prueba del teléfono, no un enlace de frase.
+ *   control para la prueba del teléfono, no un enlace de frase. Desde el PR 21b, esa celda es la cabecera
+ *   de su fila (`th scope="row"`), y el lector dice de quién es cada valor (`Race France, Place, 7th`).
  * - **Las 20 y `Show all 140`** (`TOP_ROWS`, de `ShowAll.tsx`), a todo lo ancho y de 44. **La fila propia**
  *   (I-26) más allá de la 20 se ancla tras las 20, detrás de una fila `…` de 24 que no se lee; dentro o
  *   fuera, con la barra `own` de 3 px, el fondo `own-tint`, el nombre en 600 y `aria-current`.
@@ -292,7 +293,10 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
                       {puesto ?? ''}
                     </td>
                   )}
-                  <td className={`w-full max-w-0 p-0 align-top ${rank === undefined ? barra : ''}`}>
+                  <th
+                    scope="row"
+                    className={`w-full max-w-0 p-0 text-left align-top font-normal ${rank === undefined ? barra : ''}`}
+                  >
                     {href === undefined ? (
                       <span data-identity="" className={`block py-1${own ? ' font-semibold' : ''}`}>
                         <span className="block">{identity(row)}</span>
@@ -308,7 +312,7 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
                       </Link>
                     )}
                     {props.detail?.(row)}
-                  </td>
+                  </th>
                   {columns.map((c, j) => (
                     <td
                       key={c.key}

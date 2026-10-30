@@ -238,7 +238,7 @@ describe('RankTable: lo que piden las tablas del 12b', () => {
     )
     expect(s).not.toContain('<a ')
     expect(s).toMatch(
-      /<td [^>]*><span data-identity="" class="block py-1"><span class="block">Rider 1<\/span><span data-second=""/,
+      /<th scope="row" [^>]*><span data-identity="" class="block py-1"><span class="block">Rider 1<\/span><span data-second=""/,
     )
   })
 
@@ -273,6 +273,15 @@ describe('RankTable: lo que piden las tablas del 12b', () => {
   })
 })
 
+describe('RankTable: la cabecera de cada fila (PR 21b)', () => {
+  it('la identidad es la cabecera de su fila (th scope="row"): el lector dice de quién es cada valor', () => {
+    const s = pinta({ rows: FILAS.slice(0, 3) })
+    expect(s.match(/<th scope="row"/g)).toHaveLength(3)
+    expect(s).toMatch(/<th scope="row" class="[^"]*\btext-left\b[^"]*\bfont-normal\b[^"]*"><a /)
+    expect(s).not.toMatch(/<td class="w-full max-w-0/)
+  })
+})
+
 describe('RankTable: lo plegado de una fila (PR 21b)', () => {
   const plegado = (r: Fila) =>
     r.id === 'r1' ? (
@@ -304,7 +313,8 @@ describe('RankTable: lo plegado de una fila (PR 21b)', () => {
       </MemoryRouter>,
     )
     expect(s).not.toContain('<a ')
-    expect(s).toMatch(/<\/span><\/span><div data-ui="Disclosure"/)
+    // lo último de la celda, y fuera del bloque de la identidad: tras él, la celda se cierra
+    expect(s).toMatch(/<div data-ui="Disclosure"(?:(?!<\/th>)[\s\S])*?<\/p><\/div><\/div><\/th>/)
   })
 })
 
