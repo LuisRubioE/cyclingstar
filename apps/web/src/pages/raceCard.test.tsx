@@ -373,20 +373,24 @@ describe('la ficha de carrera con el sistema (§17.21; PR 21a)', () => {
     expect(markup).toContain('role="tablist" aria-label="Race"')
   })
 
-  it('las clasificaciones, un Segmented de 44 (General · Points · Mountains · Teams), y su tabla debajo', () => {
+  it('las clasificaciones, en las pestañas del catálogo, de 44, con su panel: sus cuatro no caben en un Segmented a 320', () => {
     const markup = page('/world/races/race-france?tab=classifications', {
       view: raceViewWith(21, { status: 'racing', runDays: [1, 2, 3], points: [], kom: [] }),
     })
-    const segmented = first(markup, 'Segmented', 'div')
-    expect(segmented).toContain('role="radiogroup" aria-label="Classification"')
-    expect([...segmented.matchAll(/role="radio"[^>]*>([^<]+)</g)].map((m) => m[1])).toEqual([
+    const rail = /role="tablist" aria-label="Classification"[\s\S]*?<\/div>/.exec(markup)?.[0] ?? ''
+    expect([...rail.matchAll(/role="tab"[^>]*>([^<]+)</g)].map((m) => m[1])).toEqual([
       'General',
       'Points',
       'Mountains',
       'Teams',
     ])
-    expect(segmented).toMatch(/role="radio" aria-checked="true"[^>]*>General</)
-    expect(markup).not.toContain('role="tabpanel" id="race-classification"')
+    expect(rail).toMatch(
+      /role="tab" aria-selected="true"[^>]*id="race-classification-tab-gc"[^>]*>General</,
+    )
+    expect(markup).toContain(
+      'id="race-classification" role="tabpanel" aria-labelledby="race-classification-tab-gc"',
+    )
+    expect(markup).not.toContain('data-ui="Segmented"')
   })
 
   it('Startlist, Stages, Route y Roll of honour, cada una en su Panel con su título', () => {

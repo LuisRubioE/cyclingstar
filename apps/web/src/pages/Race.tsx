@@ -40,7 +40,6 @@ import { InfoButton } from '../components/ui/InfoButton'
 import { Notice } from '../components/ui/Notice'
 import { Panel } from '../components/ui/Panel'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
-import { Segmented } from '../components/ui/Segmented'
 import { type TabOption, Tabs } from '../components/ui/Tabs'
 import { TeamJersey } from '../components/ui/TeamJersey'
 import { TextLink } from '../components/ui/TextLink'
@@ -379,6 +378,7 @@ function StagesTab({
 type ClassTabId = 'gc' | 'points' | 'kom' | 'teams'
 
 const CLASS_TAB_IDS: readonly ClassTabId[] = ['gc', 'points', 'kom', 'teams']
+const CLASS_PANEL = 'race-classification'
 const CLASS_TABS: readonly TabOption<ClassTabId>[] = [
   { key: 'gc', label: 'General' },
   { key: 'points', label: 'Points' },
@@ -397,7 +397,7 @@ function Bare({ text }: { text: string }) {
 
 /**
  * Pestaña `Classifications` (o `Result` en una carrera de un día): general, puntos, montaña y
- * equipos, que se eligen en un `Segmented` desde el PR 21a.
+ * equipos, que se eligen en las pestañas del catálogo desde el PR 21a.
  *
  * Los maillots que se marcan son los de AHORA (`data.leaders`): la ficha de carrera enseña el
  * estado actual de la carrera, no el de un día concreto, así que aquí solo hay un juego. Y en una
@@ -453,15 +453,16 @@ function ClassificationsTab({
   }
   return (
     <Panel ariaLabel="Classifications" variant="bleed">
-      {/* las cuatro, un `Segmented` de 44 (§4.3; desde el PR 21a), como las pestañas a mano de `Rankings` */}
-      <Segmented
+      {/* las cuatro, en las pestañas del catálogo, de 44, y no en un `Segmented`: con DejaVu Sans no
+          caben a lo ancho a 320 (piden 310 px y hay 272), y el carril de `Tabs` se desplaza (§6.3) */}
+      <Tabs
         options={tabs}
         value={active}
         onChange={setActive}
         label="Classification"
-        layout="mx-3 sm:mx-4"
+        panelId={CLASS_PANEL}
       />
-      <div className="mt-4">
+      <TabPanel panelId={CLASS_PANEL} active={active} className="mt-3">
         {active === 'gc' &&
           (data.gc.length > 0 ? (
             <GcRankTable
@@ -498,7 +499,7 @@ function ClassificationsTab({
           ) : (
             <Bare text="No team classification yet." />
           ))}
-      </div>
+      </TabPanel>
     </Panel>
   )
 }

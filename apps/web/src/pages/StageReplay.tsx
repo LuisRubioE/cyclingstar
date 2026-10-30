@@ -20,7 +20,6 @@ import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { useOwnIds, useRaceIdentity } from '../components/useTableIdentity'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
-import { Segmented } from '../components/ui/Segmented'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
 import {
   type StagePageTabId,
@@ -58,6 +57,7 @@ const STAGE_PANEL = 'stage-section'
 type StageClassTabId = 'gc' | 'points' | 'kom' | 'teams'
 
 const STAGE_CLASS_TAB_IDS: readonly StageClassTabId[] = ['gc', 'points', 'kom', 'teams']
+const STAGE_CLASS_PANEL = 'stage-classification'
 const STAGE_CLASS_TABS: readonly TabOption<StageClassTabId>[] = [
   { key: 'gc', label: 'General' },
   { key: 'points', label: 'Points' },
@@ -77,7 +77,7 @@ export {
 
 /**
  * Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla. Desde el PR 21a (E3,
- * §17.21), se eligen en un `Segmented` de 44, como las de la ficha de carrera, y no en las píldoras de 28.
+ * §17.21), las del catálogo, de 44, como las de la ficha de carrera, y no las píldoras de 28.
  *
  * Solo aparece en carreras POR ETAPAS: en una de un día la etapa ES la carrera y su ficha ya enseña
  * el resultado (esta página redirige allí), así que aquí no hay caso especial que atender.
@@ -119,15 +119,16 @@ function StageClassifications({
   return (
     <div className={card}>
       <p className="mb-3 text-caption text-ink-2">Standings after this stage.</p>
-      <Segmented
+      <Tabs
         options={STAGE_CLASS_TABS}
         value={active}
         onChange={setActive}
         label="Stage classification"
+        panelId={STAGE_CLASS_PANEL}
       />
       {/* casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1): a 320 el nombre cabe; el
-          margen negativo, hijo directo de la tarjeta, no se sale de su caja de relleno */}
-      <div className="mt-3 -mx-4">
+          margen negativo, en el panel, hijo directo de la tarjeta, no se sale de su caja de relleno */}
+      <TabPanel panelId={STAGE_CLASS_PANEL} active={active} className="mt-3 -mx-4">
         {active === 'gc' &&
           (gc.length > 0 ? (
             <GcRankTable rows={gc} caption="General classification after this stage" {...ctx} />
@@ -182,7 +183,7 @@ function StageClassifications({
           ) : (
             <EmptyState text="No team classification for this stage." />
           ))}
-      </div>
+      </TabPanel>
     </div>
   )
 }
