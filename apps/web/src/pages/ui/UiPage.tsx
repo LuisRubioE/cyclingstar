@@ -32,6 +32,7 @@ import { KitShowcase } from '../../components/ui/KitShowcase'
 import type { KitSponsors } from '../../components/ui/kitText'
 import { LeaderJersey } from '../../components/ui/LeaderJersey'
 import { LegacyJersey } from '../../components/ui/LegacyJersey'
+import { FormChart } from '../../components/ui/FormChart'
 import { Meter } from '../../components/ui/Meter'
 import { Notice } from '../../components/ui/Notice'
 import { OfflineBannerView } from '../../components/ui/OfflineBanner'
@@ -83,6 +84,7 @@ import {
   LONG_CONSEQUENCE,
   LONGEST_TITLE,
   MANY_TABS,
+  NINETY_DAYS,
   OWN_RIDER_ID,
   PLAN_MODES,
   SEEN_AT,
@@ -1249,6 +1251,17 @@ function Escalas() {
         </Estado>
         <Estado name="empty">
           <Meter label="Freshness" value={null} />
+        </Estado>
+      </Demo>
+      <Demo name="FormChart">
+        <Estado name="ready · 90 days">
+          <FormChart points={NINETY_DAYS} />
+        </Estado>
+        <Estado name="empty · fewer than two days">
+          <FormChart points={NINETY_DAYS.slice(0, 1)} />
+        </Estado>
+        <Estado name="loading">
+          <FormChart points={[]} loading />
         </Estado>
       </Demo>
     </>

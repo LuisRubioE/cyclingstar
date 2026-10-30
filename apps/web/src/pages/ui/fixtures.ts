@@ -286,3 +286,14 @@ export const UI_CUES: readonly (readonly [string, 1 | 2 | 3, string, string | nu
   ['class 1', 1, 'KOM', 'Côte de Monteynard · Cat. 2 · 12.0 km at 5.0%'],
   ['the longest title', 2, championTitleText('en', LONGEST_TITLE, COUNTRY_NAMES), null],
 ]
+
+/**
+ * Noventa días de fondo y frescura para `FormChart` (§4.8; PR 21h), enteros de 0 a 100: el fondo sube con las
+ * semanas y la frescura sube y baja con ellas.
+ */
+export const NINETY_DAYS: readonly { gameDay: number; fitness: number; freshness: number }[] =
+  Array.from({ length: 90 }, (_, i) => ({
+    gameDay: i + 1,
+    fitness: Math.round(40 + (25 * i) / 89),
+    freshness: Math.round(55 + 30 * Math.sin(i / 6)),
+  }))

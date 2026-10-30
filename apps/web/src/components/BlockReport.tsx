@@ -7,8 +7,9 @@ import {
 } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { fetchBlockReport } from '../api/sheet'
-import { Panel } from './Panel'
+import { raceDayTitle } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
+import { Panel } from './ui/Panel'
 
 /**
  * WHERE EACH POINT CAME FROM, over the last 28 days (docs/entrenamiento.md §4.6).
@@ -16,6 +17,10 @@ import { horizonKey, useHorizonRev } from '../queryClient'
  * This panel exists to answer the two questions a player actually asks and the game had no way of
  * answering: "I did X and it didn't improve" and "why did I improve?". It shows deltas and sessions
  * and never the attribute's value — the number stays internal.
+ *
+ * Con el sistema desde el 21h de E3 (docs/visual.md §4.6): su `Panel`, el total de cada atributo en su tono
+ * (`good` o `bad`) y las sesiones con su nombre, también las de carrera, que decían su clave cruda
+ * (`carrera:race-jaen:e1`). El `0 race days` de la cabecera es el DD-24 de E2, que E3 no toca.
  */
 
 const SOURCE_LABEL: Record<AttrLogSource, string> = {
@@ -32,7 +37,8 @@ function isSession(activity: string): activity is Session {
 
 function activityLabel(activity: string): string {
   if (activity === 'carrera') return 'Race days'
-  return isSession(activity) ? SESSION_CATALOG[activity].label : activity
+  if (isSession(activity)) return SESSION_CATALOG[activity].label
+  return raceDayTitle(activity) ?? activity
 }
 
 const signed = (x: number): string => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(1)}`
@@ -49,44 +55,48 @@ export function BlockReport() {
 
   return (
     <Panel title="Last 4 weeks">
-      <p className="mb-3 text-xs text-slate-400">
-        {data.trainingDays} training {data.trainingDays === 1 ? 'day' : 'days'} · {data.raceDays}{' '}
-        race {data.raceDays === 1 ? 'day' : 'days'}
-      </p>
-
-      {data.rows.length === 0 ? (
-        <p className="text-sm text-slate-500">
-          Nothing moved in the last four weeks. Attributes take time — and the right sessions.
+      <div className="grid gap-3">
+        <p className="text-meta text-ink-2">
+          {data.trainingDays} training {data.trainingDays === 1 ? 'day' : 'days'} · {data.raceDays}{' '}
+          race {data.raceDays === 1 ? 'day' : 'days'}
         </p>
-      ) : (
-        <ul className="space-y-2">
-          {data.rows.map((row) => (
-            <li key={row.attr} className="text-sm">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-medium text-slate-700">{ATTRIBUTE_LABELS[row.attr]}</span>
-                <span
-                  className={`tabular-nums font-semibold ${
-                    row.total >= 0 ? 'text-emerald-600' : 'text-rose-500'
-                  }`}
-                >
-                  {signed(row.total)}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                {row.bySource
-                  .map((s) => `${signed(s.delta)} ${SOURCE_LABEL[s.source]}`)
-                  .join(' · ')}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
 
-      {data.sessions.length > 0 && (
-        <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
-          {data.sessions.map((s) => `${activityLabel(s.activity)} ×${s.days}`).join(' · ')}
-        </p>
-      )}
+        {data.rows.length === 0 ? (
+          <p className="text-meta text-ink-2">
+            Nothing moved in the last four weeks. Attributes take time — and the right sessions.
+          </p>
+        ) : (
+          <ul className="grid gap-2">
+            {data.rows.map((row) => (
+              <li key={row.attr}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-row font-semibold text-ink">
+                    {ATTRIBUTE_LABELS[row.attr]}
+                  </span>
+                  <span
+                    className={`text-row font-semibold tabular-nums ${
+                      row.total >= 0 ? 'text-good' : 'text-bad'
+                    }`}
+                  >
+                    {signed(row.total)}
+                  </span>
+                </div>
+                <p className="text-meta text-ink-2">
+                  {row.bySource
+                    .map((s) => `${signed(s.delta)} ${SOURCE_LABEL[s.source]}`)
+                    .join(' · ')}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {data.sessions.length > 0 && (
+          <p className="border-t border-line pt-3 text-meta text-ink-2">
+            {data.sessions.map((s) => `${activityLabel(s.activity)} ×${s.days}`).join(' · ')}
+          </p>
+        )}
+      </div>
     </Panel>
   )
 }

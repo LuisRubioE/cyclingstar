@@ -1,6 +1,6 @@
-import type { LoadLevel } from '@cyclingstar/shared'
+import { type LoadLevel, seasonPosition } from '@cyclingstar/shared'
 import type { FormPoint } from '../api/form'
-import { LOAD_WORD } from '../domain/words'
+import { LOAD_WORD, formatGameDay, raceDayTitle } from '../domain/words'
 import { StageRoute } from './StageRoute'
 
 /**
@@ -15,26 +15,58 @@ import { StageRoute } from './StageRoute'
  * Esto no narra: CONTABILIZA. Los cinco conceptos son los mismos cinco sitios en los que el motor
  * descuenta depósito, así que la barra y el total no pueden discrepar. La carga del día va en palabras,
  * como en el cuadro (`Load: hard`; E3, docs/visual.md §10.7, PR 19b): el TSS ya no cruza la API.
+ *
+ * Con el sistema desde el 21h de E3 (§4.6): el día de la temporada (`Day 52`) y el título de la etapa de su
+ * clave (`France · Stage 3`); la barra, un SVG con un tramo por concepto en sus tokens, sin el `title` que el
+ * dedo no abre, y lo que dice, en palabras para el lector (`Where it went, most first: …`); y la leyenda en
+ * `caption`.
  */
 
 const CONCEPTOS = [
-  { key: 'rodar', label: 'Riding in the bunch', color: 'bg-slate-300' },
-  { key: 'relevo', label: 'On the front', color: 'bg-indigo-500' },
-  { key: 'cerillos', label: 'Attacks & jumps', color: 'bg-rose-500' },
-  { key: 'reserva', label: 'Digging deep', color: 'bg-amber-500' },
-  { key: 'banderas', label: 'Sprints & KOMs', color: 'bg-emerald-500' },
+  { key: 'rodar', label: 'Riding in the bunch', fill: 'fill-line-strong', bg: 'bg-line-strong' },
+  { key: 'relevo', label: 'On the front', fill: 'fill-accent', bg: 'bg-accent' },
+  { key: 'cerillos', label: 'Attacks & jumps', fill: 'fill-bad', bg: 'bg-bad' },
+  { key: 'reserva', label: 'Digging deep', fill: 'fill-gold', bg: 'bg-gold' },
+  { key: 'banderas', label: 'Sprints & KOMs', fill: 'fill-good', bg: 'bg-good' },
 ] as const
 
-/** `carrera:race-italy:e9` → `Giro d'Italia stage 9` no lo sabemos aquí: se enseña la clave corta. */
-function tituloDelDia(activity: string): string {
-  const [, raceId, stage] = activity.split(':')
-  if (!raceId) return activity
-  const nombre = raceId.replace(/^race-/, '').replace(/-/g, ' ')
-  const etapa = stage?.startsWith('e') ? ` · stage ${stage.slice(1)}` : ''
-  return `${nombre}${etapa}`
-}
+type Gasto = NonNullable<FormPoint['parte']>['gasto']
 
 const km = (v: number): string => `${v.toFixed(1)} km`
+
+/** Lo que dice la barra, para el lector: los conceptos con gasto, del que más al que menos. */
+function enPalabras(g: Gasto): string {
+  const usados = CONCEPTOS.filter((c) => g[c.key] > 0).sort((a, b) => g[b.key] - g[a.key])
+  return `Where it went, most first: ${usados.map((c) => c.label.toLowerCase()).join(', ')}`
+}
+
+/** La barra del día: un tramo por concepto con gasto, en su proporción, sobre un fondo `surface-2`. */
+function Barra({ gasto }: { readonly gasto: Gasto }) {
+  const total = CONCEPTOS.reduce((a, c) => a + gasto[c.key], 0)
+  if (total <= 0) return <span className="block h-2 rounded-full bg-surface-2" />
+  let x = 0
+  return (
+    <>
+      <span className="block h-2 overflow-hidden rounded-full bg-surface-2">
+        <svg
+          viewBox="0 0 100 8"
+          preserveAspectRatio="none"
+          className="block h-2 w-full"
+          aria-hidden="true"
+        >
+          {CONCEPTOS.map((c) => {
+            if (gasto[c.key] <= 0) return null
+            const ancho = (100 * gasto[c.key]) / total
+            const tramo = <rect key={c.key} x={x} y={0} width={ancho} height={8} className={c.fill} />
+            x += ancho
+            return tramo
+          })}
+        </svg>
+      </span>
+      <span className="sr-only">{enPalabras(gasto)}</span>
+    </>
+  )
+}
 
 export function RaceEffortLog({ points, max = 8 }: { points: FormPoint[]; max?: number }) {
   const dias = points
@@ -43,17 +75,15 @@ export function RaceEffortLog({ points, max = 8 }: { points: FormPoint[]; max?: 
     .reverse()
   if (dias.length === 0) {
     return (
-      <p className="text-sm text-slate-400">
+      <p className="text-meta text-ink-2">
         No race days logged yet — the breakdown appears once your rider races a stage.
       </p>
     )
   }
   return (
-    <ul className="divide-y divide-slate-100">
+    <ul className="divide-y divide-line">
       {dias.map((p) => {
         const parte = p.parte!
-        const g = parte.gasto
-        const total = CONCEPTOS.reduce((a, c) => a + g[c.key], 0)
         const notas: string[] = []
         if (parte.kmAlFrente > 0) notas.push(`${km(parte.kmAlFrente)} on the front`)
         if (parte.kmEnFuga > 0) notas.push(`${km(parte.kmEnFuga)} up the road`)
@@ -67,40 +97,29 @@ export function RaceEffortLog({ points, max = 8 }: { points: FormPoint[]; max?: 
           notas.push(`lost the bunch at km ${Math.round(parte.descuelgueKm)}`)
         if (parte.pajaraKm != null) notas.push(`ran empty at km ${Math.round(parte.pajaraKm)}`)
         return (
-          <li key={p.gameDay} className="py-3">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm font-semibold text-slate-800">
-                <span className="capitalize">{tituloDelDia(p.activity)}</span>
-                {/* De dónde a dónde fue la etapa, fuera del `capitalize`: las ciudades van como son. */}
-                <StageRoute from={p.from} to={p.to} className="ml-1.5 font-normal text-slate-500" />
+          <li key={p.gameDay} className="grid gap-1.5 py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+              <span className="text-row font-semibold text-ink">
+                {raceDayTitle(p.activity) ?? p.activity}
+                {/* de dónde a dónde fue la etapa */}
+                <StageRoute from={p.from} to={p.to} className="ml-1.5 font-normal text-ink-2" />
               </span>
-              <span className="text-xs text-slate-400 tabular-nums">
-                day {p.gameDay} · Load: {LOAD_WORD[p.load as LoadLevel].toLowerCase()}
+              <span className="text-caption tabular-nums text-ink-3">
+                {formatGameDay(seasonPosition(p.gameDay).dayOfSeason, null)} · Load:{' '}
+                {LOAD_WORD[p.load as LoadLevel].toLowerCase()}
               </span>
             </div>
-            <div className="mt-1.5 flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
-              {total > 0 &&
-                CONCEPTOS.map((c) =>
-                  g[c.key] <= 0 ? null : (
-                    <span
-                      key={c.key}
-                      className={c.color}
-                      style={{ width: `${(100 * g[c.key]) / total}%` }}
-                      title={`${c.label}: ${g[c.key].toFixed(1)}`}
-                    />
-                  ),
-                )}
-            </div>
-            <p className="mt-1.5 text-xs text-slate-500">
+            <Barra gasto={parte.gasto} />
+            <p className="text-meta text-ink-2">
               {notas.length > 0 ? notas.join(' · ') : 'Sat in the wheels all day.'}
             </p>
           </li>
         )
       })}
-      <li className="flex flex-wrap gap-x-3 gap-y-1 pt-2 text-[11px] text-slate-400">
+      <li className="flex flex-wrap gap-x-3 gap-y-1 pt-2 text-caption text-ink-2">
         {CONCEPTOS.map((c) => (
           <span key={c.key} className="flex items-center gap-1">
-            <span className={`inline-block h-2 w-2 rounded-sm ${c.color}`} />
+            <span className={`inline-block size-2 rounded-sm ${c.bg}`} aria-hidden="true" />
             {c.label}
           </span>
         ))}

@@ -79,3 +79,48 @@ describe('Your last race: los momentos del corredor (§12.9, 12-k)', () => {
     }
   })
 })
+
+describe('Your last race con el sistema (E3, docs/visual.md §4.6; PR 21h)', () => {
+  it('su Panel, con la carrera, la etapa y su recorrido, y el veredicto', () => {
+    const html = card({ report: report({ from: 'Lyon', to: 'Grenoble' }), ready: null })
+    expect(html).toMatch(/^<section data-ui="Panel"[\s\S]*?<h2[^>]*>Your last race<\/h2>/)
+    expect(html).toContain('Race France · Stage 3')
+    expect(html).toContain('Lyon → Grenoble')
+    expect(html).toContain('A solid day in the bunch.')
+  })
+
+  it('sus cuatro cifras, en Stat', () => {
+    const html = card({ report: report({ sprintPoints: 4 }), ready: null })
+    const cifras = [...html.matchAll(/<dl data-ui="Stat"[\s\S]*?<dt[^>]*>([^<]+)<\/dt><dd[^>]*>([^<]+)<\/dd>/g)]
+    expect(cifras.map((m) => [m[1], m[2]])).toEqual([
+      ['Placing', '12 / 120'],
+      ['Gap to winner', '+0:34'],
+      ['Sprint pts', '4'],
+      ['Mountain pts', '0'],
+    ])
+  })
+
+  it('el ganador, con el icono race y no con 🏁; sin colores de la paleta', () => {
+    const html = card({ report: report(), ready: null })
+    expect(html).toMatch(/data-variant="race"[\s\S]*?Bea Soler[\s\S]*?took the win\./)
+    expect(html).not.toContain('🏁')
+    expect(html).not.toMatch(/slate|indigo|rounded-2xl/)
+  })
+
+  it('velada, la de LastRaceReady, con su título', () => {
+    const html = card({
+      report: null,
+      ready: {
+        raceName: 'Race France',
+        season: 0,
+        stageDay: 8,
+        stageCount: 21,
+        km: 180,
+        label: 'Flat',
+        stageKind: 'llana',
+      },
+    })
+    expect(html).toMatch(/<h2[^>]*>Your last race<\/h2>/)
+    expect(html).toContain('Race France, Stage 8 · Ready to watch')
+  })
+})

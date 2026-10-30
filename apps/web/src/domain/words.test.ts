@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatGameDay, worldClock } from './words'
+import { formatGameDay, raceDayTitle, worldClock } from './words'
 
 /**
  * El reloj del mundo de la cabecera (E3, docs/visual.md §6.3 y §4.10; PR 11): el día de la temporada, la
@@ -68,5 +68,19 @@ describe('formatGameDay', () => {
   it('lo pasado, y sin saber hoy, solo el día', () => {
     expect(formatGameDay(48, 50)).toBe('Day 48')
     expect(formatGameDay(56, null)).toBe('Day 56')
+  })
+})
+
+describe('raceDayTitle (E3, PR 21h)', () => {
+  it('un día de carrera, con la carrera de su clave y su etapa: nunca la clave cruda', () => {
+    expect(raceDayTitle('carrera:race-jaen:e1')).toBe('Jaen · Stage 1')
+    expect(raceDayTitle('carrera:race-great-ocean:e12')).toBe('Great Ocean · Stage 12')
+    // una de un día, o una clave sin etapa
+    expect(raceDayTitle('carrera:race-sanremo')).toBe('Sanremo')
+  })
+
+  it('lo que no es un día de carrera, null', () => {
+    expect(raceDayTitle('fondo')).toBeNull()
+    expect(raceDayTitle('carrera')).toBeNull()
   })
 })
