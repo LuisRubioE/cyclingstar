@@ -26,7 +26,6 @@ import {
   champEventLabel,
   champEventsByDay,
   championshipsByNation,
-  nationDay,
 } from '../domain/raceTimeline'
 import { finalVeiled, raceKeyOn, raceVeil } from '../domain/veil'
 import { formatGameDay, plural } from '../domain/words'
@@ -143,6 +142,7 @@ function RaceRow({
           showLabel={`Show ${etapas}`}
           hideLabel={`Hide ${etapas}`}
           region={false}
+          name={race.name}
           layout="w-full"
         >
           <div className="grid gap-1 px-3 pb-1 text-meta">
@@ -203,7 +203,11 @@ function NationRow({
           <p className="flex flex-wrap items-center gap-x-4 text-meta">
             {events.map((r) => (
               <span key={r.id} className="inline-flex flex-wrap items-center gap-x-1">
-                <TextLink to={`/world/races/${r.id}`}>{champEventLabel(r)}</TextLink>
+                {/* de 44 × 44: `ITT` mide 20 de ancho, y un enlace que no va en una frase es un control (la
+                    revisión del 21e) */}
+                <TextLink to={`/world/races/${r.id}`} layout="min-w-11">
+                  {champEventLabel(r)}
+                </TextLink>
                 {r.winner !== null ? (
                   <span className="text-ink-2">
                     <span className="text-ink-3">Winner</span> {r.winner}
@@ -239,7 +243,9 @@ export function NationalChampionships({
   const [todas, setTodas] = useState(false)
   if (nations.length === 0)
     return <EmptyState text="No national championships match that search." />
-  const days = nations.map(([, list]) => nationDay(list))
+  // de la primera prueba a la última, cronos incluidas: el día de cada nación (`nationDay`), el de su ruta,
+  // dejaba fuera los de la crono que la fila de debajo enseña (la revisión del 21e)
+  const days = nations.flatMap(([, list]) => list.map((r) => r.startDay))
   const first = Math.min(...days)
   const last = Math.max(...days)
   return (
@@ -349,7 +355,7 @@ export function RacesIndex() {
       <Panel
         title={
           showingChamps
-            ? `National championships (${nations.length} nations)`
+            ? `National championships (${plural(nations.length, 'nation')})`
             : `Season timeline (${timeline.total})`
         }
         answer

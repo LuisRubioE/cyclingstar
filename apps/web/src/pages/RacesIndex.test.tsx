@@ -272,6 +272,16 @@ describe('el índice de carreras con el sistema (§17.21; PR 21e)', () => {
     expect(row).toContain('>Show the 5 stages<')
     expect(fila(markup, 'Race Next 51')).toContain('>Show the route<')
     expect(markup).not.toContain('role="region"')
+    // las etapas, dentro de lo plegado y no a su lado (la revisión del 21e: el test valía con ellas fuera)
+    expect(row).toMatch(
+      /aria-expanded="false"[\s\S]*?<\/button><div id="[^"]+" hidden=""><div [^>]*><p [^>]*>690 km total/,
+    )
+  })
+
+  it('cada desglose, con el nombre de su carrera para el lector: son veinte botones con el mismo texto (la revisión del 21e)', () => {
+    const markup = page()
+    expect(fila(markup, 'Race Valencia')).toContain('aria-label="Show the 5 stages, Race Valencia"')
+    expect(fila(markup, 'Race Next 51')).toContain('aria-label="Show the route, Race Next 51"')
   })
 
   it('cada etapa, con la palabra de su tipo a la vista (D-13), su recorrido y sus km; el descanso; y la vuelta entera', () => {
@@ -324,6 +334,7 @@ describe('el índice de carreras con el sistema (§17.21; PR 21e)', () => {
   it('sin mundo, ni hoy ni pasado: las 20 primeras y Show all N', () => {
     const markup = page({ dayOfSeason: null })
     expect(markup).not.toContain('Today')
+    expect(markup).not.toContain('earlier race')
     expect(filas(markup)).toHaveLength(20)
     expect(markup).toContain('Show all 33')
   })
@@ -385,6 +396,8 @@ describe('los campeonatos nacionales con el sistema (§17.21; PR 21e)', () => {
     for (const e of enlaces) {
       expect(e.ui, e.text).toBe('TextLink')
       expect(e.cls, e.text).toContain('min-h-11')
+      // y 44 de ancho: `ITT` mide 20, y fuera de una frase es un control (la revisión del 21e)
+      expect(e.cls, e.text).toContain('min-w-11')
     }
   })
 
@@ -404,9 +417,12 @@ describe('los campeonatos nacionales con el sistema (§17.21; PR 21e)', () => {
     expect(markup).not.toMatch(/\stitle="/)
   })
 
-  it('el intervalo de los campeonatos, en días de la temporada, con su frase de siempre', () => {
+  it('el intervalo de los campeonatos, de la primera prueba a la última, con su frase de siempre (la revisión del 21e: contaba solo la ruta)', () => {
     const markup = nacionales([...spain, ...championship('FR', 'France', 171)])
-    expect(markup).toContain('Day 172 to Day 173 · Elite &amp; U23, road and time trial')
+    expect(markup).toContain('Day 170 to Day 173 · Elite &amp; U23, road and time trial')
+    // todas el mismo día, un día y no un intervalo
+    const unDia = championship('ES', 'Spain', 170).map((r) => ({ ...r, startDay: 170 }))
+    expect(nacionales(unDia)).toContain('>Day 170 · Elite &amp; U23')
   })
 
   it('las 20 primeras naciones y Show all N', () => {

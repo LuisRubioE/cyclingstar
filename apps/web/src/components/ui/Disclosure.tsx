@@ -12,6 +12,11 @@ import type { Layout } from './types'
  * Desde el PR 21b, sin región (`region={false}`) cuando puede haber muchos abiertos a la vez, como el
  * desglose de cada fila de una tabla: la guía de ARIA pide no multiplicar las regiones (más de unas seis
  * a la vez), y abiertos, todos se llamarían igual (`Hide the stages`). El botón sigue gobernándolo.
+ *
+ * Desde el PR 21e, con su nombre (`name`) cuando hay muchos iguales, uno por fila: el botón dice de qué es
+ * para el lector, detrás de su texto a la vista (`Show the route, Race Antalya GP`), como el botón de una
+ * `ActionRow` lleva el nombre entero (`Add Race Ardèche`). Sin él, la lista de botones del lector tendría
+ * veinte `Show the route` sin decir de qué carrera.
  */
 
 export interface DisclosureProps {
@@ -23,6 +28,8 @@ export interface DisclosureProps {
   readonly defaultOpen?: boolean
   /** lo plegado, una región con nombre; sin ella, cuando son muchos (PR 21b) */
   readonly region?: boolean
+  /** de qué es lo plegado, para el lector, cuando hay muchos iguales: `Race Antalya GP` (PR 21e) */
+  readonly name?: string
   readonly layout?: Layout
 }
 
@@ -32,6 +39,7 @@ export function Disclosure({
   children,
   defaultOpen = false,
   region = true,
+  name,
   layout,
 }: DisclosureProps) {
   const [open, setOpen] = useState(defaultOpen)
@@ -49,6 +57,9 @@ export function Disclosure({
         id={buttonId}
         aria-expanded={open}
         aria-controls={regionId}
+        {...(name !== undefined
+          ? { 'aria-label': `${open ? hideLabel : showLabel}, ${name}` }
+          : {})}
         onClick={() => setOpen((o) => !o)}
         className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-ui px-3 text-left text-body font-semibold text-accent hover:bg-surface-2 active:bg-surface-2 ${FOCUS}`}
       >

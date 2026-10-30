@@ -39,6 +39,27 @@ describe('Disclosure', () => {
     expect(s).not.toContain('role="region"')
   })
 
+  it('con su nombre (name), cuando hay muchos iguales: el botón dice de qué es, detrás de su texto a la vista (la revisión del 21e)', () => {
+    const con = (defaultOpen: boolean) =>
+      renderToStaticMarkup(
+        <Disclosure
+          showLabel="Show the route"
+          hideLabel="Hide the route"
+          region={false}
+          name="Race Antalya GP"
+          defaultOpen={defaultOpen}
+        >
+          <p>the route</p>
+        </Disclosure>,
+      )
+    expect(con(false)).toMatch(
+      /<button type="button" id="[^"]+" aria-expanded="false" aria-controls="[^"]+" aria-label="Show the route, Race Antalya GP"/,
+    )
+    expect(con(true)).toContain('aria-label="Hide the route, Race Antalya GP"')
+    // sin nombre, el botón se llama por su texto, sin aria-label
+    expect(html(false)).not.toContain('aria-label=')
+  })
+
   it('open: Hide, aria-expanded true y la región a la vista', () => {
     const s = html(true)
     expect(s).toContain('data-state="open"')

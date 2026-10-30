@@ -212,6 +212,8 @@ describe('mis carreras con el sistema (§17.21; PR 21b)', () => {
     )
     // sin región: abiertos, todos se llamarían `Hide the stages` (APG; la revisión del 21b)
     expect(disclosure).not.toContain('role="region"')
+    // y su botón, con el nombre de su carrera para el lector (la revisión del 21e)
+    expect(disclosure).toMatch(/<button[^>]*aria-label="[^"]+, Race France"/)
     expect(disclosure).toContain('href="/world/races/race-france/stages/2"')
     expect(disclosure).toMatch(/>Stage 3 of 3</)
     expect(disclosure).toContain(

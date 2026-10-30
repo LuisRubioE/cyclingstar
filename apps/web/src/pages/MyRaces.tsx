@@ -433,7 +433,13 @@ function EnterTab({ money }: { money: number | null }) {
 function Etapas({ r }: { readonly r: RiderRaceResult }) {
   return (
     // sin región: una por fila, y abiertas, todas se llamarían `Hide the stages` (la revisión del 21b)
-    <Disclosure showLabel={stagesSummary(r)} hideLabel="Hide the stages" region={false}>
+    // con su nombre: una por fila, y la lista de botones del lector las diría todas igual (la revisión del 21e)
+    <Disclosure
+      showLabel={stagesSummary(r)}
+      hideLabel="Hide the stages"
+      region={false}
+      name={r.raceName}
+    >
       <ul className="px-3 pb-1">
         {r.stages.map((s) => (
           // las cifras, tabulares: `Stage 1 of 5` y `Stage 2 of 5` miden lo mismo, y los recorridos empiezan a la
