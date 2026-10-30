@@ -373,7 +373,13 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     expect(markup).toMatch(
       /<div data-ui="Tabs" data-variant="page"[^>]*><div[^>]*role="tablist" aria-label="Stage classification"/,
     )
-    expect(markup).toContain('id="stage-classification" role="tabpanel"')
+    // la pestaña gobierna su panel, y el panel dice qué pestaña lo nombra
+    expect(rail).toMatch(
+      /role="tab" aria-selected="true"[^>]*id="stage-classification-tab-gc" aria-controls="stage-classification"[^>]*>General</,
+    )
+    expect(markup).toContain(
+      'id="stage-classification" role="tabpanel" aria-labelledby="stage-classification-tab-gc"',
+    )
   })
 
   it('no es vacío: vista, ?tab=result pinta el resultado (en Report con Watch, en Result sin él)', () => {
