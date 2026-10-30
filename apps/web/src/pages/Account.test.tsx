@@ -36,11 +36,18 @@ function page({
   veil = true,
   horizon = {},
   admin = false,
-}: { veil?: boolean; horizon?: Partial<HorizonSummary>; admin?: boolean } = {}): string {
+  horizonLoading = false,
+}: {
+  veil?: boolean
+  horizon?: Partial<HorizonSummary>
+  admin?: boolean
+  /** el horizonte, sin llegar todavía: su consulta, en espera */
+  horizonLoading?: boolean
+} = {}): string {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const health: Health = healthWith('on', veil ? 'on' : 'off')
   client.setQueryData(['health'], health)
-  client.setQueryData(['horizon'], horizonWith(horizon))
+  if (!horizonLoading) client.setQueryData(['horizon'], horizonWith(horizon))
   client.setQueryData(
     ['admin-whoami'],
     admin ? ({ ok: true, via: 'session', userId: 'u1' } as AdminWhoami) : null,
@@ -97,6 +104,66 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
     expect(panel(markup, 'Email')).toContain('data-answer=""')
   })
 
+  it('con velo, mientras llega el horizonte, la protección ya contesta, con su espera dentro, y no salta al llegar (la revisión del 21f)', () => {
+    const markup = page({ horizonLoading: true })
+    expect(respuestas(markup)).toBe(1)
+    const spoilers = panel(markup, 'Spoiler protection')
+    expect(spoilers).toContain('data-answer=""')
+    expect(spoilers).toMatch(/data-ui="QueryView" data-state="loading"/)
+    expect(spoilers).toContain('Loading your spoiler settings')
+    expect(panel(markup, 'Email')).not.toContain('data-answer')
+  })
+
+  it('sin correo todavía, sin su Panel: contesta la contraseña sin velo, y la protección con él (la revisión del 21f)', () => {
+    sesion.user = null
+    const sinVelo = page({ veil: false })
+    expect(sinVelo).not.toContain('>Email</h2>')
+    expect(respuestas(sinVelo)).toBe(1)
+    expect(panel(sinVelo, 'Password')).toContain('data-answer=""')
+    const conVelo = page()
+    expect(respuestas(conVelo)).toBe(1)
+    expect(panel(conVelo, 'Spoiler protection')).toContain('data-answer=""')
+  })
+
+  it('cada alcance, marcado el suyo y con su pista: el de por defecto y el que no protege nada (la revisión del 21f)', () => {
+    const guarded = page({ horizon: { scope: 'guarded' } })
+    expect(opciones(guarded, 'Races to protect')).toEqual([
+      'Yours and the big ones:on',
+      'Only yours:off',
+      'Nothing:off',
+    ])
+    expect(panel(guarded, 'Spoiler protection')).toMatch(
+      /<p[^>]*>Your rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments\.<\/p>/,
+    )
+    const off = page({ horizon: { scope: 'off' } })
+    expect(opciones(off, 'Races to protect')).toEqual([
+      'Yours and the big ones:off',
+      'Only yours:off',
+      'Nothing:on',
+    ])
+    expect(panel(off, 'Spoiler protection')).toMatch(
+      /<p[^>]*>Results show as soon as each stage is raced\.<\/p>/,
+    )
+  })
+
+  it('las tres pistas, juntas tras un InfoButton, para compararlas sin guardar ninguna (la revisión del 21f)', () => {
+    const spoilers = panel(page({ horizon: { scope: 'own_only' } }), 'Spoiler protection')
+    const info =
+      /<span data-ui="InfoButton"[\s\S]*?aria-label="About the three options"[\s\S]*?<\/span><\/span>/.exec(
+        spoilers,
+      )?.[0] ?? ''
+    expect(info).not.toBe('')
+    for (const texto of [
+      'Yours and the big ones',
+      'the three grand tours and the five monuments',
+      'Only yours',
+      'and the ones you follow.',
+      'Nothing',
+      'Results show as soon as each stage is raced.',
+    ])
+      expect(info, texto).toContain(texto)
+  })
+
   it('qué se protege, un Segmented en lugar de los radios, con la pista de la elegida a la vista', () => {
     const markup = page({ horizon: { scope: 'own_only' } })
     expect(opciones(markup, 'Races to protect')).toEqual([
@@ -105,8 +172,11 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
       'Nothing:off',
     ])
     const spoilers = panel(markup, 'Spoiler protection')
-    expect(spoilers).toContain('Your rider’s and your team’s races, and the ones you follow.')
-    expect(spoilers).not.toContain('the three grand tours')
+    // la pista a la vista, la de la elegida: las tres juntas van tras el InfoButton
+    expect(spoilers).toMatch(
+      /<p[^>]*>Your rider’s and your team’s races, and the ones you follow\.<\/p>/,
+    )
+    expect(spoilers).not.toMatch(/<p[^>]*>[^<]*the three grand tours/)
     expect(markup).not.toMatch(/type="(radio|checkbox)"/)
   })
 
@@ -125,9 +195,13 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
     expect(email).toMatch(/<form[^>]*>[\s\S]*data-ui="Field"[\s\S]*<\/form>/)
     expect(email).toMatch(/<label for="new-email"[^>]*>New email<\/label>/)
     expect(email).toMatch(/<input id="new-email"[^>]*type="email"[^>]*autoComplete="email"/)
+    // el botón, dentro de su form: fuera, no enviaría nada (la revisión del 21f)
     expect(email).toMatch(
-      /<button type="submit" data-ui="Button" data-variant="primary"[\s\S]*?Update email/,
+      /<form[^>]*>(?:(?!<\/form>)[\s\S])*<button type="submit" data-ui="Button" data-variant="primary"(?:(?!<\/form>)[\s\S])*?Update email/,
     )
+    // lo que conteste el servidor, en su región de estado, que está desde el principio, vacía: insertada ya
+    // llena, el lector no siempre la lee (la revisión del 21f)
+    expect(email).toMatch(/<p role="status" class="[^"]*"><\/p>/)
   })
 
   it('la contraseña, en su Panel: los tres campos con su rótulo y su autocompletado, y Update password', () => {
@@ -143,7 +217,7 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
       )
     }
     expect(password).toMatch(
-      /<button type="submit" data-ui="Button" data-variant="primary"[\s\S]*?Update password/,
+      /<form[^>]*>(?:(?!<\/form>)[\s\S])*<button type="submit" data-ui="Button" data-variant="primary"(?:(?!<\/form>)[\s\S])*?Update password/,
     )
   })
 
@@ -185,7 +259,8 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
     const markup = page({ admin: true })
     const botones = markup.match(/<button\b[^>]*>/g) ?? []
     expect(botones.length).toBeGreaterThan(0)
-    for (const b of botones) expect(b, b).toMatch(/data-ui="(Button|InfoButton)"|role="radio"/)
+    // el del InfoButton lleva su data-ui en su raíz, y se le reconoce por lo que gobierna (como en el 21d)
+    for (const b of botones) expect(b, b).toMatch(/data-ui="Button"|role="radio"|aria-controls=/)
     expect(markup).not.toMatch(/<input(?![^>]*class="w-full rounded-ui)/)
   })
 })
@@ -206,7 +281,7 @@ describe('borrar la cuenta, abierto (§17.21; PR 21f)', () => {
       /<input id="delete-pw"[^>]*type="password"[^>]*autoComplete="current-password"/,
     )
     expect(markup).toMatch(
-      /<button type="submit" data-ui="Button" data-variant="danger"[\s\S]*?Delete my account for good/,
+      /<form[^>]*>(?:(?!<\/form>)[\s\S])*<button type="submit" data-ui="Button" data-variant="danger"(?:(?!<\/form>)[\s\S])*?Delete my account for good/,
     )
     expect(markup).toMatch(
       /<button type="button" data-ui="Button" data-variant="quiet"[\s\S]*?>Cancel</,

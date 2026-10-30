@@ -1,8 +1,17 @@
 import type { HorizonSummary, SpoilerScope } from '@cyclingstar/shared'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { type UseQueryResult, useMutation, useQueryClient } from '@tanstack/react-query'
 import { putSpoilerScope } from '../api/watch'
-import { useHorizon, useHorizonRev, veilApplies } from '../queryClient'
+import {
+  horizonWanted,
+  revOf,
+  useAdminStatus,
+  useHealth,
+  useHorizon,
+  veilApplies,
+} from '../queryClient'
+import { InfoButton } from './ui/InfoButton'
 import { Panel } from './ui/Panel'
+import { QueryView } from './ui/QueryView'
 import { Segmented } from './ui/Segmented'
 
 /**
@@ -32,14 +41,27 @@ const ASK = [
   { key: 'no', label: 'No' },
 ] as const
 
+/** Si la protección se enseña: no (`off`), en espera de su horizonte (`wait`), o con él (`on`). */
+export type SpoilerProtection =
+  | { readonly kind: 'off' }
+  | { readonly kind: 'wait'; readonly query: UseQueryResult<HorizonSummary | null> }
+  | { readonly kind: 'on'; readonly horizon: HorizonSummary }
+
 /**
- * El horizonte de quien mira si la protección se enseña, o null: solo con el velo para quien mira, y con
- * su horizonte ya llegado. Lo lee también la cuenta, que sin ella da la respuesta a otro `Panel` (§7.3).
+ * Si la protección se enseña: solo con el velo para quien mira. Mientras su horizonte no llega, o si falla,
+ * se enseña su espera o su fallo, en su sitio, y no nada (§4.2; la revisión del 21f): así la respuesta de la
+ * 28 no salta al llegar, y quien viene de `Manage` sabe por qué no está. Lo lee también la cuenta, que sin
+ * ella da la respuesta a otro `Panel` (§7.3).
  */
-export function useSpoilerProtection(): HorizonSummary | null {
-  const rev = useHorizonRev()
+export function useSpoilerProtection(): SpoilerProtection {
+  const health = useHealth()
+  const admin = useAdminStatus()
   const horizon = useHorizon()
-  return veilApplies(rev) ? (horizon.data ?? null) : null
+  if (veilApplies(revOf(health, horizon, admin)) && horizon.data != null)
+    return { kind: 'on', horizon: horizon.data }
+  if (health.data !== undefined && horizonWanted(health.data, admin) && horizon.data === undefined)
+    return { kind: 'wait', query: horizon }
+  return { kind: 'off' }
 }
 
 /**
@@ -53,11 +75,13 @@ export function useSpoilerProtection(): HorizonSummary | null {
  * elecciones, en `Segmented`, como el modo del cuadro (PR 14), en lugar de los radios de 13 px y la casilla:
  * el alcance, con la pista de la elegida a la vista debajo; y si pregunta antes, `Yes` o `No`, con su frase
  * encima, porque el nombre de un `Segmented` solo lo oye el lector. Cada pulsación guarda, como el radio de
- * antes, y mientras guarda no se manda otra.
+ * antes. Desde la revisión del 21f, la que se pulsó se ve marcada al momento, y mientras guarda las dos
+ * quedan quietas con su porqué (`Saving…`, §4.1), en lugar de no hacer caso sin decirlo; y las tres pistas
+ * van juntas tras un `InfoButton`, para compararlas sin guardar ninguna.
  */
 export function SpoilerSettings() {
   const queryClient = useQueryClient()
-  const h = useSpoilerProtection()
+  const proteccion = useSpoilerProtection()
   const save = useMutation({
     mutationFn: (next: { scope: SpoilerScope; revealConfirm?: boolean }) =>
       putSpoilerScope(next.scope, next.revealConfirm),
@@ -76,12 +100,26 @@ export function SpoilerSettings() {
       void queryClient.invalidateQueries({ queryKey: ['horizon'] })
     },
   })
-  if (h === null) return null
-  const askFirst = h.revealConfirm ?? true
-  const elegido = SCOPES.find((s) => s.scope === h.scope) ?? SCOPES[0]!
-  const guarda = (next: { scope: SpoilerScope; revealConfirm?: boolean }) => {
-    if (!save.isPending) save.mutate(next)
-  }
+  if (proteccion.kind === 'off') return null
+  if (proteccion.kind === 'wait')
+    return (
+      <div id="spoilers">
+        <Panel title="Spoiler protection" answer>
+          <QueryView
+            query={proteccion.query}
+            label="your spoiler settings"
+            skeleton={{ kind: 'panel' }}
+          />
+        </Panel>
+      </div>
+    )
+  const h = proteccion.horizon
+  // mientras guarda, lo que se pulsó, marcado ya, y las dos elecciones quietas con su porqué
+  const pendiente = save.isPending ? save.variables : undefined
+  const scope = pendiente?.scope ?? h.scope
+  const askFirst = pendiente?.revealConfirm ?? h.revealConfirm ?? true
+  const elegido = SCOPES.find((s) => s.scope === scope) ?? SCOPES[0]!
+  const guardando = save.isPending ? { disabledReason: 'Saving…' } : {}
   return (
     // el ancla de `Manage` (`/account#spoilers`): el `Panel` no lleva `id`
     <div id="spoilers">
@@ -95,10 +133,20 @@ export function SpoilerSettings() {
             <Segmented
               label="Races to protect"
               options={SCOPES.map((s) => ({ key: s.scope, label: s.label }))}
-              value={h.scope}
-              onChange={(scope) => guarda({ scope })}
+              value={scope}
+              onChange={(next) => save.mutate({ scope: next })}
+              {...guardando}
             />
-            <p className="text-meta text-ink-2">{elegido.hint}</p>
+            <div className="flex flex-wrap items-center gap-x-1">
+              <p className="min-w-0 flex-1 text-meta text-ink-2">{elegido.hint}</p>
+              <InfoButton label="About the three options">
+                {SCOPES.map((s) => (
+                  <span key={s.scope} className="block">
+                    <span className="font-semibold text-ink">{s.label}</span>: {s.hint}
+                  </span>
+                ))}
+              </InfoButton>
+            </div>
           </div>
           <div className="grid gap-1">
             <p className="text-meta font-semibold text-ink">Ask before showing a result</p>
@@ -106,7 +154,8 @@ export function SpoilerSettings() {
               label="Ask before showing a result"
               options={ASK}
               value={askFirst ? 'yes' : 'no'}
-              onChange={(v) => guarda({ scope: h.scope, revealConfirm: v === 'yes' })}
+              onChange={(v) => save.mutate({ scope, revealConfirm: v === 'yes' })}
+              {...guardando}
             />
           </div>
           {save.isError && (

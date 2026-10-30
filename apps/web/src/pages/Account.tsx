@@ -25,21 +25,24 @@ import { TextLink } from '../components/ui/TextLink'
 type Status =
   { kind: 'idle' } | { kind: 'saving' } | { kind: 'ok'; msg: string } | { kind: 'err'; msg: string }
 
-/** Lo que contestó el servidor, debajo del formulario. */
+/**
+ * Lo que contestó el servidor, debajo del formulario. La región de estado está desde el principio, vacía y
+ * escondida: insertada ya llena, el lector no siempre la lee (la revisión del 21f). Un fallo sí se oye al
+ * insertarse (`alert`).
+ */
 function Resultado({ status }: { status: Status }) {
-  if (status.kind === 'ok')
-    return (
-      <p role="status" className="text-meta text-good">
-        {status.msg}
+  return (
+    <>
+      <p role="status" className="text-meta text-good empty:hidden">
+        {status.kind === 'ok' ? status.msg : ''}
       </p>
-    )
-  if (status.kind === 'err')
-    return (
-      <p role="alert" className="text-meta text-bad">
-        {status.msg}
-      </p>
-    )
-  return null
+      {status.kind === 'err' && (
+        <p role="alert" className="text-meta text-bad">
+          {status.msg}
+        </p>
+      )}
+    </>
+  )
 }
 
 /**
@@ -66,7 +69,11 @@ function VerifyEmailNotice({ email }: { email: string }) {
     <Notice
       tone="warn"
       title="Your email is not confirmed"
-      action={{ label: 'Send me a confirmation link', onClick: () => void onSend() }}
+      action={{
+        label: 'Send me a confirmation link',
+        onClick: () => void onSend(),
+        busy: status.kind === 'saving',
+      }}
     >
       You will need it the next time you log in, and to recover your account if you ever lose your
       password.
@@ -93,6 +100,8 @@ function ChangeEmail({
     e.preventDefault()
     if (status.kind === 'saving') return
     if (!email || email === current) {
+      // lo que contestó el servidor antes ya no vale (la revisión del 21f)
+      setStatus({ kind: 'idle' })
       setFieldError('Enter a new, different email.')
       return
     }
@@ -169,10 +178,12 @@ function ChangePassword({
     e.preventDefault()
     if (status.kind === 'saving') return
     if (next.length < 8) {
+      setStatus({ kind: 'idle' })
       setFieldError({ field: 'next', msg: 'New password must be at least 8 characters.' })
       return
     }
     if (next !== confirm) {
+      setStatus({ kind: 'idle' })
       setFieldError({ field: 'confirm', msg: 'The new passwords do not match.' })
       return
     }
@@ -268,6 +279,7 @@ export function DeleteAccount({ defaultOpen = false }: { defaultOpen?: boolean }
     e.preventDefault()
     if (status.kind === 'saving') return
     if (!password) {
+      setStatus({ kind: 'idle' })
       setFieldError('Enter your password to delete your account.')
       return
     }
@@ -339,7 +351,7 @@ export function Account() {
   const whoami = useQuery({ queryKey: ['admin-whoami'], queryFn: fetchAdminWhoami, retry: false })
   // la respuesta de la 28 (§7.3), la protección de resultados; sin velo para quien mira no sale, y
   // contesta el correo, o la contraseña mientras no se sabe el correo
-  const conVelo = useSpoilerProtection() !== null
+  const conVelo = useSpoilerProtection().kind !== 'off'
 
   async function onLogout() {
     await authClient.signOut()

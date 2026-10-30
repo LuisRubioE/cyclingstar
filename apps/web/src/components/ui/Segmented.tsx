@@ -51,6 +51,9 @@ export function Segmented<K extends string>({
     else if (event.key === 'End') j = n - 1
     else return
     event.preventDefault()
+    // `Home` en la primera o `End` en la última no cambian nada: no se manda (la revisión del 21f; la
+    // protección de resultados guarda en cada cambio)
+    if (j === i) return
     const destino = options[j]
     if (destino === undefined) return
     onChange(destino.key)

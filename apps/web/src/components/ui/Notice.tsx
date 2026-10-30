@@ -9,7 +9,8 @@ import type { Tone } from './types'
  * el fondo del tono, su icono de 20 (la silueta que dice el tono sin el color, §3.7), el título
  * obligatorio en `body` 600 y el texto en `meta` `ink-2`; una acción `quiet` al final y, solo en `info` y
  * `good`, cerrar. Su papel: `note` si está desde el principio, `status` si llega después, `alert` tras
- * una acción que falla. Bajo el `PageHeader` caben dos como mucho (4-e).
+ * una acción que falla. Bajo el `PageHeader` caben dos como mucho (4-e). Desde el PR 21f, la acción, ocupada
+ * mientras hace lo suyo (`busy`), como un `Button`: el aviso del correo sin confirmar manda un correo.
  */
 
 export interface NoticeProps {
@@ -24,6 +25,8 @@ export interface NoticeProps {
     readonly label: string
     readonly to?: string
     readonly onClick?: () => void
+    /** mientras hace lo suyo: el indicador y `aria-busy` (PR 21f) */
+    readonly busy?: boolean
   }
   /** solo con `info` o `good` */
   readonly onDismiss?: () => void
@@ -55,6 +58,7 @@ export function Notice({ tone, title, children, role = 'note', action, onDismiss
             layout="-ml-4 self-start"
             {...(action.to !== undefined ? { to: action.to } : {})}
             {...(action.onClick !== undefined ? { onClick: action.onClick } : {})}
+            busy={action.busy === true}
           >
             {action.label}
           </Button>
