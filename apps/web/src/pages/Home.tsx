@@ -29,7 +29,7 @@ import { Stat } from '../components/ui/Stat'
 import { TextLink } from '../components/ui/TextLink'
 import { conditionLabel, conditionLevel } from '../domain/condition'
 import { type DashboardAction, buildDashboard } from '../domain/dashboard'
-import { raceVerdict } from '../domain/narration'
+import { gapToWinnerText, raceVerdict } from '../domain/narration'
 import { livePlan } from '../domain/trainingPlan'
 import { horizonKey, useHorizonRev, veilApplies } from '../queryClient'
 
@@ -250,12 +250,7 @@ function LastRaceCard() {
   if (last.data?.ready != null) return <LastRaceReady ready={last.data.ready} title="Last race" />
   const data = last.data?.report
   if (!data) return null
-  const gap =
-    data.position === 1
-      ? 'winner'
-      : data.timeGapToWinnerS > 0
-        ? `+${Math.floor(data.timeGapToWinnerS / 60)}'${String(data.timeGapToWinnerS % 60).padStart(2, '0')}"`
-        : 'same time'
+  const gap = gapToWinnerText(data)
   // el último momento del corredor en el acta (E2, §12.9, 12-k; paso 12), no la etapa re-simulada
   const moments = data.moments ?? []
   const highlight = moments[moments.length - 1] ?? null
