@@ -65,6 +65,7 @@ describe('TimeTrialOverlay · la capa fija de la crono (§9.5)', () => {
     const html = renderToStaticMarkup(<TimeTrialOverlay tti={tti} cast={cast} />)
     expect(html).toMatch(/^<div[^>]*data-ui="FixedOverlay"/)
     expect(html).toMatch(/^<div[^>]*data-answer=""/)
+    expect(html).toMatch(/^<div[^>]*data-state="ready"/)
   })
 })
 

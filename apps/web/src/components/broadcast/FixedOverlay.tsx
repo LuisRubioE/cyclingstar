@@ -51,7 +51,9 @@ function useOverlaySummary(instant: Instant, head: OverlayHead): string {
  * `display`, la diferencia en `row`, la flecha como el icono `trend` en `gold`, girado y `aria-hidden`, y
  * contra quién y la segunda línea en `meta` `ink-2`. Su nombre accesible son las dos frases de
  * `overlaySummaryText` (H-05), que se leen al enfocarla o tocarla. Es la respuesta de `Watch` (§7.3, las
- * pantallas 08, 09 y 35): lleva `data-ui` y `data-answer`, y la comprobación 7 mira dónde empieza.
+ * pantallas 08, 09 y 35): lleva `data-ui` y `data-answer`, y la comprobación 7 mira dónde empieza; y
+ * `data-state="ready"`, porque solo se pinta con la cabecera ya llegada, y la prueba de noche da la
+ * página por lista cuando su respuesta lo está (§7.5).
  */
 export function FixedOverlay({
   instant,
@@ -75,6 +77,7 @@ export function FixedOverlay({
       type="button"
       data-ui="FixedOverlay"
       data-answer=""
+      data-state="ready"
       data-surface="dark"
       className={`block w-full select-none rounded-ui bg-surface px-3 py-2 text-left text-ink ${FOCUS}`}
       aria-live="off"

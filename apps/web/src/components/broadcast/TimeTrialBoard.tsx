@@ -17,7 +17,7 @@ import { WornJerseyIcon, wornTeamOf } from './WornJerseyIcon'
  *
  * Desde el PR 20 (E3, docs/visual.md §14.3; Rcobertura-038), vestida como la de carretera: en el ámbito
  * oscuro, el reloj en `row` con `tabular-nums` en blanco y el sillón en `gold`. Y es la capa fija de la
- * crono, así que lleva su `data-ui` y es la respuesta de su pantalla (§7.3, la 38).
+ * crono, así que lleva su `data-ui` y es la respuesta de su pantalla (§7.3, la 38), lista (§7.5).
  */
 export function TimeTrialOverlay({
   tti,
@@ -31,6 +31,7 @@ export function TimeTrialOverlay({
     <div
       data-ui="FixedOverlay"
       data-answer=""
+      data-state="ready"
       data-surface="dark"
       className="rounded-ui bg-surface px-3 py-2 text-ink"
       aria-live="off"

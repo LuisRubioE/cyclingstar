@@ -268,5 +268,7 @@ describe('FixedOverlay · el ámbito oscuro y el resumen accesible (§14.3)', ()
     const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
     expect(attrOf(node, 'data-ui')).toBe('FixedOverlay')
     expect(attrOf(node, 'data-answer')).toBe('')
+    // la página está lista cuando su respuesta está en ready (§7.5): lo espera la prueba de noche
+    expect(attrOf(node, 'data-state')).toBe('ready')
   })
 })
