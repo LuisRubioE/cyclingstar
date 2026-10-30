@@ -58,3 +58,30 @@ describe('la puerta de las órdenes (§11.12, DD-09)', () => {
     expect(markup).toContain('Give orders anyway')
   })
 })
+
+describe('la puerta con el sistema (E3, docs/visual.md §17.21; PR 21i)', () => {
+  it('su Panel con su título, que contesta la pantalla mientras espera', () => {
+    expect(gate('on')).toMatch(
+      /^<section data-ui="Panel"[^>]*data-answer=""[\s\S]*?<h2[^>]*>Stage 6 is waiting for you<\/h2>/,
+    )
+  })
+
+  it('verla, un Button primary que enlaza a la etapa; revelarla y ordenar igual, secondary', () => {
+    const markup = gate('on')
+    expect(markup).toMatch(
+      /<a [^>]*data-ui="Button" data-variant="primary"[^>]*href="\/world\/races\/race-france\/stages\/6"[\s\S]*?Watch \(about 9 min\)/,
+    )
+    expect(markup).toMatch(
+      /<button [^>]*data-ui="Button" data-variant="secondary"[^>]*>[\s\S]*?Show result/,
+    )
+    expect(markup).toMatch(
+      /<button [^>]*data-ui="Button" data-variant="secondary"[^>]*>[\s\S]*?Give orders anyway/,
+    )
+  })
+
+  it('sin colores de la paleta ni la caja de antes', () => {
+    const markup = gate('on') + gate('off')
+    expect(markup).not.toMatch(/\b(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\d/)
+    expect(markup).not.toContain('rounded-2xl')
+  })
+})

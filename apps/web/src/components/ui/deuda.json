@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 789,
+    "tema": 697,
     "arbitrarios": 13,
-    "espaciado": 12,
+    "espaciado": 11,
     "layout": 0
   },
   "ficheros": {
@@ -17,12 +17,6 @@
       "tema": 19,
       "arbitrarios": 0,
       "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/OrdersGate.tsx": {
-      "tema": 19,
-      "arbitrarios": 0,
-      "espaciado": 1,
       "layout": 0
     },
     "apps/web/src/components/PaintedRaceRadio.tsx": {
@@ -173,12 +167,6 @@
       "tema": 13,
       "arbitrarios": 0,
       "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/pages/RaceOrders.tsx": {
-      "tema": 73,
-      "arbitrarios": 0,
-      "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/pages/Rankings.tsx": {

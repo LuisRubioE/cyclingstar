@@ -1,15 +1,11 @@
 import { raceIdFromKey } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { broadcastHeadKey, fetchBroadcastHead } from '../api/broadcast'
 import { useHorizon, useHorizonRev, useRevealActions, useWatchOn } from '../queryClient'
 import { RevealConfirm } from './StageGate'
-
-const primary =
-  'rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60'
-const secondary =
-  'rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200 disabled:opacity-60'
+import { Button } from './ui/Button'
+import { Panel } from './ui/Panel'
 
 /**
  * LA PUERTA DE LAS ÓRDENES DE LA N+1 (E2, docs/retransmision.md §11.12, punto 3; D-37, DD-09; paso 9b). La
@@ -20,6 +16,10 @@ const secondary =
  * confirmación la primera vez. `Give orders anyway` deja la página tal cual: la respuesta de las órdenes
  * no lleva la general, sus compañeros y rivales no miran el abandono, y los rivales se ordenan por una fama
  * que no se escribe (sup. W6).
+ *
+ * Con el sistema desde el 21i de E3 (docs/visual.md §17.21): su `Panel`, con el aviso por título, que contesta
+ * la pantalla mientras espera (§7.3); verla, un `Button` `primary` que enlaza a la etapa, y revelarla y
+ * ordenar igual, `secondary`; el fallo, en su `alert`.
  */
 export function OrdersGate({
   raceKey,
@@ -66,40 +66,40 @@ export function OrdersGate({
   }
 
   return (
-    <div
-      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-      role="region"
-      aria-label="Not watched yet"
-    >
-      <p className="text-sm font-medium text-slate-800">Stage {stageDay} is waiting for you</p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Link to={`/world/races/${raceId}/stages/${stageDay}`} className={primary}>
-          {!watchOn ? 'Open stage' : minutes === null ? 'Watch' : `Watch (about ${minutes} min)`}
-        </Link>
-        {actions !== null && !confirming && (
-          <button
-            type="button"
-            className={secondary}
-            disabled={busy}
-            onClick={() => (actions.askFirst ? setConfirming(true) : void reveal(false))}
-          >
-            Show result
-          </button>
+    <Panel title={`Stage ${stageDay} is waiting for you`} answer>
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button to={`/world/races/${raceId}/stages/${stageDay}`} variant="primary">
+            {!watchOn ? 'Open stage' : minutes === null ? 'Watch' : `Watch (about ${minutes} min)`}
+          </Button>
+          {actions !== null && !confirming && (
+            <Button
+              variant="secondary"
+              busy={busy}
+              onClick={() => (actions.askFirst ? setConfirming(true) : void reveal(false))}
+            >
+              Show result
+            </Button>
+          )}
+          <Button variant="secondary" onClick={onGiveOrders}>
+            Give orders anyway
+          </Button>
+        </div>
+        {confirming && (
+          <RevealConfirm
+            stageDay={stageDay}
+            also={also}
+            busy={busy}
+            onConfirm={(dontAsk) => void reveal(dontAsk)}
+            onCancel={() => setConfirming(false)}
+          />
         )}
-        <button type="button" className={secondary} onClick={onGiveOrders}>
-          Give orders anyway
-        </button>
+        {failed && (
+          <p role="alert" className="text-meta text-bad">
+            Could not show the result.
+          </p>
+        )}
       </div>
-      {confirming && (
-        <RevealConfirm
-          stageDay={stageDay}
-          also={also}
-          busy={busy}
-          onConfirm={(dontAsk) => void reveal(dontAsk)}
-          onCancel={() => setConfirming(false)}
-        />
-      )}
-      {failed && <p className="mt-2 text-sm text-red-600">Could not show the result.</p>}
-    </div>
+    </Panel>
   )
 }

@@ -99,3 +99,61 @@ function mentalidadDelRol(current: StageOrder, patch: Partial<StageOrder>): Part
   }
   return patch
 }
+
+/** Un valor con sus claves en orden, para comparar dos disparos sin mirar en qué orden se escribieron. */
+function estable(v: unknown): unknown {
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) return v
+  return Object.fromEntries(
+    Object.entries(v)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, x]) => [k, estable(x)]),
+  )
+}
+
+/**
+ * Una orden en la forma que se compara: las cuatro palancas del 17a sin preferencia valen lo mismo sin
+ * llegar, a null o, los equipos, vacías («no hay preferencia», `contracts.ts`), y los equipos, sin su orden.
+ */
+function forma(o: StageOrder): string {
+  return JSON.stringify({
+    role: o.role,
+    targetRiderId: o.targetRiderId,
+    mentality: o.mentality,
+    effort: o.effort,
+    triggerKm: o.triggerKm,
+    contestSprints: o.contestSprints,
+    contestClimbs: o.contestClimbs,
+    triggerOn: estable(o.triggerOn ?? null),
+    chasePolicy: o.chasePolicy ?? null,
+    refuseRelayTeams: [...(o.refuseRelayTeams ?? [])].sort(),
+    dayGoal: o.dayGoal ?? null,
+  })
+}
+
+/**
+ * LO QUE CAMBIA AL GUARDAR (E3, docs/visual.md §4.3 y §4.9; PR 21i): los días de las etapas cuya orden en
+ * pantalla no es la guardada, que cuenta la barra de guardar. Tocar y volver a lo guardado no es un cambio.
+ */
+export function changedStages(serverOrders: OrdersByDay, orders: OrdersByDay): number[] {
+  return Object.keys(orders)
+    .map(Number)
+    .filter((day) => {
+      const visto = orders[day]
+      const guardado = serverOrders[day] ?? defaultOrder(day)
+      return visto !== undefined && forma(visto) !== forma(guardado)
+    })
+    .sort((a, b) => a - b)
+}
+
+/**
+ * LA CARRERA QUE SE ABRE (E3, PR 21i): la del enlace (`?race=`), si está entre las mías; si no, la más próxima
+ * que aún no ha empezado; y si todas han empezado, la primera. La pantalla la calcula al pintar, y no en un
+ * efecto, así que la hoja de la carrera se pide desde el primer pintado.
+ */
+export function defaultRaceKey(
+  races: readonly { readonly raceKey: string; readonly ongoing: boolean }[],
+  requested: string | null,
+): string | null {
+  const fromLink = requested === null ? undefined : races.find((r) => r.raceKey === requested)
+  return (fromLink ?? races.find((r) => !r.ongoing) ?? races[0])?.raceKey ?? null
+}

@@ -17,6 +17,7 @@ import { AppHeader } from '../../components/ui/AppHeader'
 import { BottomNav, type BottomNavItem } from '../../components/ui/BottomNav'
 import { Button } from '../../components/ui/Button'
 import { ChampionJersey } from '../../components/ui/ChampionJersey'
+import { Checkbox } from '../../components/ui/Checkbox'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
 import { ErrorState } from '../../components/ui/ErrorState'
@@ -325,6 +326,29 @@ function Elecciones() {
           onChange={nada}
           disabledReason="Your team plan decides this month."
         />
+      </Estado>
+    </Demo>
+  )
+}
+
+/** La casilla (PR 21i): lo que se marca de varios a la vez, cada una en su fila de 44. */
+function Casillas() {
+  const [vetados, setVetados] = useState<readonly string[]>(['Team Mar'])
+  const marca = (team: string) => (marcado: boolean) =>
+    setVetados((v) => (marcado ? [...v, team] : v.filter((x) => x !== team)))
+  return (
+    <Demo name="Checkbox">
+      <Estado name="off · on">
+        <div className="grid">
+          {['Team Sol', 'Team Mar', 'Team Norte'].map((team) => (
+            <Checkbox
+              key={team}
+              label={team}
+              checked={vetados.includes(team)}
+              onChange={marca(team)}
+            />
+          ))}
+        </div>
       </Estado>
     </Demo>
   )
@@ -1497,6 +1521,7 @@ export function UiPage() {
       <Enlaces />
       <Campos />
       <Elecciones />
+      <Casillas />
       <Porques />
       <Barras />
       <Estructura />
