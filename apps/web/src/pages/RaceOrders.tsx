@@ -425,7 +425,7 @@ function StageOrders({
               value={order.dayGoal ?? ''}
               onChange={(v) => onChange({ dayGoal: DAY_GOAL_OPTIONS.find((g) => g === v) ?? null })}
               options={[
-                { value: '', label: 'No preference — the team decides' },
+                { value: '', label: 'No preference' },
                 ...DAY_GOAL_OPTIONS.map((g) => ({ value: g, label: DAY_GOAL_LABEL[g] })),
               ]}
               help={
@@ -446,7 +446,7 @@ function StageOrders({
                 })
               }
               options={[
-                { value: '', label: 'No preference — read the race' },
+                { value: '', label: 'No preference' },
                 ...CHASE_POLICY_OPTIONS.map((c) => ({ value: c, label: CHASE_POLICY_LABEL[c] })),
               ]}
               help={

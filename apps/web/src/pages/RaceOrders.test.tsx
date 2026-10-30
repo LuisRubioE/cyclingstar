@@ -234,6 +234,9 @@ describe('la pantalla de órdenes (§17.21; PR 21i)', () => {
       expect(f, id).toMatch(new RegExp(`<label for="${id}"[^>]*>${rotulo}</label>`))
       expect(f, id).toMatch(new RegExp(`<p [^>]*>${esc(porque)}</p>$`))
     }
+    // sin preferencia, en dos palabras: lo demás lo dice su porqué, y en el teléfono el select no lo cortaba
+    for (const id of ['day-goal-1', 'chase-1'])
+      expect(campo(html, id), id).toContain('<option value="" selected="">No preference</option>')
     // ningún select fuera de su Field
     const selects = html.match(/<select/g)?.length ?? 0
     const enField = html.match(/<div data-ui="Field" data-variant="select"/g)?.length ?? 0
