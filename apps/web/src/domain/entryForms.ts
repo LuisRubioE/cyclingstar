@@ -2,7 +2,8 @@
  * LO QUE FALTA EN UN FORMULARIO DE LA ENTRADA (E3, PR 21j): entrar, crear la cuenta, pedir el enlace y elegir la
  * contraseña nueva. Lo dice el campo, con su rótulo y su error (`Field`, §4.3), y no el globo del navegador de
  * `required` y `minLength`, que el lector no siempre oye y que `TextField` dejaba a cada página; como en
- * `Account` (21f). Fuera de las páginas para probarlo sin pulsar: sus tests pintan en estático.
+ * `Account` (21f). Cada página lleva el foco al campo que falta, y su error se oye con él; el formato del
+ * correo lo sigue mirando el navegador (`type="email"`). Fuera de las páginas para probarlo sin pulsar: sus tests pintan en estático.
  */
 
 /** El campo en el que se dice lo que falta, y lo que se dice. */

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { authClient } from '../auth/client'
 import { Button } from '../components/ui/Button'
@@ -33,6 +33,11 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
   const [error, setError] = useState<string | null>(initial.error ?? null)
   const [loading, setLoading] = useState(false)
 
+  // el foco, al campo que falta: su error se oye con él
+  useEffect(() => {
+    if (problem !== null) document.getElementById(`reset-${problem.field}`)?.focus()
+  }, [problem])
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     if (link.kind !== 'token' || loading) return
@@ -57,7 +62,7 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
   return (
     <section className="mx-auto grid max-w-form gap-4">
       <PageHeader title="Choose a new password" />
-      <Panel ariaLabel="Choose a new password" answer>
+      <Panel ariaLabel="Your new password" answer>
         {link.kind === 'error' ? (
           <div className="grid gap-3">
             <p role="alert" className="text-body text-bad">

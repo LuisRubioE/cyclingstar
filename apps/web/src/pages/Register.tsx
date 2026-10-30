@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { authClient } from '../auth/client'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
@@ -14,14 +14,17 @@ import { type FieldProblem, registerProblem } from '../domain/entryForms'
  * servidor, debajo, en `role="alert"`.
  */
 
-type Resend = 'idle' | 'sending' | 'sent'
+type Resend = 'idle' | 'sending' | 'sent' | 'failed'
+
+const SIN_REENVIO = 'Could not send it again. Try again in a few minutes.'
 
 /**
  * Después de registrarse: la cuenta existe pero NO hay sesión hasta confirmar el correo. Se dice
  * a qué dirección ha ido el enlace (una errata en el correo es la causa más común de «no me
  * llega») y se ofrece reenviarlo. Desde el 21j, reenviado lo dice su región de estado, que está desde el
  * principio para que el lector la oiga, y el botón sigue donde estaba: deshabilitado, el catálogo lo pinta de
- * nuevo y el foco se perdería.
+ * nuevo y el foco se perdería. Si el servidor no lo manda (un límite de diez cada cinco minutos), lo dice, en
+ * `role="alert"` (la revisión del 21j).
  */
 export function CheckInbox({
   email,
@@ -31,17 +34,22 @@ export function CheckInbox({
   initialResend?: Resend
 }) {
   const [resend, setResend] = useState<Resend>(initialResend)
+  const [fallo, setFallo] = useState(SIN_REENVIO)
 
   async function onResend() {
+    if (resend === 'sending') return
     setResend('sending')
-    await authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' })
-    setResend('sent')
+    const res = await authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' })
+    if (res.error) {
+      setFallo(res.error.message ?? SIN_REENVIO)
+      setResend('failed')
+    } else setResend('sent')
   }
 
   return (
     <section className="mx-auto grid max-w-form gap-4">
       <PageHeader title="Check your inbox" />
-      <Panel ariaLabel="Check your inbox" answer>
+      <Panel ariaLabel="The link we sent" answer>
         <div className="grid gap-3">
           <p className="text-body text-ink-2">
             We have sent a link to <strong className="font-semibold text-ink">{email}</strong>. Open
@@ -58,9 +66,14 @@ export function CheckInbox({
           >
             Send it again
           </Button>
-          <p role="status" className="text-meta text-good empty:hidden">
+          <p role="status" className="text-meta text-good empty:sr-only">
             {resend === 'sent' ? 'Sent again. Give it a minute to arrive.' : ''}
           </p>
+          {resend === 'failed' && (
+            <p role="alert" className="text-meta text-bad">
+              {fallo}
+            </p>
+          )}
         </div>
       </Panel>
       <p className="text-meta text-ink-2">
@@ -85,6 +98,11 @@ export function Register({ initial = {} }: { initial?: Partial<RegisterState> } 
   const [error, setError] = useState<string | null>(initial.error ?? null)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+
+  // el foco, al campo que falta: su error se oye con él
+  useEffect(() => {
+    if (problem !== null) document.getElementById(`register-${problem.field}`)?.focus()
+  }, [problem])
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -122,7 +140,7 @@ export function Register({ initial = {} }: { initial?: Partial<RegisterState> } 
   return (
     <section className="mx-auto grid max-w-form gap-4">
       <PageHeader title="Create your account" status="Start building your rider." />
-      <Panel ariaLabel="Create your account" answer>
+      <Panel ariaLabel="Your email and password" answer>
         <form onSubmit={onSubmit} className="grid gap-3">
           <Field
             kind="input"

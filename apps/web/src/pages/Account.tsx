@@ -27,13 +27,13 @@ type Status =
 
 /**
  * Lo que contestó el servidor, debajo del formulario. La región de estado está desde el principio, vacía y
- * escondida: insertada ya llena, el lector no siempre la lee (la revisión del 21f). Un fallo sí se oye al
- * insertarse (`alert`).
+ * fuera de la vista (`sr-only`, y no `hidden`, que la sacaría también del lector): insertada ya llena, el lector
+ * no siempre la lee (las revisiones del 21f y del 21j). Un fallo sí se oye al insertarse (`alert`).
  */
 function Resultado({ status }: { status: Status }) {
   return (
     <>
-      <p role="status" className="text-meta text-good empty:hidden">
+      <p role="status" className="text-meta text-good empty:sr-only">
         {status.kind === 'ok' ? status.msg : ''}
       </p>
       {status.kind === 'err' && (

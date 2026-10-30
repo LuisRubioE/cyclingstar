@@ -21,6 +21,8 @@ describe('entrar', () => {
       msg: 'Enter your password.',
     })
     expect(loginProblem('ana@example.com', 'x')).toBeNull()
+    // sin nada, lo primero que falta: el correo
+    expect(loginProblem('', '')?.field).toBe('email')
   })
 })
 
@@ -32,6 +34,8 @@ describe('crear la cuenta', () => {
       msg: 'Your password must be at least 8 characters.',
     })
     expect(registerProblem('ana@example.com', '12345678')).toBeNull()
+    expect(registerProblem('  ', '12345678')?.field).toBe('email')
+    expect(registerProblem('', '1')?.field).toBe('email')
     expect(MIN_PASSWORD).toBe(8)
   })
 })
@@ -54,5 +58,7 @@ describe('la contraseña nueva', () => {
       msg: 'The two passwords do not match.',
     })
     expect(newPasswordProblem('12345678', '12345678')).toBeNull()
+    // corta y distinta: primero, que es corta
+    expect(newPasswordProblem('1', '2')?.field).toBe('password')
   })
 })

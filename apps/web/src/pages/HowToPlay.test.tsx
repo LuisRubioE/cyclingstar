@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PALETA, pieza, pintaEn, respuestas } from './__fixtures__/markup'
+import { PALETA, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
 import { HowToPlay } from './HowToPlay'
 
 /**
@@ -11,8 +11,8 @@ import { HowToPlay } from './HowToPlay'
 const html = pintaEn('/how-to-play', <HowToPlay />)
 
 describe('cómo se juega (§17.21; PR 21j)', () => {
-  it('la cabecera, un PageHeader con lo que es el juego', () => {
-    expect(html).toMatch(/<h1[^>]*>How to play<\/h1>/)
+  it('la cabecera, un PageHeader con lo que es el juego, y el único h1', () => {
+    expect(titulo(html)).toBe('How to play')
     expect(html).toContain('You are one professional cyclist, from age 18 to retirement.')
   })
 
@@ -27,8 +27,10 @@ describe('cómo se juega (§17.21; PR 21j)', () => {
     expect(pieza(html, 'Panel', 'Stars — how good you are')).toContain('data-answer=""')
   })
 
-  it('las estrellas, las del catálogo; y ni los cerillos ni la gráfica en emoji (3-d)', () => {
-    expect(pieza(html, 'Panel', 'Stars — how good you are')).toContain('data-ui="StarRating"')
+  it('las estrellas, las del catálogo, a 20 y con su nombre; y ni los cerillos ni la gráfica en emoji (3-d)', () => {
+    expect(pieza(html, 'Panel', 'Stars — how good you are')).toMatch(
+      /data-ui="StarRating" data-variant="page"[^>]*aria-label="3\.5 of 5 stars"/,
+    )
     for (const g of ['🔥', '📈']) expect(html, g).not.toContain(g)
   })
 

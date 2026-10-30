@@ -37,6 +37,8 @@ interface CreateState {
   readonly geo: string
   readonly name: string
   readonly error: string | null
+  /** el país, elegido a mano */
+  readonly elegido: boolean
 }
 
 export function CreateRider({ initial = {} }: { initial?: Partial<CreateState> } = {}) {
@@ -49,10 +51,11 @@ export function CreateRider({ initial = {} }: { initial?: Partial<CreateState> }
   // Diagnóstico de la detección por IP, en pantalla mientras se depura (v58, a petición del dueño).
   const [geo, setGeo] = useState<string>(initial.geo ?? '')
   const [creating, setCreating] = useState(false)
+  const [elegido, setElegido] = useState(initial.elegido ?? false)
 
   const seed = country ? `${country}-M-${seedN}` : ''
 
-  // Nacionalidad por IP (Paso 14, SPEC 3.6). Fija: si no se detecta un país soportado, se bloquea.
+  // Nacionalidad por IP (Paso 14, SPEC 3.6). Fija; si no se detecta, se elige a mano (v58).
   useEffect(() => {
     let active = true
     void fetchGeoCountry().then((detected) => {
@@ -104,7 +107,15 @@ export function CreateRider({ initial = {} }: { initial?: Partial<CreateState> }
     deje de hacer falta. No decide nada: solo cuenta lo que la detección vio. Desde el 21j, la
     ayuda del país, en `meta` `ink-2` (DD-18).
   */
-  const deteccion = `Your country: ${country === '' ? 'not detected' : country}${geo !== '' ? ` · ${geo}` : ''}`
+  const deteccion = `Your country: ${country === '' ? 'not detected' : country}${geo !== '' ? ` (${geo})` : ''}`
+  // cómo acabó la búsqueda, para el lector, en la región que está desde el principio (la revisión del 21j)
+  const anuncio = detecting
+    ? 'Detecting your country…'
+    : sinDetectar
+      ? 'Country not detected. Pick it below.'
+      : elegido || countryInfo === undefined
+        ? ''
+        : `Country detected: ${countryInfo.name}.`
 
   return (
     <section className="mx-auto grid max-w-form gap-4">
@@ -112,10 +123,10 @@ export function CreateRider({ initial = {} }: { initial?: Partial<CreateState> }
         title="Create your rider"
         status="Your vocation shapes your talent — but never guarantees it."
       />
-      <Panel ariaLabel="Create your rider" answer>
+      <Panel ariaLabel="Your rider" answer>
         <div className="grid gap-4">
-          <p role="status" className="text-meta text-ink-2 empty:hidden">
-            {detecting ? 'Detecting your country…' : ''}
+          <p role="status" className={detecting ? 'text-meta text-ink-2' : 'sr-only'}>
+            {anuncio}
           </p>
 
           {sinDetectar && (
@@ -129,7 +140,9 @@ export function CreateRider({ initial = {} }: { initial?: Partial<CreateState> }
                 label="Country"
                 value=""
                 onChange={(v) => {
-                  if (v !== '') setCountry(v)
+                  if (v === '') return
+                  setCountry(v)
+                  setElegido(true)
                 }}
                 options={[
                   { value: '', label: 'Choose your country…' },
@@ -165,7 +178,9 @@ export function CreateRider({ initial = {} }: { initial?: Partial<CreateState> }
                       <Flag country={country} />
                     </span>
                     {countryInfo.name}
-                    <span className="text-meta text-ink-2">from your location</span>
+                    <span className="text-meta text-ink-2">
+                      {elegido ? 'chosen by you' : 'from your location'}
+                    </span>
                   </dd>
                   <dd className="text-meta text-ink-2">{deteccion}</dd>
                 </div>

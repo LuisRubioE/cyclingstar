@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PALETA, pieza, pintaEn, respuestas } from './__fixtures__/markup'
+import { PALETA, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
 import { Privacy } from './Privacy'
 
 /**
@@ -10,8 +10,8 @@ import { Privacy } from './Privacy'
 const html = pintaEn('/privacy', <Privacy />)
 
 describe('la privacidad (§17.21; PR 21j)', () => {
-  it('la cabecera, un PageHeader con lo que es el juego', () => {
-    expect(html).toMatch(/<h1[^>]*>Privacy<\/h1>/)
+  it('la cabecera, un PageHeader con lo que es el proyecto, y el único h1', () => {
+    expect(titulo(html)).toBe('Privacy')
     expect(html).toContain('Cycling Star is a personal, non-commercial project.')
   })
 

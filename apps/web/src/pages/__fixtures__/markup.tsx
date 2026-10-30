@@ -20,7 +20,7 @@ export function pintaEn(path: string, page: ReactElement): string {
 
 /** El elemento entero que abre en `inicio`, con lo que lleva dentro: cuenta las aperturas y los cierres de su etiqueta. */
 export function elementoEn(markup: string, inicio: number): string {
-  const tag = /^<([a-z]+)/.exec(markup.slice(inicio))?.[1]
+  const tag = /^<([a-z][a-z0-9]*)/.exec(markup.slice(inicio))?.[1]
   if (tag === undefined) return ''
   const re = new RegExp(`<(/?)${tag}\\b[^>]*?(/?)>`, 'g')
   re.lastIndex = inicio
@@ -38,7 +38,9 @@ export function campo(markup: string, id: string): string {
   const control = markup.indexOf(` id="${id}"`)
   if (control < 0) return ''
   const inicio = markup.lastIndexOf('<div data-ui="Field"', control)
-  return inicio < 0 ? '' : elementoEn(markup, inicio)
+  const entero = inicio < 0 ? '' : elementoEn(markup, inicio)
+  // el `Field` de antes del control, si el control no es suyo, no vale
+  return entero.includes(` id="${id}"`) ? entero : ''
 }
 
 /**
@@ -59,6 +61,18 @@ export function pieza(markup: string, ui: string, texto: string): string {
 /** Cuántas cosas contestan la pantalla (§7.3): ha de ser una. */
 export const respuestas = (markup: string): number => markup.match(/data-answer=""/g)?.length ?? 0
 
-/** Las clases de antes: los colores de la paleta de Tailwind, que el sistema cambia por sus tokens (§3). */
+/** Cuántas veces sale algo en el marcado: 0 si ninguna, para comparar dos cuentas sin que valgan dos nadas. */
+export const cuantas = (markup: string, re: RegExp): number =>
+  markup.match(new RegExp(re.source, 'g'))?.length ?? 0
+
+/** El `h1` de la página, que ha de ser uno, dentro de su `PageHeader`. */
+export const titulo = (markup: string): string | null =>
+  cuantas(markup, /<h1[\s>]/) === 1
+    ? (/<header data-ui="PageHeader"(?:(?!<\/header>)[\s\S])*?<h1[^>]*>([^<]*)<\/h1>/.exec(
+        markup,
+      )?.[1] ?? null)
+    : null
+
+/** Las clases de antes: los colores de la paleta de Tailwind y la marca de antes, que el sistema cambia por sus tokens (§3). */
 export const PALETA =
-  /\b(?:slate|gray|zinc|indigo|blue|sky|cyan|emerald|green|amber|yellow|orange|red|rose)-\d/
+  /\b(?:(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d|brand-)/

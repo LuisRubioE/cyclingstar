@@ -28,7 +28,7 @@ export function VerifyEmail() {
   return (
     <section className="mx-auto grid max-w-form gap-4">
       <PageHeader title={title} />
-      <Panel ariaLabel={title} answer>
+      <Panel ariaLabel="The link from your email" answer>
         <div className="grid gap-3">
           {outcome.kind === 'error' ? (
             <>

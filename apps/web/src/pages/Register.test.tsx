@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PALETA, campo, pieza, pintaEn, respuestas } from './__fixtures__/markup'
+import { PALETA, campo, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
 import { CheckInbox, Register } from './Register'
 
 /**
@@ -12,18 +12,18 @@ const pinta = (initial?: NonNullable<Parameters<typeof Register>[0]>['initial'])
   pintaEn('/register', <Register {...(initial === undefined ? {} : { initial })} />)
 
 describe('crear la cuenta (§17.21; PR 21j)', () => {
-  it('la cabecera, un PageHeader con su línea, en el ancho de los formularios', () => {
+  it('la cabecera, un PageHeader con su línea y el único h1, en el ancho de los formularios', () => {
     const html = pinta()
     expect(html).toMatch(/^<section class="[^"]*max-w-form/)
-    expect(html).toMatch(/<h1[^>]*>Create your account<\/h1>/)
+    expect(titulo(html)).toBe('Create your account')
     expect(html).toContain('>Start building your rider.</p>')
   })
 
-  it('una sola respuesta, el Panel del registro', () => {
+  it('una sola respuesta, el Panel del registro, con un nombre que no repite el del título', () => {
     const html = pinta()
     expect(respuestas(html)).toBe(1)
     expect(html).toMatch(
-      /<section data-ui="Panel"[^>]*data-answer=""[^>]*aria-label="Create your account"/,
+      /<section data-ui="Panel"[^>]*data-answer=""[^>]*aria-label="Your email and password"/,
     )
   })
 
@@ -36,22 +36,29 @@ describe('crear la cuenta (§17.21; PR 21j)', () => {
     expect(clave).toMatch(/<p [^>]*>At least 8 characters\.<\/p>/)
   })
 
-  it('crearla, un Button primary que envía; con cuenta, un TextLink a entrar', () => {
+  it('crearla, un Button primary que envía, en reposo; con cuenta, un TextLink a entrar', () => {
     const html = pinta()
     expect(pieza(html, 'Button', 'Create account')).toMatch(
-      /^<button [^>]*type="submit"[^>]*data-variant="primary"/,
+      /^<button [^>]*type="submit"[^>]*data-variant="primary" data-state="ready"/,
     )
     expect(pieza(html, 'TextLink', 'Log in')).toMatch(/href="\/login"/)
     expect(html).toContain('Already have an account?')
   })
 
-  it('lo que falta, en su campo; lo que dice el servidor, en role="alert"', () => {
+  it('lo que falta, en su campo y solo en el suyo; lo que dice el servidor, en role="alert", y sin fallo, ninguno', () => {
     const corta = 'Your password must be at least 8 characters.'
     const html = pinta({ problem: { field: 'password', msg: corta } })
     expect(campo(html, 'register-password')).toMatch(/data-state="error"[\s\S]*Your password must/)
+    expect(campo(html, 'register-email')).toContain('data-state="ready"')
+    const sinCorreo = pinta({ problem: { field: 'email', msg: 'Enter your email.' } })
+    expect(campo(sinCorreo, 'register-email')).toMatch(
+      /data-state="error"[\s\S]*Enter your email\./,
+    )
+    expect(campo(sinCorreo, 'register-password')).toContain('data-state="ready"')
     expect(pinta({ error: 'Could not create your account.' })).toMatch(
       /<p role="alert"[^>]*>Could not create your account\.<\/p>/,
     )
+    expect(pinta()).not.toContain('role="alert"')
   })
 
   it('ninguna clase de la paleta ni la caja de antes', () => {
@@ -62,7 +69,7 @@ describe('crear la cuenta (§17.21; PR 21j)', () => {
 })
 
 describe('mirar el correo (§17.21; PR 21j)', () => {
-  const pintaBuzon = (resend?: 'sending' | 'sent') =>
+  const pintaBuzon = (resend?: 'sending' | 'sent' | 'failed') =>
     pintaEn(
       '/register',
       <CheckInbox
@@ -71,10 +78,11 @@ describe('mirar el correo (§17.21; PR 21j)', () => {
       />,
     )
 
-  it('su cabecera y su Panel, que contesta, con el correo al que fue el enlace', () => {
+  it('su cabecera, el único h1, y su Panel, que contesta, con el correo al que fue el enlace', () => {
     const html = pintaBuzon()
-    expect(html).toMatch(/<h1[^>]*>Check your inbox<\/h1>/)
+    expect(titulo(html)).toBe('Check your inbox')
     expect(respuestas(html)).toBe(1)
+    expect(html).toMatch(/<section data-ui="Panel"[^>]*aria-label="The link we sent"/)
     expect(html).toContain(
       'We have sent a link to <strong class="font-semibold text-ink">ana@example.com</strong>. Open it to confirm your email and start playing. It expires in one hour.',
     )
@@ -84,12 +92,26 @@ describe('mirar el correo (§17.21; PR 21j)', () => {
     expect(pieza(html, 'TextLink', 'Log in')).toMatch(/href="\/login"/)
   })
 
-  it('reenviarlo, un Button secundario; enviando, ocupado; enviado, lo dice su región de estado, que está desde el principio', () => {
-    expect(pieza(pintaBuzon(), 'Button', 'Send it again')).toMatch(/data-variant="secondary"/)
-    expect(pieza(pintaBuzon('sending'), 'Button', 'Send it again')).toMatch(/aria-busy="true"/)
-    expect(pintaBuzon()).toMatch(/<p role="status"[^>]*><\/p>/)
+  it('reenviarlo, un Button secundario en reposo, con su región de estado vacía y en el lector desde el principio', () => {
+    const html = pintaBuzon()
+    expect(pieza(html, 'Button', 'Send it again')).toMatch(
+      /data-variant="secondary" data-state="ready"/,
+    )
+    expect(html).toMatch(/<p role="status" class="[^"]*empty:sr-only[^"]*"><\/p>/)
+    expect(html).not.toContain('role="alert"')
+  })
+
+  it('enviando, ocupado y sin decir nada todavía; enviado, lo dice su región; y si el servidor no lo manda, en alert', () => {
+    const enviando = pintaBuzon('sending')
+    expect(pieza(enviando, 'Button', 'Send it again')).toMatch(/aria-busy="true"/)
+    expect(enviando).toMatch(/<p role="status"[^>]*><\/p>/)
     expect(pintaBuzon('sent')).toMatch(
       /<p role="status"[^>]*>Sent again\. Give it a minute to arrive\.<\/p>/,
     )
+    const fallo = pintaBuzon('failed')
+    expect(fallo).toMatch(
+      /<p role="alert"[^>]*>Could not send it again\. Try again in a few minutes\.<\/p>/,
+    )
+    expect(fallo).toMatch(/<p role="status"[^>]*><\/p>/)
   })
 })

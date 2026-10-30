@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { authClient } from '../auth/client'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
@@ -31,6 +31,11 @@ export function ForgotPassword({ initial = {} }: { initial?: Partial<ForgotState
   const [sent, setSent] = useState(initial.sent ?? false)
   const [loading, setLoading] = useState(false)
 
+  // el foco, al campo que falta: su error se oye con él
+  useEffect(() => {
+    if (problem !== null) document.getElementById('forgot-email')?.focus()
+  }, [problem])
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     if (loading) return
@@ -46,13 +51,16 @@ export function ForgotPassword({ initial = {} }: { initial?: Partial<ForgotState
 
   return (
     <section className="mx-auto grid max-w-form gap-4">
+      {/* pedido, sin la instrucción: ya no hay que dar nada (la revisión del 21j) */}
       <PageHeader
         title="Forgot your password?"
-        status="Give us your email and we will send you a link to set a new one."
+        {...(sent
+          ? {}
+          : { status: 'Give us your email and we will send you a link to set a new one.' })}
       />
-      <Panel ariaLabel="Forgot your password?" answer>
+      <Panel ariaLabel="Your email" answer>
         <div className="grid gap-3">
-          <div role="status" className="grid gap-2 empty:hidden">
+          <div role="status" className="grid gap-2 empty:sr-only">
             {sent && (
               <>
                 <p className="text-body text-ink-2">
