@@ -1,6 +1,7 @@
 import { type LoadLevel, seasonPosition } from '@cyclingstar/shared'
 import type { FormPoint } from '../api/form'
-import { LOAD_WORD, formatGameDay, raceDayTitle } from '../domain/words'
+import { raceDayTitle } from '../domain/raceDay'
+import { LOAD_WORD, formatGameDay } from '../domain/words'
 import { StageRoute } from './StageRoute'
 
 /**

@@ -7,7 +7,7 @@ import {
 } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { fetchBlockReport } from '../api/sheet'
-import { raceDayTitle } from '../domain/words'
+import { raceDayTitle } from '../domain/raceDay'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { Panel } from './ui/Panel'
 
