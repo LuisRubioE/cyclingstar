@@ -1,4 +1,4 @@
-import { raceIdFromKey, seasonPosition } from '@cyclingstar/shared'
+import { type RiderSummary, raceIdFromKey, seasonPosition } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
@@ -6,14 +6,14 @@ import { fetchLastRace, lastRaceKey } from '../api/lastRace'
 import { fetchMarket } from '../api/market'
 import { fetchEnterableRaces } from '../api/raceEntry'
 import { fetchRaceOrders } from '../api/raceOrders'
+import { ApiError } from '../api/request'
 import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary } from '../api/rider'
 import { fetchTrainingPlan } from '../api/sheet'
 import { fetchOrders } from '../api/training'
-import { authClient } from '../auth/client'
+import { useSessionState } from '../auth/useSessionState'
 import { LastRaceReady } from '../components/LastRaceReady'
 import { Logo } from '../components/Logo'
 import { StageRoute } from '../components/StageRoute'
-import { TeamLink } from '../components/TeamLink'
 import { WatchBlocks } from '../components/WatchBlocks'
 import { ActionRow } from '../components/ui/ActionRow'
 import { Button } from '../components/ui/Button'
@@ -23,7 +23,7 @@ import { Meter } from '../components/ui/Meter'
 import { Notice } from '../components/ui/Notice'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
-import { QueryView } from '../components/ui/QueryView'
+import { LoadingState, QueryView, type QueryViewProps } from '../components/ui/QueryView'
 import { StarRating } from '../components/ui/StarRating'
 import { Stat } from '../components/ui/Stat'
 import { TextLink } from '../components/ui/TextLink'
@@ -40,6 +40,10 @@ import { horizonKey, useHorizonRev, veilApplies } from '../queryClient'
  * que contesta siempre, también sin avisos, y va arriba, antes de lo que tiene por ver. Fuera el reloj de la
  * portada (`WorldClock`), que ya dice la cabecera desde el PR 11 y decía `GD` (§4.10), y las flechas de
  * texto (ui/10).
+ *
+ * Tras su revisión: `Next up` espera a lo que necesita antes de decir que no hay nada, y con un fallo lo dice;
+ * la espera de la sesión ya no es la portada del visitante; el aviso del visitante va bajo su cabecera (4-e);
+ * y la última carrera velada, con el sistema (`LastRaceReady`).
  */
 
 /** El día del mundo en palabras de la temporada (§4.10): `Day 50 · Season 1`, y nunca `GD 50`. */
@@ -89,11 +93,11 @@ function GuestHome() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   return (
     <section className="space-y-4">
-      {/* Solo con el velo para todos: con `admins`, un invitado no lo tiene, y preguntar por su cookie
-          sería una petición más en cada portada de invitado. */}
-      {health.data?.features?.spoilerMode === 'on' && <CookieReaderNotice />}
       <Logo size={96} />
       <PageHeader title="Race. Train. Rise." />
+      {/* Bajo la cabecera, como todo aviso de página (4-e). Solo con el velo para todos: con `admins`, un
+          invitado no lo tiene, y preguntar por su cookie sería una petición más en cada portada de invitado. */}
+      {health.data?.features?.spoilerMode === 'on' && <CookieReaderNotice />}
       <Panel ariaLabel="Welcome" answer>
         <div className="grid gap-3">
           <p className="text-body text-ink-2">
@@ -176,13 +180,27 @@ const TONE_CHIP: Record<DashboardAction['tone'], { tone: 'bad' | 'warn'; text: s
  * LO SIGUIENTE (E3, §7.3; PR 21g): los avisos accionables, cada uno una `ActionRow` con qué pasa, por qué
  * importa y el único enlace que lo resuelve, con su nombre entero para el lector (`Set orders: You race
  * tomorrow: Race Var`); el tono, con su palabra. Es la respuesta de la 17, y contesta siempre: sin avisos,
- * con su vacío dentro (hasta aquí, sin avisos no había bloque). Se exporta para su test, que siembra sus
- * avisos a mano.
+ * con su vacío dentro (hasta aquí, sin avisos no había bloque). Pero el vacío solo cuando se sabe (la revisión
+ * del 21g): mientras falte algo de lo que necesita, su espera, y con un fallo, su `ErrorState`, los de su
+ * `QueryView`. Se exporta para su test, que siembra sus avisos a mano.
  */
-export function NextUp({ actions }: { actions: readonly DashboardAction[] }) {
+export function NextUp({
+  actions,
+  pending = null,
+}: {
+  readonly actions: readonly DashboardAction[]
+  /** la primera consulta de las suyas que no ha llegado, la que falló antes que las que faltan */
+  readonly pending?: QueryViewProps<unknown>['query'] | null
+}) {
   return (
     <Panel title="Next up" answer>
-      {actions.length === 0 ? (
+      {pending !== null ? (
+        <QueryView
+          query={pending}
+          label="your next steps"
+          skeleton={{ kind: 'rows', rowHeight: 64 }}
+        />
+      ) : actions.length === 0 ? (
         <EmptyState icon="check" text="Nothing needs you right now." />
       ) : (
         <ul className="divide-y divide-line">
@@ -229,12 +247,7 @@ function LastRaceCard() {
     queryFn: fetchLastRace,
     enabled: rev !== undefined,
   })
-  if (last.data?.ready != null)
-    return (
-      <Panel title="Last race">
-        <LastRaceReady ready={last.data.ready} />
-      </Panel>
-    )
+  if (last.data?.ready != null) return <LastRaceReady ready={last.data.ready} title="Last race" />
   const data = last.data?.report
   if (!data) return null
   const gap =
@@ -271,6 +284,21 @@ function LastRaceCard() {
         <p className="text-meta text-accent">{raceVerdict(data)}</p>
       </div>
     </Panel>
+  )
+}
+
+/**
+ * El equipo del jugador, un `TextLink`, que se ve enlace sin pasar el dedo por encima; `Free agent` sin él; y
+ * nada mientras llega, con su renglón guardado (la revisión del 21g: decía `Free agent` mientras cargaba).
+ */
+function TeamLine({ summary }: { readonly summary: RiderSummary | null | undefined }) {
+  if (summary === undefined) return null
+  if (summary === null || summary.teamName === null) return <>Free agent</>
+  if (summary.teamId === null) return <>{summary.teamName}</>
+  return (
+    <TextLink inline to={`/world/teams/${summary.teamId}`}>
+      {summary.teamName}
+    </TextLink>
   )
 }
 
@@ -359,23 +387,37 @@ export function PlayerHome({ name }: { name: string }) {
     affordableEntries: (entries.data ?? []).filter((r) => !r.entered && r.affordable).length,
     bookedRaces: (upcoming.data?.length ?? 0) + pendingEntries,
   })
+  // Lo que `Next up` necesita saber antes de decir nada (la revisión del 21g): sus avisos dan por bueno lo que
+  // falta (las órdenes, puestas; la cola, llena; ninguna oferta), y sin esto dirían «nada que hacer» mientras
+  // cargan, o para siempre tras un fallo. Las apagadas no cuentan; las órdenes con un 403, tampoco: sin estar
+  // aún en la lista de salida, no hay órdenes que poner.
+  const fueraDeLaSalida = raceOrders.error instanceof ApiError && raceOrders.error.status === 403
+  const necesita = [
+    summary,
+    training,
+    upcoming,
+    market,
+    stored,
+    ...(nextRace !== null && !fueraDeLaSalida ? [raceOrders] : []),
+    ...(freeAgent ? [entries] : []),
+  ]
+  const pending =
+    necesita.find((q) => q.data === undefined && q.isError) ??
+    necesita.find((q) => q.data === undefined) ??
+    null
 
   return (
     <section className="space-y-4">
       <div className="grid gap-1">
         <PageHeader title={name} />
         {/* el equipo, enlazado: la línea de estado de `PageHeader` es texto, y lo perdería */}
-        <p className="text-meta text-ink-2">
-          {summary.data?.teamName ? (
-            <TeamLink teamId={summary.data.teamId} name={summary.data.teamName} />
-          ) : (
-            'Free agent'
-          )}
+        <p className="min-h-5 text-meta text-ink-2">
+          <TeamLine summary={summary.data} />
         </p>
       </div>
 
       {/* Lo siguiente, la respuesta de la 17 (§7.3), arriba: lo que se decide antes de que caduque. */}
-      <NextUp actions={actions} />
+      <NextUp actions={actions} pending={pending} />
 
       {/* Lo que tiene por ver (E2, §11.4; 9b): a medias, listo para ver y lo que pasó mientras no
           estaba. Sin velo para él, nada. Encima de la última carrera, como en E2. */}
@@ -383,7 +425,15 @@ export function PlayerHome({ name }: { name: string }) {
 
       <Panel title="Condition">
         <div className="grid gap-3">
-          {form.data?.form ? (
+          {/* mientras llega la forma, su espera, y con un fallo, el suyo: no `No training data yet.`, que es lo que
+              se sabe cuando llega sin ella (la revisión del 21g) */}
+          {form.data === undefined ? (
+            <QueryView
+              query={form}
+              label="your condition"
+              skeleton={{ kind: 'rows', rows: 2, rowHeight: 44 }}
+            />
+          ) : form.data.form ? (
             <>
               <p className="flex items-center gap-2 text-meta font-semibold text-ink">
                 Form
@@ -427,15 +477,19 @@ export function PlayerHome({ name }: { name: string }) {
 }
 
 export function Home() {
-  const { data: session } = authClient.useSession()
+  const { state, isPending } = useSessionState()
+  const signedIn = state === 'signed-in'
   const rev = useHorizonRev()
   const riderQuery = useQuery({
     queryKey: horizonKey(['rider', 'me'], rev),
     queryFn: fetchMyRider,
-    enabled: !!session && rev !== undefined,
+    enabled: signedIn && rev !== undefined,
   })
 
-  if (!session) return <GuestHome />
+  // mientras llega la sesión, su espera, y no la portada del visitante con `Create account` (la revisión del
+  // 21g): quien vuelve con su sesión la veía un momento en cada carga
+  if (isPending) return <LoadingState label="your session" />
+  if (!signedIn) return <GuestHome />
   // Los estados, con `QueryView` (E3, PR 10): un fallo ya no se pinta como «no tienes corredor».
   if (riderQuery.data === undefined)
     return <QueryView query={riderQuery} label="your rider" skeleton={{ kind: 'panel' }} answer />

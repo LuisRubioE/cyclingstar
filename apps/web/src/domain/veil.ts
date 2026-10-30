@@ -332,13 +332,16 @@ export function waitingStage(h: HorizonSummary | null | undefined, raceKey: stri
 
 // --------------------------------------------------------- la última carrera (§11.4, sup. H1 y H5)
 
-/** `Your last race · Race France, Stage 8 · Ready to watch`; de una carrera de un día, sin la etapa. */
+/**
+ * `Race France, Stage 8 · Ready to watch`; de una carrera de un día, sin la etapa. `Your last race`, delante
+ * hasta el 21g de E3, es desde entonces el título de su `Panel` (docs/visual.md §17.21), y no se repite.
+ */
 export function lastRaceReadyText(
   ready: Pick<PreStageInfo, 'raceName' | 'stageDay' | 'stageCount'>,
 ): string {
   const where =
     ready.stageCount === 1 ? ready.raceName : `${ready.raceName}, Stage ${ready.stageDay}`
-  return `Your last race · ${where} · Ready to watch`
+  return `${where} · Ready to watch`
 }
 
 /**

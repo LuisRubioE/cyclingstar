@@ -96,6 +96,24 @@ describe('buildDashboard', () => {
     expect(actions[0]!.title).toContain('right now')
   })
 
+  it('la carrera, por su nombre y sin artículo (§4.10; la revisión del 21g): nunca `the Race Var`', () => {
+    const titulo = (daysUntil: number, ongoing: boolean) =>
+      buildDashboard({
+        ...calm,
+        nextRace: {
+          raceKey: 'race-var:s0',
+          raceName: 'Race Var',
+          daysUntil,
+          ongoing,
+          hasOrders: false,
+        },
+      })[0]!.title
+    expect(titulo(-1, true)).toBe('You are racing Race Var right now')
+    expect(titulo(3, false)).toBe('You race Race Var in 3 days')
+    expect(titulo(1, false)).toBe('You race tomorrow: Race Var')
+    expect(titulo(0, false)).toBe('You race today: Race Var')
+  })
+
   it('el viaje de mañana: que no se entrena, con sus días de ida y de vuelta (§11.7)', () => {
     const [a] = buildDashboard({
       ...calm,

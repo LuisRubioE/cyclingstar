@@ -341,10 +341,11 @@ describe('las órdenes de la N+1 (§11.12, DD-09)', () => {
 describe('la última carrera velada (§11.4; sups. H1 y H5)', () => {
   const ready = { raceName: 'Race France', stageDay: 8, stageCount: 21 }
 
+  // `Your last race` es el título de su `Panel` desde el 21g de E3 (docs/visual.md §17.21): no se repite delante
   it('lastRaceReadyText: la carrera y la etapa; de un día, sin la etapa', () => {
-    expect(lastRaceReadyText(ready)).toBe('Your last race · Race France, Stage 8 · Ready to watch')
+    expect(lastRaceReadyText(ready)).toBe('Race France, Stage 8 · Ready to watch')
     expect(lastRaceReadyText({ raceName: 'Race Sanremo', stageDay: 1, stageCount: 1 })).toBe(
-      'Your last race · Race Sanremo · Ready to watch',
+      'Race Sanremo · Ready to watch',
     )
   })
 

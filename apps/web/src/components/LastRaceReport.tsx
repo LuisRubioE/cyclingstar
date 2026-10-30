@@ -22,7 +22,7 @@ const MOMENTS_REV = 0
  * persona para siete plantillas (`personalNarration`) y la clave cruda en las demás.
  *
  * Bajo el velo (E2, §11.4; sup. H5; 9b): el informe es el de la última etapa CONOCIDA, y si la última que
- * corrió está velada, la tarjeta lo dice (`Your last race · Race France, Stage 8 · Ready to watch`) con
+ * corrió está velada, la tarjeta lo dice (`Race France, Stage 8 · Ready to watch`, en su `Panel` `Your last race`) con
  * `Watch`, sin el informe de una etapa anterior debajo, que no es «la última».
  */
 export function LastRaceReport() {
@@ -34,11 +34,7 @@ export function LastRaceReport() {
   })
   if (last.isPending || !last.data) return null
   if (last.data.ready !== null)
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <LastRaceReady ready={last.data.ready} />
-      </div>
-    )
+    return <LastRaceReady ready={last.data.ready} title="Your last race" />
   const data = last.data.report
   if (!data) return null
   const moments = data.moments ?? []
