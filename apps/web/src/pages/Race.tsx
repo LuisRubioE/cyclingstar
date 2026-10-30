@@ -26,7 +26,7 @@ import { authClient } from '../auth/client'
 import { RiderName } from '../components/RiderName'
 import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { DiagnosticStrip } from '../components/StageGate'
-import { StageRoute } from '../components/StageRoute'
+import { RestDay, StageLine } from '../components/StageLine'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { TabPanel, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
@@ -74,18 +74,6 @@ import {
 const OneDaySections = lazy(() =>
   import('./OneDayRace').then((m) => ({ default: m.OneDaySections })),
 )
-
-/**
- * El punto del tipo de etapa, junto a su palabra, que es la que lo dice (desde el PR 21a, con tokens): la
- * llana en `good`, la media en `warn`, la reina en `bad`, la crono en `accent` y la clásica en `gold`.
- */
-const KIND_DOT: Record<string, string> = {
-  llana: 'bg-good',
-  media: 'bg-warn',
-  reina: 'bg-bad',
-  cri: 'bg-accent',
-  clasica: 'bg-gold',
-}
 
 const DIVISION_LABEL: Record<string, string> = {
   WT: 'WorldTour',
@@ -191,38 +179,6 @@ function Startlist({ data }: { data: RaceStartlist }) {
   )
 }
 
-/** Recorrido de una etapa en una línea: tipo, salida → meta y kilómetros. */
-function StageLine({ stage, oneDay }: { stage: RaceStagePlan; oneDay: boolean }) {
-  return (
-    <>
-      {/* redondo con el radio del tema, que en 8 px es un círculo: `rounded-full` es solo de `Chip` (D-07) */}
-      <span
-        className={`inline-block h-2 w-2 shrink-0 rounded-ui ${KIND_DOT[stage.kind] ?? 'bg-line-strong'}`}
-        aria-hidden
-      />
-      {/*
-        En una carrera de un día no hay «Stage 1» que numerar: la etapa ES la carrera, y su nombre
-        del calendario («Stage 1 · Classic») no dice nada que no diga ya la ficha de arriba. Se deja
-        solo la etiqueta.
-      */}
-      <span className="font-semibold text-ink">
-        {oneDay ? stage.label : `Stage ${stage.index}`}
-      </span>
-      {/*
-        La ETIQUETA del calendario, no el tipo. Son dos vocabularios para lo mismo —«Summit finish»
-        contra «Mountain», «Uphill finish» contra «Hilly»— y el del calendario es el preciso: sabe
-        distinguir la reina que muere arriba de la que baja a meta. El tipo sigue mandando en el
-        color del punto, que es para lo que sirve. A todo ancho desde la revisión del 21a: en el
-        teléfono iba en `hidden`, y el tipo lo decía solo el color del punto (D-13); la línea parte.
-      */}
-      {!oneDay && <span className="text-caption text-ink-3">{stage.label}</span>}
-      <StageRoute from={stage.from} to={stage.to} className="min-w-0 text-ink-2" />
-      {stage.timeTrial && <span className="text-caption font-semibold text-accent">ITT</span>}
-      <span className="ml-auto shrink-0 tabular-nums text-ink-3">{stage.km} km</span>
-    </>
-  )
-}
-
 /**
  * DE DÓNDE SALE EL RECORRIDO Y CÓMO ES, bajo la línea de cada etapa (docs/generador.md §10.8 y
  * §11.4; D10 con su valor por defecto). Siempre la marca de origen. En lo que no es real, además, la
@@ -283,17 +239,6 @@ function RouteTab({ data }: { data: RaceView }) {
         ))}
       </ol>
     </Panel>
-  )
-}
-
-/** El día de descanso tras una etapa (grandes vueltas y alguna vuelta por etapas), entre dos filetes. */
-function RestDay() {
-  return (
-    <li className="flex items-center gap-2 py-1 text-caption font-semibold uppercase tracking-caps text-ink-3">
-      <span className="h-px flex-1 bg-line" />
-      Rest day
-      <span className="h-px flex-1 bg-line" />
-    </li>
   )
 }
 

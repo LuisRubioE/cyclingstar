@@ -197,7 +197,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/pages/News.tsx',
   'apps/web/src/pages/Privacy.tsx',
   'apps/web/src/pages/RaceOrders.tsx',
-  'apps/web/src/pages/RacesIndex.tsx',
   'apps/web/src/pages/Rankings.tsx',
   'apps/web/src/pages/Register.tsx',
   'apps/web/src/pages/ResetPassword.tsx',
