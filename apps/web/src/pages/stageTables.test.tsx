@@ -359,6 +359,20 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     expect(markup).not.toContain('>Story</button>')
   })
 
+  it('vista, las clasificaciones se eligen en un Segmented de 44, como las de la carrera (E3, §17.21; PR 21a)', () => {
+    const markup = page('/world/races/race-france/stages/7?tab=classifications', 'on', seen)
+    expect(markup).toContain('Standings after this stage.')
+    const segmented = /<div data-ui="Segmented"[\s\S]*?<\/div><\/div>/.exec(markup)?.[0] ?? ''
+    expect(segmented).toContain('role="radiogroup" aria-label="Stage classification"')
+    expect([...segmented.matchAll(/role="radio"[^>]*>([^<]+)</g)].map((m) => m[1])).toEqual([
+      'General',
+      'Points',
+      'Mountains',
+      'Teams',
+    ])
+    expect(markup).not.toContain('id="stage-classification"')
+  })
+
   it('no es vacío: vista, ?tab=result pinta el resultado (en Report con Watch, en Result sin él)', () => {
     for (const watch of ['on', 'off'] as const) {
       const markup = page('/world/races/race-france/stages/7?tab=result', watch, seen)

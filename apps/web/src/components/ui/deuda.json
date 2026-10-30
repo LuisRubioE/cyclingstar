@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1654,
-    "arbitrarios": 29,
-    "espaciado": 19,
+    "tema": 1504,
+    "arbitrarios": 28,
+    "espaciado": 15,
     "layout": 0
   },
   "ficheros": {
@@ -269,12 +269,6 @@
       "tema": 13,
       "arbitrarios": 0,
       "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/pages/Race.tsx": {
-      "tema": 150,
-      "arbitrarios": 1,
-      "espaciado": 4,
       "layout": 0
     },
     "apps/web/src/pages/RaceOrders.tsx": {

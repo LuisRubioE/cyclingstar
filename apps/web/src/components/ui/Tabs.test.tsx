@@ -43,6 +43,31 @@ describe('Tabs con options: el tablist', () => {
   it('los ids, los de components/Tabs.tsx, para su TabPanel', () => {
     expect(tabId('rider', 'orders')).toBe(tabIdDeHoy('rider', 'orders'))
   })
+
+  it('el contador de una pestaña (E2, sup. T4; PR 21a): un Chip accent, y para el lector su frase entera', () => {
+    const html = renderToStaticMarkup(
+      <Tabs
+        label="Race"
+        options={[
+          { key: 'classifications', label: 'Classifications' },
+          {
+            key: 'stages',
+            label: 'Stages',
+            badge: { text: '3', spoken: '3 stages ready to watch' },
+          },
+        ]}
+        value="classifications"
+        onChange={change}
+      />,
+    )
+    const stages = /<button[^>]*role="tab"[^>]*>Stages[\s\S]*?<\/button>/.exec(html)?.[0] ?? ''
+    // la cifra se ve en su chapa y no se oye dos veces: el lector dice la frase
+    expect(stages).toMatch(
+      /<span aria-hidden="true"><span data-ui="Chip" data-variant="accent"[^>]*>3<\/span><\/span>/,
+    )
+    expect(stages).toContain('<span class="sr-only">3 stages ready to watch</span>')
+    expect(html.match(/data-ui="Chip"/g)).toHaveLength(1)
+  })
 })
 
 describe('Tabs con items: los enlaces', () => {

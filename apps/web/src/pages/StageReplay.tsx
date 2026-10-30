@@ -14,12 +14,13 @@ import { ShareStage, ShareStageIcon } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard, TwoDeviceNotice } from '../components/StageGate'
 import { StageHead } from '../components/StageHead'
 import { StageStory } from '../components/StageStory'
-import { Tabs as LegacyTabs, TabPanel, useTabParam } from '../components/Tabs'
+import { TabPanel, useTabParam } from '../components/Tabs'
 import { type TabOption, Tabs } from '../components/ui/Tabs'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { useOwnIds, useRaceIdentity } from '../components/useTableIdentity'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
+import { Segmented } from '../components/ui/Segmented'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
 import {
   type StagePageTabId,
@@ -63,7 +64,6 @@ const STAGE_CLASS_TABS: readonly TabOption<StageClassTabId>[] = [
   { key: 'kom', label: 'Mountains' },
   { key: 'teams', label: 'Teams' },
 ]
-const STAGE_CLASS_PANEL = 'stage-classification'
 
 /**
  * La general, los puntos y la montaña tal como quedaron tras esta etapa, en `RankTable` desde el PR 12b
@@ -76,7 +76,8 @@ export {
 } from '../components/RaceRankTables'
 
 /**
- * Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla.
+ * Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla. Desde el PR 21a (E3,
+ * §17.21), se eligen en un `Segmented` de 44, como las de la ficha de carrera, y no en las píldoras de 28.
  *
  * Solo aparece en carreras POR ETAPAS: en una de un día la etapa ES la carrera y su ficha ya enseña
  * el resultado (esta página redirige allí), así que aquí no hay caso especial que atender.
@@ -118,17 +119,15 @@ function StageClassifications({
   return (
     <div className={card}>
       <p className="mb-3 text-caption text-ink-2">Standings after this stage.</p>
-      <LegacyTabs
+      <Segmented
         options={STAGE_CLASS_TABS}
         value={active}
         onChange={setActive}
         label="Stage classification"
-        variant="pill"
-        panelId={STAGE_CLASS_PANEL}
       />
       {/* casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1): a 320 el nombre cabe; el
-          margen negativo, en el panel, hijo directo de la tarjeta, no se sale de su caja de relleno */}
-      <TabPanel panelId={STAGE_CLASS_PANEL} active={active} className="mt-3 -mx-4">
+          margen negativo, hijo directo de la tarjeta, no se sale de su caja de relleno */}
+      <div className="mt-3 -mx-4">
         {active === 'gc' &&
           (gc.length > 0 ? (
             <GcRankTable rows={gc} caption="General classification after this stage" {...ctx} />
@@ -183,7 +182,7 @@ function StageClassifications({
           ) : (
             <EmptyState text="No team classification for this stage." />
           ))}
-      </TabPanel>
+      </div>
     </div>
   )
 }

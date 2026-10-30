@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useMatch, useResolvedPath } from 'react-router-dom'
+import { Chip } from './Chip'
 import { FOCUS_INSET, withLayout } from './styles'
 import type { Layout } from './types'
 
@@ -29,6 +30,11 @@ export interface TabItem {
 export interface TabOption<K extends string> {
   readonly key: K
   readonly label: string
+  /**
+   * el contador de la pestaña (E2, sup. T4; desde el PR 21a): `text` en un `Chip` `accent`, que el lector
+   * no oye, y `spoken`, la frase entera que oye en su lugar (`3 stages ready to watch`)
+   */
+  readonly badge?: { readonly text: string; readonly spoken: string }
 }
 
 interface TabsBase {
@@ -66,7 +72,7 @@ const ASPECTO = {
   },
 } as const
 
-const PESTANA = `flex min-h-11 shrink-0 items-center border-b-3 px-3 text-meta font-semibold whitespace-nowrap ${FOCUS_INSET}`
+const PESTANA = `flex min-h-11 shrink-0 items-center gap-1.5 border-b-3 px-3 text-meta font-semibold whitespace-nowrap ${FOCUS_INSET}`
 
 /** El desvanecido, mientras haya más a la derecha (el arbitrario permitido de §5.1). */
 const DESVANECIDO = '[mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)]'
@@ -208,6 +214,14 @@ export function Tabs<K extends string>(props: TabsProps<K>) {
               className={`${PESTANA} ${es ? aspecto.activa : aspecto.otra}`}
             >
               {o.label}
+              {o.badge !== undefined && (
+                <>
+                  <span aria-hidden="true">
+                    <Chip tone="accent">{o.badge.text}</Chip>
+                  </span>
+                  <span className="sr-only">{o.badge.spoken}</span>
+                </>
+              )}
             </button>
           )
         })}
