@@ -21,16 +21,16 @@
       "360": [0, 11, 3, 0, 14, 41, 1, null, null, 0]
     },
     "05-race-vuelta": {
-      "320": [0, 0, 0, 0, 9, 12, null, null, null, 0],
-      "360": [0, 0, 0, 0, 9, 12, 0, null, null, 0]
+      "320": [0, 0, 0, 0, 0, 4, null, null, null, 0],
+      "360": [0, 0, 0, 0, 0, 4, 0, null, null, 0]
     },
     "06-race-vuelta-teams": {
-      "320": [0, 0, 0, 0, 9, 12, null, null, null, 0],
-      "360": [0, 0, 0, 0, 9, 12, 0, null, null, 0]
+      "320": [0, 0, 0, 0, 0, 4, null, null, null, 0],
+      "360": [0, 0, 0, 0, 0, 4, 0, null, null, 0]
     },
     "07-race-en-curso": {
-      "320": [0, 0, 0, 0, 9, 9, null, null, null, 0],
-      "360": [0, 0, 0, 0, 9, 10, 0, null, null, 0]
+      "320": [0, 0, 0, 0, 0, 4, null, null, null, 0],
+      "360": [0, 0, 0, 0, 0, 4, 0, null, null, 0]
     },
     "08-stage-watch": {
       "320": [0, 0, 0, 0, 0, 4, null, null, null, 0],
@@ -142,20 +142,20 @@
       "360": [0, 0, 0, 0, 6, 8, 1, null, 0, 0]
     },
     "35-race-un-dia": {
-      "320": [0, 0, 0, 0, 1, 9, null, null, null, 0],
-      "360": [0, 0, 0, 0, 1, 9, 0, null, null, 0]
+      "320": [0, 0, 0, 0, 0, 4, null, null, null, 0],
+      "360": [0, 0, 0, 0, 0, 4, 0, null, null, 0]
     },
     "36-stage-classifications": {
-      "320": [0, 0, 0, 0, 4, 4, null, null, null, 0],
-      "360": [0, 0, 0, 0, 4, 4, 0, null, null, 0]
+      "320": [0, 0, 0, 0, 0, 4, null, null, null, 0],
+      "360": [0, 0, 0, 0, 0, 4, 0, null, null, 0]
     },
     "37-me-races-results": {
       "320": [0, 0, 0, 0, 5, 11, null, null, null, 0],
       "360": [0, 0, 0, 0, 5, 12, 1, null, null, 0]
     },
     "38-stage-crono": {
-      "320": [0, 0, 0, 0, 1, 9, null, null, null, 0],
-      "360": [0, 0, 0, 0, 1, 9, 0, null, null, 0]
+      "320": [0, 0, 0, 0, 0, 4, null, null, null, 0],
+      "360": [0, 0, 0, 0, 0, 4, 0, null, null, 0]
     },
     "40-cargando": {
       "320": [0, 0, 0, 0, 0, 4, null, null, 0, 0],
