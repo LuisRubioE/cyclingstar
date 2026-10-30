@@ -1,7 +1,9 @@
 import {
+  BROADCAST,
   type BannerResult,
   type Cue,
   type GroupCatalogEntry,
+  type GroupDetail,
   shownGroupsOf,
 } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
@@ -17,6 +19,7 @@ import {
   type CueTextContext,
   cueText,
   cursorsOf,
+  overlaySummaryText,
   screenKeysOf,
 } from './screen'
 
@@ -273,5 +276,128 @@ describe('screenKeysOf y cursorsOf · los cursores siguen al grupo por su suceso
       if (paint <= CURSOR_GHOST_PAINTS) expect(leaving).toMatchObject({ ghost: paint, km: 70.1 })
       else expect(leaving).toBeUndefined()
     }
+  })
+})
+
+/**
+ * EL RESUMEN ACCESIBLE DE LA CAPA FIJA (E3, docs/visual.md §14.3; H-05, X-15, 14-e; PR 20): el nombre del
+ * botón, en dos frases con las piezas de lo que se pinta y en su orden, para que lo que se oye no se separe
+ * de lo que se ve. La primera, siempre: la distancia, el grupo de cabeza y contra quién; la segunda, la de
+ * `overlayDetailText` en palabras, salvo en los últimos `quietFinalM`, donde la capa solo dice la distancia.
+ */
+describe('overlaySummaryText · la capa fija, en dos frases (§14.3)', () => {
+  const HEAD = headOf(CAST)
+  /** La cabeza de cinco en `headKm` y el pelotón de 35 a `gapS`, con su tendencia y su velocidad. */
+  const at = (
+    headKm: number,
+    gapS: number,
+    o: {
+      readonly t?: number
+      readonly trend?: { deltaS: number; arrow: 'up' | 'down' | 'flat' } | null
+      readonly speedKmh?: number | null
+      readonly lapsToGo?: number | null
+      readonly lengthKm?: number
+    } = {},
+  ) => {
+    const detail: GroupDetail | null =
+      o.speedKmh === undefined || o.speedKmh === null
+        ? null
+        : { g: 0, speedKmh: o.speedKmh, pullingTotal: 0, pullers: [], mishap: null }
+    const trend =
+      o.trend === undefined || o.trend === null
+        ? null
+        : { ...o.trend, windowKm: BROADCAST.trendWindowKm }
+    return instantOf(
+      [
+        { members: [0, 1, 2, 3, 4], km: headKm, detail },
+        { members: range(5, 40), km: headKm - 1, gapS, kind: 'peloton' },
+      ],
+      {
+        ...(o.lengthKm === undefined ? {} : { lengthKm: o.lengthKm }),
+        ...(o.t === undefined ? {} : { t: o.t }),
+        lapsToGo: o.lapsToGo ?? null,
+        mainGap: { ahead: 0, behind: 1, gapS, trend, ref: 'bunch' },
+      },
+    )
+  }
+
+  it('entera, con la segunda línea en palabras: la lluvia y el viento, la velocidad y la tendencia', () => {
+    // en el km 86,5 de 185: sube al 5 %, y desde el 80 llueve con viento de costado (`headOf`)
+    const instant = at(86.5, 134, {
+      t: 3 * 3600 + 12 * 60 + 5,
+      speedKmh: 42.3,
+      trend: { deltaS: 12, arrow: 'up' },
+    })
+    expect(overlaySummaryText(instant, HEAD)).toBe(
+      '98.5 km to go, lead group 5 riders, bunch at 2 minutes 14. Race time 3 hours 12 minutes, ' +
+        '42.3 km per hour, 5 percent, 21 degrees, rain, crosswind, gap up 12 seconds over 5 km.',
+    )
+  })
+
+  it('lo que la segunda línea no pinta, tampoco se dice: sin velocidad, sin lluvia y sin tendencia', () => {
+    // en el llano del km 50, antes de la lluvia; la tendencia plana no lleva flecha
+    const instant = at(50, 45, { t: 3900, trend: { deltaS: 2, arrow: 'flat' } })
+    expect(overlaySummaryText(instant, HEAD)).toBe(
+      '135.0 km to go, lead group 5 riders, bunch at 45 seconds. Race time 1 hour 5 minutes, ' +
+        '0 percent, 21 degrees.',
+    )
+  })
+
+  it('la diferencia que baja, en minutos y segundos; y la misma marca por debajo de sameTimeS', () => {
+    const down = at(86.5, 61, { t: 600, trend: { deltaS: -65, arrow: 'down' } })
+    expect(overlaySummaryText(down, HEAD)).toContain('bunch at 1 minute 1.')
+    expect(overlaySummaryText(down, HEAD)).toContain('Race time 10 minutes,')
+    expect(overlaySummaryText(down, HEAD)).toMatch(/gap down 1 minute 5 seconds over 5 km\.$/)
+    const same = at(86.5, BROADCAST.sameTimeS - 1)
+    expect(overlaySummaryText(same, HEAD)).toMatch(
+      /^98\.5 km to go, lead group 5 riders, bunch at the same time\. /,
+    )
+  })
+
+  it('un solo grupo: bunch together, sin cabeza ni diferencia', () => {
+    const together = instantOf([{ members: range(0, 40), km: 86.5, kind: 'peloton' }], {
+      t: 7200,
+    })
+    expect(overlaySummaryText(together, HEAD)).toBe(
+      '98.5 km to go, bunch together. Race time 2 hours, 5 percent, 21 degrees, rain, crosswind.',
+    )
+  })
+
+  it('una pendiente negativa dice minus, sin el decimal cero; y un corredor solo, 1 rider', () => {
+    // la bajada del 4 % del km 140 al 141
+    const altM = HEAD.profile.altM.map((a, k) => (k <= 140 ? a : a - 40))
+    const down = { ...HEAD, profile: { ...HEAD.profile, altM } }
+    const solo = instantOf(
+      [
+        { members: [0], km: 140.2 },
+        { members: range(1, 40), km: 139, gapS: 30, kind: 'peloton' },
+      ],
+      { t: 7200, mainGap: { ahead: 0, behind: 1, gapS: 30, trend: null, ref: 'bunch' } },
+    )
+    const text = overlaySummaryText(solo, down)
+    expect(text).toMatch(/, lead group 1 rider, bunch at 30 seconds\. /)
+    expect(text).toContain(', minus 4 percent, ')
+  })
+
+  it('en un circuito, las vueltas delante, como en la capa: 3 laps to go con sus km, y Last lap', () => {
+    const lap = headOf(CAST, { lengthKm: 85 })
+    const circuit = { ...lap, profile: { ...lap.profile, laps: 5 } }
+    expect(overlaySummaryText(at(42.5, 40, { lengthKm: 85, lapsToGo: 3 }), circuit)).toMatch(
+      /^3 laps to go, 42\.5 km, lead group 5 riders, bunch at 40 seconds\. /,
+    )
+    expect(overlaySummaryText(at(76.8, 40, { lengthKm: 85, lapsToGo: 1 }), circuit)).toMatch(
+      /^Last lap, 8\.2 km to go, lead group 5 riders, /,
+    )
+  })
+
+  it('el último km, en metros; y en los últimos quietFinalM, solo la distancia', () => {
+    const lengthKm = 185
+    expect(overlaySummaryText(at(lengthKm - 0.856, 6), HEAD)).toMatch(
+      /^850 m to go, lead group 5 riders, bunch at 6 seconds\. Race time /,
+    )
+    const quiet = at(lengthKm - (BROADCAST.quietFinalM - 100) / 1000, 6, {
+      trend: { deltaS: 12, arrow: 'up' },
+    })
+    expect(overlaySummaryText(quiet, HEAD)).toBe(`${BROADCAST.quietFinalM - 100} m to go.`)
   })
 })

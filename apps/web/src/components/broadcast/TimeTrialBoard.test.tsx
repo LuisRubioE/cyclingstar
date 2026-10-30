@@ -53,6 +53,13 @@ describe('TimeTrialOverlay · la capa fija de la crono (§9.5)', () => {
     expect(text).toContain('2:55:00 · 2 on course · 2 finished · 6 to start')
     expect(text).toContain(`HOT SEAT · 8 ${cast[7]!.name} 38:04`)
   })
+
+  it('en el ámbito oscuro, como la de carretera, y sin ser una región viva (E3, §14.3; PR 20)', () => {
+    const html = renderToStaticMarkup(<TimeTrialOverlay tti={tti} cast={cast} />)
+    expect(html).toMatch(/^<div[^>]*data-surface="dark"/)
+    expect(html).toMatch(/^<div[^>]*aria-live="off"/)
+    expect(html).toContain('data-hot-seat=""')
+  })
 })
 
 describe('TimeTrialBoard · el tablero que sustituye a la barra (§9.5)', () => {
@@ -67,5 +74,16 @@ describe('TimeTrialBoard · el tablero que sustituye a la barra (§9.5)', () => 
     expect(text).not.toContain('+1:33') // el cuarto, al tocar el control
     // el maillot de cada uno, también el del líder
     expect(html.match(/<li/g)).toHaveLength(3)
+  })
+
+  it('sus dos botones son del catálogo, quiet de 44 a todo lo ancho, con los textos de hoy (E3, §14.4; PR 20)', () => {
+    const html = renderToStaticMarkup(<TimeTrialBoard tti={tti} cast={cast} tt={tt} />)
+    const buttons = [...html.matchAll(/<button[^>]*data-ui="Button"[^>]*>([\s\S]*?)<\/button>/g)]
+    expect(buttons.map((b) => textOf(b[1]!))).toEqual([
+      `HOT SEAT · 8 ${cast[7]!.name} 38:04`,
+      'Split 1 · km 9',
+    ])
+    for (const b of buttons) expect(b[0]).toContain('data-variant="quiet"')
+    expect(html.match(/<button/g)).toHaveLength(2)
   })
 })

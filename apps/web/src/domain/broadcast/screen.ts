@@ -14,6 +14,7 @@ import {
   type BroadcastHead,
   COUNTRY_NAMES,
   type Cue,
+  type GapTrend,
   type GroupCatalogEntry,
   type GroupIx,
   GROUP_WORDS,
@@ -34,6 +35,7 @@ import {
   packOf,
   riderShort,
   shownGroupsOf,
+  toGoText,
   versusText,
 } from '@cyclingstar/shared'
 
@@ -60,36 +62,149 @@ export function slopePct(profile: ProfileStrip, km: number): number | null {
 /** Una cifra con signo y un decimal, sin `-0.0`. */
 const oneDecimal = (x: number): string => (Math.abs(x) < 0.05 ? '0.0' : x.toFixed(1))
 
+/** Lo que la segunda línea de la capa fija dice, sin escribir: lo leen la línea y su resumen (14-e). */
+interface OverlayDetail {
+  readonly t: number
+  /** la de la cabeza en su último km de foto, si se midió */
+  readonly speedKmh: number | null
+  /** la del km en que va la cabeza; null fuera del perfil */
+  readonly slope: number | null
+  readonly tempC: number
+  readonly rain: boolean
+  readonly crosswind: boolean
+  /** la tendencia con flecha; la plana no se dice */
+  readonly trend: GapTrend | null
+}
+
+/** El tiempo que basta para la segunda línea de la capa: la cota, la temperatura y sus tramos. */
+interface OverlayHead {
+  readonly profile: ProfileStrip
+  readonly weather: {
+    readonly tempC: number
+    readonly spans: readonly { fromKm: number; rain: number; crosswind: boolean }[]
+  }
+}
+
+function overlayDetailOf(instant: Instant, head: OverlayHead): OverlayDetail {
+  const span = [...head.weather.spans].reverse().find((s) => s.fromKm <= instant.headKm)
+  const trend = instant.mainGap?.trend ?? null
+  return {
+    t: instant.t,
+    speedKmh: instant.groups[0]?.detail?.speedKmh ?? null,
+    slope: slopePct(head.profile, instant.headKm),
+    tempC: head.weather.tempC,
+    rain: span !== undefined && span.rain > 0,
+    crosswind: span?.crosswind === true,
+    trend: trend !== null && trend.arrow !== 'flat' ? trend : null,
+  }
+}
+
 /**
  * La segunda línea de la capa fija (6-f): el reloj de carrera, la velocidad de la cabeza en su último
  * km de foto (si se midió), la pendiente del km en que va, la temperatura y, si toca, `rain` y
  * `crosswind` del tramo del tiempo en que va, y el detalle de la tendencia, `▲ 0:24 in 5 km`.
  */
-export function overlayDetailText(
-  instant: Instant,
-  head: {
-    readonly profile: ProfileStrip
-    readonly weather: {
-      readonly tempC: number
-      readonly spans: readonly { fromKm: number; rain: number; crosswind: boolean }[]
-    }
-  },
-): string {
-  const parts = [raceClockText(instant.t)]
-  const speed = instant.groups[0]?.detail?.speedKmh ?? null
-  if (speed !== null) parts.push(`${speed.toFixed(1)} km/h`)
-  const slope = slopePct(head.profile, instant.headKm)
-  if (slope !== null) parts.push(`${oneDecimal(slope)}%`)
-  parts.push(`${Math.round(head.weather.tempC)}°C`)
-  const span = [...head.weather.spans].reverse().find((s) => s.fromKm <= instant.headKm)
-  if (span !== undefined && span.rain > 0) parts.push('rain')
-  if (span?.crosswind === true) parts.push('crosswind')
-  const trend = instant.mainGap?.trend ?? null
-  if (trend !== null && trend.arrow !== 'flat')
+export function overlayDetailText(instant: Instant, head: OverlayHead): string {
+  const d = overlayDetailOf(instant, head)
+  const parts = [raceClockText(d.t)]
+  if (d.speedKmh !== null) parts.push(`${d.speedKmh.toFixed(1)} km/h`)
+  if (d.slope !== null) parts.push(`${oneDecimal(d.slope)}%`)
+  parts.push(`${Math.round(d.tempC)}°C`)
+  if (d.rain) parts.push('rain')
+  if (d.crosswind) parts.push('crosswind')
+  if (d.trend !== null)
     parts.push(
-      `${trend.arrow === 'up' ? '▲' : '▼'} ${clockText(Math.abs(trend.deltaS))} in ${trend.windowKm} km`,
+      `${d.trend.arrow === 'up' ? '▲' : '▼'} ${clockText(Math.abs(d.trend.deltaS))} in ${d.trend.windowKm} km`,
     )
   return parts.join(' · ')
+}
+
+/** `1 rider`, `5 riders`. */
+const counted = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
+
+/** Una cifra de un decimal en palabras: sin el `.0`, y un negativo con `minus` (`minus 4`). */
+function decimalWords(x: number): string {
+  const s = oneDecimal(x)
+  const plain = s.endsWith('.0') ? s.slice(0, -2) : s
+  return plain.startsWith('-') ? `minus ${plain.slice(1)}` : plain
+}
+
+/** El reloj de carrera en palabras, sin los segundos: `3 hours 12 minutes`, `2 hours`, `45 minutes`. */
+function raceTimeWords(t: number): string {
+  const s = Math.max(0, Math.floor(t))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const parts = h > 0 ? [counted(h, 'hour', 'hours')] : []
+  if (m > 0 || h === 0) parts.push(counted(m, 'minute', 'minutes'))
+  return parts.join(' ')
+}
+
+/** Una duración en palabras, con sus unidades: `12 seconds`, `1 minute 5 seconds`. */
+function durationWords(totalS: number): string {
+  const s = Math.max(0, Math.round(totalS))
+  const m = Math.floor(s / 60)
+  const parts = m > 0 ? [counted(m, 'minute', 'minutes')] : []
+  if (s % 60 > 0 || m === 0) parts.push(counted(s % 60, 'second', 'seconds'))
+  return parts.join(' ')
+}
+
+/**
+ * Un hueco en palabras, como lo dice un comentarista: `2 minutes 14`, `45 seconds`; por debajo de
+ * `sameTimeS`, `the same time` (lo que la capa pinta `s.t.`).
+ */
+function gapWords(gapS: number): string {
+  if (gapS < BROADCAST.sameTimeS) return 'the same time'
+  const s = Math.round(gapS)
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  if (h === 0 && m === 0) return counted(s % 60, 'second', 'seconds')
+  const parts = h > 0 ? [counted(h, 'hour', 'hours'), counted(m, 'minute', 'minutes')] : []
+  if (h === 0) parts.push(counted(m, 'minute', 'minutes'))
+  if (s % 60 > 0) parts.push(String(s % 60))
+  return parts.join(' ')
+}
+
+/**
+ * EL NOMBRE ACCESIBLE DE LA CAPA FIJA (E3, docs/visual.md §14.3; H-05, X-15, 14-e; PR 20), en dos frases con
+ * las piezas de lo que se pinta y en su orden. La primera: la distancia (`toGoText`, con sus vueltas), el
+ * grupo de cabeza y el de detrás con su hueco (`lead group 5 riders, bunch at 2 minutes 14`), o `bunch
+ * together` con un solo grupo. La segunda, la de `overlayDetailText` en palabras: `Race time 3 hours 12
+ * minutes, 42.3 km per hour, 6.5 percent, 18 degrees, rain, crosswind, gap up 12 seconds over 5 km`. En los
+ * últimos `quietFinalM` la capa solo pinta la distancia (§6.9), y el resumen solo la dice.
+ */
+export function overlaySummaryText(
+  instant: Instant,
+  head: Pick<BroadcastHead, 'cast' | 'profile' | 'weather'>,
+): string {
+  const toGo = toGoText(instant.toGoKm, instant.lapsToGo).replaceAll(' · ', ', ')
+  if (isQuietFinal(instant.toGoKm)) return `${toGo}.`
+  const gap = instant.mainGap
+  let first: string
+  if (gap === null) first = `${toGo}, bunch together`
+  else {
+    const ahead = instant.groups.find((g) => g.g === gap.ahead) ?? instant.groups[0]
+    const lead =
+      ahead === undefined ? 'lead group' : `lead group ${counted(ahead.size, 'rider', 'riders')}`
+    const behind = instant.groups.find((g) => g.g === gap.behind)
+    const voice =
+      behind === undefined
+        ? 'the next group'
+        : groupLabelText('en', behind.label, behind.role, 'voice', nameOf(head.cast))
+    const who = voice.startsWith('the ') ? voice.slice(4) : voice
+    first = `${toGo}, ${lead}, ${who} at ${gapWords(gap.gapS)}`
+  }
+  const d = overlayDetailOf(instant, head)
+  const parts = [`Race time ${raceTimeWords(d.t)}`]
+  if (d.speedKmh !== null) parts.push(`${decimalWords(d.speedKmh)} km per hour`)
+  if (d.slope !== null) parts.push(`${decimalWords(d.slope)} percent`)
+  parts.push(`${decimalWords(Math.round(d.tempC))} degrees`)
+  if (d.rain) parts.push('rain')
+  if (d.crosswind) parts.push('crosswind')
+  if (d.trend !== null)
+    parts.push(
+      `gap ${d.trend.arrow === 'up' ? 'up' : 'down'} ${durationWords(Math.abs(d.trend.deltaS))} over ${d.trend.windowKm} km`,
+    )
+  return `${first}. ${parts.join(', ')}.`
 }
 
 /** La categoría de un puerto: `HC`, `Cat. 2` (de la `ClimbCategory` del motor). */
