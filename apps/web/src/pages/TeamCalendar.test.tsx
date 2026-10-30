@@ -111,12 +111,15 @@ function page({
   publicCalendar = { races: [], dayOfSeason: 200 },
   upcoming = [],
   ready = [],
+  loading,
 }: {
   draft?: TeamCalendarData | null
   member?: TeamRacePlan | null
   publicCalendar?: Calendar
   upcoming?: UpcomingRace[]
   ready?: { raceKey: string; stages: number[] }[]
+  /** la consulta que se queda sin datos: su espera (la revisión del 21c) */
+  loading?: 'draft' | 'plan' | 'calendar'
 } = {}): string {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   client.setQueryData(['health'], healthWith('on', 'on'))
@@ -127,9 +130,9 @@ function page({
       ready: ready.map((r) => ({ ...r, raceName: 'Race', reason: 'own_team' as const })),
     }),
   )
-  client.setQueryData(horizonKey(['team-calendar'], REV), draft)
-  client.setQueryData(['team-race-plan'], member)
-  client.setQueryData(horizonKey(['calendar'], REV), publicCalendar)
+  if (loading !== 'draft') client.setQueryData(horizonKey(['team-calendar'], REV), draft)
+  if (loading !== 'plan') client.setQueryData(['team-race-plan'], member)
+  if (loading !== 'calendar') client.setQueryData(horizonKey(['calendar'], REV), publicCalendar)
   client.setQueryData(horizonKey(['rider', 'upcoming'], REV), upcoming)
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
@@ -156,6 +159,15 @@ const stats = (markup: string): string[] =>
 
 const filas = (markup: string): number => markup.match(/<li data-ui="ActionRow"/g)?.length ?? 0
 
+/** Cuántos elementos dicen ser la respuesta de la pantalla (§7.3): uno, y no más. */
+const respuestas = (markup: string): number => markup.match(/data-answer=""/g)?.length ?? 0
+
+/** La fila de una carrera, entera. */
+const fila = (markup: string, name: string): string =>
+  new RegExp(`<li data-ui="ActionRow"(?:(?!</li>)[\\s\\S])*?${name}[\\s\\S]*?</li>`).exec(
+    markup,
+  )?.[0] ?? ''
+
 describe('el calendario del mánager (§17.21; PR 21c)', () => {
   it('la cabecera, un PageHeader con el equipo y su país en la línea de estado', () => {
     const markup = page()
@@ -171,7 +183,7 @@ describe('el calendario del mánager (§17.21; PR 21c)', () => {
     expect(markup.indexOf('>Race plan</h2>')).toBeLessThan(markup.indexOf('>Team budget</h2>'))
   })
 
-  it('las cifras del plan en Stat, y el coste con el dinero de money: 17,220 y no 17220', () => {
+  it('las cifras del plan en Stat, y el coste con sus comas: 17,220 y no 17220', () => {
     // los dos planeados: 48 × 7 y 2.412 × 7
     expect(stats(panel(page(), 'Race plan'))).toEqual([
       'Races planned:default:2',
@@ -209,6 +221,21 @@ describe('el calendario del mánager (§17.21; PR 21c)', () => {
     expect(panel(markup, 'Race plan')).toMatch(/data-ui="InfoButton"/)
   })
 
+  it('cada carrera del plan, con su botón según esté: Drop la que va, Add la que no, con el nombre entero y su enlace (la revisión del 21c)', () => {
+    const markup = page()
+    const va = fila(markup, 'Race Ardèche')
+    expect(va).toMatch(/<a [^>]*href="\/world\/races\/race-ardeche"/)
+    expect(va).toMatch(/<button[^>]*aria-label="Drop Race Ardèche"[\s\S]*?>Drop</)
+    expect(fila(markup, 'Race C')).toMatch(/<button[^>]*aria-label="Add Race C"[\s\S]*?>Add</)
+  })
+
+  it('una sola respuesta, con carreras y sin ellas: el plan (§7.3)', () => {
+    expect(respuestas(page())).toBe(1)
+    const vacio = page({ draft: calendar({ races: [] }) })
+    expect(respuestas(vacio)).toBe(1)
+    expect(panel(vacio, 'Race plan')).toMatch(/^<section data-ui="Panel"[^>]*data-answer=""/)
+  })
+
   it('las 20 primeras filas del plan y Show all N', () => {
     const races = Array.from({ length: 25 }, (_, i) =>
       race({ raceId: `race-${i}`, name: `Race ${i}` }),
@@ -225,7 +252,7 @@ describe('el calendario del miembro (§17.21; PR 21c)', () => {
 
   it('la cabecera, el mismo PageHeader, y las que quedan en su Panel, la respuesta de la vista', () => {
     const markup = member([planRace({})])
-    expect(markup).toMatch(/<h1[^>]*>Race calendar<\/h1>/)
+    expect(markup).toMatch(/<header data-ui="PageHeader"[^>]*>[\s\S]*?<h1[^>]*>Race calendar<\/h1>/)
     expect(markup).toContain('>Noord Cycling · based in Netherlands</p>')
     const ahead = panel(markup, 'Still to come \\(1\\)')
     expect(ahead).toMatch(/^<section data-ui="Panel"[^>]*data-answer=""/)
@@ -238,11 +265,45 @@ describe('el calendario del miembro (§17.21; PR 21c)', () => {
     expect(row).toContain('Day 259 · FR · One-day · Home race')
   })
 
-  it('la que corro, con su Chip You ride en lugar del botón', () => {
+  it('la que corro, con su Chip You ride junto al nombre, dentro del enlace, y solo ella (la revisión del 21c)', () => {
     const upcoming = [{ raceId: 'race-ardeche' } as UpcomingRace]
-    const row = /<li data-ui="ActionRow"[\s\S]*?<\/li>/.exec(member([planRace({})], { upcoming }))
-    expect(row?.[0]).toMatch(/data-variant="done"/)
-    expect(row?.[0]).toMatch(/data-ui="Chip"[^>]*>(?:<[^>]+>)*You ride</)
+    const markup = member([planRace({}), planRace({ raceId: 'race-b', name: 'Race B' })], {
+      upcoming,
+    })
+    expect(fila(markup, 'Race Ardèche')).toMatch(
+      /<a [^>]*>(?:(?!<\/a>)[\s\S])*data-ui="Chip"[^>]*>(?:<[^>]+>)*You ride<[\s\S]*?<\/a>/,
+    )
+    expect(fila(markup, 'Race B')).not.toContain('You ride')
+  })
+
+  it('solo las carreras a las que va el equipo, y lo que queda, también con las 20 primeras y Show all N', () => {
+    const races = Array.from({ length: 25 }, (_, i) =>
+      planRace({ raceId: `race-${i}`, name: `Race ${i}`, startDay: 250 + i }),
+    )
+    const markup = member([
+      ...races,
+      planRace({ raceId: 'race-x', name: 'Race X', attending: false }),
+    ])
+    const ahead = panel(markup, 'Still to come \\(25\\)')
+    expect(filas(ahead)).toBe(20)
+    expect(ahead).toContain('Show all 25')
+    expect(markup).not.toContain('Race X')
+  })
+
+  it('lo ya corrido, de lo más reciente a lo más viejo, y sin nada por venir, el vacío en su Panel', () => {
+    const markup = member([
+      planRace({ raceId: 'race-old', name: 'Race Old', startDay: 110 }),
+      planRace({ raceId: 'race-new', name: 'Race New', startDay: 120 }),
+    ])
+    const past = panel(markup, 'Already raced \\(2\\)')
+    expect(past.indexOf('Race New')).toBeLessThan(past.indexOf('Race Old'))
+    expect(panel(markup, 'Still to come \\(0\\)')).toContain('The season is over')
+  })
+
+  it('una sola respuesta en la vista del miembro: lo que queda (§7.3)', () => {
+    expect(respuestas(member([planRace({}), planRace({ raceId: 'race-p', startDay: 120 })]))).toBe(
+      1,
+    )
   })
 
   it('el ganador, con la palabra Winner y sin el 🏆 (3-d)', () => {
@@ -277,7 +338,23 @@ describe('sin equipo (§17.21; PR 21c)', () => {
   it('la cabecera y su vacío, con la salida a My races', () => {
     const markup = page({ draft: null, member: null })
     expect(markup).toMatch(/<header data-ui="PageHeader"[^>]*>[\s\S]*?<h1[^>]*>Race calendar<\/h1>/)
-    expect(markup).toMatch(/data-ui="EmptyState"/)
+    expect(markup).toMatch(/data-ui="EmptyState"[^>]*data-answer=""/)
+    expect(respuestas(markup)).toBe(1)
     expect(markup).toMatch(/href="\/me\/races"/)
+  })
+})
+
+describe('las esperas, con su respuesta y con el alto de sus filas (la revisión del 21c)', () => {
+  it('mientras llega el plan del mánager, el del equipo o el calendario: una respuesta, y filas de 64', () => {
+    for (const [loading, over] of [
+      ['draft', {}],
+      ['plan', { draft: null }],
+      ['calendar', { draft: null, member: plan([planRace({})]) }],
+    ] as const) {
+      const markup = page({ loading, ...over })
+      expect(respuestas(markup), loading).toBe(1)
+      expect(markup, loading).toContain('h-16')
+      expect(markup, loading).not.toContain('h-11')
+    }
   })
 })

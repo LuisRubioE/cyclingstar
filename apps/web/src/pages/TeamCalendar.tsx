@@ -16,6 +16,7 @@ import {
 import { TOP_ROWS } from '../components/ShowAll'
 import { ActionRow } from '../components/ui/ActionRow'
 import { Button } from '../components/ui/Button'
+import { Chip } from '../components/ui/Chip'
 import { EmptyState } from '../components/ui/EmptyState'
 import { InfoButton } from '../components/ui/InfoButton'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -108,7 +109,7 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
           <EmptyState icon="race" text="No upcoming races left to plan this season." />
         ) : (
           <div className="grid gap-3">
-            {/* las cifras, en `Stat` (§4.4), con el dinero de `money`: hoy, `17214`; en el teléfono, en un renglón
+            {/* las cifras, en `Stat` (§4.4), con sus comas: hoy, `17214`; en el teléfono, en un renglón
                 que parte, como las de `My races` (21b) */}
             <div className="flex flex-wrap gap-x-6 gap-y-3 sm:grid sm:grid-cols-2">
               <Stat label="Races planned" value={draftedCount} />
@@ -155,6 +156,12 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
               expanded={todas}
               onToggle={() => setTodas((t) => !t)}
             />
+            {/* el fallo de `Add` o `Drop`, que hoy no se decía (la revisión del 21c) */}
+            {mutate.isError && (
+              <p role="alert" className="text-meta text-bad">
+                Could not update the race plan.
+              </p>
+            )}
           </div>
         )}
       </Panel>
@@ -181,7 +188,7 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
 
 /**
  * Una carrera del plan de mi equipo, en la vista de miembro: de solo lectura, una `ActionRow` sin acción que
- * enlaza a su ficha (E3, §6.1; PR 21c), y la que corro, con su `Chip` `You ride`. En el segundo renglón, el
+ * enlaza a su ficha (E3, §6.1; PR 21c), y la que corro, con su `Chip` `You ride` junto al nombre. En el segundo renglón, el
  * día, el país, el formato y si es de casa; ya corrida, su ganador tras `Winner`, en lugar del `🏆` (3-d), o,
  * con la final en mi velo, `Finished · ready to watch`.
  */
@@ -217,6 +224,14 @@ function MemberRow({
           <span className="text-caption font-semibold text-ink-3">
             {raceClassLabel(race.raceClass as RaceClass)}
           </span>
+          {/* junto al nombre, dentro del enlace, que así lo dice (la revisión del 21c): en el sitio del botón
+              quedaba fuera, y quien recorre los enlaces no lo oía */}
+          {selected && (
+            <>
+              {' '}
+              <Chip tone="accent">You ride</Chip>
+            </>
+          )}
         </>
       }
       meta={
@@ -238,7 +253,6 @@ function MemberRow({
         </>
       }
       href={`/world/races/${race.raceId}`}
-      {...(selected ? { done: { text: 'You ride', tone: 'accent' as const } } : {})}
     />
   )
 }
@@ -272,7 +286,8 @@ function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
       <QueryView
         query={calendar}
         label="your team's calendar"
-        skeleton={{ kind: 'rows', rowHeight: 44 }}
+        skeleton={{ kind: 'rows', rowHeight: 64 }}
+        answer
       />
     )
 
@@ -363,7 +378,8 @@ export function TeamCalendar() {
       <QueryView
         query={draft}
         label="your team calendar"
-        skeleton={{ kind: 'rows', rowHeight: 44 }}
+        skeleton={{ kind: 'rows', rowHeight: 64 }}
+        answer
       />
     )
 
@@ -374,7 +390,8 @@ export function TeamCalendar() {
       <QueryView
         query={plan}
         label="your team's race plan"
-        skeleton={{ kind: 'rows', rowHeight: 44 }}
+        skeleton={{ kind: 'rows', rowHeight: 64 }}
+        answer
       />
     )
 
@@ -386,6 +403,7 @@ export function TeamCalendar() {
           icon="team"
           text="You do not belong to a team, so there is no team calendar. As a free agent you enter races yourself from My Rider, under My races."
           action={<Button to="/me/races">See your races</Button>}
+          answer
         />
       </section>
     )
