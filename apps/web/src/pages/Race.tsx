@@ -562,11 +562,18 @@ function StartlistTab({
 }
 
 /**
- * El contador de `Stages` (sup. T4): cuenta etapas por ver, nunca resultados. Desde el PR 21a, el del `Tabs`
- * del catálogo: la cifra en un `Chip` y la frase entera para el lector.
+ * El contador de `Stages` (sup. T4): cuenta etapas por ver, nunca resultados. Desde el PR 21a, en el `Tabs`
+ * del catálogo: la cifra en un `Chip` `accent`, que el lector no oye, y la frase entera, que oye en su lugar.
  */
-function stagesBadge(n: number): { readonly text: string; readonly spoken: string } {
-  return { text: String(n), spoken: `${n} ${n === 1 ? 'stage' : 'stages'} ready to watch` }
+function StagesBadge({ n }: { n: number }) {
+  return (
+    <>
+      <span aria-hidden="true">
+        <Chip tone="accent">{String(n)}</Chip>
+      </span>
+      <span className="sr-only">{`${n} ${n === 1 ? 'stage' : 'stages'} ready to watch`}</span>
+    </>
+  )
 }
 
 /**
@@ -607,7 +614,7 @@ function RaceSections({
   const options: TabOption<RaceTabId>[] = tabIds.map((id) => ({
     key: id,
     label: raceTabLabel(id, watchOn),
-    ...(id === 'stages' && veil !== null ? { badge: stagesBadge(veil.stages.length) } : {}),
+    ...(id === 'stages' && veil !== null ? { badge: <StagesBadge n={veil.stages.length} /> } : {}),
   }))
   return (
     <>
