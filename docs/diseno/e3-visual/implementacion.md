@@ -1613,4 +1613,5 @@ Bajo. Solo cambia la web; la API, la base y el tick no se tocan, y los textos de
 ### Notas para el paso siguiente
 
 - El 21b es `MyRaces.tsx`. `RaceRadioPanel`, `RaceResults` y `components/Tabs.tsx` siguen con su deuda; la ficha ya no usa las pestañas de antes más que por su `TabPanel` y su `useTabParam`.
+- `Follow` y el objetivo ocupados mientras guardan, y el error de seguir (`role="alert"`), no los mira ningún test: piden una mutación en curso o fallida, que el render estático no pinta, y una sesión que la prueba de la ficha no tiene.
 - §4.11 pensaba el `Segmented` para las pestañas a mano de `Rankings`, que el 12b ya pasó a `Tabs`: antes de poner un `Segmented` de cuatro opciones en otra página, conviene medirlo a 320 con DejaVu Sans.
