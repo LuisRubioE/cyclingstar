@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { PALETA, campo, cuantas, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
+import {
+  PALETA,
+  campo,
+  estado,
+  cuantas,
+  pieza,
+  pintaEn,
+  respuestas,
+  titulo,
+} from './__fixtures__/markup'
 import { Login } from './Login'
 
 /**
@@ -52,10 +61,10 @@ describe('entrar (§17.21; PR 21j)', () => {
     expect(campo(sinClave, 'login-password')).toMatch(
       /data-state="error"[\s\S]*aria-invalid="true"[\s\S]*Enter your password\./,
     )
-    expect(campo(sinClave, 'login-email')).toContain('data-state="ready"')
+    expect(estado(campo(sinClave, 'login-email'))).toBe('ready')
     const sinCorreo = pinta({ problem: { field: 'email', msg: 'Enter your email.' } })
     expect(campo(sinCorreo, 'login-email')).toMatch(/data-state="error"[\s\S]*Enter your email\./)
-    expect(campo(sinCorreo, 'login-password')).toContain('data-state="ready"')
+    expect(estado(campo(sinCorreo, 'login-password'))).toBe('ready')
   })
 
   it('el fallo del servidor, debajo, en role="alert"; sin fallo, ningún alert', () => {

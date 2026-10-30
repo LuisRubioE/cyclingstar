@@ -202,6 +202,8 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
     // lo que conteste el servidor, en su región de estado, que está desde el principio, vacía: insertada ya
     // llena, el lector no siempre la lee (la revisión del 21f)
     expect(email).toMatch(/<p role="status" class="[^"]*"><\/p>/)
+    // vacía, fuera de la vista pero en el lector: `hidden` la sacaría también de él (la revisión del 21j)
+    expect(email).toMatch(/<p role="status" class="[^"]*empty:sr-only[^"]*"><\/p>/)
   })
 
   it('la contraseña, en su Panel: los tres campos con su rótulo y su autocompletado, y Update password', () => {

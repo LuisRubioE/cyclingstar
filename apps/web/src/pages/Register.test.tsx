@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PALETA, campo, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
+import { PALETA, campo, estado, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
 import { CheckInbox, Register } from './Register'
 
 /**
@@ -49,12 +49,12 @@ describe('crear la cuenta (§17.21; PR 21j)', () => {
     const corta = 'Your password must be at least 8 characters.'
     const html = pinta({ problem: { field: 'password', msg: corta } })
     expect(campo(html, 'register-password')).toMatch(/data-state="error"[\s\S]*Your password must/)
-    expect(campo(html, 'register-email')).toContain('data-state="ready"')
+    expect(estado(campo(html, 'register-email'))).toBe('ready')
     const sinCorreo = pinta({ problem: { field: 'email', msg: 'Enter your email.' } })
     expect(campo(sinCorreo, 'register-email')).toMatch(
       /data-state="error"[\s\S]*Enter your email\./,
     )
-    expect(campo(sinCorreo, 'register-password')).toContain('data-state="ready"')
+    expect(estado(campo(sinCorreo, 'register-password'))).toBe('ready')
     expect(pinta({ error: 'Could not create your account.' })).toMatch(
       /<p role="alert"[^>]*>Could not create your account\.<\/p>/,
     )
@@ -105,13 +105,15 @@ describe('mirar el correo (§17.21; PR 21j)', () => {
     const enviando = pintaBuzon('sending')
     expect(pieza(enviando, 'Button', 'Send it again')).toMatch(/aria-busy="true"/)
     expect(enviando).toMatch(/<p role="status"[^>]*><\/p>/)
-    expect(pintaBuzon('sent')).toMatch(
-      /<p role="status"[^>]*>Sent again\. Give it a minute to arrive\.<\/p>/,
-    )
+    const enviado = pintaBuzon('sent')
+    expect(enviado).toMatch(/<p role="status"[^>]*>Sent again\. Give it a minute to arrive\.<\/p>/)
+    // enviado o fallido, el botón vuelve a estar en reposo, para mandar otro
+    expect(pieza(enviado, 'Button', 'Send it again')).toMatch(/data-state="ready"/)
     const fallo = pintaBuzon('failed')
     expect(fallo).toMatch(
       /<p role="alert"[^>]*>Could not send it again\. Try again in a few minutes\.<\/p>/,
     )
     expect(fallo).toMatch(/<p role="status"[^>]*><\/p>/)
+    expect(pieza(fallo, 'Button', 'Send it again')).toMatch(/data-state="ready"/)
   })
 })

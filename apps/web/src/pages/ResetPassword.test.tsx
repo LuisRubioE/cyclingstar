@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PALETA, campo, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
+import { PALETA, campo, estado, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
 import { ResetPassword } from './ResetPassword'
 
 /**
@@ -41,12 +41,12 @@ describe('la contraseña nueva (§17.21; PR 21j)', () => {
       problem: { field: 'confirm', msg: 'The two passwords do not match.' },
     })
     expect(campo(otra, 'reset-confirm')).toMatch(/data-state="error"[\s\S]*do not match/)
-    expect(campo(otra, 'reset-password')).toContain('data-state="ready"')
+    expect(estado(campo(otra, 'reset-password'))).toBe('ready')
     const corta = pinta('?token=abc', {
       problem: { field: 'password', msg: 'Your password must be at least 8 characters.' },
     })
     expect(campo(corta, 'reset-password')).toMatch(/data-state="error"[\s\S]*at least 8/)
-    expect(campo(corta, 'reset-confirm')).toContain('data-state="ready"')
+    expect(estado(campo(corta, 'reset-confirm'))).toBe('ready')
     expect(pinta('?token=abc', { error: 'Could not change your password.' })).toMatch(
       /<p role="alert"[^>]*>Could not change your password\.<\/p>/,
     )

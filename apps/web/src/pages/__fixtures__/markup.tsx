@@ -43,6 +43,10 @@ export function campo(markup: string, id: string): string {
   return entero.includes(` id="${id}"`) ? entero : ''
 }
 
+/** El estado del `Field` mismo, y no el de lo que lleva dentro (el icono de su error tiene el suyo). */
+export const estado = (field: string): string | null =>
+  /^<div data-ui="Field"[^>]*data-state="([^"]+)"/.exec(field)?.[1] ?? null
+
 /**
  * El componente del catálogo (`data-ui`) más cercano que lleva dentro este texto, entero; si el texto sale más de
  * una vez (el título y el botón que dicen `Log in`), el de la primera vez que está dentro de uno.
