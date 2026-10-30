@@ -1,7 +1,7 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1226,
+    "tema": 1117,
     "arbitrarios": 19,
     "espaciado": 14,
     "layout": 0
@@ -109,12 +109,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/components/SpoilerSettings.tsx": {
-      "tema": 16,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/components/StageReadyLine.tsx": {
       "tema": 7,
       "arbitrarios": 1,
@@ -171,12 +165,6 @@
     },
     "apps/web/src/domain/stageJournal.ts": {
       "tema": 1,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Account.tsx": {
-      "tema": 93,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0

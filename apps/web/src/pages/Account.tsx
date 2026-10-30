@@ -1,33 +1,58 @@
 import { useQuery } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { fetchAdminWhoami } from '../api/admin'
 import { authClient } from '../auth/client'
-import { SpoilerSettings } from '../components/SpoilerSettings'
+import { SpoilerSettings, useSpoilerProtection } from '../components/SpoilerSettings'
+import { Button } from '../components/ui/Button'
+import { Field } from '../components/ui/Field'
+import { Notice } from '../components/ui/Notice'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
+import { TextLink } from '../components/ui/TextLink'
+
+/**
+ * AJUSTES DE LA CUENTA (SPEC 7): correo, contraseña, cerrar sesión y borrar la cuenta.
+ *
+ * CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21f): la cabecera en `PageHeader`; la
+ * protección de resultados, el `Panel` que contesta a la 28 (§7.3), y sin velo para quien mira, el del
+ * correo; cada formulario en su `Panel`, con sus campos en `Field`, el rótulo a la vista y en 16 px (hoy en
+ * 14, que Safari del iPhone amplía), y sus botones en `Button`, ocupado el que guarda. Lo que falta en un
+ * campo lo dice el campo; lo que dice el servidor, debajo, en `role="status"` o `role="alert"`.
+ */
 
 /** Estado de un formulario de ajustes: mensaje de éxito o de error, más "enviando". */
 type Status =
   { kind: 'idle' } | { kind: 'saving' } | { kind: 'ok'; msg: string } | { kind: 'err'; msg: string }
 
-const inputClass =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
-const labelClass = 'block text-xs font-medium text-slate-500'
-
-function Notice({ status }: { status: Status }) {
-  if (status.kind === 'ok') return <p className="text-sm text-emerald-600">{status.msg}</p>
-  if (status.kind === 'err') return <p className="text-sm text-red-600">{status.msg}</p>
+/** Lo que contestó el servidor, debajo del formulario. */
+function Resultado({ status }: { status: Status }) {
+  if (status.kind === 'ok')
+    return (
+      <p role="status" className="text-meta text-good">
+        {status.msg}
+      </p>
+    )
+  if (status.kind === 'err')
+    return (
+      <p role="alert" className="text-meta text-bad">
+        {status.msg}
+      </p>
+    )
   return null
 }
 
 /**
  * Verificación de la dirección. Ahora es obligatoria para ENTRAR, pero las cuentas anteriores a
  * ese cambio conservan la sesión que ya tenían: este aviso es para ellas, para que confirmen antes
- * de que la sesión caduque y el login se lo pida.
+ * de que la sesión caduque y el login se lo pida. Desde el PR 21f, un `Notice` `warn` con su acción.
  */
 function VerifyEmailNotice({ email }: { email: string }) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
 
   async function onSend() {
+    // mientras sale el primero, no sale otro
+    if (status.kind === 'saving') return
     setStatus({ kind: 'saving' })
     const res = await authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' })
     if (res.error) {
@@ -38,37 +63,40 @@ function VerifyEmailNotice({ email }: { email: string }) {
   }
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
-      <h2 className="text-sm font-semibold text-amber-900">Your email is not confirmed</h2>
-      <p className="mt-1 text-xs text-amber-800">
-        You will need it the next time you log in, and to recover your account if you ever lose your
-        password.
-      </p>
-      <div className="mt-3 space-y-2">
-        <Notice status={status} />
-        <button
-          type="button"
-          onClick={onSend}
-          disabled={status.kind === 'saving'}
-          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-500 disabled:opacity-60"
-        >
-          Send me a confirmation link
-        </button>
-      </div>
-    </div>
+    <Notice
+      tone="warn"
+      title="Your email is not confirmed"
+      action={{ label: 'Send me a confirmation link', onClick: () => void onSend() }}
+    >
+      You will need it the next time you log in, and to recover your account if you ever lose your
+      password.
+      <Resultado status={status} />
+    </Notice>
   )
 }
 
-function ChangeEmail({ current, verified }: { current: string; verified: boolean }) {
+function ChangeEmail({
+  current,
+  verified,
+  answer,
+}: {
+  current: string
+  verified: boolean
+  /** la respuesta de la 28 cuando no hay protección de resultados (§7.3) */
+  answer: boolean
+}) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const [fieldError, setFieldError] = useState<string | null>(null)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    if (status.kind === 'saving') return
     if (!email || email === current) {
-      setStatus({ kind: 'err', msg: 'Enter a new, different email.' })
+      setFieldError('Enter a new, different email.')
       return
     }
+    setFieldError(null)
     setStatus({ kind: 'saving' })
     // callbackURL: a dónde vuelve quien abre el enlace de confirmación.
     const res = await authClient.changeEmail({ newEmail: email, callbackURL: '/verify-email' })
@@ -88,59 +116,67 @@ function ChangeEmail({ current, verified }: { current: string; verified: boolean
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
-      <h2 className="text-sm font-semibold text-slate-800">Email</h2>
-      <p className="mt-1 text-xs text-slate-400">
-        Signed in as <span className="font-medium text-slate-600">{current}</span>. A new address
-        has to be confirmed by email before it replaces this one.
-      </p>
-      <div className="mt-4 space-y-3">
-        <div>
-          <label htmlFor="new-email" className={labelClass}>
-            New email
-          </label>
-          <input
-            id="new-email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={`mt-1 ${inputClass}`}
-            placeholder="you@example.com"
-          />
-        </div>
-        <Notice status={status} />
-        <button
+    <Panel title="Email" answer={answer}>
+      <form onSubmit={onSubmit} className="grid gap-3">
+        <p className="text-meta text-ink-2">
+          Signed in as <span className="font-semibold text-ink">{current}</span>. A new address has
+          to be confirmed by email before it replaces this one.
+        </p>
+        <Field
+          kind="input"
+          type="email"
+          id="new-email"
+          label="New email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(v) => {
+            setEmail(v)
+            setFieldError(null)
+          }}
+          {...(fieldError !== null ? { error: fieldError } : {})}
+        />
+        <Resultado status={status} />
+        <Button
+          variant="primary"
           type="submit"
-          disabled={status.kind === 'saving'}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+          busy={status.kind === 'saving'}
+          layout="justify-self-start"
         >
           Update email
-        </button>
-      </div>
-    </form>
+        </Button>
+      </form>
+    </Panel>
   )
 }
 
-function ChangePassword() {
+function ChangePassword({
+  answer,
+}: {
+  /** la respuesta de la 28 sin protección de resultados ni correo (§7.3) */
+  answer: boolean
+}) {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const [fieldError, setFieldError] = useState<{
+    field: 'next' | 'confirm'
+    msg: string
+  } | null>(null)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    if (status.kind === 'saving') return
     if (next.length < 8) {
-      setStatus({ kind: 'err', msg: 'New password must be at least 8 characters.' })
+      setFieldError({ field: 'next', msg: 'New password must be at least 8 characters.' })
       return
     }
     if (next !== confirm) {
-      setStatus({ kind: 'err', msg: 'The new passwords do not match.' })
+      setFieldError({ field: 'confirm', msg: 'The new passwords do not match.' })
       return
     }
+    setFieldError(null)
     setStatus({ kind: 'saving' })
     const res = await authClient.changePassword({
       currentPassword: current,
@@ -157,84 +193,85 @@ function ChangePassword() {
     }
   }
 
+  const errorOf = (field: 'next' | 'confirm') =>
+    fieldError?.field === field ? { error: fieldError.msg } : {}
+
   return (
-    <form
-      onSubmit={onSubmit}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
-      <h2 className="text-sm font-semibold text-slate-800">Password</h2>
-      <p className="mt-1 text-xs text-slate-400">
-        Changing your password signs you out of other devices.
-      </p>
-      <div className="mt-4 space-y-3">
-        <div>
-          <label htmlFor="cur-pw" className={labelClass}>
-            Current password
-          </label>
-          <input
-            id="cur-pw"
-            type="password"
-            autoComplete="current-password"
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-            className={`mt-1 ${inputClass}`}
-          />
-        </div>
-        <div>
-          <label htmlFor="new-pw" className={labelClass}>
-            New password
-          </label>
-          <input
-            id="new-pw"
-            type="password"
-            autoComplete="new-password"
-            value={next}
-            onChange={(e) => setNext(e.target.value)}
-            className={`mt-1 ${inputClass}`}
-          />
-        </div>
-        <div>
-          <label htmlFor="confirm-pw" className={labelClass}>
-            Confirm new password
-          </label>
-          <input
-            id="confirm-pw"
-            type="password"
-            autoComplete="new-password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            className={`mt-1 ${inputClass}`}
-          />
-        </div>
-        <Notice status={status} />
-        <button
+    <Panel title="Password" answer={answer}>
+      <form onSubmit={onSubmit} className="grid gap-3">
+        <p className="text-meta text-ink-2">
+          Changing your password signs you out of other devices.
+        </p>
+        <Field
+          kind="input"
+          type="password"
+          id="cur-pw"
+          label="Current password"
+          autoComplete="current-password"
+          value={current}
+          onChange={setCurrent}
+        />
+        <Field
+          kind="input"
+          type="password"
+          id="new-pw"
+          label="New password"
+          autoComplete="new-password"
+          help="At least 8 characters."
+          value={next}
+          onChange={(v) => {
+            setNext(v)
+            setFieldError(null)
+          }}
+          {...errorOf('next')}
+        />
+        <Field
+          kind="input"
+          type="password"
+          id="confirm-pw"
+          label="Confirm new password"
+          autoComplete="new-password"
+          value={confirm}
+          onChange={(v) => {
+            setConfirm(v)
+            setFieldError(null)
+          }}
+          {...errorOf('confirm')}
+        />
+        <Resultado status={status} />
+        <Button
+          variant="primary"
           type="submit"
-          disabled={status.kind === 'saving'}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+          busy={status.kind === 'saving'}
+          layout="justify-self-start"
         >
           Update password
-        </button>
-      </div>
-    </form>
+        </Button>
+      </form>
+    </Panel>
   )
 }
 
 /**
  * Borrar la cuenta. Irreversible, así que va en dos pasos (abrir el formulario, luego confirmar con
  * la contraseña, que el servidor exige siempre) y dice qué pasa con el corredor y el equipo: se
- * quedan en el mundo como NPC, no desaparecen.
+ * quedan en el mundo como NPC, no desaparecen. Se exporta para su test, que abierto no lo puede pulsar
+ * (`defaultOpen`).
  */
-function DeleteAccount() {
-  const [open, setOpen] = useState(false)
+export function DeleteAccount({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const [fieldError, setFieldError] = useState<string | null>(null)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    if (status.kind === 'saving') return
     if (!password) {
-      setStatus({ kind: 'err', msg: 'Enter your password to delete your account.' })
+      setFieldError('Enter your password to delete your account.')
       return
     }
+    setFieldError(null)
     setStatus({ kind: 'saving' })
     const res = await authClient.deleteUser({ password })
     if (res.error) {
@@ -246,68 +283,63 @@ function DeleteAccount() {
   }
 
   return (
-    <div className="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
-      <h2 className="text-sm font-semibold text-red-700">Delete account</h2>
-      <p className="mt-1 text-xs text-slate-500">
-        This cannot be undone. Your rider and your team stay in the world, run by the game, and your
-        email becomes free to use on another account.
-      </p>
-      {open ? (
-        <form onSubmit={onSubmit} className="mt-4 space-y-3">
-          <div>
-            <label htmlFor="delete-pw" className={labelClass}>
-              Password
-            </label>
-            <input
-              id="delete-pw"
+    <Panel title="Delete account">
+      <div className="grid gap-3">
+        <p className="text-meta text-ink-2">
+          This cannot be undone. Your rider and your team stay in the world, run by the game, and
+          your email becomes free to use on another account.
+        </p>
+        {open ? (
+          <form onSubmit={onSubmit} className="grid gap-3">
+            <Field
+              kind="input"
               type="password"
+              id="delete-pw"
+              label="Password"
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={`mt-1 ${inputClass}`}
-            />
-          </div>
-          <Notice status={status} />
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={status.kind === 'saving'}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-60"
-            >
-              Delete my account for good
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                setPassword('')
-                setStatus({ kind: 'idle' })
+              onChange={(v) => {
+                setPassword(v)
+                setFieldError(null)
               }}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="mt-4 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
-        >
-          Delete my account…
-        </button>
-      )}
-    </div>
+              {...(fieldError !== null ? { error: fieldError } : {})}
+            />
+            <Resultado status={status} />
+            <div className="flex flex-wrap gap-3">
+              <Button variant="danger" type="submit" busy={status.kind === 'saving'}>
+                Delete my account for good
+              </Button>
+              <Button
+                variant="quiet"
+                onClick={() => {
+                  setOpen(false)
+                  setPassword('')
+                  setStatus({ kind: 'idle' })
+                  setFieldError(null)
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <Button onClick={() => setOpen(true)} layout="justify-self-start">
+            Delete my account…
+          </Button>
+        )}
+      </div>
+    </Panel>
   )
 }
 
-/** Ajustes de la cuenta (SPEC 7): correo, contraseña, cerrar sesión y borrar la cuenta. */
 export function Account() {
   const navigate = useNavigate()
   const { data } = authClient.useSession()
   // Sólo para enseñar el enlace: el servidor vuelve a decidir en cada petición del panel.
   const whoami = useQuery({ queryKey: ['admin-whoami'], queryFn: fetchAdminWhoami, retry: false })
+  // la respuesta de la 28 (§7.3), la protección de resultados; sin velo para quien mira no sale, y
+  // contesta el correo, o la contraseña mientras no se sabe el correo
+  const conVelo = useSpoilerProtection() !== null
 
   async function onLogout() {
     await authClient.signOut()
@@ -317,35 +349,25 @@ export function Account() {
   const email = data?.user.email ?? ''
 
   return (
-    <section className="mx-auto max-w-md space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Account settings</h1>
-        <p className="mt-1 text-sm text-slate-500">Manage your login details.</p>
-      </div>
+    <section className="mx-auto max-w-form space-y-4">
+      <PageHeader title="Account settings" status="Manage your login details." />
 
-      {whoami.data?.via === 'session' && (
-        <Link
-          to="/admin"
-          className="block rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-medium text-indigo-800 transition hover:bg-indigo-100"
-        >
-          Admin panel →
-        </Link>
-      )}
+      {whoami.data?.via === 'session' && <TextLink to="/admin">Admin panel</TextLink>}
 
       {/* Qué se protege de destripes (E2, §10.4; 9b): solo con el velo para quien mira. */}
       <SpoilerSettings />
 
       {email && data?.user.emailVerified === false && <VerifyEmailNotice email={email} />}
-      {email && <ChangeEmail current={email} verified={data?.user.emailVerified === true} />}
-      <ChangePassword />
+      {email && (
+        <ChangeEmail
+          current={email}
+          verified={data?.user.emailVerified === true}
+          answer={!conVelo}
+        />
+      )}
+      <ChangePassword answer={!conVelo && !email} />
 
-      <button
-        type="button"
-        onClick={onLogout}
-        className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-100"
-      >
-        Sign out
-      </button>
+      <Button onClick={() => void onLogout()}>Sign out</Button>
 
       <DeleteAccount />
     </section>
