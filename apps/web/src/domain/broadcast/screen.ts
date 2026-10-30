@@ -182,7 +182,9 @@ export function overlaySummaryText(
   let first: string
   if (gap === null) first = `${toGo}, bunch together`
   else {
-    const ahead = instant.groups.find((g) => g.g === gap.ahead) ?? instant.groups[0]
+    // la cabeza retenida no está en `groups` (10a): entonces, `lead group` sin tamaño, y no el del primero
+    // de la barra, que puede ser el mismo grupo contra el que se mide
+    const ahead = instant.groups.find((g) => g.g === gap.ahead)
     const lead =
       ahead === undefined ? 'lead group' : `lead group ${counted(ahead.size, 'rider', 'riders')}`
     const behind = instant.groups.find((g) => g.g === gap.behind)

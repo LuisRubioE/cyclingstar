@@ -108,7 +108,13 @@ export function WatchBlocks() {
         <Panel title="Ready to watch">
           <div className="space-y-4">
             {blocks.ready.map((row) => (
-              <ReadyRaceRow key={row.raceKey} row={row} h={h} watchOn={watchOn} />
+              <ReadyRaceRow
+                key={row.raceKey}
+                row={row}
+                h={h}
+                watchOn={watchOn}
+                continuing={blocks.watching.some((w) => w.raceKey === row.raceKey)}
+              />
             ))}
           </div>
         </Panel>
@@ -143,8 +149,21 @@ function useDropRace(raceKey: string) {
   })
 }
 
-/** Una fila de `Ready to watch`: su cabecera, sus tarjetas y, en el menú, soltar la carrera. */
-function ReadyRaceRow({ row, h, watchOn }: { row: ReadyRow; h: HorizonSummary; watchOn: boolean }) {
+/**
+ * Una fila de `Ready to watch`: su cabecera, sus tarjetas y, en el menú, soltar la carrera. Con la carrera
+ * también en `Continue watching` (`continuing`), su `primary` es aquel `Continue`, y aquí ninguno (§14.6).
+ */
+function ReadyRaceRow({
+  row,
+  h,
+  watchOn,
+  continuing,
+}: {
+  row: ReadyRow
+  h: HorizonSummary
+  watchOn: boolean
+  continuing: boolean
+}) {
   const drop = useDropRace(row.raceKey)
   const veiled = h.ready.find((r) => r.raceKey === row.raceKey)?.stages ?? []
   return (
@@ -160,7 +179,7 @@ function ReadyRaceRow({ row, h, watchOn }: { row: ReadyRow; h: HorizonSummary; w
           <ReadyCard
             key={c.stageDay}
             card={c}
-            primary={i === 0}
+            primary={i === 0 && !continuing}
             ownRider={row.ownRider}
             before={veiled.filter((d) => d < c.stageDay)}
             watchOn={watchOn}

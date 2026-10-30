@@ -136,7 +136,12 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
                 identity={identidad}
                 ownRiderId={propio.riderId}
                 answer
-                classificationsHref={`${stagePath}?tab=classifications`}
+                // solo en una carrera por etapas: en una de un día, la ficha de la carrera no las tiene
+                classificationsHref={
+                  race !== undefined && race.stageCount > 1
+                    ? `${stagePath}?tab=classifications`
+                    : undefined
+                }
               />
               {watchOn && <TextLink to={`${stagePath}?tab=watch`}>Watch this stage →</TextLink>}
             </>

@@ -354,6 +354,18 @@ describe('overlaySummaryText · la capa fija, en dos frases (§14.3)', () => {
     )
   })
 
+  it('con la cabeza retenida, que no está en groups (10a), lead group sin tamaño, y no el del primero de la barra', () => {
+    // unos segundos tras morir la cabeza con los suyos en carrera, la diferencia aún se mide contra ella:
+    // el primero de `groups` es el pelotón, el mismo contra el que se mide, y no es la cabeza
+    const held = instantOf([{ members: range(0, 40), km: 86.5, kind: 'peloton' }], {
+      t: 7200,
+      mainGap: { ahead: 9, behind: 0, gapS: 8, trend: null, ref: 'bunch' },
+    })
+    const text = overlaySummaryText(held, HEAD)
+    expect(text).toMatch(/^98\.5 km to go, lead group, bunch at 8 seconds\. /)
+    expect(text).not.toContain('lead group 40 riders')
+  })
+
   it('un solo grupo: bunch together, sin cabeza ni diferencia', () => {
     const together = instantOf([{ members: range(0, 40), km: 86.5, kind: 'peloton' }], {
       t: 7200,

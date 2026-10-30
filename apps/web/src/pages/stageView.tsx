@@ -105,11 +105,13 @@ export function StageReportView({
 }) {
   const results = data.results ?? []
   // LA FILA DE SALTOS (E3, docs/visual.md §14.6; 14-c; PR 20): a sus partes, sin perder la pestaña ni la
-  // búsqueda de la página; el router no lleva a la vista lo que nombra el ancla, así que se lleva aquí
-  const { pathname, search, hash } = useLocation()
+  // búsqueda de la página; el router no lleva a la vista lo que nombra el ancla, así que se lleva aquí. Con
+  // la `key` de la navegación, y no solo con el ancla: el segundo toque al mismo salto deja el ancla igual
+  // (el router lo cambia por un `replace`, con otra `key`) y también tiene que llevar a la vista.
+  const { pathname, search, hash, key } = useLocation()
   useEffect(() => {
     if (hash !== '') document.getElementById(hash.slice(1))?.scrollIntoView()
-  }, [hash])
+  }, [hash, key])
   const here = (id: string): string => `${pathname}${search}#${id}`
   return (
     <>

@@ -177,6 +177,25 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
       expect(b.attrs, b.text).toMatch(/min-w-11/)
     }
   })
+
+  it('el encendido no lleva el fondo ni la tinta del apagado: de dos clases del mismo estado, gana la que la hoja pone después', () => {
+    // con `hover:bg-surface-2` y `hover:bg-accent-strong` a la vez, Tailwind ordena la hoja y no el atributo:
+    // al pasar el ratón por un mando encendido salía la tinta del encendido sobre el fondo del apagado
+    const all = buttonsOf(controls({ nextAction: true, speed: 2 }))
+    const on = all.filter((b) => b.attrs.includes('aria-pressed="true"'))
+    const off = all.filter((b) => b.attrs.includes('aria-pressed="false"'))
+    expect(on.length).toBeGreaterThan(1)
+    expect(off.length).toBeGreaterThan(1)
+    for (const b of on) {
+      expect(b.attrs, b.text).toMatch(/ hover:bg-accent-strong/)
+      expect(b.attrs, b.text).not.toMatch(/ hover:bg-surface-2/)
+      expect(b.attrs, b.text).not.toMatch(/ text-ink[\s"]/)
+    }
+    for (const b of off) {
+      expect(b.attrs, b.text).toMatch(/ hover:bg-surface-2/)
+      expect(b.attrs, b.text).not.toMatch(/ bg-accent[\s"]/)
+    }
+  })
 })
 
 describe('la hoja de ⋯ (8-p): los saltos, el modo y Show result', () => {

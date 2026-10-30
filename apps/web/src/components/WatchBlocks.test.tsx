@@ -224,8 +224,19 @@ describe('la portada bajo el velo · un solo primary por carrera (§14.6)', () =
     expect(digest?.[0]).toContain('max-w-full')
   })
 
+  it('en Continue watching y en Ready to watch a la vez, el primary de la carrera es Continue, en toda la portada', () => {
+    // la revisión del 20: `blocks` corta desde el primer `data-race-block` y no veía `Continue watching`
+    const markup = render(conJaen)
+    const france = [...markup.matchAll(/<a[^>]*data-variant="primary"[^>]*>/g)]
+      .map((m) => m[0])
+      .filter((tag) => tag.includes('/world/races/race-france/'))
+    expect(france).toHaveLength(1)
+    expect(france[0]).toContain('href="/world/races/race-france/stages/10?tab=watch"')
+  })
+
   it('Ready to watch: el Watch de la primera etapa velada es el primary; las demás, secondary', () => {
-    const france = blocks(render(conJaen)).get('race-france:s0')!
+    // sin la carrera en `Continue watching`, que si no lleva el primary (el caso de arriba)
+    const france = blocks(render({ ...conJaen, watching: [] })).get('race-france:s0')!
     expect(primaries(france)).toEqual(['Watch'])
     expect(france.indexOf('data-variant="primary"')).toBeLessThan(
       france.indexOf('href="/world/races/race-france/stages/11"'),

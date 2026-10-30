@@ -58,9 +58,16 @@ export const CLOCK_JUMP_LABEL: Readonly<Record<ClockJump, string>> = {
  * mínimo, como un `Button` (comprobación 5), con los tokens del ámbito oscuro. En el teléfono, más
  * estrechos que un `Button`, para que la fila parta lo menos posible.
  */
-const control = `inline-flex min-h-11 min-w-11 items-center justify-center rounded-ui px-2 text-meta font-semibold text-ink transition hover:bg-surface-2 disabled:text-disabled-ink disabled:hover:bg-transparent sm:px-3 ${FOCUS}`
-/** El encendido: el de la opción activa de un `Segmented` (§4.3). */
+const control = `inline-flex min-h-11 min-w-11 items-center justify-center rounded-ui px-2 text-meta font-semibold transition disabled:text-disabled-ink sm:px-3 ${FOCUS}`
+/**
+ * El apagado y el encendido, el de la opción activa de un `Segmented` (§4.3), nunca juntos: de dos clases
+ * del mismo estado (`hover:bg-surface-2` y `hover:bg-accent-strong`) gana la que Tailwind pone después en
+ * la hoja, y no la de después en el atributo, así que un mando encendido salía con el fondo del apagado.
+ */
+const idle = 'text-ink hover:bg-surface-2 disabled:hover:bg-transparent'
 const pressed = 'bg-accent text-on-accent hover:bg-accent-strong'
+/** el apagado o el encendido de un mando que se conmuta */
+const toggle = (on: boolean): string => `${control} ${on ? pressed : idle}`
 
 /**
  * LOS MANDOS (docs/retransmision.md §8.5, 8-o, 8-p y §18.8). En el teléfono, la fila lleva `❚❚`, la
@@ -159,7 +166,7 @@ export function PlayerControls({
                   key={x}
                   type="button"
                   aria-pressed={x === state.speed}
-                  className={`${control} ${x === state.speed ? pressed : ''}`}
+                  className={toggle(x === state.speed)}
                   onClick={() => onSpeed(x)}
                 >
                   {speedLabel(x)}
@@ -170,7 +177,7 @@ export function PlayerControls({
               type="button"
               aria-pressed={state.nextAction}
               disabled={state.lastKm && !state.nextAction}
-              className={`${control} ${state.nextAction ? pressed : ''}`}
+              className={toggle(state.nextAction)}
               onClick={onNextAction}
             >
               Next action
@@ -178,7 +185,7 @@ export function PlayerControls({
             <button
               type="button"
               aria-pressed={commentaryOpen}
-              className={`${control} ${commentaryOpen ? pressed : ''}`}
+              className={toggle(commentaryOpen)}
               onClick={onCommentary}
             >
               Commentary
@@ -188,7 +195,7 @@ export function PlayerControls({
               aria-label="More"
               aria-expanded={sheetOpen}
               aria-controls="player-sheet"
-              className={control}
+              className={`${control} ${idle}`}
               onClick={() => setSheetOpen((o) => !o)}
             >
               <Icon name="more" />
@@ -260,7 +267,7 @@ export function PlayerSheet({
           <button
             key={j.id}
             type="button"
-            className={`${control} bg-surface-2`}
+            className={`${control} bg-surface-2 ${idle}`}
             disabled={!j.enabled}
             onClick={() => onJump(j.id)}
           >
@@ -275,7 +282,7 @@ export function PlayerSheet({
               key={v}
               type="button"
               aria-pressed={view === v}
-              className={`${control} ${view === v ? pressed : ''}`}
+              className={toggle(view === v)}
               onClick={() => onView(v)}
             >
               {v === 'watch' ? 'Watch' : 'Highlights'}
