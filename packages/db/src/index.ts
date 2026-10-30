@@ -424,6 +424,6 @@ export {
   type KitSaveResult,
   type KitSetBy,
 } from './kits.js'
-export { kitOn, kitsOn } from './kitsOn.js'
+export { kitOn, kitsBySeed, kitsOn, stateKitsOn } from './kitsOn.js'
 export { seasonRivals, type SeasonRivals } from './seasonRivals.js'
 export { backfillArchetypes, type BackfillResult } from './scripts/backfillArchetypes.js'

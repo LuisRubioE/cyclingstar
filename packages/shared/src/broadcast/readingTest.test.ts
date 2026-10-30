@@ -252,7 +252,7 @@ function card(ix: RiderIx, team: number | null, worn: WornJersey = { kind: 'team
     team:
       team === null
         ? null
-        : { id: `t${team}`, name: `Team ${team}`, jerseySeed: `j${team}`, kit: null },
+        : { id: `t${team}`, name: `Team ${team}`, kit: null, legacySeed: `j${team}` },
     worn,
     lines: [],
     notoriety: 8,

@@ -33,8 +33,7 @@ import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { type Horizon, stageGameDay } from './horizon.js'
-import { teamDrawSeed, teamDrawSeedOrNull } from './jerseyClone.js'
-import { kitsOn } from './kitsOn.js'
+import { stateKitsOn } from './kitsOn.js'
 import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
   gameState,
@@ -382,7 +381,6 @@ interface FieldTeamRow {
   division: Division
   country: string | null
   ownerUserId: string | null
-  jerseySeed: string
 }
 
 /** Lo mínimo de un equipo para elegirlo para un pelotón: su nivel, su país y si tiene dueño. */
@@ -472,7 +470,6 @@ async function resolveFieldTeams(
       division: teams.division,
       country: teams.country,
       ownerUserId: teams.ownerUserId,
-      jerseySeed: teamDrawSeed,
     })
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
@@ -788,13 +785,11 @@ export interface StartlistTeam {
   name: string
   country: string | null
   division: Division
-  /** Semilla del maillot del equipo (para pintar su kit). */
-  jerseySeed: string
   /**
-   * Su maillot el día de la salida (E3, docs/visual.md §8.5; paso 16b), o null si ese día aún no tenía
-   * ninguno guardado y se dibuja con `jerseySeed`.
+   * Su maillot el día de la salida (E3, docs/visual.md §8.5; paso 16b), o, si la carrera salió antes de la
+   * traducción, el primero que tuvo (`stateKitsOn`; 19e): nunca nulo.
    */
-  kit: KitCode | null
+  kit: KitCode
   riders: StartlistRider[]
 }
 /** Lista de inscritos de una carrera: la prevista antes del cierre y la congelada desde él. */
@@ -836,7 +831,6 @@ export async function readFrozenStartlist(
       teamName: teams.name,
       teamCountry: teams.country,
       teamDivision: teams.division,
-      teamJersey: teamDrawSeedOrNull,
       bib: raceRosters.bib,
     })
     .from(raceRosters)
@@ -862,7 +856,6 @@ export async function readFrozenStartlist(
           name: r.teamName,
           country: r.teamCountry,
           division: r.teamDivision as Division,
-          jerseySeed: r.teamJersey ?? '',
           riders: [],
           minBib: Number.POSITIVE_INFINITY,
         }
@@ -893,8 +886,7 @@ export async function readFrozenStartlist(
       name: t.name,
       country: t.country,
       division: t.division,
-      jerseySeed: t.jerseySeed,
-      kit: kits.get(t.id) ?? null,
+      kit: kitOf(kits, t.id),
       riders: t.riders,
     })),
     freeAgents,
@@ -903,14 +895,22 @@ export async function readFrozenStartlist(
 
 /**
  * El maillot de cada equipo el día de la salida (E3, docs/visual.md §8.5; paso 16b): el de su primera
- * etapa, el mismo antes del cierre que después, y el de aquel día en una carrera ya corrida.
+ * etapa, el mismo antes del cierre que después, y el de aquel día en una carrera ya corrida; si salió antes
+ * de la traducción, el primero que tuvo (`stateKitsOn`; 19e).
  */
 function startKits(
   q: Queryable,
   raceKey: string,
   teamIds: readonly string[],
 ): Promise<ReadonlyMap<string, KitCode>> {
-  return kitsOn(q, teamIds, stageGameDay(raceKey, 1))
+  return stateKitsOn(q, teamIds, stageGameDay(raceKey, 1))
+}
+
+/** El maillot de la lista de un equipo que existe: `stateKitsOn` da uno a cada equipo de la base. */
+function kitOf(kits: ReadonlyMap<string, KitCode>, teamId: string): KitCode {
+  const kit = kits.get(teamId)
+  if (kit === undefined) throw new Error(`lista de salida: el equipo ${teamId} no existe`)
+  return kit
 }
 
 /**
@@ -962,8 +962,7 @@ export async function predictStartlist(
         name: t.name,
         country: t.country,
         division: t.division,
-        jerseySeed: t.jerseySeed,
-        kit: kits.get(t.id) ?? null,
+        kit: kitOf(kits, t.id),
         riders: [],
       })),
       freeAgents: fa.map((r) => ({

@@ -85,7 +85,7 @@ describe('riderCardsOf · el reparto servido (§7.8)', () => {
   const KITS = new Map<string, KitCode>([['alpha', 'plain.navy']])
   const cards = riderCardsOf(CAST, NAMES, new Set([4]), 'elite', KITS)
 
-  it('por RiderIx, con los nombres de hoy, el equipo y la equipación del día, y su maillot o null', () => {
+  it('por RiderIx, con los nombres de hoy, el equipo del día y su maillot, o la semilla de lo grabado antes de la traducción (19e)', () => {
     expect(cards.map((c) => [c.ix, c.id, c.name, c.bib, c.own])).toEqual([
       [0, 'id-0', 'Name id-0', 1, false],
       [1, 'id-1', 'Name id-1', 2, false],
@@ -97,14 +97,15 @@ describe('riderCardsOf · el reparto servido (§7.8)', () => {
     expect(cards[0]!.team).toEqual({
       id: 'alpha',
       name: 'Team alpha',
-      jerseySeed: 'j-alpha',
       kit: 'plain.navy',
+      legacySeed: null,
     })
+    // sin fila ese día, lo grabado antes de la traducción se dibuja con la semilla del reparto (D-23, 8-f)
     expect(cards[1]!.team).toEqual({
       id: 'beta',
       name: 'Team beta',
-      jerseySeed: 'j-beta',
       kit: null,
+      legacySeed: 'j-beta',
     })
     expect(cards[3]!.team).toBeNull()
     expect(cards[2]!.worn).toEqual({ kind: 'champion', title: championTitleView(title()) })

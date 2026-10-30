@@ -56,13 +56,13 @@ export const markSchema = z.number().int().min(0).max(3)
 export const loadLevelSchema = z.number().int().min(0).max(4)
 
 /**
- * EL MAILLOT DE UN EQUIPO UN DÍA (E3, docs/visual.md §8.5; PR 16b): su código, o `null` mientras la
- * traducción no le ha dado uno (hasta el 17b), y entonces se dibuja con su `jerseySeed`. Cada contrato
- * dice de qué día: el de la salida en la lista de salida, el de mañana en la lista y la ficha de los
- * equipos, y el de la etapa en las tablas por equipos y en la retransmisión. Con defecto, para una web
- * que vaya por delante de la API.
+ * EL MAILLOT DE UN EQUIPO UN DÍA EN LOS CUATRO DE ESTADO (E3, docs/visual.md §8.5; PR 16b y 19e): la lista de
+ * salida, con el de la salida; la lista y la ficha de los equipos, con el de mañana; y las tablas por equipos,
+ * con el de la etapa. Nunca nulo desde el 19e: un día anterior a la traducción lleva el primero que tuvo el
+ * equipo (`stateKitsOn`). La retransmisión no lo usa: su rótulo dibuja lo grabado antes de la traducción con
+ * la semilla del reparto (`RiderCard.team.legacySeed`, 8-f).
  */
-export const teamKitSchema = kitCodeSchema.nullable().default(null)
+export const teamKitSchema = kitCodeSchema
 
 /** Respuesta de una mutación sin cuerpo relevante. */
 export const okResponseSchema = z.object({ ok: z.boolean() })
@@ -854,9 +854,7 @@ export const startlistTeamSchema = z.object({
   name: z.string(),
   country: z.string().nullable(),
   division: z.string(),
-  /** Semilla del maillot del equipo (para pintar su kit). */
-  jerseySeed: z.string(),
-  /** su maillot del día de la salida */
+  /** su maillot del día de la salida; la semilla del dibujo ya no cruza (19e) */
   kit: teamKitSchema,
   /** Corredores de la escuadra; lleno solo cuando ya está congelada (`frozen`). */
   riders: z.array(startlistRiderSchema),
@@ -890,8 +888,7 @@ export const teamListItemSchema = z.object({
   division: z.string(),
   budget: z.number(),
   pointsSeason: z.number(),
-  jerseySeed: z.string(),
-  /** su maillot de mañana, el de su próxima carrera */
+  /** su maillot de mañana, el de su próxima carrera; la semilla del dibujo ya no cruza (19e) */
   kit: teamKitSchema,
   riderCount: z.number().int(),
 })
@@ -918,8 +915,7 @@ export const teamDetailSchema = z.object({
   division: z.string(),
   budget: z.number(),
   pointsSeason: z.number(),
-  jerseySeed: z.string(),
-  /** su maillot de mañana, el de su próxima carrera */
+  /** su maillot de mañana, el de su próxima carrera; la semilla del dibujo ya no cruza (19e) */
   kit: teamKitSchema,
   /** su culote (§8.10), que no se ve en carrera */
   bib: z.enum(BIB_STYLES).default('black'),

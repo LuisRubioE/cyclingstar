@@ -11,10 +11,14 @@ import {
   riderRaceReportSchema,
   riderSummarySchema,
   starsSchema,
+  startlistTeamSchema,
   teamClassEntrySchema,
+  teamDetailSchema,
+  teamListItemSchema,
   trendResponseSchema,
   triggerCondViewSchema,
 } from './contracts.js'
+import { riderCardTeamSchema } from './broadcast/wire.js'
 import { type ChampionTitle, championTitleView } from './jerseys.js'
 import { type NewsPayload, newsPayloadView, newsPayloadViewSchema } from './news.js'
 import { ATTRIBUTES, TREND_ARROWS, TREND_ARROW_CODE, trendArrow } from './rider.js'
@@ -225,7 +229,7 @@ describe('lo que la pantalla pinta y nada más (§13.5; 19c)', () => {
       teamId: 't1',
       teamName: 'Team t1',
       country: 'ES',
-      kit: null,
+      kit: 'plain.navy',
       tiempoS: 100,
       stagesScored: 1,
       out: false,
@@ -238,5 +242,75 @@ describe('lo que la pantalla pinta y nada más (§13.5; 19c)', () => {
     expect(pasa(triggerCondViewSchema, { at: 'km', km: 12 })).toBe(true)
     expect(pasa(triggerCondViewSchema, { at: 'gap', overS: 60 })).toBe(true)
     expect(pasa(triggerCondViewSchema, { at: 'attack', byRiderId: 'r9' })).toBe(false)
+  })
+})
+
+describe('el maillot de los cuatro de estado, sin semilla (§8.5, 8-f; 19e)', () => {
+  const kit = 'plain.navy'
+  it('la lista y la ficha de los equipos, la lista de salida y la clasificación por equipos: con su maillot, nunca nulo, y sin jerseySeed', () => {
+    const equipo = {
+      id: 't1',
+      name: 'Team t1',
+      country: 'ES',
+      division: 'WT',
+      budget: 1,
+      pointsSeason: 0,
+      riderCount: 28,
+      kit,
+    }
+    expect(teamListItemSchema.parse({ ...equipo, jerseySeed: 'w:team:WT:1:jersey' })).toEqual(
+      equipo,
+    )
+    expect(pasa(teamListItemSchema, { ...equipo, kit: null })).toBe(false)
+    const ficha = {
+      id: 't1',
+      name: 'Team t1',
+      country: 'ES',
+      division: 'WT',
+      budget: 1,
+      pointsSeason: 0,
+      kit,
+      bib: 'black',
+      human: false,
+      roster: [],
+    }
+    expect(teamDetailSchema.parse({ ...ficha, jerseySeed: 'w:team:WT:1:jersey' })).toEqual(ficha)
+    expect(pasa(teamDetailSchema, { ...ficha, kit: null })).toBe(false)
+    const salida = { id: 't1', name: 'Team t1', country: 'ES', division: 'WT', kit, riders: [] }
+    expect(startlistTeamSchema.parse({ ...salida, jerseySeed: 'w:team:WT:1:jersey' })).toEqual(
+      salida,
+    )
+    expect(pasa(startlistTeamSchema, { ...salida, kit: null })).toBe(false)
+    const fila = {
+      teamId: 't1',
+      teamName: 'Team t1',
+      country: 'ES',
+      kit,
+      tiempoS: 100,
+      stagesScored: 1,
+      out: false,
+    }
+    expect(teamClassEntrySchema.parse(fila)).toEqual(fila)
+    expect(pasa(teamClassEntrySchema, { ...fila, kit: null })).toBe(false)
+  })
+
+  it('el equipo del rótulo: su maillot, o la semilla de lo grabado antes de la traducción; nunca los dos ni ninguno', () => {
+    const equipo = { id: 't1', name: 'Team t1' }
+    expect(pasa(riderCardTeamSchema, { ...equipo, kit, legacySeed: null })).toBe(true)
+    expect(
+      pasa(riderCardTeamSchema, { ...equipo, kit: null, legacySeed: 'w:team:WT:1:jersey' }),
+    ).toBe(true)
+    expect(pasa(riderCardTeamSchema, { ...equipo, kit: null, legacySeed: null })).toBe(false)
+    expect(pasa(riderCardTeamSchema, { ...equipo, kit, legacySeed: 'w:team:WT:1:jersey' })).toBe(
+      false,
+    )
+    expect(
+      riderCardTeamSchema.parse({
+        ...equipo,
+        kit,
+        legacySeed: null,
+        jerseySeed: 'w:team:WT:1:jersey',
+      }),
+    ).toEqual({ ...equipo, kit, legacySeed: null })
   })
 })

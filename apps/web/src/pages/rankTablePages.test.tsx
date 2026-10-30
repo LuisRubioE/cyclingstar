@@ -49,8 +49,7 @@ const equipo = (id: string, name: string): TeamListItem => ({
   division: 'WT',
   budget: 1_000_000,
   pointsSeason: 900,
-  jerseySeed: `cyclingstar-2:team:WT:${id}:jersey`,
-  kit: null,
+  kit: 'plain.navy',
   riderCount: 25,
 })
 const MISTRAL = equipo('t1', 'Mistral Racing')
@@ -193,7 +192,8 @@ describe('el salón de la fama (§6.1)', () => {
     propio.riderId = 'h30'
     const s = salon()
     expect(cuenta(s, 'aria-label="Mistral Racing kit"')).toBe(21)
-    expect(celda(s, 'h1')).not.toContain('Mistral Racing')
+    // el nombre que lleva el maillot es el de su lector (el `<title>` del `Kit`), no el equipo debajo
+    expect(celda(s, 'h1').replaceAll('Mistral Racing kit', '')).not.toContain('Mistral Racing')
     expect(cuenta(s, 'aria-current="true"')).toBe(1)
   })
 })
@@ -297,8 +297,7 @@ describe('la plantilla (§6.1)', () => {
     division: 'WT',
     budget: 1_000_000,
     pointsSeason: 900,
-    jerseySeed: MISTRAL.jerseySeed,
-    kit: null,
+    kit: MISTRAL.kit,
     bib: 'black',
     human: false,
     roster: ROSTER,

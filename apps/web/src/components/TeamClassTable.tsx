@@ -1,9 +1,7 @@
 import type { TeamClassEntry } from '../api/race'
 import { formatTime } from '../domain/format'
-import { NO_TABLE_IDENTITY, type TableIdentity } from '../domain/tableIdentity'
 import { plural } from '../domain/words'
-import { TeamJersey, type WornTeam } from './ui/TeamJersey'
-import { RaceTableWaiting } from './RaceRankTables'
+import { TeamJersey } from './ui/TeamJersey'
 import { RankTable, type RankTableColumn } from './ui/RankTable'
 import { gluedLastWord } from './ui/TextLink'
 import type { Layout } from './ui/types'
@@ -20,23 +18,20 @@ interface Fila {
  * carrera y ficha de etapa, usan este componente y no dos copias que se desincronicen.
  *
  * En `RankTable` desde el PR 12b (E3, docs/visual.md §6.1; 6-f, 4-i y D-00j): el puesto, el nombre del
- * equipo seguido de su maillot de 28 (el dibujo de hoy hasta el 17a, por `teamId`, de la lista de salida)
- * y `Time`; sin la bandera ni la columna `Country`, que hacían de equipo (tres banderas de Francia
+ * equipo seguido de su maillot de 28 (el de la fila, del día de la etapa que enseña: desde el 19e nunca nulo,
+ * así que la tabla ya no espera a la lista de salida) y `Time`; sin la bandera ni la columna `Country`, que hacían de equipo (tres banderas de Francia
  * seguidas, captura 06), y sin marcar al equipo líder: la tabla lo dice por su orden. La acumulada lleva
  * además `Stages`, las etapas puntuadas. Los equipos FUERA de clasificación (los que se quedaron sin tres
  * corredores en alguna etapa) van al final, sin puesto y con `OUT`, como los DNF en la individual.
  */
 export function TeamClassTable({
   rows,
-  identity = NO_TABLE_IDENTITY,
   ownTeamId = null,
   cumulative = false,
   answer = false,
   layout,
 }: {
   readonly rows: readonly TeamClassEntry[]
-  /** la semilla del dibujo de cada equipo (`useRaceIdentity`); sin ella, el nombre sin maillot */
-  readonly identity?: TableIdentity
   /** el equipo del jugador: su fila (§6.2) */
   readonly ownTeamId?: string | null
   /** la acumulada: con `Stages` */
@@ -46,8 +41,6 @@ export function TeamClassTable({
   /** en una tarjeta de 20 de relleno, `-mx-4`: casi de borde a borde (§6.1) */
   readonly layout?: Layout
 }) {
-  // mientras llega la lista de salida, espera: el maillot que llega después la movería
-  if (identity.pending) return <RaceTableWaiting />
   const lider = rows.find((r) => !r.out)?.tiempoS ?? 0
   let n = 0
   const filas: Fila[] = rows.map((r) => ({ r, puesto: r.out ? null : ++n }))
@@ -75,22 +68,13 @@ export function TeamClassTable({
       rank={({ puesto }) => puesto}
       identityHeader="Team"
       identity={({ r }) => {
-        // el de la fila es el del día de la etapa que enseña (§8.5); nulo, el dibujo de hoy (17-q)
-        const drawing = identity.drawingOf(r.teamId)
-        const team: WornTeam | null =
-          r.kit !== null
-            ? { name: r.teamName, kit: r.kit }
-            : drawing === null
-              ? null
-              : { name: r.teamName, legacySeed: drawing.jerseySeed }
+        // el de la fila, el del día de la etapa que enseña (§8.5)
         return (
           <span className="text-row whitespace-nowrap text-ink">
             {gluedLastWord(r.teamName)}
-            {team !== null && (
-              <span className="ml-1 inline-flex align-middle">
-                <TeamJersey team={team} size={28} />
-              </span>
-            )}
+            <span className="ml-1 inline-flex align-middle">
+              <TeamJersey team={{ name: r.teamName, kit: r.kit }} size={28} />
+            </span>
           </span>
         )
       }}

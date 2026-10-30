@@ -534,11 +534,12 @@ describe('el reparto provisional del adaptador (17-k) y su primera forma servida
       [1, 'Bea Roca', 'Team Sol', 3, false],
       [2, 'Caro Ruiz', null, 8, true],
     ])
+    // con su maillot, sin semilla: la semilla del reparto solo viaja sin maillot (8-f; 19e)
     expect(cards[0]!.team).toEqual({
       id: 'sol',
       name: 'Team Sol',
-      jerseySeed: 'j-sol',
       kit: 'plain.navy',
+      legacySeed: null,
     })
     for (const c of cards) expect(c.lines).toEqual([])
 

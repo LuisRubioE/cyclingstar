@@ -5,19 +5,6 @@ import { riders, teams } from './schema.js'
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
-/**
- * LA SEMILLA CON QUE SE DIBUJA EL MAILLOT (E3, docs/visual.md §8.9; la 0050): la que eligió el dueño
- * si la hay, y si no la de génesis. Se sirve con el nombre de hoy, `jerseySeed`, así que ni los
- * contratos ni la web cambian. Lo que IDENTIFICA al equipo (`seedWorld`, `reconcileTeams`, su nombre
- * por idioma) sigue leyendo `jersey_seed`.
- */
-export const teamDrawSeed = sql<string>`coalesce(${teams.jerseyStyleSeed}, ${teams.jerseySeed})`
-
-/** Lo mismo para una consulta con `leftJoin(teams, …)`: nula si el corredor no tiene equipo. */
-export const teamDrawSeedOrNull = sql<
-  string | null
->`coalesce(${teams.jerseyStyleSeed}, ${teams.jerseySeed})`
-
 /** La forma de una semilla de génesis (`…:team:DIV:i:jersey`), la que reconoce `seedWorld`. */
 const GENESIS_SEED_PATTERN = ':team:(WT|PRS|CON):[0-9]+:jersey$'
 
@@ -26,15 +13,17 @@ const GENESIS_SEED_PATTERN = ':team:(WT|PRS|CON):[0-9]+:jersey$'
  *
  * Hasta la 0050, `updateOwnedTeam` escribía la semilla elegida en `jersey_seed`, que es la identidad con
  * que `seedWorld` reconoce los equipos de la génesis, y el tick siguiente creaba un NPC con la semilla
- * vieja: el mismo nombre y una plantilla nueva. Desde la 0050 el maillot va a `jersey_style_seed` y no
- * nace ningún clon más; este paso borra el que ya haya, una sola vez, sin SQL a mano.
+ * vieja: el mismo nombre y una plantilla nueva. Desde la 0050 la semilla elegida iba a otra columna, y desde
+ * el 17b el dibujo es el maillot: no nace ningún clon más, y este paso borra el que ya haya, una sola vez,
+ * sin SQL a mano.
  *
  * La regla, por división: los equipos que abandonaron su semilla de génesis (con dueño o sin él) y los
  * clones, equipos sin dueño con semilla de génesis la mayoría de cuyos corredores nació después que el
  * mundo. «El mundo» es la primera alta de corredores de la base (la génesis, una sola transacción), y no
  * `worlds.created_at`, que el tick re-ancla tras un avance manual (`reanchorClock`). Si hay uno de cada
- * (8-y), el equipo recupera en `jersey_seed` la semilla de génesis del clon y guarda su dibujo en
- * `jersey_style_seed`, para que su maillot no cambie y el tick no vuelva a crear el clon; y el clon se
+ * (8-y), el equipo recupera en `jersey_seed` la semilla de génesis del clon, para que el tick no vuelva a
+ * crearlo; su dibujo es su maillot, que no cambia (desde el 19e la semilla del dibujo no la lee ni la
+ * escribe nadie, y la borra la `0053` del 19f); y el clon se
  * borra con sus corredores nacidos después de la génesis (los suyos), cuyo rastro se va con ellos por
  * sus `on delete cascade`. Un corredor de la génesis que hubiera fichado por el clon queda libre (la
  * clave de su equipo es `on delete set null`). Si en una división no casan uno con uno, no se borra
@@ -50,7 +39,6 @@ export async function removeJerseyClones(tx: Tx, worldId: string): Promise<strin
       name: teams.name,
       division: teams.division,
       jerseySeed: teams.jerseySeed,
-      jerseyStyleSeed: teams.jerseyStyleSeed,
     })
     .from(teams)
     .where(and(eq(teams.worldId, worldId), sql`${teams.jerseySeed} !~ ${GENESIS_SEED_PATTERN}`))
@@ -108,13 +96,7 @@ export async function removeJerseyClones(tx: Tx, worldId: string): Promise<strin
     const bornIds = born.map((r) => r.id)
     if (bornIds.length > 0) await tx.delete(riders).where(inArray(riders.id, bornIds))
     await tx.delete(teams).where(eq(teams.id, clone.id))
-    await tx
-      .update(teams)
-      .set({
-        jerseySeed: clone.jerseySeed,
-        jerseyStyleSeed: team.jerseyStyleSeed ?? team.jerseySeed,
-      })
-      .where(eq(teams.id, team.id))
+    await tx.update(teams).set({ jerseySeed: clone.jerseySeed }).where(eq(teams.id, team.id))
     notes.push(`jersey clone removed: ${clone.name} (${clone.id}), ${bornIds.length} riders`)
   }
   // Sin nota, `null`: el tick junta las suyas filtrando solo los `null`, y una cadena vacía dejaría un

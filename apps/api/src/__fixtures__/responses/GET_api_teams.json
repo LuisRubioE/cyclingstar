@@ -11,9 +11,8 @@
         "division": "WT",
         "budget": 6455231,
         "pointsSeason": 1050,
-        "jerseySeed": "cyclingstar-2:team:WT:0:jersey",
-        "riderCount": 28,
-        "kit": "sides.blue.navy"
+        "kit": "sides.blue.navy",
+        "riderCount": 28
       },
       {
         "id": "a654eea0-1cf6-4389-9812-7279c8e4051b",
@@ -22,9 +21,8 @@
         "division": "WT",
         "budget": 6214533,
         "pointsSeason": 1048,
-        "jerseySeed": "cyclingstar-2:team:WT:12:jersey",
-        "riderCount": 28,
-        "kit": "yoke.green.teal"
+        "kit": "yoke.green.teal",
+        "riderCount": 28
       },
       {
         "id": "6a651862-9350-4264-bf80-9550f7ff978a",
@@ -33,9 +31,8 @@
         "division": "WT",
         "budget": 4514775,
         "pointsSeason": 679,
-        "jerseySeed": "cyclingstar-2:team:WT:17:jersey",
-        "riderCount": 28,
-        "kit": "yoke.black.teal"
+        "kit": "yoke.black.teal",
+        "riderCount": 28
       }
     ]
   }

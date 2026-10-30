@@ -1,7 +1,8 @@
 import { SEASON_CALENDAR } from '@cyclingstar/engine'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { KIT_ALLOWED } from './kitConflicts.generated.js'
+import { kitsBySeed } from './kitsOn.js'
 import { getTeamClassifications } from './teamClassification.js'
 import { riders, stageResults, stageTeamResults, teamKits, teams, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
@@ -233,7 +234,7 @@ describe('db: clasificación por equipos derivada del histórico', () => {
     expect(vacia).toEqual({ stage: [], overall: [] })
   }, 120_000)
 
-  it('cada equipo lleva su maillot del día de la última etapa de la tabla, o null sin fila (E3, paso 16b)', async () => {
+  it('cada equipo lleva su maillot del día de la última etapa de la tabla; antes del primero, el primero; y sin ninguno, el de su semilla (E3, 16b y 19e)', async () => {
     // Una vuelta del calendario en la temporada 1, con sus propias dos etapas: el día que manda es el
     // absoluto de la etapa (`stageGameDay`), no su número. No depende de lo que corrieron los de arriba.
     const tour = SEASON_CALENDAR.find((r) => r.stages.length >= 3)!
@@ -249,11 +250,20 @@ describe('db: clasificación por equipos derivada del histórico', () => {
         })),
       )
     }
-    const kitsOf = (rows: readonly { teamName: string; kit: string | null }[]) =>
+    const kitsOf = (rows: readonly { teamName: string; kit: string }[]) =>
       Object.fromEntries(rows.map((r) => [r.teamName, r.kit]))
-    const none = { Alfa: null, Bravo: null, Charlie: null }
+    // Sin ninguna fila en `team_kits`, que la traducción del 17b hace imposible: el primero del orden de su
+    // semilla, el que probaría al nacer (`stateKitsOn`; 19e). Nunca nulo.
+    const none = Object.fromEntries(
+      (
+        await t.db
+          .select({ name: teams.name, seed: teams.jerseySeed })
+          .from(teams)
+          .where(inArray(teams.id, [s.teamIds.Alfa!, s.teamIds.Bravo!, s.teamIds.Charlie!]))
+      ).map((r) => [r.name, kitsBySeed(r.seed)[0]]),
+    )
+    expect(Object.keys(none).sort()).toEqual(['Alfa', 'Bravo', 'Charlie'])
     try {
-      // Sin ninguna fila en `team_kits` (hasta el 17b, todos): nulo en las dos tablas.
       const sin = await getTeamClassifications(t.db, worldHorizon, key, 2)
       expect(kitsOf(sin.stage)).toEqual(none)
       expect(kitsOf(sin.overall)).toEqual(none)
@@ -268,16 +278,16 @@ describe('db: clasificación por equipos derivada del histórico', () => {
         { teamId: s.teamIds.Bravo!, validFromDay: day2, kit: deEseDia, setBy: 'system' },
       ])
       const etapa2 = await getTeamClassifications(t.db, worldHorizon, key, 2)
-      const esperado = { Alfa: viejo, Bravo: deEseDia, Charlie: null }
+      const esperado = { Alfa: viejo, Bravo: deEseDia, Charlie: none.Charlie }
       expect(kitsOf(etapa2.stage)).toEqual(esperado)
       expect(kitsOf(etapa2.overall)).toEqual(esperado)
       // Sin etapa pedida, la acumulada enseña la última corrida: la misma.
       const todo = await getTeamClassifications(t.db, worldHorizon, key)
       expect(kitsOf(todo.overall)).toEqual(esperado)
-      // Las tablas de la etapa 1 son de un día antes: Bravo aún no tenía el suyo.
+      // Las tablas de la etapa 1 son de un día antes: Bravo aún no tenía el suyo, y lleva el primero que tuvo.
       const etapa1 = await getTeamClassifications(t.db, worldHorizon, key, 1)
-      expect(kitsOf(etapa1.stage)).toEqual({ ...none, Alfa: viejo })
-      expect(kitsOf(etapa1.overall)).toEqual({ ...none, Alfa: viejo })
+      expect(kitsOf(etapa1.stage)).toEqual(esperado)
+      expect(kitsOf(etapa1.overall)).toEqual(esperado)
     } finally {
       await t.db.delete(teamKits)
       await t.db.delete(stageResults).where(eq(stageResults.raceId, key))

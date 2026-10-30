@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { fetchTeam } from '../api/browse'
 import { fetchRiderSummary } from '../api/rider'
 import { Flag } from '../components/Flag'
-import { TeamJersey, wornTeam } from '../components/ui/TeamJersey'
+import { TeamJersey } from '../components/ui/TeamJersey'
 import { Panel, SectionBar } from '../components/Panel'
 import { SquadTable } from '../components/SquadTable'
 import { Button } from '../components/ui/Button'
@@ -82,10 +82,7 @@ export function TeamSquad() {
 
       <Panel>
         <div className="flex flex-wrap items-center gap-3">
-          <TeamJersey
-            team={wornTeam(team.data.name, team.data.kit, team.data.jerseySeed)}
-            size={40}
-          />
+          <TeamJersey team={{ name: team.data.name, kit: team.data.kit }} size={40} />
           {team.data.country && <Flag code={team.data.country} size={26} />}
           <p className="text-sm text-slate-500">
             {DIVISION_LABEL[team.data.division] ?? team.data.division}

@@ -86,9 +86,10 @@ describe('WornJerseyIcon', () => {
       own: false,
     })
     expect(
-      wornTeamOf(card({ id: 't', name: 'Mistral', jerseySeed: 's', kit: 'plain.navy' })),
+      wornTeamOf(card({ id: 't', name: 'Mistral', kit: 'plain.navy', legacySeed: null })),
     ).toEqual({ name: 'Mistral', kit: 'plain.navy' })
-    expect(wornTeamOf(card({ id: 't', name: 'Mistral', jerseySeed: 's', kit: null }))).toEqual({
+    // lo grabado antes de la traducción, con la semilla del reparto (8-f; 19e)
+    expect(wornTeamOf(card({ id: 't', name: 'Mistral', kit: null, legacySeed: 's' }))).toEqual({
       name: 'Mistral',
       legacySeed: 's',
     })
