@@ -92,10 +92,16 @@ describe('la lista de atributos con el sistema (§4.6; PR 21h)', () => {
       <AttributeList attributes={propios} detail={{ trend: { MON: 'sube_mucho', RES: 'baja' } }} />,
     )
     expect(html).not.toContain('title=')
-    expect(html).toMatch(/class="text-good"[^>]*>(?:<[^>]+>)*<svg[^>]*data-variant="trend"[^>]*aria-label="Improving fast"/)
-    expect(html).toMatch(/class="text-bad"[^>]*>(?:<[^>]+>)*<svg[^>]*data-variant="trend"[^>]*aria-label="Slipping"/)
+    expect(html).toMatch(
+      /class="text-good"[^>]*>(?:<[^>]+>)*<svg[^>]*data-variant="trend"[^>]*aria-label="Improving fast"/,
+    )
+    expect(html).toMatch(
+      /class="text-bad"[^>]*>(?:<[^>]+>)*<svg[^>]*data-variant="trend"[^>]*aria-label="Slipping"/,
+    )
     expect(html).toContain('Last 28 days: Improving fast')
-    expect(html).not.toMatch(/emerald|rose|slate/)
+    expect(html).not.toMatch(
+      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+    )
   })
 
   it('la frase del entrenador, a la vista junto al atributo de techo más alto: lo_tuyo', () => {

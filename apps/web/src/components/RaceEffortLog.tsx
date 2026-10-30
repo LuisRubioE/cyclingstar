@@ -57,7 +57,9 @@ function Barra({ gasto }: { readonly gasto: Gasto }) {
           {CONCEPTOS.map((c) => {
             if (gasto[c.key] <= 0) return null
             const ancho = (100 * gasto[c.key]) / total
-            const tramo = <rect key={c.key} x={x} y={0} width={ancho} height={8} className={c.fill} />
+            const tramo = (
+              <rect key={c.key} x={x} y={0} width={ancho} height={8} className={c.fill} />
+            )
             x += ancho
             return tramo
           })}
@@ -119,7 +121,7 @@ export function RaceEffortLog({ points, max = 8 }: { points: FormPoint[]; max?: 
       <li className="flex flex-wrap gap-x-3 gap-y-1 pt-2 text-caption text-ink-2">
         {CONCEPTOS.map((c) => (
           <span key={c.key} className="flex items-center gap-1">
-            <span className={`inline-block size-2 rounded-sm ${c.bg}`} aria-hidden="true" />
+            <span className={`inline-block size-2 rounded-full ${c.bg}`} aria-hidden="true" />
             {c.label}
           </span>
         ))}

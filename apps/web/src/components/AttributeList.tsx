@@ -126,9 +126,7 @@ export function AttributeList({
                 {trainedBy.length > 0 ? trainedBy.join(', ') : 'racing experience'}
                 {attr === 'TAC' && trainedBy.length > 0 && ', and racing'}
               </span>
-              {detail && (
-                <span className="block pt-2">{`Last 28 days: ${TREND_WORD[trend]}`}</span>
-              )}
+              {detail && <span className="block pt-2">{`Last 28 days: ${TREND_WORD[trend]}`}</span>}
               {opinion && (
                 <span className="block pt-2">
                   <span className="font-semibold text-ink">Coach: </span>

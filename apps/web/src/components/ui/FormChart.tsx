@@ -48,10 +48,23 @@ export function formChartLabel(points: FormChartProps['points']): string {
   return `Fitness and freshness, last ${dias}. Fitness: ${palabra(ultimo.fitness)}, Freshness: ${palabra(ultimo.freshness)}`
 }
 
-/** Los tres días del eje, a 1/6, 1/2 y 5/6 del tramo: lejos de los bordes, para que sus rótulos quepan. */
+/**
+ * Los días del eje, a 1/6, 1/2 y 5/6 del tramo, lejos de los bordes para que sus rótulos quepan; sin repetir
+ * día, que en un tramo corto dos se redondean al mismo (con dos días, `Day 198` y `Day 199`).
+ */
 export function formChartTicks(first: number, last: number): readonly number[] {
   const tramo = last - first
-  return [1 / 6, 1 / 2, 5 / 6].map((f) => Math.round(first + tramo * f))
+  return [...new Set([1 / 6, 1 / 2, 5 / 6].map((f) => Math.round(first + tramo * f)))]
+}
+
+/**
+ * Cómo se ancla el rótulo de una marca en su sitio: centrado en su día; pero cerca de un borde, arrimado hacia
+ * dentro (a la izquierda en el primer sexto, a la derecha en el último), para que no se salga del panel.
+ */
+function anclaje(pct: number): string {
+  if (pct < 100 / 6) return ''
+  if (pct > 500 / 6) return '-translate-x-full'
+  return '-translate-x-1/2'
 }
 
 /** El trazo de muestra de la leyenda: el mismo que su línea, a 20 × 8. */
@@ -103,7 +116,8 @@ export function FormChart({ points, loading = false, layout }: FormChartProps) {
   const desde = primero.gameDay
   const tramo = Math.max(1, ultimo.gameDay - desde)
   const x = (dia: number) => ((dia - desde) / tramo) * ANCHO
-  const y = (v: number) => ALTO - MARGEN - (Math.min(100, Math.max(0, v)) / 100) * (ALTO - 2 * MARGEN)
+  const y = (v: number) =>
+    ALTO - MARGEN - (Math.min(100, Math.max(0, v)) / 100) * (ALTO - 2 * MARGEN)
   const linea = (pick: (p: FormChartProps['points'][number]) => number) =>
     points.map((p) => `${x(p.gameDay).toFixed(1)},${y(pick(p)).toFixed(1)}`).join(' ')
 
@@ -157,15 +171,18 @@ export function FormChart({ points, loading = false, layout }: FormChartProps) {
           </svg>
           {/* el eje de los días, en HTML: tres marcas del día de la temporada, centradas en el suyo */}
           <div className="relative h-4 text-caption tabular-nums text-ink-3">
-            {formChartTicks(desde, ultimo.gameDay).map((dia) => (
-              <span
-                key={dia}
-                className="absolute top-0 -translate-x-1/2 whitespace-nowrap"
-                style={{ left: `${(x(dia) / ANCHO) * 100}%` }}
-              >
-                {formatGameDay(seasonPosition(dia).dayOfSeason, null)}
-              </span>
-            ))}
+            {formChartTicks(desde, ultimo.gameDay).map((dia) => {
+              const pct = (x(dia) / ANCHO) * 100
+              return (
+                <span
+                  key={dia}
+                  className={`absolute top-0 whitespace-nowrap ${anclaje(pct)}`.trimEnd()}
+                  style={{ left: `${pct}%` }}
+                >
+                  {formatGameDay(seasonPosition(dia).dayOfSeason, null)}
+                </span>
+              )
+            })}
           </div>
         </div>
       </div>

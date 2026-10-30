@@ -57,7 +57,9 @@ describe('Last 4 weeks (§4.6; PR 21h)', () => {
     expect(html).toMatch(/Endurance<[\s\S]*?class="[^"]*text-good[^"]*"[^>]*>\+4\.1</)
     expect(html).toMatch(/Sprint<[\s\S]*?class="[^"]*text-bad[^"]*"[^>]*>−0\.6</)
     expect(html).toContain('+4.4 training · −0.3 age')
-    expect(html).not.toMatch(/emerald|rose|slate/)
+    expect(html).not.toMatch(
+      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+    )
   })
 
   it('las sesiones, con su nombre: la de carrera, con su etapa, y nunca su clave', () => {

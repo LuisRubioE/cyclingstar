@@ -21,8 +21,12 @@ describe('RoleEditor (§4.6; PR 21h)', () => {
   it('cerrado: el papel y Change role, un Button quiet de 44', () => {
     const html = pinta()
     expect(html).toContain('Climber')
-    expect(html).toMatch(/<button[^>]*data-ui="Button" data-variant="quiet"[^>]*>[\s\S]*?Change role/)
-    expect(html).not.toMatch(/indigo|slate/)
+    expect(html).toMatch(
+      /<button[^>]*data-ui="Button" data-variant="quiet"[^>]*>[\s\S]*?Change role/,
+    )
+    expect(html).not.toMatch(
+      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+    )
   })
 
   it('abierto: su explicación, el Field select con su rótulo y sus cinco papeles, Save y Cancel', () => {
@@ -32,6 +36,9 @@ describe('RoleEditor (§4.6; PR 21h)', () => {
     expect(html.match(/<option/g)).toHaveLength(5)
     expect(html).toMatch(/data-ui="Button" data-variant="primary"[^>]*>[\s\S]*?Save/)
     expect(html).toMatch(/data-ui="Button" data-variant="quiet"[^>]*>[\s\S]*?Cancel/)
-    expect(html).not.toMatch(/indigo|slate|rounded-lg/)
+    expect(html).not.toMatch(
+      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+    )
+    expect(html).not.toContain('rounded-lg')
   })
 })

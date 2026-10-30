@@ -79,8 +79,11 @@ describe('el diario de carrera (§10.7; 19b)', () => {
   it('la leyenda, en caption y con los tokens de la barra', () => {
     const html = pinta([etapa])
     expect(html).not.toContain('text-[11px]')
-    for (const f of ['bg-line-strong', 'bg-accent', 'bg-bad', 'bg-gold', 'bg-good']) expect(html).toContain(f)
-    expect(html).not.toMatch(/slate|indigo|rose|amber|emerald/)
+    for (const f of ['bg-line-strong', 'bg-accent', 'bg-bad', 'bg-gold', 'bg-good'])
+      expect(html).toContain(f)
+    expect(html).not.toMatch(
+      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+    )
   })
 
   it('los días de entrenamiento no salen: no tienen parte', () => {

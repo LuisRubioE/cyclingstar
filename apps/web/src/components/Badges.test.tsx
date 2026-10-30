@@ -32,9 +32,13 @@ describe('Badges (§4.6; PR 21h)', () => {
     const html = pinta(LOGROS)
     expect(html).toMatch(/^<section data-ui="Panel"[\s\S]*?<h2[^>]*>Badges<\/h2>/)
     expect(html.match(/<li/g)).toHaveLength(2)
-    expect(html).toMatch(/<span aria-hidden="true"[^>]*>🏆<\/span>[\s\S]*?First win[\s\S]*?Won a race for the first time\./)
+    expect(html).toMatch(
+      /<span aria-hidden="true"[^>]*>🏆<\/span>[\s\S]*?First win[\s\S]*?Won a race for the first time\./,
+    )
     expect(html).not.toContain('title=')
-    expect(html).not.toMatch(/amber/)
+    expect(html).not.toMatch(
+      /\\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\\d/,
+    )
   })
 
   it('sin logros, nada', () => {

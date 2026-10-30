@@ -97,7 +97,7 @@ function Condicion({
 }) {
   const { form, health, log } = data
   const last = log[log.length - 1] ?? null
-  const until = healthUntilLabel(health, gameDay)
+  const until = healthUntilLabel(health ?? null, gameDay)
   return (
     <div className="grid gap-4">
       {form && (
@@ -283,7 +283,9 @@ function RiderFacts({
         </Dato>
         <Dato label="Nation">
           <Flag country={rider.country} height={16} />
-          <TextLink to={`/world/nations/${rider.country}`}>{country?.name ?? rider.country}</TextLink>
+          <TextLink to={`/world/nations/${rider.country}`}>
+            {country?.name ?? rider.country}
+          </TextLink>
         </Dato>
         {abroad && (
           <Dato label="Lives in">
@@ -378,7 +380,7 @@ export function RiderProfile() {
     return <QueryView query={mine} label="your rider" skeleton={{ kind: 'header' }} answer />
   if (!routeId && mine.data === null) {
     return (
-      <section className="mx-auto grid max-w-md gap-4">
+      <section className="mx-auto grid max-w-form gap-4">
         <PageHeader title="No rider yet" />
         <EmptyState
           icon="rider"

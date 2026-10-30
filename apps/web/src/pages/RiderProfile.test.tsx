@@ -219,7 +219,10 @@ interface Cache {
   readonly entrenador?: CoachView
 }
 
-function pinta(path: string, { forma = true, equipos = true, entrenador = ENTRENADOR }: Cache = {}) {
+function pinta(
+  path: string,
+  { forma = true, equipos = true, entrenador = ENTRENADOR }: Cache = {},
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   client.setQueryData(['health'], healthWith('on', 'off'))
   client.setQueryData(['admin-whoami'], null)
@@ -296,7 +299,9 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
 
   it('la condición: la forma en estrellas de 20, el fondo y la frescura en su Meter con la palabra en minúscula, y cada porqué en su InfoButton', () => {
     const c = panel(propia(), 'Condition')
-    expect(c).toMatch(/Form[\s\S]*?data-ui="StarRating" data-variant="page"[^>]*aria-label="3\.5 of 5 stars"/)
+    expect(c).toMatch(
+      /Form[\s\S]*?data-ui="StarRating" data-variant="page"[^>]*aria-label="3\.5 of 5 stars"/,
+    )
     expect(c).toContain('Fitness: good')
     expect(c).toContain('Freshness: very low')
     for (const l of ['About fitness', 'About freshness', 'About matches'])
@@ -313,7 +318,8 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
   it('la salud en su Chip, con su nota; la moral en estrellas; la gráfica; y Where the energy went, plegado', () => {
     const c = panel(propia(), 'Condition')
     expect(c).toMatch(/data-ui="Chip" data-variant="good"[\s\S]*?Healthy/)
-    expect(c).toContain('Fit to race and train.')
+    // la frescura en 16, por debajo de 20: sano, pero fundido, y la nota lo dice (`healthNote`)
+    expect(c).toContain('No injury or illness, but deeply fatigued')
     expect(c).toMatch(/Morale<\/dt>[\s\S]*?aria-label="3 of 5 stars"/)
     expect(c).toContain('data-ui="FormChart"')
     expect(c).toMatch(/data-ui="Disclosure"[\s\S]*?Where the energy went/)
@@ -364,15 +370,22 @@ describe('la ficha propia (§4.6; PR 21h)', () => {
   it('el corredor: la edad, la nación, dónde vive, el equipo, el papel con su editor y el puesto, en un dl', () => {
     const r = panel(propia(), 'Rider')
     expect(r).toMatch(/<dt[^>]*>Age<\/dt><dd[^>]*>24 · born day \d+ of the season/)
-    expect(r).toMatch(/<dt[^>]*>Nation<\/dt><dd[^>]*>[\s\S]*?href="\/world\/nations\/ES"[\s\S]*?Spain/)
+    expect(r).toMatch(
+      /<dt[^>]*>Nation<\/dt><dd[^>]*>[\s\S]*?href="\/world\/nations\/ES"[\s\S]*?Spain/,
+    )
     expect(r).toMatch(/<dt[^>]*>Lives in<\/dt><dd[^>]*>[\s\S]*?France/)
-    expect(r).toMatch(/<dt[^>]*>Team<\/dt><dd[^>]*>[\s\S]*?href="\/world\/teams\/t-sol"[\s\S]*?Team Sol/)
+    expect(r).toMatch(
+      /<dt[^>]*>Team<\/dt><dd[^>]*>[\s\S]*?href="\/world\/teams\/t-sol"[\s\S]*?Team Sol/,
+    )
     expect(r).toMatch(/<dt[^>]*>Role<\/dt><dd[^>]*>[\s\S]*?Change role/)
     expect(r).toMatch(/<dt[^>]*>Season rank<\/dt><dd[^>]*>#40 of 400/)
   })
 
   it('en declive, su Chip, sin title', () => {
-    const r = panel(pinta('/me/profile', { entrenador: { ...ENTRENADOR, declining: true } }), 'Rider')
+    const r = panel(
+      pinta('/me/profile', { entrenador: { ...ENTRENADOR, declining: true } }),
+      'Rider',
+    )
     expect(r).toMatch(/data-ui="Chip" data-variant="warn"[\s\S]*?Declining/)
     expect(r).not.toContain('title=')
   })
@@ -407,7 +420,14 @@ describe('la ficha ajena (§4.6; PR 21h)', () => {
     const html = ajena()
     expect(respuestas(html)).toBe(1)
     expect(panel(html, 'Attributes')).toMatch(/^<section data-ui="Panel"[^>]*data-answer=""/)
-    expect(titulos(html)).toEqual(['Attributes', 'Season', 'Palmarès', 'Badges', 'Recent results', 'Rider'])
+    expect(titulos(html)).toEqual([
+      'Attributes',
+      'Season',
+      'Palmarès',
+      'Badges',
+      'Recent results',
+      'Rider',
+    ])
     expect(html).not.toContain('through this band')
     expect(html).not.toContain('data-variant="trend"')
     expect(html).not.toContain('Coach:')

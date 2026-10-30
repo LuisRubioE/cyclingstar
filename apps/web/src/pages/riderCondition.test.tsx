@@ -136,9 +136,10 @@ describe('la ficha propia y la ajena (§13.5; 19b)', () => {
     expect(cuenta(html, 'through this band')).toBe(10)
     expect(html).toContain('aria-label="3 of 5 stars"')
     expect(html).toMatch(/data-variant="trend"[^>]*aria-label="Improving"/)
-    // las dos barras, con su palabra: el fondo `Good` (65) y la frescura `Very low` (16)
-    expect(html).toContain('Good')
-    expect(html).toContain('Very low')
+    // las dos barras, con su palabra: el fondo `good` (65) y la frescura `very low` (16), en minúscula tras
+    // sus dos puntos desde el 21h (docs/visual.md §4.6: `Fitness: good`)
+    expect(html).toContain('Fitness: good')
+    expect(html).toContain('Freshness: very low')
   })
 
   it('la ajena: solo las estrellas, sin condición, marca ni flecha', () => {

@@ -17,7 +17,8 @@ const dias = (n: number, desde = 1) =>
     freshness: i === n - 1 ? 30 : 70,
   }))
 
-const pinta = (node: Parameters<typeof FormChart>[0]) => renderToStaticMarkup(<FormChart {...node} />)
+const pinta = (node: Parameters<typeof FormChart>[0]) =>
+  renderToStaticMarkup(<FormChart {...node} />)
 const svg = (markup: string) => /<svg[\s\S]*?<\/svg>/.exec(markup)?.[0] ?? ''
 
 describe('FormChart (§4.8; PR 21h)', () => {
@@ -100,9 +101,18 @@ describe('FormChart (§4.8; PR 21h)', () => {
     )
   })
 
-  it('las marcas, a 1/6, 1/2 y 5/6 del tramo', () => {
+  it('las marcas, a 1/6, 1/2 y 5/6 del tramo, sin repetir día', () => {
     expect(formChartTicks(1, 90)).toEqual([16, 46, 75])
     expect(formChartTicks(10, 16)).toEqual([11, 13, 15])
+    expect(formChartTicks(198, 199)).toEqual([198, 199])
+  })
+
+  it('con dos días, dos marcas, sin salirse: la primera arrimada a la izquierda y la última a la derecha', () => {
+    const markup = pinta({ points: dias(2, 198) })
+    const marcas = [...markup.matchAll(/<span class="([^"]*)" style="left:([^"%]+)%">(Day \d+)</g)]
+    expect(marcas.map((m) => m[3])).toEqual(['Day 198', 'Day 199'])
+    expect(marcas[0]?.[1]).not.toContain('translate')
+    expect(marcas[1]?.[1]).toContain('-translate-x-full')
   })
 
   it('el layout, en su raíz', () => {
