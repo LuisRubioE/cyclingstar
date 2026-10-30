@@ -60,6 +60,12 @@ describe('TimeTrialOverlay · la capa fija de la crono (§9.5)', () => {
     expect(html).toMatch(/^<div[^>]*aria-live="off"/)
     expect(html).toContain('data-hot-seat=""')
   })
+
+  it('es la capa fija de la crono, y la respuesta de su pantalla (§7.3, la 38; D-23)', () => {
+    const html = renderToStaticMarkup(<TimeTrialOverlay tti={tti} cast={cast} />)
+    expect(html).toMatch(/^<div[^>]*data-ui="FixedOverlay"/)
+    expect(html).toMatch(/^<div[^>]*data-answer=""/)
+  })
 })
 
 describe('TimeTrialBoard · el tablero que sustituye a la barra (§9.5)', () => {

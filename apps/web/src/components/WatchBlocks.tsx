@@ -307,11 +307,13 @@ function AwayRace({ block, watchOn }: { block: AwayBlock; watchOn: boolean }) {
     <div data-race-block={block.raceKey}>
       <h3 className="text-body font-semibold text-ink">{block.header}</h3>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        {/* el digest: la carrera entera deprisa, encadenada (§8.8, 8-c), y el primary de la carrera */}
+        {/* el digest: la carrera entera deprisa, encadenada (§8.8, 8-c), y el primary de la carrera; a 320
+            px su texto no cabe en un renglón, y con `max-w-full` parte en dos en lugar de salirse */}
         {watchOn && (
           <Button
             variant="primary"
             size="sm"
+            layout="max-w-full"
             to={watchHref(block.raceId, block.continueFrom, oneDay, 'digest', block.lastStage)}
           >
             {`Watch the race in ${block.digestMinutes} ${block.digestMinutes === 1 ? 'minute' : 'minutes'}`}

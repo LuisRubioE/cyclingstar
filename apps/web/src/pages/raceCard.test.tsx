@@ -146,6 +146,23 @@ describe('la carrera de un día terminada (11-o; sup. C3 y E9)', () => {
     expect(selectedOf(markup)).toBe('Report')
   })
 
+  it('compartir, como en la etapa (E3, §14.2; PR 20): Share to watch sobre las pestañas, y Share the report en Report, solo a quien la conoce', () => {
+    // con los dos sobre las pestañas, en `Button` de 44, partían en dos renglones a 360 px y bajaban la
+    // capa fija, la respuesta de la pantalla (§7.3), casi hasta el tope de la comprobación 7
+    const seen = page(`/world/races/${SANREMO}`, { view: sanremo, stage: seenStage })
+    const tabs = seen.indexOf('role="tab"')
+    expect(seen.indexOf('Share to watch')).toBeGreaterThan(-1)
+    expect(seen.indexOf('Share to watch')).toBeLessThan(tabs)
+    expect(seen.indexOf('Share the report')).toBeGreaterThan(tabs)
+    const veiled = page(`/world/races/${SANREMO}`, {
+      view: sanremo,
+      horizon: sanremoVeil,
+      stage: veiledStage,
+    })
+    expect(veiled).toContain('Share to watch')
+    expect(veiled).not.toContain('Share the report')
+  })
+
   it('con Watch apagado (el jugador hasta el encendido): las de hoy, Result primero y Story al lado', () => {
     const markup = page(`/world/races/${SANREMO}`, { watch: 'off', view: sanremo })
     expect(tabsOf(markup)).toEqual(['Result', 'Story', 'Race Radio', 'Route', 'Roll of honour'])

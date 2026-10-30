@@ -57,6 +57,10 @@ const RACE_PANEL = 'race-section'
  * completa de la ficha no pide más ficheros que antes del 9b (cuentan para el límite de 300 peticiones por
  * minuto e IP). Las pestañas que son de la ficha (`Result`, `Route` y `Roll of honour`) se las pasa
  * `Race.tsx` ya hechas.
+ *
+ * Desde el PR 20 (E3, docs/visual.md §14.2), compartir va como en la página de una etapa: `Share to watch`
+ * sobre las pestañas y `Share the report` en `Report`, donde está el acta. Con los dos encima, en `Button`
+ * de 44, partían en dos renglones a 360 px y bajaban la capa fija, la respuesta de la pantalla (§7.3).
  */
 export function OneDaySections({
   raceId,
@@ -168,13 +172,7 @@ export function OneDaySections({
 
   return (
     <>
-      {watchOn && (
-        <ShareStage
-          raceId={raceId}
-          day={1}
-          report={full !== null || (f.data?.watch?.known ?? true)}
-        />
-      )}
+      {watchOn && <ShareStage raceId={raceId} day={1} report={false} />}
       <Tabs
         options={options}
         value={active}
@@ -224,12 +222,16 @@ export function OneDaySections({
             )}
             {withResult((d) =>
               watchOn ? (
-                <StageReportView
-                  data={d}
-                  onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
-                  identity={identity}
-                  ownRiderId={ownRiderId}
-                />
+                <>
+                  {/* el acta se comparte desde aquí, donde está (§14.2) */}
+                  <ShareStage raceId={raceId} day={1} report watch={false} />
+                  <StageReportView
+                    data={d}
+                    onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
+                    identity={identity}
+                    ownRiderId={ownRiderId}
+                  />
+                </>
               ) : (
                 <StageStory data={d} onFullResult={() => setActive('result')} />
               ),

@@ -263,4 +263,10 @@ describe('FixedOverlay · el ámbito oscuro y el resumen accesible (§14.3)', ()
     const node = <FixedOverlay instant={breakAndBunch(LENGTH - 0.45, 12)} head={HEAD} />
     expect(attrOf(node, 'aria-label')).toBe('450 m to go.')
   })
+
+  it('es la respuesta de Watch (§7.3): data-ui FixedOverlay y data-answer, que mira la comprobación 7', () => {
+    const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
+    expect(attrOf(node, 'data-ui')).toBe('FixedOverlay')
+    expect(attrOf(node, 'data-answer')).toBe('')
+  })
 })

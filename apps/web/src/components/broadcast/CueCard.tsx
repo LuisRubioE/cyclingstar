@@ -28,9 +28,11 @@ export interface ShownCueCard {
  *
  * La región está siempre, vacía entre rótulo y rótulo, y es `aria-live="polite"` (D-57, §18.8): un
  * lector de pantalla dice cada rótulo al salir sin cortar lo que estaba diciendo. Ocupa su sitio
- * aunque esté vacía (88 px desde el 17a, el título y dos renglones de 28 con maillot; §14.5, 14-b), para
- * que la voz no salte de sitio con cada rótulo. La clase pinta el fondo: la 3 (la meta, la caza, el
- * corte) de rojo; la 2, de oscuro; el resto, más claro.
+ * aunque esté vacía, para que la voz no salte de sitio con cada rótulo: 88 px desde el 17a (el título y
+ * dos renglones de 28 con maillot, estimado; §14.5, 14-b), y 160 desde el 20, lo que mide en `Watch` a 320
+ * y a 360 px la ficha más alta de un corredor (`DROPPED` con su maillot de líder). Solo las tablas pasan de
+ * ahí (`TIME CHECK`, `VIRTUAL GC`). La clase pinta el fondo: la 3 (la meta, la caza, el corte) de rojo; la
+ * 2, de oscuro; el resto, más claro.
  *
  * Desde el 17a (E3, docs/visual.md §14.1 y §14.5; D-00b, D-00c): los maillots a 28 px y con el filete
  * claro (`surface="dark"`), en el orden de D-00c: el dorsal, la bandera, el nombre y el maillot que
@@ -50,7 +52,7 @@ export const CueCard = memo(function CueCard({ cue }: { cue: ShownCueCard | null
   const second = onBad ? 'text-ink' : 'text-ink-2'
   const body = cue?.body
   return (
-    <div aria-live="polite" aria-atomic="true" className="min-h-22" data-cue-card="">
+    <div aria-live="polite" aria-atomic="true" className="min-h-40" data-cue-card="">
       {cue !== null && (
         <div
           key={cue.seq}

@@ -15,8 +15,10 @@ describe('CueCard · el rótulo del momento, uno a la vez (§6.5)', () => {
   it('sin rótulo, la región viva está y está vacía', () => {
     const html = renderToStaticMarkup(<CueCard cue={null} />)
     expect(html).toContain('aria-live="polite"')
-    // re-sellado en el 17a (E3, §14.5; 14-b): de 72 a 88 px, el título y dos renglones de 28 con maillot
-    expect(html).toContain('min-h-22')
+    // re-sellado en el 17a (E3, §14.5; 14-b): de 72 a 88 px, el título y dos renglones de 28 con maillot;
+    // y en el 20, medido en Watch a 320 y a 360 px: las fichas de corredor llegan a 160 (`DROPPED` con su
+    // maillot de líder), así que de 88 a 160; solo las tablas pasan de ahí (14-b, «la clase sube»)
+    expect(html).toContain('min-h-40')
     expect(html).not.toContain('data-cue-class')
   })
 

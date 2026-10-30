@@ -215,6 +215,15 @@ describe('la portada bajo el velo · un solo primary por carrera (§14.6)', () =
     expect(b.get('race-jaen:s0')!).toMatch(/data-variant="secondary"[^>]*>[\s\S]*?>Watch</)
   })
 
+  it('el digest no pasa del ancho de su bloque: a 320 px parte en dos renglones y no se sale', () => {
+    // `Watch the race in 27 minutes` en `body` 600 mide más que el bloque a 320 px, y `Button` no encoge
+    // (`shrink-0`): sin tope, la comprobación 2 de la prueba del teléfono lo cuenta en las pantallas 17 y 30.
+    const digest = /<a[^>]*data-variant="primary"[^>]*>(?=[\s\S]*?Watch the race in)/.exec(
+      blocks(render(conJaen)).get('race-italy:s0')!,
+    )
+    expect(digest?.[0]).toContain('max-w-full')
+  })
+
   it('Ready to watch: el Watch de la primera etapa velada es el primary; las demás, secondary', () => {
     const france = blocks(render(conJaen)).get('race-france:s0')!
     expect(primaries(france)).toEqual(['Watch'])
