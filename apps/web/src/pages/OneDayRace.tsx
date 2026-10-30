@@ -6,7 +6,8 @@ import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { ShareStage } from '../components/ShareStage'
 import { StageGateCard, TwoDeviceNotice } from '../components/StageGate'
 import { StageStory } from '../components/StageStory'
-import { TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { TabPanel, useTabParam } from '../components/Tabs'
+import { Tabs } from '../components/ui/Tabs'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
@@ -28,8 +29,8 @@ import {
 // de un día terminada descarga el reproductor también con `Watch` apagado (unos 58 kB, 19 con gzip).
 import { StageWatch, watchViewOf } from './StageWatch'
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
-const head = 'mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400'
+const card = 'rounded-ui border border-line bg-surface p-4 shadow-card'
+const head = 'mb-3 text-caption font-semibold uppercase tracking-caps text-ink-2'
 /** El panel de la tira de pestañas de la ficha (`RACE_PANEL` de `Race.tsx`). */
 const RACE_PANEL = 'race-section'
 
@@ -179,7 +180,7 @@ export function OneDaySections({
         value={active}
         onChange={setActive}
         label="Race"
-        variant="underline"
+        variant="page"
         panelId={RACE_PANEL}
       />
       {otherDevice && (
@@ -219,7 +220,7 @@ export function OneDaySections({
           <>
             {/* Sin `Watch` para su etapa (§17.19): una crono sin línea, una lápida (D-12). */}
             {watchOn && f.unavailable && (
-              <p className="text-sm text-slate-500">Broadcast unavailable for this race</p>
+              <p className="text-meta text-ink-2">Broadcast unavailable for this race</p>
             )}
             {withResult((d) =>
               watchOn ? (

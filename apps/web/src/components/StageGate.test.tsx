@@ -168,6 +168,36 @@ describe('revelar sin castigo (§11.11, DD-17)', () => {
     )
     expect(text(<StageReportView data={data} />)).not.toContain('Watch anyway')
   })
+
+  it('el acta, con su fila de saltos antes de la crónica: Result, Classifications y Chronicle (E3, §14.6; 14-c)', () => {
+    const data: StageReplay = {
+      day: 7,
+      name: 'Stage 7 · Summit finish',
+      km: 187,
+      run: true,
+      altimetry: '<svg/>',
+      champions: {},
+      results: [],
+      chronicle: [],
+    }
+    const markup = html(
+      <StageReportView
+        data={data}
+        classificationsHref="/world/races/race-france/stages/7?tab=classifications"
+      />,
+    )
+    const jumps = [...markup.matchAll(/data-ui="TextLink"[^>]*href="([^"]+)"[^>]*>([^<]+)</g)].map(
+      (m) => [m[1], m[2]],
+    )
+    expect(jumps).toEqual([
+      ['/#stage-result', 'Result'],
+      ['/world/races/race-france/stages/7?tab=classifications', 'Classifications'],
+      ['/#stage-chronicle', 'Chronicle'],
+    ])
+    expect(markup).toContain('id="stage-result"')
+    // sin la pestaña de clasificaciones, ese salto no sale
+    expect(html(<StageReportView data={data} />)).not.toContain('>Classifications<')
+  })
 })
 
 describe('dos dispositivos y el modo diagnóstico en pantalla (D-57, §11.15)', () => {
@@ -175,12 +205,79 @@ describe('dos dispositivos y el modo diagnóstico en pantalla (D-57, §11.15)', 
     const t = text(
       <TwoDeviceNotice onWatchAnyway={() => undefined} onShowReport={() => undefined} />,
     )
-    expect(t).toMatch(/You finished this stage on another device · Watch anyway · Show report/)
+    // RE-SELLADO EN EL PR 20 (E3, docs/visual.md §14.6): el aviso es un `Notice` con su título en su
+    // renglón, así que el `·` de detrás del título se va; los textos son los mismos
+    expect(t).toMatch(/You finished this stage on another device Watch anyway · Show report/)
   })
 
   it('la franja del modo diagnóstico', () => {
     expect(text(<DiagnosticStrip exitHref="/world/races/race-france/stages/7" />)).toContain(
       'Diagnostic view · not counted as watched',
     )
+  })
+})
+
+/**
+ * LA PUERTA CON EL CATÁLOGO (E3, docs/visual.md §14.6; Rcobertura-038; PR 20): la tarjeta, la confirmación,
+ * los dos dispositivos y el modo diagnóstico toman el aspecto de `Notice` y de `Button`, sin cambiar su
+ * lógica ni sus textos, y con sus papeles de hoy (la región, el diálogo, `status` y `note`).
+ */
+describe('la puerta con el catálogo (§14.6)', () => {
+  /** Los botones del catálogo, con su variante y su texto. */
+  const buttons = (markup: string): string[][] =>
+    [
+      ...markup.matchAll(/data-ui="Button" data-variant="(\w+)"[^>]*>([\s\S]*?)<\/(?:a|button)>/g),
+    ].map((m) => [
+      m[1]!,
+      m[2]!
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    ])
+
+  it('la tarjeta: un Notice en su región, con Watch primary y Show result secondary', () => {
+    const markup = html(card())
+    expect(markup).toMatch(/<div[^>]*role="region"[^>]*aria-label="Not watched yet"/)
+    expect(markup).toContain('data-ui="Notice"')
+    expect(buttons(markup)).toEqual([
+      ['primary', 'Watch'],
+      ['secondary', 'Show result'],
+    ])
+  })
+
+  it('la confirmación: un Notice en su diálogo; Show result primary y Cancel secondary', () => {
+    const markup = html(
+      <RevealConfirm
+        stageDay={7}
+        also={[]}
+        busy={false}
+        onConfirm={() => undefined}
+        onCancel={() => undefined}
+      />,
+    )
+    expect(markup).toMatch(/^<div[^>]*role="dialog"[^>]*aria-label="Show the result"/)
+    expect(markup).toContain('data-ui="Notice"')
+    expect(buttons(markup)).toEqual([
+      ['primary', 'Show result'],
+      ['secondary', 'Cancel'],
+    ])
+  })
+
+  it('dos dispositivos: un Notice info que se anuncia, con sus dos salidas en quiet', () => {
+    const markup = html(
+      <TwoDeviceNotice onWatchAnyway={() => undefined} onShowReport={() => undefined} />,
+    )
+    expect(markup).toMatch(/data-ui="Notice" data-variant="info"[^>]*role="status"/)
+    expect(buttons(markup)).toEqual([
+      ['quiet', 'Watch anyway'],
+      ['quiet', 'Show report'],
+    ])
+  })
+
+  it('el modo diagnóstico: un Notice warn, con Exit, encima de las pestañas', () => {
+    const markup = html(<DiagnosticStrip exitHref="/world/races/race-france/stages/7" />)
+    expect(markup).toMatch(/data-ui="Notice" data-variant="warn"[^>]*role="note"/)
+    expect(markup).toContain('href="/world/races/race-france/stages/7"')
+    expect(buttons(markup)).toEqual([['quiet', 'Exit']])
   })
 })

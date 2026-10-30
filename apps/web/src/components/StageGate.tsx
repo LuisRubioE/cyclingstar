@@ -1,7 +1,9 @@
 import type { StageGate } from '@cyclingstar/shared'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { type GatePlace, alsoRevealsText, revealPlan, revealQuestion } from '../domain/stageGate'
+import { Button } from './ui/Button'
+import { Notice } from './ui/Notice'
+import { TextLink } from './ui/TextLink'
 
 /**
  * LA PUERTA Y REVELAR SIN CASTIGO (E2, docs/retransmision.md §6.10, §10.12, §11.10 a §11.12 y §11.15;
@@ -16,13 +18,11 @@ import { type GatePlace, alsoRevealsText, revealPlan, revealQuestion } from '../
  * `Diagnostic view` (§11.15). Desde el 10a, con la anterior sin ver, también `Highlights of stage 6`, que
  * la abre en `Highlights` (§8.1). Quien lee con `cs_viewer` sin sesión no puede revelar (las escrituras
  * piden sesión, §10.8) y ve `Sign in to see results as you know them`.
+ *
+ * Desde el PR 20 (E3, docs/visual.md §14.1 y §14.6; Rcobertura-038): la tarjeta, la confirmación, los dos
+ * dispositivos y el modo diagnóstico toman el aspecto de `Notice` y de `Button`, con sus papeles de hoy
+ * (la región, el diálogo, `status` y `note`) y sin cambiar su lógica ni sus textos.
  */
-
-const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
-const primary =
-  'rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60'
-const secondary =
-  'rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200 disabled:opacity-60'
 
 /** Revelar desde la puerta: lo que la página sabe hacer y si hay que preguntar antes. */
 export interface RevealActions {
@@ -57,30 +57,23 @@ export function RevealConfirm({
   const [dontAsk, setDontAsk] = useState(false)
   const alsoText = alsoRevealsText(also)
   return (
-    <div
-      role="dialog"
-      aria-label="Show the result"
-      className="mt-3 space-y-2 rounded-xl bg-slate-50 p-3"
-    >
-      <p className="text-sm text-slate-700">{question ?? revealQuestion(stageDay)}</p>
-      {alsoText !== null && <p className="text-sm text-slate-500">{alsoText}</p>}
-      <label className="flex items-center gap-2 text-sm text-slate-600">
-        <input type="checkbox" checked={dontAsk} onChange={(e) => setDontAsk(e.target.checked)} />
-        Don&apos;t ask again
-      </label>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={primary}
-          disabled={busy}
-          onClick={() => onConfirm(dontAsk)}
-        >
-          Show result
-        </button>
-        <button type="button" className={secondary} disabled={busy} onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
+    <div role="dialog" aria-label="Show the result" className="mt-3">
+      <Notice tone="info" title={question ?? revealQuestion(stageDay)}>
+        {alsoText !== null && <p>{alsoText}</p>}
+        <label className="mt-1 flex min-h-11 items-center gap-2 text-ink">
+          <input type="checkbox" checked={dontAsk} onChange={(e) => setDontAsk(e.target.checked)} />
+          Don&apos;t ask again
+        </label>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <Button variant="primary" busy={busy} onClick={() => onConfirm(dontAsk)}>
+            Show result
+          </Button>
+          {/* ocupado, cerrar no deshace nada: revelar sigue y su fallo se dice en la puerta */}
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
+      </Notice>
     </div>
   )
 }
@@ -148,49 +141,45 @@ export function StageGateCard({
     place === 'watch' ? `Show result of stage ${plan.stageDay} and continue` : 'Show result'
 
   return (
-    <div className={card} role="region" aria-label="Not watched yet">
-      <p className="text-sm font-medium text-slate-800">{heading}</p>
-      {place === 'result' && first !== null && (
-        <p className="mt-1 text-sm text-slate-500">You haven&apos;t watched stage {first} yet.</p>
-      )}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {first !== null
-          ? offerWatch && (
-              <>
-                <Link to={stageHref(first)} className={primary}>
-                  Watch stage {first}
-                </Link>
-                <Link to={`${stageHref(first)}&view=highlights`} className={secondary}>
-                  Highlights of stage {first}
-                </Link>
-              </>
-            )
-          : offerWatch &&
-            (onWatch !== undefined ? (
-              <button type="button" className={primary} onClick={onWatch}>
-                Watch
-              </button>
-            ) : (
-              <Link to={stageHref(stageDay)} className={primary}>
-                Watch
-              </Link>
-            ))}
-        {actions !== null && !confirming && (
-          <button
-            type="button"
-            className={secondary}
-            disabled={busy}
-            onClick={() => (actions.askFirst ? setConfirming(true) : void reveal(false))}
-          >
-            {showLabel}
-          </button>
-        )}
-        {actions === null && signIn && (
-          <Link to="/login" className="text-sm font-medium text-brand-cyan hover:underline">
-            Sign in to see results as you know them
-          </Link>
-        )}
-      </div>
+    <div role="region" aria-label="Not watched yet">
+      <Notice tone="info" title={heading}>
+        {place === 'result' && first !== null && <p>You haven&apos;t watched stage {first} yet.</p>}
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          {first !== null
+            ? offerWatch && (
+                <>
+                  <Button variant="primary" to={stageHref(first)}>
+                    {`Watch stage ${first}`}
+                  </Button>
+                  <Button variant="secondary" to={`${stageHref(first)}&view=highlights`}>
+                    {`Highlights of stage ${first}`}
+                  </Button>
+                </>
+              )
+            : offerWatch &&
+              (onWatch !== undefined ? (
+                <Button variant="primary" onClick={onWatch}>
+                  Watch
+                </Button>
+              ) : (
+                <Button variant="primary" to={stageHref(stageDay)}>
+                  Watch
+                </Button>
+              ))}
+          {actions !== null && !confirming && (
+            <Button
+              variant="secondary"
+              busy={busy}
+              onClick={() => (actions.askFirst ? setConfirming(true) : void reveal(false))}
+            >
+              {showLabel}
+            </Button>
+          )}
+          {actions === null && signIn && (
+            <TextLink to="/login">Sign in to see results as you know them</TextLink>
+          )}
+        </div>
+      </Notice>
       {confirming && (
         <RevealConfirm
           stageDay={plan.stageDay}
@@ -200,12 +189,14 @@ export function StageGateCard({
           onCancel={() => setConfirming(false)}
         />
       )}
-      {failed && <p className="mt-2 text-sm text-red-600">Could not show the result.</p>}
+      {failed && (
+        <p role="alert" className="mt-2 text-meta text-bad">
+          Could not show the result.
+        </p>
+      )}
       {diagHref !== null && (
-        <p className="mt-4 text-right">
-          <Link to={diagHref} className="text-xs text-slate-400 hover:text-slate-600">
-            Diagnostic view
-          </Link>
+        <p className="mt-4 text-right text-caption">
+          <TextLink to={diagHref}>Diagnostic view</TextLink>
         </p>
       )}
     </div>
@@ -224,20 +215,17 @@ export function TwoDeviceNotice({
   onShowReport: () => void
 }) {
   return (
-    <div
-      role="status"
-      className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-indigo-50 px-3 py-2 text-sm text-indigo-900"
-    >
-      <span>You finished this stage on another device</span>
-      <span aria-hidden>·</span>
-      <button type="button" className="font-medium underline" onClick={onWatchAnyway}>
-        Watch anyway
-      </button>
-      <span aria-hidden>·</span>
-      <button type="button" className="font-medium underline" onClick={onShowReport}>
-        Show report
-      </button>
-    </div>
+    <Notice tone="info" role="status" title="You finished this stage on another device">
+      <span className="flex flex-wrap items-center gap-x-1">
+        <Button variant="quiet" layout="-ml-4" onClick={onWatchAnyway}>
+          Watch anyway
+        </Button>
+        <span aria-hidden>·</span>
+        <Button variant="quiet" onClick={onShowReport}>
+          Show report
+        </Button>
+      </span>
+    </Notice>
   )
 }
 
@@ -247,14 +235,12 @@ export function TwoDeviceNotice({
  */
 export function DiagnosticStrip({ exitHref }: { exitHref: string }) {
   return (
-    <div
-      role="note"
-      className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl bg-amber-100 px-3 py-2 text-sm font-medium text-amber-900"
-    >
-      <span>Diagnostic view · not counted as watched</span>
-      <Link to={exitHref} className="text-xs font-normal underline">
-        Exit
-      </Link>
+    <div className="sticky top-0 z-10">
+      <Notice
+        tone="warn"
+        title="Diagnostic view · not counted as watched"
+        action={{ label: 'Exit', to: exitHref }}
+      />
     </div>
   )
 }

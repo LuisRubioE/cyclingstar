@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1780,
-    "arbitrarios": 30,
-    "espaciado": 24,
+    "tema": 1654,
+    "arbitrarios": 29,
+    "espaciado": 19,
     "layout": 0
   },
   "ficheros": {
@@ -103,12 +103,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/components/ShareStage.tsx": {
-      "tema": 10,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/components/ShowAll.tsx": {
       "tema": 3,
       "arbitrarios": 0,
@@ -119,12 +113,6 @@
       "tema": 16,
       "arbitrarios": 0,
       "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/StageGate.tsx": {
-      "tema": 47,
-      "arbitrarios": 0,
-      "espaciado": 1,
       "layout": 0
     },
     "apps/web/src/components/StageReadyLine.tsx": {
@@ -277,12 +265,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/pages/OneDayRace.tsx": {
-      "tema": 8,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
     "apps/web/src/pages/Privacy.tsx": {
       "tema": 13,
       "arbitrarios": 0,
@@ -331,24 +313,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/pages/StageReplay.tsx": {
-      "tema": 30,
-      "arbitrarios": 0,
-      "espaciado": 2,
-      "layout": 0
-    },
-    "apps/web/src/pages/StageReport.tsx": {
-      "tema": 14,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/StageWatch.tsx": {
-      "tema": 6,
-      "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/pages/Team.tsx": {
       "tema": 15,
       "arbitrarios": 0,
@@ -381,12 +345,6 @@
     },
     "apps/web/src/pages/VerifyEmail.tsx": {
       "tema": 30,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/pages/stageView.tsx": {
-      "tema": 11,
       "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0
