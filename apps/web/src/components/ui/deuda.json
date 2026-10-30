@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1971,
-    "arbitrarios": 32,
-    "espaciado": 28,
+    "tema": 1780,
+    "arbitrarios": 30,
+    "espaciado": 24,
     "layout": 0
   },
   "ficheros": {
@@ -169,69 +169,9 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/components/WatchBlocks.tsx": {
-      "tema": 45,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/components/WorldClock.tsx": {
       "tema": 5,
       "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/ClockNotice.tsx": {
-      "tema": 6,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/CueCard.tsx": {
-      "tema": 15,
-      "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/FixedOverlay.tsx": {
-      "tema": 9,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/GroupBar.tsx": {
-      "tema": 18,
-      "arbitrarios": 0,
-      "espaciado": 4,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/PlayerControls.tsx": {
-      "tema": 21,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/ProfileStrip.tsx": {
-      "tema": 2,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/StageCards.tsx": {
-      "tema": 56,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/TimeTrialBoard.tsx": {
-      "tema": 13,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/broadcast/VoiceTicker.tsx": {
-      "tema": 6,
-      "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
     },

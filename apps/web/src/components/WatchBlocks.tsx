@@ -1,7 +1,6 @@
 import { type HorizonSummary, SPOILER } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { fetchCalendar } from '../api/calendar'
 import { postReveal, putFollow, putSpoilerScope, readAdaptive, writeAdaptive } from '../api/watch'
 import { raceRevealQuestion, stageRange } from '../domain/stageGate'
@@ -25,8 +24,12 @@ import {
   useWatchOn,
   veilApplies,
 } from '../queryClient'
-import { Panel } from './Panel'
 import { RevealConfirm } from './StageGate'
+import { Button } from './ui/Button'
+import { Notice } from './ui/Notice'
+import { Panel } from './ui/Panel'
+import { TextLink } from './ui/TextLink'
+import { FOCUS } from './ui/styles'
 
 /**
  * LA PORTADA BAJO EL VELO (E2, docs/retransmision.md §11.4; D-39, I-37, H-20, 11-q; paso 9b). Encima de lo
@@ -50,6 +53,12 @@ import { RevealConfirm } from './StageGate'
  *
  * Sin velo para quien mira (`SPOILER_MODE` apagado, o en `admins` para un jugador) no pinta nada: la
  * portada es la de hoy.
+ *
+ * Desde el PR 20 (E3, docs/visual.md §14.6; captura 17): con el catálogo, `Panel`, `Button`, `Notice` y
+ * `TextLink`, y un solo `primary` por carrera: el digest si lo hay; si no, `Watch` o `Continue from stage
+ * N`; en `Ready to watch`, el `Watch` de la primera etapa velada. Va en el claro de la portada y no en el
+ * ámbito oscuro: es la portada y no `Watch`, y dentro del ámbito la confirmación de `Show result`, un
+ * `Notice`, no se leería (la tinta pasa a blanca y su fondo se queda claro, 3-j).
  */
 export function WatchBlocks() {
   const rev = useHorizonRev()
@@ -79,16 +88,17 @@ export function WatchBlocks() {
       <ExpiredAndOffer h={h} notices={expired} />
       {blocks.watching.length > 0 && (
         <Panel title="Continue watching">
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {blocks.watching.map((w) => (
-              <li key={`${w.raceKey}/${w.stageDay}`} className="flex items-center gap-3 text-sm">
-                <span className="min-w-0 flex-1 text-slate-700">{w.text}</span>
-                <Link
+              <li key={`${w.raceKey}/${w.stageDay}`} className="flex items-center gap-3 text-meta">
+                <span className="min-w-0 flex-1 text-ink">{w.text}</span>
+                <Button
+                  variant="primary"
+                  size="sm"
                   to={`/world/races/${w.raceId}/stages/${w.stageDay}?tab=watch`}
-                  className="shrink-0 rounded-md bg-brand-cyan px-3 py-1 text-xs font-medium text-white hover:bg-brand-cyan-light"
                 >
                   Continue
-                </Link>
+                </Button>
               </li>
             ))}
           </ul>
@@ -116,10 +126,8 @@ export function WatchBlocks() {
   )
 }
 
-const button =
-  'rounded-md bg-brand-cyan px-3 py-1 text-xs font-medium text-white transition hover:bg-brand-cyan-light'
-const quiet =
-  'rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200 disabled:opacity-60'
+/** `Key stages`, que despliega y que el catálogo no tiene: con el aspecto de un `Button` `quiet` de 44. */
+const disclose = `inline-flex min-h-11 items-center rounded-ui px-4 text-body font-semibold text-accent hover:bg-surface-2 fine:min-h-8 fine:px-3 ${FOCUS}`
 
 /** Seguir o soltar una carrera y el `rev` de después en `['horizon']` (§10.9, regla 3). */
 function useDropRace(raceKey: string) {
@@ -140,30 +148,30 @@ function ReadyRaceRow({ row, h, watchOn }: { row: ReadyRow; h: HorizonSummary; w
   const drop = useDropRace(row.raceKey)
   const veiled = h.ready.find((r) => r.raceKey === row.raceKey)?.stages ?? []
   return (
-    <div>
-      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-800">{row.header}</h3>
-        <button
-          type="button"
-          className={quiet}
-          disabled={drop.isPending}
-          onClick={() => drop.mutate()}
-        >
+    <div data-race-block={row.raceKey}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-body font-semibold text-ink">{row.header}</h3>
+        <Button variant="quiet" size="sm" busy={drop.isPending} onClick={() => drop.mutate()}>
           Stop protecting this race
-        </button>
+        </Button>
       </div>
       <ul className="grid gap-2 sm:grid-cols-2">
-        {row.cards.map((c) => (
+        {row.cards.map((c, i) => (
           <ReadyCard
             key={c.stageDay}
             card={c}
+            primary={i === 0}
             ownRider={row.ownRider}
             before={veiled.filter((d) => d < c.stageDay)}
             watchOn={watchOn}
           />
         ))}
       </ul>
-      {drop.isError && <p className="mt-1 text-xs text-red-600">Could not change this race.</p>}
+      {drop.isError && (
+        <p role="alert" className="mt-1 text-caption text-bad">
+          Could not change this race.
+        </p>
+      )}
     </div>
   )
 }
@@ -171,11 +179,14 @@ function ReadyRaceRow({ row, h, watchOn }: { row: ReadyRow; h: HorizonSummary; w
 /** Una tarjeta: lo que dice de la etapa es recorrido; `Watch` y, en el menú, `Show result`. */
 function ReadyCard({
   card,
+  primary,
   ownRider,
   before,
   watchOn,
 }: {
   card: StageCard
+  /** la primera etapa velada de la carrera: su `Watch` es el `primary` de la carrera (§14.6) */
+  primary: boolean
   ownRider: boolean
   /** las veladas de antes, que revelarla arrastra */
   before: readonly number[]
@@ -184,17 +195,25 @@ function ReadyCard({
 }) {
   const [revealed, setRevealed] = useState(false)
   return (
-    <li className="rounded-md bg-slate-50 p-2.5 ring-1 ring-black/5">
-      <p className="text-sm text-slate-700">{card.text}</p>
-      {ownRider && <p className="text-xs text-emerald-700">Your rider raced</p>}
-      <div className="mt-1.5 flex flex-wrap items-center gap-2">
-        <Link to={`/world/races/${card.raceId}/stages/${card.stageDay}`} className={button}>
+    <li className="rounded-ui bg-surface-2 p-3">
+      <p className="text-meta text-ink">{card.text}</p>
+      {ownRider && <p className="text-caption font-semibold text-good">Your rider raced</p>}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Button
+          variant={primary ? 'primary' : 'secondary'}
+          size="sm"
+          to={`/world/races/${card.raceId}/stages/${card.stageDay}`}
+        >
           Watch
-        </Link>
+        </Button>
         {watchOn && (
-          <Link to={watchHref(card.raceId, card.stageDay, false, 'highlights')} className={quiet}>
+          <Button
+            variant="quiet"
+            size="sm"
+            to={watchHref(card.raceId, card.stageDay, false, 'highlights')}
+          >
             Highlights
-          </Link>
+          </Button>
         )}
         {!revealed && (
           <RevealButton
@@ -249,14 +268,14 @@ function RevealButton({
   return (
     <>
       {!confirming && (
-        <button
-          type="button"
-          className={quiet}
-          disabled={busy}
+        <Button
+          variant="quiet"
+          size="sm"
+          busy={busy}
           onClick={() => (actions.askFirst ? setConfirming(true) : void reveal(false))}
         >
           {label}
-        </button>
+        </Button>
       )}
       {confirming && (
         <div className="w-full">
@@ -270,7 +289,11 @@ function RevealButton({
           />
         </div>
       )}
-      {failed && <span className="text-xs text-red-600">Could not show the result.</span>}
+      {failed && (
+        <span role="alert" className="text-caption text-bad">
+          Could not show the result.
+        </span>
+      )}
     </>
   )
 }
@@ -281,36 +304,40 @@ function AwayRace({ block, watchOn }: { block: AwayBlock; watchOn: boolean }) {
   const oneDay = block.stageCount === 1
   const stageHref = (day: number): string => `/world/races/${block.raceId}/stages/${day}`
   return (
-    <div>
-      <h3 className="text-sm font-semibold text-slate-800">{block.header}</h3>
-      <div className="mt-1.5 flex flex-wrap items-center gap-2">
-        {/* el digest: la carrera entera deprisa, encadenada (§8.8, 8-c) */}
+    <div data-race-block={block.raceKey}>
+      <h3 className="text-body font-semibold text-ink">{block.header}</h3>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {/* el digest: la carrera entera deprisa, encadenada (§8.8, 8-c), y el primary de la carrera */}
         {watchOn && (
-          <Link
+          <Button
+            variant="primary"
+            size="sm"
             to={watchHref(block.raceId, block.continueFrom, oneDay, 'digest', block.lastStage)}
-            className={button}
           >
-            Watch the race in {block.digestMinutes}{' '}
-            {block.digestMinutes === 1 ? 'minute' : 'minutes'}
-          </Link>
+            {`Watch the race in ${block.digestMinutes} ${block.digestMinutes === 1 ? 'minute' : 'minutes'}`}
+          </Button>
         )}
         {oneDay ? (
-          <Link to={stageHref(1)} className={button}>
+          <Button variant={watchOn ? 'secondary' : 'primary'} size="sm" to={stageHref(1)}>
             Watch
-          </Link>
+          </Button>
         ) : (
           <>
             <button
               type="button"
-              className={quiet}
+              className={disclose}
               aria-expanded={keyOpen}
               onClick={() => setKeyOpen((o) => !o)}
             >
               Key stages
             </button>
-            <Link to={stageHref(block.continueFrom)} className={quiet}>
-              Continue from stage {block.continueFrom}
-            </Link>
+            <Button
+              variant={watchOn ? 'secondary' : 'primary'}
+              size="sm"
+              to={stageHref(block.continueFrom)}
+            >
+              {`Continue from stage ${block.continueFrom}`}
+            </Button>
           </>
         )}
         <RevealButton
@@ -325,15 +352,14 @@ function AwayRace({ block, watchOn }: { block: AwayBlock; watchOn: boolean }) {
       {/* Las que marca el perfil (reinas, cronos y la última), en `Highlights` (§11.4); las demás se
           conocen por arrastre al ver las siguientes. */}
       {keyOpen && !oneDay && (
-        <ul className="mt-1.5 flex flex-wrap gap-2">
+        <ul className="mt-2 flex flex-wrap gap-x-4">
           {block.keyStages.map((d) => (
             <li key={d}>
-              <Link
+              <TextLink
                 to={watchOn ? watchHref(block.raceId, d, false, 'highlights') : stageHref(d)}
-                className="text-xs font-medium text-brand-cyan hover:underline"
               >
-                Stage {d} →
-              </Link>
+                {`Stage ${d} →`}
+              </TextLink>
             </li>
           ))}
         </ul>
@@ -407,27 +433,21 @@ function ExpiredAndOffer({ h, notices }: { h: HorizonSummary; notices: readonly 
   return (
     <div className="space-y-2">
       {all.map((n) => (
-        <p
-          key={n.raceKey}
-          role="status"
-          className="rounded-md bg-indigo-50 px-3 py-2 text-sm text-indigo-900 ring-1 ring-indigo-200"
-        >
-          {n.text}
-        </p>
+        <Notice key={n.raceKey} tone="info" role="status" title={n.text} />
       ))}
       {offer && (
         <div
           role="dialog"
           aria-label="Spoiler protection"
-          className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-slate-700 ring-1 ring-black/5"
+          className="flex flex-wrap items-center gap-2 rounded-ui border border-line bg-surface px-3 py-2 text-meta text-ink"
         >
           <span>Only protect your own races?</span>
-          <button type="button" className={button} onClick={() => answer(true)}>
+          <Button variant="secondary" size="sm" onClick={() => answer(true)}>
             Switch
-          </button>
-          <button type="button" className={quiet} onClick={() => answer(false)}>
+          </Button>
+          <Button variant="quiet" size="sm" onClick={() => answer(false)}>
             Keep protecting
-          </button>
+          </Button>
           <span className="sr-only">
             After {SPOILER.adaptiveAskAfterRaces} headline races you did not finish watching
           </span>

@@ -179,7 +179,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/components/broadcast/GroupBar.tsx',
   'apps/web/src/components/broadcast/PlayerControls.tsx',
   'apps/web/src/components/broadcast/ProfileStrip.tsx',
-  'apps/web/src/components/broadcast/StageCards.tsx',
   'apps/web/src/components/broadcast/WornJerseyIcon.tsx',
   'apps/web/src/domain/broadcast/montage.ts',
   'apps/web/src/domain/broadcast/screen.ts',

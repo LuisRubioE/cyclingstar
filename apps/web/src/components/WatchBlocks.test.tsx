@@ -111,9 +111,10 @@ describe('la portada bajo el velo (§11.4)', () => {
     expect(markup).toContain('Stage 12 · 187 km · mountain stage')
     expect(markup).toContain('Your rider raced')
     expect(markup).toContain('href="/world/races/race-france/stages/11"')
-    // y Highlights, que abre la etapa en su curva (10a)
+    // y Highlights, que abre la etapa en su curva (10a). RE-SELLADO EN EL PR 20 (E3, docs/visual.md §14.6):
+    // el enlace es un `Button` del catálogo, que lleva el texto dentro de su caja
     expect(markup).toMatch(
-      /href="\/world\/races\/race-france\/stages\/11\?tab=watch&amp;view=highlights"[^>]*>Highlights<\/a>/,
+      /href="\/world\/races\/race-france\/stages\/11\?tab=watch&amp;view=highlights"[^>]*>[\s\S]*?Highlights[\s\S]*?<\/a>/,
     )
   })
 
@@ -157,5 +158,74 @@ describe('la portada bajo el velo (§11.4)', () => {
     const markup = home(horizonWith({ rev: REV, expiredSinceLastVisit: ['race-italy:s0'] }))
     // la 21 del Giro es el día 148; hoy, el 200: 52 días de juego, 13 reales
     expect(markup).toContain('Results of Race Italy are now shown (finished 13 days ago)')
+  })
+})
+
+/**
+ * UN SOLO PRIMARY POR CARRERA (E3, docs/visual.md §14.6; captura 17; PR 20): los botones de los bloques son
+ * del catálogo, y en cada carrera solo uno es `primary`: el digest si lo hay, o `Watch`; en `Ready to
+ * watch`, el `Watch` de la primera etapa velada. Hoy Race Jaén, de un día, llevaba dos: el digest y `Watch`.
+ */
+describe('la portada bajo el velo · un solo primary por carrera (§14.6)', () => {
+  const jaen = race('race-jaen', 'Race Jaén', 150, ['media'])
+  const conJaen = horizonWith({
+    rev: REV,
+    ready: [
+      ...veiled.ready,
+      { raceKey: 'race-jaen:s0', raceName: 'Race Jaén', stages: [1], reason: 'headline' },
+    ],
+    watching: veiled.watching,
+  })
+  const render = (h: HorizonSummary, broadcastWatch: 'on' | 'off' = 'on'): string => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    client.setQueryData(['health'], healthWith(broadcastWatch, 'on', 200))
+    client.setQueryData(['horizon'], h)
+    client.setQueryData(horizonKey(['calendar'], h.rev), {
+      ...calendar,
+      races: [...calendar.races, jaen],
+    })
+    return renderToStaticMarkup(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <WatchBlocks />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+  }
+  /** El marcado de cada carrera, por su `data-race-block`. */
+  const blocks = (markup: string): Map<string, string> => {
+    const out = new Map<string, string>()
+    const starts = [...markup.matchAll(/data-race-block="([^"]+)"/g)]
+    starts.forEach((m, i) =>
+      out.set(m[1]!, markup.slice(m.index, starts[i + 1]?.index ?? markup.length)),
+    )
+    return out
+  }
+  const primaries = (html: string): string[] =>
+    [
+      ...html.matchAll(/data-ui="Button" data-variant="primary"[^>]*>([\s\S]*?)<\/(?:a|button)>/g),
+    ].map((m) => m[1]!.replace(/<[^>]+>/g, '').trim())
+
+  it('cada carrera, con un solo primary: el digest; en la de un día, el digest y Watch secondary', () => {
+    const b = blocks(render(conJaen))
+    expect([...b.keys()].sort()).toEqual(['race-france:s0', 'race-italy:s0', 'race-jaen:s0'])
+    expect(primaries(b.get('race-italy:s0')!)).toEqual(['Watch the race in 27 minutes'])
+    expect(primaries(b.get('race-jaen:s0')!)).toHaveLength(1)
+    expect(primaries(b.get('race-jaen:s0')!)[0]).toMatch(/^Watch the race in \d+ minutes?$/)
+    expect(b.get('race-jaen:s0')!).toMatch(/data-variant="secondary"[^>]*>[\s\S]*?>Watch</)
+  })
+
+  it('Ready to watch: el Watch de la primera etapa velada es el primary; las demás, secondary', () => {
+    const france = blocks(render(conJaen)).get('race-france:s0')!
+    expect(primaries(france)).toEqual(['Watch'])
+    expect(france.indexOf('data-variant="primary"')).toBeLessThan(
+      france.indexOf('href="/world/races/race-france/stages/11"'),
+    )
+  })
+
+  it('con Watch apagado, sin digest, el Watch de la de un día es el primary', () => {
+    const jaenOff = blocks(render(conJaen, 'off')).get('race-jaen:s0')!
+    expect(jaenOff).not.toContain('Watch the race in')
+    expect(primaries(jaenOff)).toEqual(['Watch'])
   })
 })
