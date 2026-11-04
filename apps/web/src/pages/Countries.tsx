@@ -1,12 +1,14 @@
 import { CONTINENTS, COUNTRIES, type Continent, continentForCountry } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import { type CountrySummary, fetchCountries } from '../api/browse'
-import { Flag } from '../components/Flag'
-import { Panel, SectionBar } from '../components/Panel'
-import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { ActionRow } from '../components/ui/ActionRow'
+import { Flag } from '../components/ui/Flag'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { plural } from '../domain/words'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 const CONTINENT_LABEL: Record<Continent, string> = {
   Europe: 'Europe',
@@ -16,29 +18,35 @@ const CONTINENT_LABEL: Record<Continent, string> = {
   Oceania: 'Oceania',
 }
 
-function NationCard({ c }: { c: CountrySummary }) {
-  const info = COUNTRIES.find((x) => x.code === c.country)
+/** En dos columnas desde 1.024, como el índice de carreras (21e). */
+const LISTA = 'divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0'
+
+function NationRow({ c }: { c: CountrySummary }) {
+  const nombre = COUNTRIES.find((x) => x.code === c.country)?.name ?? c.country
   return (
-    <Link
-      to={`/world/nations/${c.country}`}
-      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
-    >
-      <span className="flex items-center gap-2">
-        <Flag code={c.country} size={18} />
-        <span className="text-sm font-semibold text-slate-800">{info?.name ?? c.country}</span>
-      </span>
-      <span className="text-right text-xs tabular-nums text-slate-400">
-        <span className="font-medium text-slate-600">
-          {c.totalPoints.toLocaleString('en-US')} pts
+    <ActionRow
+      href={`/world/nations/${c.country}`}
+      title={
+        <span className="flex items-center gap-2">
+          {/* su nombre va al lado: la bandera, para el ojo */}
+          <span aria-hidden="true">
+            <Flag country={c.country} />
+          </span>
+          {nombre}
         </span>
-        <span className="mx-1">·</span>
-        {c.riderCount} riders
-      </span>
-    </Link>
+      }
+      meta={`${c.totalPoints.toLocaleString('en-US')} pts · ${plural(c.riderCount, 'rider')}`}
+    />
   )
 }
 
-/** Naciones (#7): países con corredores en activo, agrupados por continente. */
+/**
+ * Naciones (#7): países con corredores en activo, agrupados por continente.
+ *
+ * Con el sistema desde el 21k (E3, docs/visual.md §17.21): la cabecera en `PageHeader`; cada continente en su
+ * `Panel`, el primero la respuesta de la 22 (§7.3); y cada país, una `ActionRow` a su ranking, con su bandera
+ * y su nombre, y debajo sus puntos y sus corredores, donde iban tarjetas a mano con las cifras en `slate-400`.
+ */
 export function Countries() {
   const rev = useHorizonRev()
   const query = useQuery({
@@ -60,22 +68,22 @@ export function Countries() {
     if (list) list.push(c)
     else byContinent.set(cont, [c])
   }
+  const continentes = CONTINENTS.filter((cont) => (byContinent.get(cont)?.length ?? 0) > 0)
 
   return (
-    <section className="space-y-4">
-      <SectionBar>Nations</SectionBar>
+    <section className="grid gap-4">
+      <PageHeader
+        title="Nations"
+        status="Every country with riders in the game, by continent. Tap one for its national ranking."
+      />
       <VeilNotice kind="results" />
-      <p className="text-sm text-slate-500">
-        Every country with riders in the game, by continent. Tap one for its national ranking.
-      </p>
-
-      {CONTINENTS.filter((cont) => (byContinent.get(cont)?.length ?? 0) > 0).map((cont) => (
-        <Panel key={cont} title={CONTINENT_LABEL[cont]}>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {byContinent.get(cont)!.map((c) => (
-              <NationCard key={c.country} c={c} />
+      {continentes.map((cont, i) => (
+        <Panel key={cont} title={CONTINENT_LABEL[cont]} answer={i === 0}>
+          <ul className={LISTA}>
+            {(byContinent.get(cont) ?? []).map((c) => (
+              <NationRow key={c.country} c={c} />
             ))}
-          </div>
+          </ul>
         </Panel>
       ))}
     </section>

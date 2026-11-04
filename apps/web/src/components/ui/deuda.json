@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 422,
-    "arbitrarios": 13,
-    "espaciado": 4,
+    "tema": 338,
+    "arbitrarios": 11,
+    "espaciado": 3,
     "layout": 0
   },
   "ficheros": {
@@ -67,12 +67,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/components/TeamFeed.tsx": {
-      "tema": 5,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/components/VeilNotice.tsx": {
       "tema": 7,
       "arbitrarios": 0,
@@ -91,27 +85,9 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/pages/Countries.tsx": {
-      "tema": 12,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Country.tsx": {
-      "tema": 5,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/pages/Finances.tsx": {
       "tema": 21,
       "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/HallOfFame.tsx": {
-      "tema": 14,
-      "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
     },
@@ -127,18 +103,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/pages/Rankings.tsx": {
-      "tema": 15,
-      "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Team.tsx": {
-      "tema": 15,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
     "apps/web/src/pages/TeamIdentity.tsx": {
       "tema": 5,
       "arbitrarios": 0,
@@ -147,12 +111,6 @@
     },
     "apps/web/src/pages/TeamSquad.tsx": {
       "tema": 8,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Teams.tsx": {
-      "tema": 18,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0

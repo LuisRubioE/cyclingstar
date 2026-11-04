@@ -1,52 +1,63 @@
+import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import { type TeamListItem, fetchTeams } from '../api/browse'
-import { Flag } from '../components/Flag'
-import { TeamJersey } from '../components/ui/TeamJersey'
-import { Panel, SectionBar } from '../components/Panel'
-import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
+import { ActionRow } from '../components/ui/ActionRow'
+import { Flag } from '../components/ui/Flag'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { TeamJersey } from '../components/ui/TeamJersey'
+import { plural } from '../domain/words'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
-const DIVISION_BADGE: Record<string, string> = {
-  WT: 'bg-indigo-100 text-indigo-700',
-  PRS: 'bg-sky-100 text-sky-700',
-  CON: 'bg-slate-100 text-slate-600',
-}
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'World Tour',
-  PRS: 'Pro Series',
-  CON: 'Continental',
-}
+/**
+ * LOS EQUIPOS, CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21k): la cabecera en `PageHeader`;
+ * cada división en su `Panel`, la primera la respuesta de la 21 (§7.3), y cada equipo, una `ActionRow` a su
+ * ficha, con su maillot de 28 y su nombre, y debajo su país, sus puntos y sus corredores. Iban en tarjetas a
+ * mano, con la marca de su división en cada una, que ya dice su `Panel`, y las cifras en `slate-400`, que no
+ * se leía (axe, 224 faltas en la 21).
+ */
 
-function DivisionBlock({ division, teams }: { division: string; teams: TeamListItem[] }) {
-  if (teams.length === 0) return null
+const DIVISIONES: readonly { readonly key: string; readonly label: string }[] = [
+  { key: 'WT', label: 'World Tour' },
+  { key: 'PRS', label: 'Pro Series' },
+  { key: 'CON', label: 'Continental' },
+]
+
+/** En dos columnas desde 1.024, como el índice de carreras (21e). */
+const LISTA = 'divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0'
+
+function TeamRow({ t }: { t: TeamListItem }) {
+  const pais =
+    t.country === null ? null : (COUNTRIES.find((c) => c.code === t.country)?.name ?? t.country)
+  const cifras = `${t.pointsSeason.toLocaleString('en-US')} pts · ${plural(t.riderCount, 'rider')}`
   return (
-    <Panel title={DIVISION_LABEL[division] ?? division}>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {teams.map((t) => (
-          <Link
-            key={t.id}
-            to={`/world/teams/${t.id}`}
-            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
-          >
-            <span className="flex items-center gap-2">
-              <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
-              <Flag code={t.country} size={16} />
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIVISION_BADGE[t.division] ?? ''}`}
-              >
-                {t.division}
-              </span>
-              <span className="text-sm font-semibold text-slate-800">{t.name}</span>
+    <ActionRow
+      href={`/world/teams/${t.id}`}
+      title={
+        <span className="flex items-center gap-2">
+          {/* su nombre va al lado: el maillot, para el ojo, que el lector no lo diga dos veces */}
+          <span aria-hidden="true">
+            <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
+          </span>
+          {t.name}
+        </span>
+      }
+      meta={
+        pais === null ? (
+          cifras
+        ) : (
+          <span className="inline-flex flex-wrap items-center gap-x-1.5">
+            {/* su nombre va al lado: la bandera, para el ojo */}
+            <span aria-hidden="true">
+              <Flag country={t.country} height={12} />
             </span>
-            <span className="text-xs tabular-nums text-slate-400">
-              {t.pointsSeason} pts · {t.riderCount} riders
-            </span>
-          </Link>
-        ))}
-      </div>
-    </Panel>
+            {`${pais} · ${cifras}`}
+          </span>
+        )
+      }
+    />
   )
 }
 
@@ -61,14 +72,23 @@ export function Teams() {
   if (query.data === undefined)
     return <QueryView query={query} label="teams" skeleton={{ kind: 'rows', rowHeight: 44 }} />
   const data = query.data
+  const divisiones = DIVISIONES.map((d) => ({
+    ...d,
+    teams: data.filter((t) => t.division === d.key),
+  })).filter((d) => d.teams.length > 0)
 
   return (
-    <section className="space-y-4">
-      <SectionBar>Teams</SectionBar>
+    <section className="grid gap-4">
+      <PageHeader title="Teams" status={`${data.length} teams across the three divisions.`} />
       <VeilNotice kind="results" />
-      <p className="text-sm text-slate-500">{data.length} teams across the three divisions.</p>
-      {['WT', 'PRS', 'CON'].map((div) => (
-        <DivisionBlock key={div} division={div} teams={data.filter((t) => t.division === div)} />
+      {divisiones.map((d, i) => (
+        <Panel key={d.key} title={d.label} answer={i === 0}>
+          <ul className={LISTA}>
+            {d.teams.map((t) => (
+              <TeamRow key={t.id} t={t} />
+            ))}
+          </ul>
+        </Panel>
       ))}
     </section>
   )

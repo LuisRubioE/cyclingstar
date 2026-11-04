@@ -1,15 +1,15 @@
 import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { type CountryRider, fetchCountryRiders } from '../api/browse'
-import { Flag } from '../components/Flag'
-import { SectionBar } from '../components/Panel'
 import { useOwnIds, useTeamsIdentity } from '../components/useTableIdentity'
 import { NO_TEAM_LABEL, archetypeLabel } from '../domain/labels'
 import { type TableIdentity, rowTeam } from '../domain/tableIdentity'
+import { plural } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 import { EmptyState } from '../components/ui/EmptyState'
+import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { RankTable, type RankTableColumn } from '../components/ui/RankTable'
@@ -87,7 +87,13 @@ function NationTable({
   )
 }
 
-/** Ranking nacional (#7): corredores de un país por puntos de temporada. */
+/**
+ * Ranking nacional (#7): corredores de un país por puntos de temporada.
+ *
+ * Con el sistema desde el 21k (E3, docs/visual.md §17.21): la cabecera en `PageHeader`, con su vuelta a los países
+ * y, en su línea, cuántos corren y por qué se ordenan; donde iban la flecha de texto `← All nations`, de 20, y la
+ * bandera de 28 en la barra de antes. La bandera, la de cada fila de la tabla (12b).
+ */
 export function Country() {
   const { code = '' } = useParams()
   const rev = useHorizonRev()
@@ -109,21 +115,13 @@ export function Country() {
   const data = query.data
 
   return (
-    <section className="space-y-4">
-      <Link to="/world/nations" className="text-sm text-slate-400 hover:text-indigo-600">
-        ← All nations
-      </Link>
-      <SectionBar>
-        <span className="flex items-center gap-2">
-          <Flag code={code.toUpperCase()} size={28} />
-          {info?.name ?? code.toUpperCase()}
-        </span>
-      </SectionBar>
+    <section className="grid gap-4">
+      <PageHeader
+        title={info?.name ?? code.toUpperCase()}
+        back={{ to: '/world/nations', label: 'Nations' }}
+        status={`${plural(data.length, 'active rider')} · national ranking by season points`}
+      />
       <VeilNotice kind="results" />
-      <p className="text-sm text-slate-500">
-        {data.length} active {data.length === 1 ? 'rider' : 'riders'} · national ranking by season
-        points
-      </p>
 
       {data.length === 0 ? (
         <EmptyState icon="rider" text="No active riders from this country yet." />
