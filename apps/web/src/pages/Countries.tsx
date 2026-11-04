@@ -72,7 +72,7 @@ export function Countries() {
   const continentes = CONTINENTS.filter((cont) => (byContinent.get(cont)?.length ?? 0) > 0)
 
   return (
-    <section className="grid gap-4">
+    <section className="space-y-4">
       <PageHeader
         title="Nations"
         status="Every country with riders in the game, by continent. Tap one for its national ranking."

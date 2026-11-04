@@ -179,7 +179,7 @@ export function HallOfFame() {
   const hasRecords = rec && (rec.mostWins || rec.mostGcWins || rec.youngestWinner)
 
   return (
-    <section className="grid gap-4">
+    <section className="space-y-4">
       <PageHeader
         title="Hall of Fame"
         status="The most decorated riders of the world, by all-time wins across every season."

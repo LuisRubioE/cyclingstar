@@ -67,7 +67,7 @@ export function Teams() {
   })).filter((d) => d.teams.length > 0)
 
   return (
-    <section className="grid gap-4">
+    <section className="space-y-4">
       <PageHeader
         title="Teams"
         status={`${plural(data.length, 'team')} across the three divisions.`}

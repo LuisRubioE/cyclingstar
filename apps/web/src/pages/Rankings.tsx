@@ -200,7 +200,7 @@ export function Rankings() {
   const active = tab === 'young' ? young.data : ranking.data
 
   return (
-    <section className="grid gap-4">
+    <section className="space-y-4">
       <PageHeader title="Rankings" />
       <VeilNotice kind="ranking" />
 

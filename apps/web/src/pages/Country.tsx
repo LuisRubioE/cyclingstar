@@ -115,7 +115,7 @@ export function Country() {
   const data = query.data
 
   return (
-    <section className="grid gap-4">
+    <section className="space-y-4">
       <PageHeader
         title={info?.name ?? code.toUpperCase()}
         back={{ to: '/world/nations', label: 'Nations' }}
