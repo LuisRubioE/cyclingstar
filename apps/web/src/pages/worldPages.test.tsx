@@ -103,6 +103,9 @@ describe('los equipos (§17.21; PR 21k)', () => {
   it('la cabecera, un PageHeader con cuántos son', () => {
     expect(titulo(html())).toBe('Teams')
     expect(html()).toContain('4 teams across the three divisions.')
+    expect(
+      pinta('/world/teams', '/world/teams', <Teams />, [[key('teams'), EQUIPOS.slice(0, 1)]]),
+    ).toContain('1 team across the three divisions.')
   })
 
   it('cada división en su Panel, por su nombre, sin las vacías; la primera, la única respuesta (pantalla 21)', () => {
