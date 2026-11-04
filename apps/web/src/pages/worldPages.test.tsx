@@ -50,7 +50,10 @@ const equipo = (id: string, name: string, division: string, country: string): Te
 const EQUIPOS = [
   equipo('t1', 'Mistral Racing', 'WT', 'FR'),
   equipo('t2', 'Andes Ruta', 'WT', 'CO'),
-  equipo('t3', 'Sol Pro', 'PRS', 'ES'),
+  // sin país
+  { ...equipo('t4', 'Libre Team', 'WT', 'FR'), country: null },
+  // con un solo corredor, en singular
+  { ...equipo('t3', 'Sol Pro', 'PRS', 'ES'), riderCount: 1 },
 ]
 
 function pinta(
@@ -99,7 +102,7 @@ describe('los equipos (§17.21; PR 21k)', () => {
 
   it('la cabecera, un PageHeader con cuántos son', () => {
     expect(titulo(html())).toBe('Teams')
-    expect(html()).toContain('3 teams across the three divisions.')
+    expect(html()).toContain('4 teams across the three divisions.')
   })
 
   it('cada división en su Panel, por su nombre, sin las vacías; la primera, la única respuesta (pantalla 21)', () => {
@@ -110,15 +113,30 @@ describe('los equipos (§17.21; PR 21k)', () => {
     expect(pieza(s, 'Panel', 'World Tour')).toContain('data-answer=""')
   })
 
-  it('cada equipo, una ActionRow a su ficha: su maillot y su nombre; su país, sus puntos y sus corredores', () => {
+  it('cada equipo, una ActionRow a su ficha: su nombre seguido de su maillot, sin bandera (4-i); su país en palabras, sus puntos y sus corredores', () => {
     const f = filas(html())
-    expect(f.map((x) => x.href)).toEqual(['/world/teams/t1', '/world/teams/t2', '/world/teams/t3'])
+    expect(f.map((x) => x.href)).toEqual([
+      '/world/teams/t1',
+      '/world/teams/t2',
+      '/world/teams/t4',
+      '/world/teams/t3',
+    ])
     expect(f[0]?.title).toBe('Mistral Racing')
-    // el maillot, al lado de su nombre: para el ojo, que el lector no lo diga dos veces
-    expect(f[0]?.raw).toMatch(/<span aria-hidden="true"><svg[^>]*aria-label="Mistral Racing kit"/)
+    // el nombre y después el maillot, para el ojo: el lector no lo dice dos veces
+    expect(f[0]?.raw).toMatch(
+      /Mistral Racing<span aria-hidden="true"><svg[^>]*aria-label="Mistral Racing kit"/,
+    )
+    expect(f[0]?.raw).not.toContain('data-ui="Flag"')
     expect(f[0]?.meta).toBe('France · 1,234 pts · 25 riders')
-    // la bandera, al lado de su nombre: para el ojo
-    expect(f[0]?.raw).toMatch(/<span aria-hidden="true"><span data-ui="Flag"/)
+    // sin país, sus cifras
+    expect(f[2]?.meta).toBe('1,234 pts · 25 riders')
+    expect(f[3]?.meta).toBe('Spain · 1,234 pts · 1 rider')
+  })
+
+  it('sin equipos, su vacío, que contesta', () => {
+    const s = pinta('/world/teams', '/world/teams', <Teams />, [[key('teams'), []]])
+    expect(respuestas(s)).toBe(1)
+    expect(s).toMatch(/data-ui="EmptyState"[^>]*data-answer=""[\s\S]*No teams yet\./)
   })
 
   it('sin la marca de la división en cada fila, que ya dice su Panel, y sin la paleta ni las cajas de antes', () => {
@@ -146,6 +164,14 @@ describe('los países (§17.21; PR 21k)', () => {
     expect(titulos).toEqual(['Europe', 'Asia'])
     expect(respuestas(s)).toBe(1)
     expect(pieza(s, 'Panel', 'Europe')).toContain('data-answer=""')
+  })
+
+  it('sin países, su vacío, que contesta', () => {
+    const s = pinta('/world/nations', '/world/nations', <Countries />, [[key('countries'), []]])
+    expect(respuestas(s)).toBe(1)
+    expect(s).toMatch(
+      /data-ui="EmptyState"[^>]*data-answer=""[\s\S]*No countries with riders yet\./,
+    )
   })
 
   it('cada país, una ActionRow a su ranking: su bandera y su nombre; sus puntos y sus corredores', () => {
@@ -184,6 +210,10 @@ describe('la nación (§17.21; PR 21k)', () => {
     expect(pieza(s, 'PageHeader', 'Spain')).toMatch(/href="\/world\/nations"/)
     expect(s).toContain('2 active riders · national ranking by season points')
     expect(s).not.toContain('←')
+    const uno = pinta('/world/nations/ES', '/world/nations/:code', <Country />, [
+      [key('country', 'ES'), [fila(1)]],
+    ])
+    expect(uno).toContain('1 active rider · national ranking by season points')
     expect(s).not.toMatch(PALETA)
   })
 })
@@ -198,7 +228,14 @@ describe('el salón de la fama (§17.21; PR 21k)', () => {
       value: 12,
       note: 'Over 3 seasons',
     },
-    mostGcWins: null,
+    mostGcWins: {
+      riderId: 'r3',
+      name: 'Rider 3',
+      country: 'BE',
+      isBot: true,
+      value: 3,
+      note: 'Three overall wins',
+    },
     youngestWinner: {
       riderId: 'r2',
       name: 'Rider 2',
@@ -224,8 +261,18 @@ describe('el salón de la fama (§17.21; PR 21k)', () => {
     expect(panel).toMatch(/data-ui="Stat"[\s\S]*?>Most wins<\/dt><dd[^>]*>12 wins<\/dd>/)
     expect(panel).toMatch(/href="\/world\/riders\/r1"/)
     expect(panel).toContain('Over 3 seasons')
-    expect(panel).toMatch(/>Most overall wins<\/dt><dd[^>]*>None yet<\/dd>/)
+    expect(panel).toMatch(/>Most overall wins<\/dt><dd[^>]*>3 GC<\/dd>/)
     expect(panel).toMatch(/>Youngest overall winner<\/dt><dd[^>]*>21 yrs<\/dd>/)
+  })
+
+  it('un récord que no hay, None yet', () => {
+    const s = pinta('/world/hall-of-fame', '/world/hall-of-fame', <HallOfFame />, [
+      [key('hall-of-fame'), []],
+      [key('records'), { ...RECORDS, mostGcWins: null }],
+    ])
+    expect(pieza(s, 'Panel', 'All-time records')).toMatch(
+      />Most overall wins<\/dt><dd[^>]*>None yet<\/dd>/,
+    )
   })
 
   it('ni la letra de 11 px ni la paleta, ni el guion de lo que no hay', () => {
@@ -276,6 +323,7 @@ describe('el ranking (§17.21; PR 21k)', () => {
   it('los premios, en su Panel: cada uno con su ganador, que enlaza, su tipo y sus puntos, y su porqué; sin ganador, lo dice', () => {
     const panel = pieza(html(), 'Panel', 'Season awards')
     expect(panel).toMatch(/Rider of the year[\s\S]*?href="\/world\/riders\/r1"/)
+    expect(panel).toMatch(/<h3[^>]*>Rider of the year<\/h3>/)
     expect(panel).toContain('Climber · 1,999 pts')
     expect(panel).toContain('Most season points')
     expect(cuantas(panel, /None yet/)).toBe(3)
@@ -317,6 +365,11 @@ describe('la ficha del equipo (§17.21; PR 21k)', () => {
     expect(aviso).toMatch(/data-variant="info"/)
     expect(aviso).toMatch(/<button [^>]*data-ui="Button"[\s\S]*?Take control/)
     expect(html(null)).not.toContain('Take over this team')
+    // ni el de otro equipo, ni sin premium
+    expect(html({ ...control, team: { ...control.team, id: 't2' } })).not.toContain(
+      'Take over this team',
+    )
+    expect(html({ ...control, premium: false })).not.toContain('Take over this team')
   })
 
   it('las noticias, en su Panel, con su día en meta y sin la paleta', () => {

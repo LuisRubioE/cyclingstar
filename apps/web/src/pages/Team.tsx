@@ -95,6 +95,7 @@ export function Team() {
             label: 'Take control',
             onClick: () => takeOver.mutate(),
             busy: takeOver.isPending,
+            busyLabel: 'Taking over…',
           }}
         >
           This is your rider&apos;s team and it&apos;s still bot-run. As a premium account you can

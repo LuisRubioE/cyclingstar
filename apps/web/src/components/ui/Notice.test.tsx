@@ -63,6 +63,21 @@ describe('Notice', () => {
     expect(
       html(<Notice tone="warn" title="T" action={{ label: 'Send', onClick: () => undefined }} />),
     ).not.toContain('aria-busy')
+    // y con lo que dice ocupada, si lo lleva (PR 21k)
+    expect(
+      html(
+        <Notice
+          tone="info"
+          title="T"
+          action={{
+            label: 'Take control',
+            onClick: () => undefined,
+            busy: true,
+            busyLabel: 'Taking over…',
+          }}
+        />,
+      ),
+    ).toContain('Taking over…')
   })
 
   it('cerrar, solo en info y good', () => {

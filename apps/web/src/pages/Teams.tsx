@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { type TeamListItem, fetchTeams } from '../api/browse'
 import { VeilNotice } from '../components/VeilNotice'
 import { ActionRow } from '../components/ui/ActionRow'
-import { Flag } from '../components/ui/Flag'
+import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
@@ -14,7 +14,8 @@ import { horizonKey, useHorizonRev } from '../queryClient'
 /**
  * LOS EQUIPOS, CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21k): la cabecera en `PageHeader`;
  * cada división en su `Panel`, la primera la respuesta de la 21 (§7.3), y cada equipo, una `ActionRow` a su
- * ficha, con su maillot de 28 y su nombre, y debajo su país, sus puntos y sus corredores. Iban en tarjetas a
+ * ficha, con su nombre seguido de su maillot de 28 y sin bandera al lado (4-i, D-00c), y debajo su país en
+ * palabras, sus puntos y sus corredores; sin equipos, su vacío, que contesta. Iban en tarjetas a
  * mano, con la marca de su división en cada una, que ya dice su `Panel`, y las cifras en `slate-400`, que no
  * se leía (axe, 224 faltas en la 21).
  */
@@ -37,26 +38,14 @@ function TeamRow({ t }: { t: TeamListItem }) {
       href={`/world/teams/${t.id}`}
       title={
         <span className="flex items-center gap-2">
+          {t.name}
           {/* su nombre va al lado: el maillot, para el ojo, que el lector no lo diga dos veces */}
           <span aria-hidden="true">
             <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
           </span>
-          {t.name}
         </span>
       }
-      meta={
-        pais === null ? (
-          cifras
-        ) : (
-          <span className="inline-flex flex-wrap items-center gap-x-1.5">
-            {/* su nombre va al lado: la bandera, para el ojo */}
-            <span aria-hidden="true">
-              <Flag country={t.country} height={12} />
-            </span>
-            {`${pais} · ${cifras}`}
-          </span>
-        )
-      }
+      meta={pais === null ? cifras : `${pais} · ${cifras}`}
     />
   )
 }
@@ -79,8 +68,12 @@ export function Teams() {
 
   return (
     <section className="grid gap-4">
-      <PageHeader title="Teams" status={`${data.length} teams across the three divisions.`} />
+      <PageHeader
+        title="Teams"
+        status={`${plural(data.length, 'team')} across the three divisions.`}
+      />
       <VeilNotice kind="results" />
+      {divisiones.length === 0 && <EmptyState icon="team" text="No teams yet." answer />}
       {divisiones.map((d, i) => (
         <Panel key={d.key} title={d.label} answer={i === 0}>
           <ul className={LISTA}>

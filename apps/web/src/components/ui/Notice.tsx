@@ -27,6 +27,8 @@ export interface NoticeProps {
     readonly onClick?: () => void
     /** mientras hace lo suyo: el indicador y `aria-busy` (PR 21f) */
     readonly busy?: boolean
+    /** lo que dice ocupada, `Taking over…`; por defecto, su texto (PR 21k) */
+    readonly busyLabel?: string
   }
   /** solo con `info` o `good` */
   readonly onDismiss?: () => void
@@ -59,6 +61,7 @@ export function Notice({ tone, title, children, role = 'note', action, onDismiss
             {...(action.to !== undefined ? { to: action.to } : {})}
             {...(action.onClick !== undefined ? { onClick: action.onClick } : {})}
             busy={action.busy === true}
+            {...(action.busyLabel !== undefined ? { busyLabel: action.busyLabel } : {})}
           >
             {action.label}
           </Button>

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { type CountrySummary, fetchCountries } from '../api/browse'
 import { VeilNotice } from '../components/VeilNotice'
 import { ActionRow } from '../components/ui/ActionRow'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Flag } from '../components/ui/Flag'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
@@ -77,6 +78,9 @@ export function Countries() {
         status="Every country with riders in the game, by continent. Tap one for its national ranking."
       />
       <VeilNotice kind="results" />
+      {continentes.length === 0 && (
+        <EmptyState icon="world" text="No countries with riders yet." answer />
+      )}
       {continentes.map((cont, i) => (
         <Panel key={cont} title={CONTINENT_LABEL[cont]} answer={i === 0}>
           <ul className={LISTA}>
