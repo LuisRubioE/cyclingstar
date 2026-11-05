@@ -2,7 +2,7 @@ import { BROADCAST } from '@cyclingstar/shared'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { overlaySummaryText } from '../../domain/broadcast/screen'
+import { overlayDetailText, overlaySummaryText } from '../../domain/broadcast/screen'
 import { FixedOverlay } from './FixedOverlay'
 import { castOf, headOf, instantOf, leaderWorn, range } from './__fixtures__/screen'
 
@@ -235,16 +235,21 @@ describe('FixedOverlay · la segunda línea, al tocarla (6-f)', () => {
  * sin ser una región viva.
  */
 describe('FixedOverlay · el ámbito oscuro y el resumen accesible (§14.3)', () => {
-  /** Un atributo del botón, con las entidades de React deshechas. */
-  const attrOf = (node: ReactElement, name: string): string | null => {
-    const m = new RegExp(`^<button[^>]*\\s${name}="([^"]*)"`).exec(renderToStaticMarkup(node))
+  /** Un atributo de la raíz (la respuesta, en el ámbito oscuro), con las entidades de React deshechas. */
+  const rootAttr = (node: ReactElement, name: string): string | null => {
+    const m = new RegExp(`^<div[^>]*\\s${name}="([^"]*)"`).exec(renderToStaticMarkup(node))
+    return m === null ? null : m[1]!.replace(/&#x27;/g, "'").replace(/&amp;/g, '&')
+  }
+  /** Un atributo del botón que la abre y la cierra, con las entidades de React deshechas. */
+  const buttonAttr = (node: ReactElement, name: string): string | null => {
+    const m = new RegExp(`<button[^>]*\\s${name}="([^"]*)"`).exec(renderToStaticMarkup(node))
     return m === null ? null : m[1]!.replace(/&#x27;/g, "'").replace(/&amp;/g, '&')
   }
 
   it('en el ámbito oscuro, y sigue sin ser una región viva', () => {
     const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
-    expect(attrOf(node, 'data-surface')).toBe('dark')
-    expect(attrOf(node, 'aria-live')).toBe('off')
+    expect(rootAttr(node, 'data-surface')).toBe('dark')
+    expect(rootAttr(node, 'aria-live')).toBe('off')
   })
 
   it('su nombre es el resumen, con las dos frases, abierta o cerrada', () => {
@@ -253,22 +258,46 @@ describe('FixedOverlay · el ámbito oscuro y el resumen accesible (§14.3)', ()
     expect(summary).toMatch(
       /^98\.5 km to go, lead group 3 riders, bunch at 3 minutes 46\. Race time 2 hours 9 minutes, /,
     )
-    expect(attrOf(<FixedOverlay instant={instant} head={HEAD} />, 'aria-label')).toBe(summary)
-    expect(attrOf(<FixedOverlay instant={instant} head={HEAD} expanded />, 'aria-label')).toBe(
+    expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} />, 'aria-label')).toBe(summary)
+    expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} expanded />, 'aria-label')).toBe(
       summary,
     )
   })
 
   it('en los últimos quietFinalM, el nombre también es solo la distancia', () => {
     const node = <FixedOverlay instant={breakAndBunch(LENGTH - 0.45, 12)} head={HEAD} />
-    expect(attrOf(node, 'aria-label')).toBe('450 m to go.')
+    expect(buttonAttr(node, 'aria-label')).toBe('450 m to go.')
   })
 
   it('es la respuesta de Watch (§7.3): data-ui FixedOverlay y data-answer, que mira la comprobación 7', () => {
     const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
-    expect(attrOf(node, 'data-ui')).toBe('FixedOverlay')
-    expect(attrOf(node, 'data-answer')).toBe('')
+    expect(rootAttr(node, 'data-ui')).toBe('FixedOverlay')
+    expect(rootAttr(node, 'data-answer')).toBe('')
     // la página está lista cuando su respuesta está en ready (§7.5): lo espera la prueba de noche
-    expect(attrOf(node, 'data-state')).toBe('ready')
+    expect(rootAttr(node, 'data-state')).toBe('ready')
+  })
+
+  it('se pulsa entera con el Expander del catálogo, hijo único de la raíz, y ningún button a mano (ui/1)', () => {
+    const instant = breakAndBunch(86.54, 226)
+    const closed = renderToStaticMarkup(<FixedOverlay instant={instant} head={HEAD} />)
+    const open = renderToStaticMarkup(<FixedOverlay instant={instant} head={HEAD} expanded />)
+    // la raíz y, dentro y sin nada más, el Expander: toda la capa es el botón
+    expect(closed).toMatch(/^<div[^>]*data-ui="FixedOverlay"[^>]*><button[^>]*data-ui="Expander"/)
+    expect(closed).toMatch(/<\/button><\/div>$/)
+    expect(closed.match(/<button/g)?.length).toBe(1)
+    expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} />, 'aria-expanded')).toBe(
+      'false',
+    )
+    expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} />, 'data-state')).toBe('closed')
+    expect(
+      buttonAttr(<FixedOverlay instant={instant} head={HEAD} expanded />, 'aria-expanded'),
+    ).toBe('true')
+    expect(open).toMatch(/<button[^>]*data-state="open"/)
+    // la segunda línea, solo abierta y dentro del botón: tocarla otra vez la cierra
+    const detail = overlayDetailText(instant, HEAD)
+    expect(detail.length).toBeGreaterThan(0)
+    expect(closed).not.toContain(detail)
+    expect(open.indexOf(detail)).toBeGreaterThan(open.indexOf('<button'))
+    expect(open.indexOf(detail)).toBeLessThan(open.indexOf('</button>'))
   })
 })

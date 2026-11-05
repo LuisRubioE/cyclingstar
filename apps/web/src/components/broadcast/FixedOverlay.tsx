@@ -7,8 +7,8 @@ import {
 } from '@cyclingstar/shared'
 import { useState } from 'react'
 import { isQuietFinal, overlayDetailText, overlaySummaryText } from '../../domain/broadcast/screen'
+import { Expander } from '../ui/Expander'
 import { Icon } from '../ui/Icon'
-import { FOCUS } from '../ui/styles'
 
 type OverlayHead = Pick<BroadcastHead, 'cast' | 'profile' | 'weather'>
 
@@ -54,7 +54,14 @@ function useOverlaySummary(instant: Instant, head: OverlayHead): string {
  * pantallas 08, 09 y 35): lleva `data-ui` y `data-answer`, y la comprobación 7 mira dónde empieza; y
  * `data-state="ready"`, porque solo se pinta con la cabecera ya llegada, y la prueba de noche da la
  * página por lista cuando su respuesta lo está (§7.5).
+ *
+ * Desde el 21n (ui/1): la raíz es un `div` con lo de la respuesta y el ámbito oscuro, como la de la crono
+ * (`TimeTrialBoard`), y dentro, sin nada más, el `Expander` del catálogo, que se pulsa entero: la capa se
+ * toca toda, como antes, con su resumen por nombre y `aria-expanded`, y su relleno va dentro del botón.
  */
+/** Sin `onToggle` (los renders estáticos), tocarla no hace nada. */
+const NADA = (): void => {}
+
 export function FixedOverlay({
   instant,
   head,
@@ -73,44 +80,44 @@ export function FixedOverlay({
   const arrow = gap?.trend?.arrow === 'up' || gap?.trend?.arrow === 'down' ? gap.trend.arrow : null
   const summary = useOverlaySummary(instant, head)
   return (
-    <button
-      type="button"
+    <div
       data-ui="FixedOverlay"
       data-answer=""
       data-state="ready"
       data-surface="dark"
-      className={`block w-full select-none rounded-ui bg-surface px-3 py-2 text-left text-ink ${FOCUS}`}
+      className="select-none rounded-ui bg-surface text-ink"
       aria-live="off"
-      aria-expanded={expanded}
-      aria-label={summary}
-      onClick={onToggle}
     >
-      <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <span className="text-display tabular-nums">
-          {toGoText(instant.toGoKm, instant.lapsToGo)}
-        </span>
-        {!quiet &&
-          (gap === null ? (
-            <span className="text-row">Bunch together</span>
-          ) : (
-            <span className="flex items-baseline gap-1 text-right">
-              <span className="text-row tabular-nums">{mainGapText(gap.gapS)}</span>
-              {arrow !== null && (
-                <span data-trend={arrow} className="self-center text-gold">
-                  <Icon name="trend" size={16} turn={arrow === 'up' ? -90 : 90} />
-                </span>
-              )}
-              {behind !== undefined && (
-                <span className="text-meta text-ink-2">{versusText(behind, head.cast)}</span>
-              )}
+      <Expander expanded={expanded} onToggle={onToggle ?? NADA} ariaLabel={summary}>
+        <span className="min-w-0 flex-1 px-3 py-2">
+          <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+            <span className="text-display tabular-nums">
+              {toGoText(instant.toGoKm, instant.lapsToGo)}
             </span>
-          ))}
-      </span>
-      {expanded && !quiet && (
-        <span className="mt-1 block text-meta tabular-nums text-ink-2">
-          {overlayDetailText(instant, head)}
+            {!quiet &&
+              (gap === null ? (
+                <span className="text-row">Bunch together</span>
+              ) : (
+                <span className="flex items-baseline gap-1 text-right">
+                  <span className="text-row tabular-nums">{mainGapText(gap.gapS)}</span>
+                  {arrow !== null && (
+                    <span data-trend={arrow} className="self-center text-gold">
+                      <Icon name="trend" size={16} turn={arrow === 'up' ? -90 : 90} />
+                    </span>
+                  )}
+                  {behind !== undefined && (
+                    <span className="text-meta text-ink-2">{versusText(behind, head.cast)}</span>
+                  )}
+                </span>
+              ))}
+          </span>
+          {expanded && !quiet && (
+            <span className="mt-1 block text-meta tabular-nums text-ink-2">
+              {overlayDetailText(instant, head)}
+            </span>
+          )}
         </span>
-      )}
-    </button>
+      </Expander>
+    </div>
   )
 }

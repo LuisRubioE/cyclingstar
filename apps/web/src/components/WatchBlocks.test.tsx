@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { horizonKey } from '../queryClient'
+import { cuantas, pieza } from '../pages/__fixtures__/markup'
 import { healthWith, horizonWith } from '../pages/__fixtures__/world'
 import { WatchBlocks } from './WatchBlocks'
 
@@ -147,6 +148,14 @@ describe('la portada bajo el velo (§11.4)', () => {
     expect(markup).toContain('Show results')
     // la terminada no se repite en Ready to watch (11-q)
     expect(markup.split('Race Italy').length - 1).toBe(1)
+  })
+
+  it('Key stages, el Button quiet del catálogo con aria-expanded, cerrado al entrar; ningún button a mano (ui/1)', () => {
+    const markup = home(veiled)
+    const key = pieza(markup, 'Button', 'Key stages')
+    expect(key).toMatch(/^<button[^>]*data-variant="quiet"/)
+    expect(key).toContain('aria-expanded="false"')
+    expect(cuantas(markup, /<button(?![^>]*data-ui=)/)).toBe(0)
   })
 
   it('sin velo para quien mira (SPOILER_MODE apagado, o un jugador con admins), la portada de hoy: ningún bloque', () => {

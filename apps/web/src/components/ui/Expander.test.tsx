@@ -35,5 +35,20 @@ describe('Expander', () => {
     expect(s).toMatch(/data-state="open"/)
     expect(s).toContain('aria-expanded="true"')
     expect(s).not.toContain('aria-controls')
+    expect(s).not.toContain('aria-label')
+  })
+
+  it('con ariaLabel, su nombre es ese y no lo que lleva dentro (la capa fija de Watch, H-05)', () => {
+    const s = renderToStaticMarkup(
+      <Expander
+        expanded={false}
+        onToggle={() => {}}
+        ariaLabel="98.5 km to go, lead group 3 riders."
+      >
+        <span>98.5 km</span>
+      </Expander>,
+    )
+    expect(s).toContain('aria-label="98.5 km to go, lead group 3 riders."')
+    expect(s).toContain('<span>98.5 km</span>')
   })
 })
