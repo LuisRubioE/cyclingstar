@@ -1801,7 +1801,7 @@ export function timeTrialStory(results: StageResultEntry[]): string[] {
   const lines = [`Best time of the day: ${winner.name} — ${formatTime(winner.tiempoS)}.`]
   if (results[1]) lines.push(`${results[1].name} came closest, ${gapToBest(gap(results[1]))} down.`)
   if (results[2])
-    lines.push(`${results[2].name} rounded out the podium at ${gapToBest(gap(results[2]))}.`)
+    lines.push(`${results[2].name} completed the podium at ${gapToBest(gap(results[2]))}.`)
   const within = results.filter((r) => gap(r) <= 60).length
   if (within >= 2)
     lines.push(`${within} riders finished within a minute of the best time — a tight one.`)
