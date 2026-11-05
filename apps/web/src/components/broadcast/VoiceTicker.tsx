@@ -1,7 +1,7 @@
 import type { ChronicleEntry, LiveLine } from '@cyclingstar/shared'
 import { chronicleParts } from '../../domain/stageJournal'
 import { type VoiceExtras, type VoiceItem, voiceItemsOf } from '../../domain/voice'
-import { Flag } from '../Flag'
+import { Flag } from '../ui/Flag'
 import { LeaderJersey } from '../ui/LeaderJersey'
 
 /**
@@ -75,7 +75,7 @@ function Sentence({ e, rev }: { e: ChronicleEntry; rev: number }) {
     <>
       {chronicleParts('en', e, rev).map((part, j) =>
         'flag' in part ? (
-          <Flag key={j} code={part.flag} size={12} className="mx-0.5 align-baseline" />
+          <Flag key={j} country={part.flag} height={12} layout="mx-0.5" />
         ) : 'jersey' in part ? (
           <span key={j} className="mx-0.5 inline-flex align-middle">
             <LeaderJersey kind={part.jersey} size={28} />

@@ -7,6 +7,7 @@ import type {
   RecapView,
 } from '../../domain/broadcast/montage'
 import { Button } from '../ui/Button'
+import { Icon } from '../ui/Icon'
 import { LeaderJersey } from '../ui/LeaderJersey'
 
 /**
@@ -46,6 +47,22 @@ function Dots({ n, at }: { n: number; at: number }) {
  * LA PREVIA (§8.6): el cuadro `index` de los de `previewCardsOf`, cada uno `previewCardS`, y `▶ Watch`
  * para empezar ya.
  */
+/**
+ * LO QUE SE MUEVE EN LA GENERAL (§8.6): la flecha era el glifo `▲` o `▼` delante de la cifra, y desde el
+ * PR 21n (E3, ui/10) es el icono `trend` de 16, girado, que no se lee; el lector oye `up` o `down` delante
+ * de la cifra, y `=` si no se mueve. La columna crece a 40 para que quepan tres cifras (de la 140 a la 8).
+ */
+function GcMove({ move }: { move: number }) {
+  if (move === 0) return <>=</>
+  return (
+    <>
+      <span className="sr-only">{move > 0 ? 'up ' : 'down '}</span>
+      <Icon name="trend" size={16} turn={move > 0 ? -90 : 90} />
+      {Math.abs(move)}
+    </>
+  )
+}
+
 export function StagePreviewCards({
   cards,
   index,
@@ -271,7 +288,9 @@ export function ClosingCardView({
             {card.rows.map((r) => (
               <li key={r.key} className="flex gap-2">
                 <span className="w-6 shrink-0 text-right tabular-nums text-ink-2">{r.rank}</span>
-                <span className="w-8 shrink-0 text-caption tabular-nums text-ink-2">{r.move}</span>
+                <span className="inline-flex w-10 shrink-0 items-center text-caption tabular-nums text-ink-2">
+                  <GcMove move={r.move} />
+                </span>
                 <span className="min-w-0 flex-1 break-words text-ink">
                   {r.name}
                   {r.own ? ' (your rider)' : ''}

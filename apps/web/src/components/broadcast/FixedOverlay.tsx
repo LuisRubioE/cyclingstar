@@ -6,7 +6,12 @@ import {
   versusText,
 } from '@cyclingstar/shared'
 import { useState } from 'react'
-import { isQuietFinal, overlayDetailText, overlaySummaryText } from '../../domain/broadcast/screen'
+import {
+  isQuietFinal,
+  overlayDetailText,
+  overlaySummaryText,
+  overlayTrendOf,
+} from '../../domain/broadcast/screen'
 import { Expander } from '../ui/Expander'
 import { Icon } from '../ui/Icon'
 
@@ -79,6 +84,7 @@ export function FixedOverlay({
   const behind = gap === null ? undefined : instant.groups.find((g) => g.g === gap.behind)
   const arrow = gap?.trend?.arrow === 'up' || gap?.trend?.arrow === 'down' ? gap.trend.arrow : null
   const summary = useOverlaySummary(instant, head)
+  const detailTrend = expanded && !quiet ? overlayTrendOf(instant, head) : null
   return (
     <div
       data-ui="FixedOverlay"
@@ -114,6 +120,15 @@ export function FixedOverlay({
           {expanded && !quiet && (
             <span className="mt-1 block text-meta tabular-nums text-ink-2">
               {overlayDetailText(instant, head)}
+              {detailTrend !== null && (
+                <>
+                  {' · '}
+                  <span data-trend={detailTrend.arrow} className="inline-flex align-middle">
+                    <Icon name="trend" size={16} turn={detailTrend.arrow === 'up' ? -90 : 90} />
+                  </span>{' '}
+                  {detailTrend.text}
+                </>
+              )}
             </span>
           )}
         </span>

@@ -2,7 +2,11 @@ import { BROADCAST } from '@cyclingstar/shared'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { overlayDetailText, overlaySummaryText } from '../../domain/broadcast/screen'
+import {
+  overlayDetailText,
+  overlaySummaryText,
+  overlayTrendOf,
+} from '../../domain/broadcast/screen'
 import { FixedOverlay } from './FixedOverlay'
 import { castOf, headOf, instantOf, leaderWorn, range } from './__fixtures__/screen'
 
@@ -209,7 +213,21 @@ describe('FixedOverlay · la segunda línea, al tocarla (6-f)', () => {
     expect(closed).not.toContain('2:09:00')
     const open = textOf(<FixedOverlay instant={withSpeed} head={HEAD} expanded />)
     // la cota del km 86 al 87 sube 50 m: 5,0 %; el tramo del tiempo desde el km 80 lleva lluvia y viento cruzado
-    expect(open).toContain('2:09:00 · 22.9 km/h · 5.0% · 21°C · rain · crosswind · ▲ 0:24 in 5 km')
+    // RE-SELLADO EN EL PR 21n (E3, ui/10): el ▲ de la tendencia pasa al icono `trend`, girado y que no se
+    // lee, como el de la primera línea; las palabras, las de siempre
+    expect(open).toContain('2:09:00 · 22.9 km/h · 5.0% · 21°C · rain · crosswind · 0:24 in 5 km')
+    expect(overlayDetailText(withSpeed, HEAD)).toBe(
+      '2:09:00 · 22.9 km/h · 5.0% · 21°C · rain · crosswind',
+    )
+    expect(overlayTrendOf(withSpeed, HEAD)).toEqual({ arrow: 'up', text: '0:24 in 5 km' })
+    const openMarkup = renderToStaticMarkup(
+      <FixedOverlay instant={withSpeed} head={HEAD} expanded />,
+    )
+    const closedMarkup = renderToStaticMarkup(<FixedOverlay instant={withSpeed} head={HEAD} />)
+    expect(openMarkup).not.toMatch(/[▲▼]/)
+    expect(openMarkup.match(/data-trend="up"/g)?.length).toBe(
+      (closedMarkup.match(/data-trend="up"/g)?.length ?? 0) + 1,
+    )
   })
 
   it('sin velocidad medida ni tendencia, no se escriben', () => {

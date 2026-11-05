@@ -393,6 +393,25 @@ describe('lo estimado, marcado (§3.8): el km con ~, el cursor hueco y el aviso'
   })
 })
 
+describe('ProfileStrip · los cursores se mueven sin style (E3, ui/9; PR 21n)', () => {
+  it('con movimiento o sin él, ningún style; y los dos marcados no son el mismo', () => {
+    const head = headOf(CAST)
+    const pinta = (reducedMotion: boolean) =>
+      renderToStaticMarkup(
+        <ProfileStrip
+          profile={head.profile}
+          lengthKm={head.stage.lengthKm}
+          instant={sixPointOne()}
+          clock="exact"
+          reducedMotion={reducedMotion}
+        />,
+      )
+    expect(pinta(false)).not.toContain('style=')
+    expect(pinta(true)).not.toContain('style=')
+    expect(pinta(false)).not.toBe(pinta(true))
+  })
+})
+
 describe('ProfileStrip · el perfil con un cursor por grupo y el puerto que viene (§6.2)', () => {
   const head = headOf(CAST)
   const at = (km: number) =>

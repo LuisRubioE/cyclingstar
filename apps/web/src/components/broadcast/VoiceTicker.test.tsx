@@ -49,6 +49,14 @@ const textOf = (markup: string): string =>
     .trim()
 
 describe('VoiceTicker · la voz a su hora (§12.2)', () => {
+  it('cada mención con su bandera, la Flag del catálogo, y ninguna de la de antes (PR 21n)', () => {
+    const s = renderToStaticMarkup(
+      <VoiceTicker lines={LINES} t={100} open={false} unnamed={UNNAMED} />,
+    )
+    expect(s).toMatch(/data-ui="Flag"[^>]*data-state="ready"[^>]*aria-label="Spain"/)
+    expect(s).not.toContain('class="flag')
+  })
+
   it('dice la última línea con revealS hasta t, nunca una de después', () => {
     const at = (t: number) =>
       textOf(

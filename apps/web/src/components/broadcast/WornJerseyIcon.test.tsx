@@ -57,7 +57,9 @@ describe('WornJerseyIcon', () => {
 
   it('sin equipo, el hueco de su ancho, que no se lee', () => {
     const s = renderToStaticMarkup(<WornJerseyIcon worn={{ kind: 'team' }} team={null} size={28} />)
-    expect(s).toMatch(/^<span aria-hidden="true"[^>]* style="width:28px;height:28px"><\/span>$/)
+    // RE-SELLADO EN EL PR 21n (E3, ui/9): un svg vacío de su lado, sin style
+    expect(s).toMatch(/^<svg aria-hidden="true" width="28" height="28"[^>]*><\/svg>$/)
+    expect(s).not.toContain('style=')
   })
 
   it('surface llega al filete de los tres dibujos nuevos', () => {

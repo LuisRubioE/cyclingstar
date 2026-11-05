@@ -102,7 +102,8 @@ function overlayDetailOf(instant: Instant, head: OverlayHead): OverlayDetail {
 /**
  * La segunda línea de la capa fija (6-f): el reloj de carrera, la velocidad de la cabeza en su último
  * km de foto (si se midió), la pendiente del km en que va, la temperatura y, si toca, `rain` y
- * `crosswind` del tramo del tiempo en que va, y el detalle de la tendencia, `▲ 0:24 in 5 km`.
+ * `crosswind` del tramo del tiempo en que va. El detalle de la tendencia (`0:24 in 5 km`, con su flecha
+ * delante) va aparte, en `overlayTrendOf`, porque la flecha es un icono y no un glifo (PR 21n, ui/10).
  */
 export function overlayDetailText(instant: Instant, head: OverlayHead): string {
   const d = overlayDetailOf(instant, head)
@@ -112,11 +113,20 @@ export function overlayDetailText(instant: Instant, head: OverlayHead): string {
   parts.push(`${Math.round(d.tempC)}°C`)
   if (d.rain) parts.push('rain')
   if (d.crosswind) parts.push('crosswind')
-  if (d.trend !== null)
-    parts.push(
-      `${d.trend.arrow === 'up' ? '▲' : '▼'} ${clockText(Math.abs(d.trend.deltaS))} in ${d.trend.windowKm} km`,
-    )
   return parts.join(' · ')
+}
+
+/** El detalle de la tendencia de la segunda línea (6-f): hacia dónde va y `0:24 in 5 km`; null si no hay. */
+export function overlayTrendOf(
+  instant: Instant,
+  head: OverlayHead,
+): { readonly arrow: 'up' | 'down'; readonly text: string } | null {
+  const { trend } = overlayDetailOf(instant, head)
+  if (trend === null || trend.arrow === 'flat') return null
+  return {
+    arrow: trend.arrow,
+    text: `${clockText(Math.abs(trend.deltaS))} in ${trend.windowKm} km`,
+  }
 }
 
 /** `1 rider`, `5 riders`. */
