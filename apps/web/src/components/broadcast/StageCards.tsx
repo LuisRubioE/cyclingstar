@@ -44,10 +44,6 @@ function Dots({ n, at }: { n: number; at: number }) {
 }
 
 /**
- * LA PREVIA (§8.6): el cuadro `index` de los de `previewCardsOf`, cada uno `previewCardS`, y `▶ Watch`
- * para empezar ya.
- */
-/**
  * LO QUE SE MUEVE EN LA GENERAL (§8.6): la flecha era el glifo `▲` o `▼` delante de la cifra, y desde el
  * PR 21n (E3, ui/10) es el icono `trend` de 16, girado, que no se lee; el lector oye `up` o `down` delante
  * de la cifra, y `=` si no se mueve. La columna crece a 40 para que quepan tres cifras (de la 140 a la 8).
@@ -57,12 +53,19 @@ function GcMove({ move }: { move: number }) {
   return (
     <>
       <span className="sr-only">{move > 0 ? 'up ' : 'down '}</span>
-      <Icon name="trend" size={16} turn={move > 0 ? -90 : 90} />
+      {/* en línea, en el primer renglón, junto al puesto, aunque el nombre parta en dos (revisión del 21n) */}
+      <span className="inline-flex align-middle">
+        <Icon name="trend" size={16} turn={move > 0 ? -90 : 90} />
+      </span>
       {Math.abs(move)}
     </>
   )
 }
 
+/**
+ * LA PREVIA (§8.6): el cuadro `index` de los de `previewCardsOf`, cada uno `previewCardS`, y `▶ Watch`
+ * para empezar ya.
+ */
 export function StagePreviewCards({
   cards,
   index,
@@ -288,7 +291,7 @@ export function ClosingCardView({
             {card.rows.map((r) => (
               <li key={r.key} className="flex gap-2">
                 <span className="w-6 shrink-0 text-right tabular-nums text-ink-2">{r.rank}</span>
-                <span className="inline-flex w-10 shrink-0 items-center text-caption tabular-nums text-ink-2">
+                <span className="w-10 shrink-0 text-caption tabular-nums text-ink-2">
                   <GcMove move={r.move} />
                 </span>
                 <span className="min-w-0 flex-1 break-words text-ink">

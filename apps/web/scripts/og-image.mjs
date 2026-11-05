@@ -29,12 +29,11 @@ const LOGO = join(WEB, 'src', 'components', 'Logo.tsx')
 const TOKENS = join(WEB, '..', '..', 'packages', 'shared', 'tokens.json')
 const HUELLAS = join(WEB, 'scripts', 'huellas.json')
 
-/** Lo que se pinta: el tamaño, los tres colores (§3.1) y el nombre. */
+/** Lo que se pinta: el tamaño, el fondo y el color del nombre (§3.1), y el nombre. */
 const OG = {
   width: 1200,
   height: 630,
   navy: '#123a5c',
-  gold: '#e0a106',
   white: '#ffffff',
   name: 'Cycling Star',
 }
@@ -44,6 +43,15 @@ const OG = {
  */
 const AMBITO = JSON.parse(readFileSync(TOKENS, 'utf8')).darkScope.color
 const LOGO_COLORS = { stroke: AMBITO.logo, star: AMBITO['logo-star'] }
+// sin ellos, o con algo que no es un color literal, la hoja diría `stroke: undefined` y la bicicleta saldría
+// invisible sin que fallara nada: falla aquí, también con `--check` (revisión del 21n)
+for (const [what, color] of Object.entries(LOGO_COLORS))
+  if (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color)) {
+    console.error(
+      `og-image: el ${what} del logotipo en el ámbito oscuro de tokens.json no es un color: ${color}`,
+    )
+    process.exit(1)
+  }
 const LOGO_CLASSES = {
   'stroke-logo': ['stroke', LOGO_COLORS.stroke],
   'fill-logo': ['fill', LOGO_COLORS.stroke],
@@ -102,6 +110,10 @@ async function logoSvg(size) {
     const usadas = new Set([...svg.matchAll(/class="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)))
     for (const clase of Object.keys(LOGO_CLASSES))
       if (!usadas.has(clase)) throw new Error(`og-image: Logo.tsx ya no lleva la clase ${clase}`)
+    // aquí no hay Tailwind: una clase que no sea de las cuatro saldría sin color (revisión del 21n)
+    for (const clase of usadas)
+      if (!(clase in LOGO_CLASSES))
+        throw new Error(`og-image: Logo.tsx lleva ${clase}, que la imagen no colorea`)
     return svg
   } finally {
     await server.close()

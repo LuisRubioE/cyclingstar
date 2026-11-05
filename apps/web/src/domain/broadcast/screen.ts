@@ -178,7 +178,7 @@ function gapWords(gapS: number): string {
  * EL NOMBRE ACCESIBLE DE LA CAPA FIJA (E3, docs/visual.md §14.3; H-05, X-15, 14-e; PR 20), en dos frases con
  * las piezas de lo que se pinta y en su orden. La primera: la distancia (`toGoText`, con sus vueltas), el
  * grupo de cabeza y el de detrás con su hueco (`lead group 5 riders, bunch at 2 minutes 14`), o `bunch
- * together` con un solo grupo. La segunda, la de `overlayDetailText` en palabras: `Race time 3 hours 12
+ * together` con un solo grupo. La segunda, la de `overlayDetailText` y `overlayTrendOf` en palabras: `Race time 3 hours 12
  * minutes, 42.3 km per hour, 6.5 percent, 18 degrees, rain, crosswind, gap up 12 seconds over 5 km`. En los
  * últimos `quietFinalM` la capa solo pinta la distancia (§6.9), y el resumen solo la dice.
  */

@@ -76,6 +76,10 @@ const CLARO: readonly Pareja[] = [
   // los filetes del maillot, contra sus suelos
   ...sobre('kit-edge', ['surface', 'surface-2', 'canvas', 'own-tint'], 2.09),
   ...sobre('kit-edge-strong', ['surface', 'surface-2', 'canvas', 'own-tint'], 2.41),
+  // el logotipo (PR 21n): su trazo, un gráfico (WCAG 1.4.11), donde se pinta en el claro (la portada); la
+  // estrella ámbar, 1,91 sobre canvas, queda fuera: es parte de la marca, que E3 no redibuja (§18.3), y lo
+  // que dice que es el logotipo es la bicicleta
+  ...sobre('logo', ['canvas', 'surface'], GRAFICO),
 ]
 
 /** §3.3, el ámbito oscuro. */
@@ -92,6 +96,10 @@ const AMBITO: readonly Pareja[] = [
   ...sobre('gold', ['surface', 'surface-2'], GRAFICO),
   ...sobre('kit-edge', ['navy-dark', 'navy', 'bad'], GRAFICO),
   ...sobre('kit-edge-strong', ['navy-dark', 'navy', 'bad'], GRAFICO),
+  // el logotipo en la cabecera, que es navy (PR 21n): es lo único que se ve del enlace a la portada por
+  // debajo de 640, y ahí cuenta como gráfico (WCAG 1.4.11), el trazo y la estrella
+  ...sobre('logo', ['navy'], GRAFICO),
+  ...sobre('logo-star', ['navy'], GRAFICO),
 ]
 
 /** Las que bajan de su umbral, con su razón. */
@@ -143,9 +151,9 @@ describe('el ámbito oscuro (§3.3)', () => {
 })
 
 /**
- * EL LOGOTIPO (§18.3 y §14.7; D20; PR 21n): una marca, que no entra en las parejas (WCAG 1.4.3 exime los
- * logotipos) y que E3 no redibuja. Sus dos colores de siempre en el claro; en el ámbito oscuro, los de la
- * imagen de compartir, porque la cabecera es navy y el índigo de su trazo ahí no se veía.
+ * EL LOGOTIPO (§18.3 y §14.7; D20; PR 21n): una marca que E3 no redibuja. Sus dos colores de siempre en el
+ * claro; en el ámbito oscuro, los de la imagen de compartir, porque la cabecera es navy y el índigo de su
+ * trazo ahí no se veía. Sus parejas, en CLARO y AMBITO; aquí, lo que las explica y lo que las ata.
  */
 describe('el logotipo (§18.3; PR 21n)', () => {
   it('en el claro, los de siempre: el trazo índigo y la estrella ámbar', () => {
@@ -157,6 +165,11 @@ describe('el logotipo (§18.3; PR 21n)', () => {
     expect(wcagContrast(claro.logo!, claro.navy!)).toBeCloseTo(1.87, 2)
     expect(wcagContrast(ambito.logo!, ambito.navy!)).toBeGreaterThanOrEqual(GRAFICO)
     expect(wcagContrast(ambito['logo-star']!, ambito.navy!)).toBeGreaterThanOrEqual(GRAFICO)
+  })
+
+  it('en el ámbito oscuro, blanco y gold, los de la imagen de compartir (§14.7): si gold cambia, lo sigue', () => {
+    expect(ambito.logo).toBe(ambito.white)
+    expect(ambito['logo-star']).toBe(ambito.gold)
   })
 })
 

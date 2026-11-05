@@ -304,7 +304,7 @@ export interface ClosingResultRow {
   readonly note: string | null
 }
 
-/** Una fila de la general tras la etapa, con su flecha (`▲2`, `▼1`, `=`). */
+/** Una fila de la general tras la etapa, con lo que se mueve en cifra: la flecha la pone la pantalla (PR 21n). */
 export interface ClosingGcRow {
   readonly key: string
   readonly rank: number

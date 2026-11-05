@@ -99,6 +99,16 @@ describe('FixedOverlay · los km a meta (§6.2)', () => {
  * deja un glifo en la interfaz. El texto que se lee pierde la flecha; dónde está y hacia dónde apunta lo
  * mira `trendOf`.
  */
+/** Todas las flechas de la capa, en orden: la de la primera línea y, abierta, la de la segunda (revisión del 21n). */
+function trendsOf(node: ReactElement): string[] {
+  const html = renderToStaticMarkup(node)
+  return [
+    ...html.matchAll(
+      /data-trend="(up|down)"[^>]*>\s*<svg[^>]*aria-hidden="true"[^>]*>\s*<g transform="rotate\((-?\d+) 12 12\)">/g,
+    ),
+  ].map((m) => `${m[1]} ${m[2]}`)
+}
+
 function trendOf(node: ReactElement): string | null {
   const html = renderToStaticMarkup(node)
   const m =
@@ -143,6 +153,11 @@ describe('FixedOverlay · la diferencia principal y contra quién (§6.2, 6-b)',
       ' · 0:24 in 5 km',
     )
     expect(open.match(/data-trend="down"/g)?.length).toBe(2)
+    // las dos, hacia abajo: la de la primera línea y la de la segunda
+    expect(trendsOf(<FixedOverlay instant={down} head={HEAD} expanded />)).toEqual([
+      'down 90',
+      'down 90',
+    ])
   })
 
   it('desde la hora, con las horas: +1:02:10', () => {
@@ -242,6 +257,12 @@ describe('FixedOverlay · la segunda línea, al tocarla (6-f)', () => {
     expect(openMarkup.match(/data-trend="up"/g)?.length).toBe(
       (closedMarkup.match(/data-trend="up"/g)?.length ?? 0) + 1,
     )
+    // las dos, hacia arriba, cerrada una y abierta dos (revisión del 21n: solo se contaban)
+    expect(trendsOf(<FixedOverlay instant={withSpeed} head={HEAD} />)).toEqual(['up -90'])
+    expect(trendsOf(<FixedOverlay instant={withSpeed} head={HEAD} expanded />)).toEqual([
+      'up -90',
+      'up -90',
+    ])
   })
 
   it('sin velocidad medida ni tendencia, no se escriben', () => {

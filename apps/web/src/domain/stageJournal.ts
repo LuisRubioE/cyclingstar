@@ -202,7 +202,7 @@ export function listNames(names: string[]): string {
 // --- La IDENTIDAD de cada corredor mencionado (encargo A1 del dueño) --------------------------
 // «Cada vez que menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera.»
 //
-// La bandera NO puede ir como emoji: `components/Flag.tsx` explica por qué (en Windows y en muchos
+// La bandera NO puede ir como emoji (la `Flag` del catálogo, `components/ui/Flag.tsx`: en Windows y en muchos
 // navegadores de escritorio los emoji de bandera salen como dos letras), y toda la web la pinta como
 // imagen, del sprite de las banderas (E3, PR 6). Como esto es un módulo de texto puro y sin React, la
 // frase se compone con una MARCA invisible alrededor del código de país y `chronicleParts()` la parte en
