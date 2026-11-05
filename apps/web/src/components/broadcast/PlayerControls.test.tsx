@@ -58,8 +58,21 @@ function buttonsOf(markup: string): { text: string; mobile: boolean; attrs: stri
   return out
 }
 
-/** El atributo `disabled` (no la clase `disabled:`). */
-const disabled = (attrs: string): boolean => / disabled=""/.test(attrs)
+/**
+ * Apagado, como todo `Button` del catálogo: `aria-disabled`, nunca `disabled`, con su porqué (§4.1); en la barra,
+ * solo para el lector (`reasonHidden`, PR 21n).
+ */
+const disabled = (attrs: string): boolean => / aria-disabled="true"/.test(attrs)
+
+/** El porqué de un mando apagado: el texto que nombra su `aria-describedby`, y si se ve (`hidden`, revisión del 21n). */
+function porque(markup: string, attrs: string): { texto: string; oculto: boolean } | null {
+  const id = / aria-describedby="([^"]+)"/.exec(attrs)?.[1]
+  if (id === undefined) return null
+  const m = new RegExp(`<span id="${id}"( hidden="")?(?: class="[^"]*")?>([^<]*)</span>`).exec(
+    markup,
+  )
+  return m === null ? null : { texto: m[2] ?? '', oculto: m[1] !== undefined }
+}
 
 const mobileRow = (markup: string): string[] =>
   buttonsOf(markup)
@@ -86,11 +99,15 @@ const ROAD: readonly JumpOption[] = [
 
 const noop = (): void => {}
 
-function controls(state: Partial<ControlsState> = {}, canShowResult = true): string {
+function controls(
+  state: Partial<ControlsState> = {},
+  canShowResult = true,
+  commentaryOpen = false,
+): string {
   const el: ReactElement = (
     <PlayerControls
       state={{ ...PLAYING, ...state }}
-      commentaryOpen={false}
+      commentaryOpen={commentaryOpen}
       jumps={ROAD}
       canShowResult={canShowResult}
       onPlay={noop}
@@ -170,12 +187,28 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
     expect(playing).not.toContain('data-variant="primary"')
   })
 
-  it('cada mando, de 44 como mínimo: los del catálogo y los que se conmutan (comprobación 5)', () => {
-    for (const b of buttonsOf(controls())) {
-      if (b.attrs.includes('data-ui="Button"')) continue
-      expect(b.attrs, b.text).toMatch(/min-h-11/)
-      expect(b.attrs, b.text).toMatch(/min-w-11/)
+  // los 44 de cada mando los da el `Button` del catálogo, que es lo que exige el test de abajo, y los mide la
+  // comprobación 5 de la prueba del teléfono (D-10): el test que los miraba por su clase ya no miraba nada
+
+  it('cada mando, un Button del catálogo, ninguno a mano (ui/1; PR 21n): los que se conmutan, More y Next action', () => {
+    for (const s of [
+      controls(),
+      controls({ nextAction: true, speed: 2 }),
+      controls({ lastKm: true }),
+    ]) {
+      expect((s.match(/data-ui="Button"/g) ?? []).length).toBe((s.match(/<button\b/g) ?? []).length)
+      expect(s).toMatch(/data-ui="Button" data-variant="control"/)
     }
+    const more = buttonsOf(controls()).find((b) => b.text === 'More')!
+    expect(more.attrs).toContain('aria-expanded="false"')
+    expect(more.attrs).toContain('aria-controls="player-sheet"')
+  })
+
+  it('Next action, apagado en el último km con su porqué solo para el lector, que la fila no parte (PR 21n)', () => {
+    const s = controls({ lastKm: true })
+    const next = buttonsOf(s).find((b) => b.text === 'Next action')!
+    expect(disabled(next.attrs)).toBe(true)
+    expect(porque(s, next.attrs)).toEqual({ texto: 'Already in the last kilometre.', oculto: true })
   })
 
   it('el encendido no lleva el fondo ni la tinta del apagado: de dos clases del mismo estado, gana la que la hoja pone después', () => {
@@ -195,6 +228,15 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
       expect(b.attrs, b.text).toMatch(/ hover:bg-surface-2/)
       expect(b.attrs, b.text).not.toMatch(/ bg-accent[\s"]/)
     }
+  })
+})
+
+describe('Commentary, un mando que se conmuta (PR 21n)', () => {
+  it('dice si está desplegado: aria-pressed en false y, abierto, en true', () => {
+    const de = (open: boolean) =>
+      buttonsOf(controls({}, true, open)).find((b) => b.text === 'Commentary')?.attrs ?? ''
+    expect(de(false)).toContain('aria-pressed="false"')
+    expect(de(true)).toContain('aria-pressed="true"')
   })
 })
 
@@ -228,8 +270,42 @@ describe('la hoja de ⋯ (8-p): los saltos, el modo y Show result', () => {
     expect(buttons.every((b) => b.mobile)).toBe(true)
     expect(disabled(buttons.find((b) => b.text === 'Next climb')!.attrs)).toBe(true)
     expect(disabled(buttons.find((b) => b.text === 'Final 20 km')!.attrs)).toBe(false)
+    // el apagado, con su porqué solo para el lector; ninguno a mano (ui/1; PR 21n)
+    expect(porque(markup, buttons.find((b) => b.text === 'Next climb')!.attrs)).toEqual({
+      texto: 'Nothing to skip to from here.',
+      oculto: true,
+    })
+    expect(porque(markup, buttons.find((b) => b.text === 'Final 20 km')!.attrs)).toBeNull()
+    expect((markup.match(/data-ui="Button"/g) ?? []).length).toBe(
+      (markup.match(/<button\b/g) ?? []).length,
+    )
     expect(buttons.find((b) => b.text === 'Highlights')!.attrs).toContain('aria-pressed="true"')
     expect(buttons.find((b) => b.text === 'Watch')!.attrs).toContain('aria-pressed="false"')
+  })
+
+  it('los saltos son Button secondary, que se ven como botones en la hoja (revisión del 21n)', () => {
+    const buttons = buttonsOf(sheet(ROAD))
+    for (const t of ['−5 km', '+5 km', 'Next climb', 'Final 20 km', 'Last km'])
+      expect(buttons.find((b) => b.text === t)!.attrs, t).toContain('data-variant="secondary"')
+  })
+
+  it('el porqué de un salto apagado dice su causa: saltando, en la previa, en el último km o sin destino', () => {
+    const jumps: JumpOption[] = [
+      { id: 'back5', label: ROAD_JUMP_LABEL.back5, enabled: false, why: 'notYet' },
+      { id: 'fwd5', label: ROAD_JUMP_LABEL.fwd5, enabled: false, why: 'busy' },
+      { id: 'nextClimb', label: ROAD_JUMP_LABEL.nextClimb, enabled: false, why: 'none' },
+      { id: 'final20', label: ROAD_JUMP_LABEL.final20, enabled: false, why: 'lastKm' },
+      { id: 'lastKm', label: ROAD_JUMP_LABEL.lastKm, enabled: false },
+    ]
+    const markup = sheet(jumps)
+    const de = (t: string) =>
+      porque(markup, buttonsOf(markup).find((b) => b.text === t)!.attrs)?.texto
+    expect(de('−5 km')).toBe('Nothing to go back to yet.')
+    expect(de('+5 km')).toBe('Already skipping.')
+    expect(de('Next climb')).toBe('Nothing to skip to from here.')
+    expect(de('Final 20 km')).toBe('Already in the last kilometre.')
+    // sin causa, la de siempre
+    expect(de('Last km')).toBe('Nothing to skip to from here.')
   })
 
   it('en la crono, los saltos de reloj (9-g): −10 min, +10 min, Last 20 starters y Last starter', () => {

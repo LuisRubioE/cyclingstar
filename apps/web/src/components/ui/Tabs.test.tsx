@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
-import { tabId as tabIdDeHoy } from '../Tabs'
+import { TabPanel } from '../Tabs'
 import { Tabs, tabId } from './Tabs'
 
 /**
@@ -40,8 +40,13 @@ describe('Tabs con options: el tablist', () => {
     expect(s.match(/aria-selected="false" tabindex="-1" data-state="inactive"/g)).toHaveLength(2)
   })
 
-  it('los ids, los de components/Tabs.tsx, para su TabPanel', () => {
-    expect(tabId('rider', 'orders')).toBe(tabIdDeHoy('rider', 'orders'))
+  it('el TabPanel de components/Tabs.tsx, etiquetado con el id de su pestaña de aquí', () => {
+    const panel = renderToStaticMarkup(
+      <TabPanel panelId="rider" active="orders">
+        x
+      </TabPanel>,
+    )
+    expect(panel).toContain(`aria-labelledby="${tabId('rider', 'orders')}"`)
   })
 
   it('el adorno de una pestaña (PR 21a), detrás de su texto y dentro de ella: el contador de Stages', () => {

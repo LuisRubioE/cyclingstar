@@ -2,14 +2,13 @@ import { BROADCAST } from '@cyclingstar/shared'
 import { useState } from 'react'
 import type {
   ClockJump,
+  JumpWhy,
   PlayerPhase,
   RoadJump,
   Speed,
   ViewMode,
 } from '../../domain/broadcast/player'
 import { Button } from '../ui/Button'
-import { Icon } from '../ui/Icon'
-import { FOCUS } from '../ui/styles'
 
 /** Lo que los mandos leen del reproductor. */
 export interface ControlsState {
@@ -31,6 +30,8 @@ export interface JumpOption {
   readonly id: RoadJump | ClockJump
   readonly label: string
   readonly enabled: boolean
+  /** apagado, por qué (`jumpWhy`, revisión del 21n); sin él, `Nothing to skip to from here.` */
+  readonly why?: JumpWhy
 }
 
 /** `×½ ×1 ×2 ×4` (pantalla). */
@@ -54,20 +55,19 @@ export const CLOCK_JUMP_LABEL: Readonly<Record<ClockJump, string>> = {
 }
 
 /**
- * Un mando que se conmuta (`aria-pressed`) o un salto de la hoja, que el catálogo no tiene: 44 × 44 como
- * mínimo, como un `Button` (comprobación 5), con los tokens del ámbito oscuro. En el teléfono, más
- * estrechos que un `Button`, para que la fila parta lo menos posible.
+ * Los mandos, `Button` del catálogo (E3, PR 21n): los que se conmutan, con `pressed`; `More`, con `expanded`; y
+ * los apagados, con su porqué solo para el lector (`reasonHidden`), porque E2 fija la fila en un renglón y
+ * escrito debajo la partiría. Antes eran botones propios, porque `Button` no llevaba nada de eso (PR 20).
  */
-const control = `inline-flex min-h-11 min-w-11 items-center justify-center rounded-ui px-2 text-meta font-semibold transition disabled:text-disabled-ink sm:px-3 ${FOCUS}`
-/**
- * El apagado y el encendido, el de la opción activa de un `Segmented` (§4.3), nunca juntos: de dos clases
- * del mismo estado (`hover:bg-surface-2` y `hover:bg-accent-strong`) gana la que Tailwind pone después en
- * la hoja, y no la de después en el atributo, así que un mando encendido salía con el fondo del apagado.
- */
-const idle = 'text-ink hover:bg-surface-2 disabled:hover:bg-transparent'
-const pressed = 'bg-accent text-on-accent hover:bg-accent-strong'
-/** el apagado o el encendido de un mando que se conmuta */
-const toggle = (on: boolean): string => `${control} ${on ? pressed : idle}`
+const EN_EL_ULTIMO_KM = 'Already in the last kilometre.'
+const SIN_SALTO = 'Nothing to skip to from here.'
+/** El porqué de un salto apagado, por su causa (revisión del 21n): antes, siempre el de `none`. */
+const POR_QUE_SALTO: Readonly<Record<JumpWhy, string>> = {
+  busy: 'Already skipping.',
+  notYet: 'Nothing to go back to yet.',
+  lastKm: EN_EL_ULTIMO_KM,
+  none: SIN_SALTO,
+}
 
 /**
  * LOS MANDOS (docs/retransmision.md §8.5, 8-o, 8-p y §18.8). En el teléfono, la fila lleva `❚❚`, la
@@ -162,44 +162,37 @@ export function PlayerControls({
               aria-label="Speed"
             >
               {speeds.map((x) => (
-                <button
+                <Button
                   key={x}
-                  type="button"
-                  aria-pressed={x === state.speed}
-                  className={toggle(x === state.speed)}
+                  variant="control"
+                  pressed={x === state.speed}
                   onClick={() => onSpeed(x)}
                 >
                   {speedLabel(x)}
-                </button>
+                </Button>
               ))}
             </span>
-            <button
-              type="button"
-              aria-pressed={state.nextAction}
-              disabled={state.lastKm && !state.nextAction}
-              className={toggle(state.nextAction)}
+            <Button
+              variant="control"
+              pressed={state.nextAction}
+              {...(state.lastKm && !state.nextAction
+                ? { disabledReason: EN_EL_ULTIMO_KM, reasonHidden: true }
+                : {})}
               onClick={onNextAction}
             >
               Next action
-            </button>
-            <button
-              type="button"
-              aria-pressed={commentaryOpen}
-              className={toggle(commentaryOpen)}
-              onClick={onCommentary}
-            >
+            </Button>
+            <Button variant="control" pressed={commentaryOpen} onClick={onCommentary}>
               Commentary
-            </button>
-            <button
-              type="button"
-              aria-label="More"
-              aria-expanded={sheetOpen}
-              aria-controls="player-sheet"
-              className={`${control} ${idle}`}
+            </Button>
+            <Button
+              variant="control"
+              icon="more"
+              ariaLabel="More"
+              expanded={sheetOpen}
+              controls="player-sheet"
               onClick={() => setSheetOpen((o) => !o)}
-            >
-              <Icon name="more" />
-            </button>
+            />
           </>
         )}
         <span className="ml-auto text-caption text-ink-2" role="status">
@@ -264,29 +257,25 @@ export function PlayerSheet({
     >
       <div className="flex flex-wrap gap-1" role="group" aria-label="Skip">
         {jumps.map((j) => (
-          <button
+          // `secondary`: en la hoja, los saltos se ven como botones, como cuando tenían su relleno (PR 20)
+          <Button
             key={j.id}
-            type="button"
-            className={`${control} bg-surface-2 ${idle}`}
-            disabled={!j.enabled}
+            size="sm"
+            {...(j.enabled
+              ? {}
+              : { disabledReason: POR_QUE_SALTO[j.why ?? 'none'], reasonHidden: true })}
             onClick={() => onJump(j.id)}
           >
             {j.label}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-1">
         <span className="inline-flex gap-0.5" role="group" aria-label="Mode">
           {(['watch', 'highlights'] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              aria-pressed={view === v}
-              className={toggle(view === v)}
-              onClick={() => onView(v)}
-            >
+            <Button key={v} variant="control" pressed={view === v} onClick={() => onView(v)}>
               {v === 'watch' ? 'Watch' : 'Highlights'}
-            </button>
+            </Button>
           ))}
         </span>
         {canShowResult && (

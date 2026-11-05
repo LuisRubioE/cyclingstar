@@ -2,7 +2,7 @@ import { COUNTRIES } from '@cyclingstar/shared'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { Flag, flagWidth } from './Flag'
-import { FLAG_CELLS } from './flagSprite.generated'
+import { FLAG_CELLS, FLAG_SPRITE } from './flagSprite.generated'
 
 /**
  * `Flag` (E3, docs/visual.md §4.6; PR 9b): la bandera del sprite a 21 × 16 en una fila, o a 12 o 24 de
@@ -49,5 +49,26 @@ describe('Flag', () => {
   it('las 133 del juego tienen su celda en el sprite', () => {
     expect(COUNTRIES).toHaveLength(133)
     for (const c of COUNTRIES) expect(FLAG_CELLS[c.code], c.code).toBeDefined()
+  })
+
+  it('pinta su celda del sprite, sin el anillo que repite el borde, a 12 y a 16 de alto (del test de la de antes)', () => {
+    // el anillo mide 1,5 px como poco (lo medido): lo que el filtrado coja de fuera es el borde de la propia
+    // bandera y nunca la vecina; la de antes lo probaba en em, y con el 21n solo queda esta (revisión del 21n)
+    const { cols, rows, width, height: alto, margin } = FLAG_SPRITE
+    expect(margin).toBeGreaterThanOrEqual(1.5)
+    const px = (n: number) => `${Number(n.toFixed(3))}px`
+    for (const code of ['ES', 'FR'] as const)
+      for (const h of [12, 16] as const) {
+        const [col, row] = FLAG_CELLS[code]!
+        const sx = flagWidth(h) / (width - 2 * margin)
+        const sy = h / (alto - 2 * margin)
+        const html = renderToStaticMarkup(<Flag country={code} height={h} />)
+        expect(html, `${code} ${h}`).toContain(
+          `background-position:${px(-(col * width + margin) * sx)} ${px(-(row * alto + margin) * sy)}`,
+        )
+        expect(html, `${code} ${h}`).toContain(
+          `background-size:${px(cols * width * sx)} ${px(rows * alto * sy)}`,
+        )
+      }
   })
 })

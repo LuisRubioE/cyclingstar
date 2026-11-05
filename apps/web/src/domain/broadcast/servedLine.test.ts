@@ -769,9 +769,19 @@ describe('la voz sobre lo servido: a quién nombra cada línea, una vez (10b, lo
       [[said('attack_go'), said('rider_sits_up')], 1],
     ] as const) {
       let yields = 0
-      await answerAhead(served.core, head.cast, ctxOf(), lines, async () => {
-        yields += 1
-      })
+      // con un reloj que no avanza (revisión del 21n): con el de verdad, con la máquina cargada, el cálculo
+      // pasaba de los 8 ms de su tajada y cedía una vez más; lo que se mira es la cesión de antes de empezar
+      await answerAhead(
+        served.core,
+        head.cast,
+        ctxOf(),
+        lines,
+        async () => {
+          yields += 1
+        },
+        8,
+        () => 0,
+      )
       expect(yields, lines.map((l) => l.plantilla).join(', ')).toBe(expected)
     }
   })

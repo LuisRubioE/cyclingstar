@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { RIDER_LINK_CLASS } from './RiderName'
 import {
   BROADCAST,
   JERSEY_PRIORITY,
@@ -12,8 +10,12 @@ import {
   groupLabelText,
   groupRoleOf,
 } from '@cyclingstar/shared'
-import { Flag } from './Flag'
+import { Button } from './ui/Button'
+import { Flag } from './ui/Flag'
+import { InfoButton } from './ui/InfoButton'
 import { LeaderJersey } from './ui/LeaderJersey'
+import { FOCUS } from './ui/styles'
+import { TextLink, gluedLastWord } from './ui/TextLink'
 
 /**
  * LA RACE RADIO: la carrera en UN punto del recorrido.
@@ -35,6 +37,12 @@ import { LeaderJersey } from './ui/LeaderJersey'
  *  - **Quién tira y quién va a rueda**, que son cosas distintas: los que están pasando por el relevo
  *    salen todos —si son veinte, veinte—, y detrás los que hay que ver aunque se guarden (maillots y
  *    jefes de filas). Los demás se cuentan.
+ *
+ * CON EL SISTEMA (E3, docs/visual.md §14 y §6.4; PR 21m): solo cambia el aspecto. Los tokens donde iba la
+ * paleta, la letra de 12 como mínimo, los botones del catálogo y el nombre enlazado con `TextLink`. Los
+ * glifos del relevo (`⏵` y `⌂`) se van, porque el rótulo de su lista ya dice lo mismo (3-d), y su porqué,
+ * que vivía en un `title`, pasa a un `InfoButton` junto al título (`ui/4`). Nada se corta: la fila parte
+ * y crece, y la bandera, el nombre y el maillot van juntos, como en `RiderLabel` (D-00c).
  */
 
 /**
@@ -83,12 +91,13 @@ export function radioGroupNames(
   })
 }
 
+/** El punto de cada grupo, con tokens (PR 21m): la fuga en `good`, la contra en `gold`, el grueso en `accent`. */
 const KIND_DOT: Record<RadioGroupKind, string> = {
-  fuga: 'bg-emerald-500',
-  contra: 'bg-amber-500',
-  peloton: 'bg-indigo-500',
-  tierra: 'bg-slate-400',
-  grupeto: 'bg-slate-300',
+  fuga: 'bg-good',
+  contra: 'bg-gold',
+  peloton: 'bg-accent',
+  tierra: 'bg-line-strong',
+  grupeto: 'bg-line',
 }
 
 /** `m:ss`. El líder de carrera no lleva hueco: va a raya. */
@@ -113,11 +122,11 @@ const MISHAP_LABEL: Record<'caida' | 'pinchazo' | 'averia', string> = {
   averia: 'Mechanical',
 }
 
-/** Cómo va este hombre: o tira o no tira. */
-const ROLE_MARK: Record<RadioRider['role'], { icon: string; title: string; cls: string }> = {
-  pulling: { icon: '⏵', title: 'Pulling: taking turns into the wind', cls: 'text-rose-600' },
-  sheltered: { icon: '⌂', title: 'Sitting in, sheltered', cls: 'text-slate-400' },
-}
+/**
+ * Lo que decían los glifos del relevo en su `title`, ahora en el `InfoButton` del título (PR 21m): cada
+ * corredor va ya bajo el rótulo de su lista, `Pulling` o `Sitting in`.
+ */
+const ROLE_WHY = 'Pulling: taking turns into the wind. Sitting in, sheltered.'
 
 /**
  * PARA QUÉ TIRA, en una palabra.
@@ -198,23 +207,12 @@ function motiveLabel(motivo: string, para: string | null): string | undefined {
 }
 
 function RiderLine({ r }: { r: RadioRider }) {
-  const mark = ROLE_MARK[r.role]
   const motivo =
     r.role === 'pulling' && r.motivo ? motiveLabel(r.motivo, r.para?.name ?? null) : null
   return (
-    <li className="flex items-center gap-1.5 text-xs">
-      <span className={`w-3 shrink-0 text-center ${mark.cls}`} title={mark.title}>
-        {mark.icon}
-      </span>
+    <li className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-caption">
       {/* el orden de D-00c (E3, §14.1; PR 17a): el dorsal, la bandera, el nombre y el maillot */}
-      <span className="w-7 shrink-0 text-right font-mono text-[11px] text-slate-400">
-        {r.bib ?? ''}
-      </span>
-      {r.country ? (
-        <Flag code={r.country} size={12} />
-      ) : (
-        <span className="w-3 shrink-0" aria-hidden="true" />
-      )}
+      <span className="w-7 shrink-0 text-right tabular-nums text-ink-3">{r.bib ?? ''}</span>
       {/* El nombre lleva a su ficha (v58): «cuando salga el nombre de un ciclista que tenga enlace
           a su ficha». Sin id —una etapa congelada de alguien que ya no está— se lee igual, sin
           enlace, que es mejor que un enlace roto. */}
@@ -225,21 +223,28 @@ function RiderLine({ r }: { r: RadioRider }) {
         el nombre y salía «R… B…». En el grupo de cabeza no pasaba porque «working the break» es
         corto, que es lo que hacía que pareciera cosa del grupo.
         La prioridad es la de una tabla de carrera: primero quién, después para qué.
+        Desde el PR 21m (E3, §6.4) no se corta nada, tampoco el motivo, que suele acabar en un
+        nombre: la fila parte de línea. La bandera, el nombre y el maillot, siempre juntos (D-00c),
+        como en `RiderLabel`: en `nowrap`, y el nombre parte por sus espacios salvo en su última
+        palabra, pegada al maillot. Sin país, la `Flag` deja el hueco de su ancho, que no se lee.
       */}
-      <span className="max-w-[11rem] shrink-0 truncate text-slate-700">
+      <span className="min-w-0 whitespace-nowrap text-ink">
+        <Flag country={r.country} height={12} layout="mr-1" />
         {r.id ? (
-          <Link to={`/world/riders/${r.id}`} className={RIDER_LINK_CLASS}>
+          <TextLink to={`/world/riders/${r.id}`} variant="rider" inline glueEnd>
             {r.name}
-          </Link>
+          </TextLink>
         ) : (
-          r.name
+          gluedLastWord(r.name)
+        )}
+        {r.jersey && (
+          <span className="ml-1 inline-flex align-middle">
+            <LeaderJersey kind={r.jersey} size={28} />
+          </span>
         )}
       </span>
-      {r.jersey && <LeaderJersey kind={r.jersey} size={28} />}
-      {r.team && <span className="min-w-0 truncate text-[11px] text-slate-400">{r.team}</span>}
-      {motivo && (
-        <span className="ml-auto min-w-0 truncate text-[11px] text-slate-400 italic">{motivo}</span>
-      )}
+      {r.team && <span className="min-w-0 break-words text-ink-3">{r.team}</span>}
+      {motivo && <span className="ml-auto min-w-0 break-words text-ink-3 italic">{motivo}</span>}
     </li>
   )
 }
@@ -258,11 +263,15 @@ function GroupCard({ g, name, position }: { g: RadioGroup; name: string; positio
   const pulling = g.riders.filter((r) => r.role === 'pulling')
   const sitting = g.riders.filter((r) => r.role === 'sheltered')
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
+    <div className="rounded-ui border border-line bg-surface p-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className={`h-2.5 w-2.5 rounded-full ${KIND_DOT[g.kind]}`} aria-hidden="true" />
-        <h3 className="font-semibold text-slate-800">{name}</h3>
-        <span className="text-sm text-slate-500">
+        {/* redondo con el radio del tema, que a 10 px es un círculo: `rounded-full` es solo de `Chip` (D-07) */}
+        <span
+          className={`h-2.5 w-2.5 shrink-0 rounded-ui ${KIND_DOT[g.kind]}`}
+          aria-hidden="true"
+        />
+        <h3 className="font-semibold text-ink">{name}</h3>
+        <span className="text-meta text-ink-2">
           {g.size} rider{g.size === 1 ? '' : 's'}
         </span>
         {/*
@@ -272,9 +281,9 @@ function GroupCard({ g, name, position }: { g: RadioGroup; name: string; positio
           en solitario que en realidad estaba parado— y eso no era lento: era falso.
         */}
         {g.speedKmh !== null ? (
-          <span className="ml-auto font-mono text-sm text-slate-600">{g.speedKmh} km/h</span>
+          <span className="ml-auto text-meta tabular-nums text-ink-2">{g.speedKmh} km/h</span>
         ) : g.mishap ? (
-          <span className="ml-auto text-sm font-medium text-rose-600">
+          <span className="ml-auto text-meta font-semibold text-bad">
             {MISHAP_LABEL[g.mishap.tipo]} — {radioGap(g.mishap.lostS)} lost
           </span>
         ) : null}
@@ -282,13 +291,13 @@ function GroupCard({ g, name, position }: { g: RadioGroup; name: string; positio
 
       {/* Los DOS huecos, cada uno dicho por su nombre: era la queja exacta. */}
       {position > 0 && (
-        <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-slate-500">
+        <div className="mt-1 flex flex-wrap gap-x-4 text-caption text-ink-2">
           <span>
-            <span className="font-mono text-slate-700">{radioGap(g.gapS)}</span> behind the leaders
+            <span className="tabular-nums text-ink">{radioGap(g.gapS)}</span> behind the leaders
           </span>
           <span>
-            <span className="font-mono text-slate-700">{radioGap(g.gapToPrevS)}</span> behind the
-            group ahead
+            <span className="tabular-nums text-ink">{radioGap(g.gapToPrevS)}</span> behind the group
+            ahead
           </span>
         </div>
       )}
@@ -302,7 +311,7 @@ function GroupCard({ g, name, position }: { g: RadioGroup; name: string; positio
             lista se corta en doce nombres y la cuenta no: medido, en un grupo de 31-100 se relevan
             veintisiete y salían doce. Ahora, cuando se corta, se dice: «Pulling (12 of 27)».
           */}
-          <p className="mt-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+          <p className="mt-2 text-caption font-semibold tracking-caps text-ink-3 uppercase">
             Pulling ({pulling.length}
             {g.pullingTotal > pulling.length ? ` of ${g.pullingTotal}` : ''})
           </p>
@@ -315,7 +324,7 @@ function GroupCard({ g, name, position }: { g: RadioGroup; name: string; positio
       )}
       {sitting.length > 0 && (
         <>
-          <p className="mt-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+          <p className="mt-2 text-caption font-semibold tracking-caps text-ink-3 uppercase">
             Sitting in
           </p>
           <ul className="mt-0.5 space-y-0.5">
@@ -326,13 +335,29 @@ function GroupCard({ g, name, position }: { g: RadioGroup; name: string; positio
         </>
       )}
       {g.unnamed > 0 && (
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-2 text-caption text-ink-3">
           +{g.unnamed} rider{g.unnamed === 1 ? '' : 's'} more
         </p>
       )}
     </div>
   )
 }
+
+/**
+ * LOS SALTOS, CON EL `Button` DEL CATÁLOGO (PR 21m): su texto y cuántos km mueve. Antes, en un borde, los
+ * que no podían moverse estaban `disabled` y no se podían pulsar. Ahora es una decisión: no se
+ * deshabilitan, porque deshabilitar pide su porqué a la vista (§4.1), que saldría repetido bajo tres
+ * botones, y quitarlos movería el de al lado bajo el dedo. Se pueden pulsar y no mueven la foto, porque
+ * `step` no sale de la etapa.
+ */
+const JUMPS: readonly (readonly [string, number])[] = [
+  ['−20', -20],
+  ['−5', -5],
+  ['◀ km', -1],
+  ['km ▶', 1],
+  ['+5', 5],
+  ['+20', 20],
+]
 
 /**
  * `painted`: LA RADIO HASTA LO PINTADO de una etapa que quien mira no conoce (E2, docs/retransmision.md
@@ -355,30 +380,28 @@ export function RaceRadioPanel({
   const step = useMemo(() => (n: number) => setI((x) => Math.max(0, Math.min(last, x + n))), [last])
   const names = useMemo(() => (row ? radioGroupNames(row.groups, row.racing) : []), [row])
   if (!row) return null
-  const btn =
-    'rounded-lg border border-slate-200 px-2.5 py-1 font-mono text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40'
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-ui border border-line bg-surface p-4 shadow-card">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-lg font-semibold text-slate-800">Race Radio</h2>
+        <h2 className="text-title text-ink">Race Radio</h2>
         {painted && (
-          <span className="text-sm text-slate-500">
+          <span className="text-meta text-ink-2">
             · up to km {Math.round(radio.kms[last]?.km ?? 0)} · as far as you&apos;ve watched
           </span>
         )}
-        <span className="text-sm text-slate-500">
+        <span className="text-meta text-ink-2">
           {row.racing} racing
           {row.gone > 0 ? ` · ${row.gone} out` : ''} of {radio.starters}
         </span>
+        <InfoButton label="About pulling and sitting in">{ROLE_WHY}</InfoButton>
       </div>
 
       <div className="mt-3 flex items-baseline gap-2">
-        <span className="font-mono text-3xl font-semibold text-slate-800">
-          {Math.round(row.km)}
-        </span>
-        <span className="text-sm text-slate-500">km</span>
+        <span className="text-display tabular-nums text-ink">{Math.round(row.km)}</span>
+        <span className="text-meta text-ink-2">km</span>
       </div>
 
+      {/* el deslizador nativo, con tokens y 44 de alto (§6.4): el catálogo no tiene uno */}
       <input
         type="range"
         min={0}
@@ -386,37 +409,25 @@ export function RaceRadioPanel({
         value={Math.min(i, last)}
         onChange={(e) => setI(Number(e.target.value))}
         aria-label="Point on the course"
-        className="mt-2 w-full accent-indigo-600"
+        className={`mt-2 block h-11 w-full accent-accent ${FOCUS}`}
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <button type="button" className={btn} onClick={() => step(-20)} disabled={i === 0}>
-          −20
-        </button>
-        <button type="button" className={btn} onClick={() => step(-5)} disabled={i === 0}>
-          −5
-        </button>
-        <button type="button" className={btn} onClick={() => step(-1)} disabled={i === 0}>
-          ◀ km
-        </button>
-        <button type="button" className={btn} onClick={() => step(1)} disabled={i >= last}>
-          km ▶
-        </button>
-        <button type="button" className={btn} onClick={() => step(5)} disabled={i >= last}>
-          +5
-        </button>
-        <button type="button" className={btn} onClick={() => step(20)} disabled={i >= last}>
-          +20
-        </button>
+        {JUMPS.map(([text, n]) => (
+          <Button key={text} size="sm" onClick={() => step(n)}>
+            {text}
+          </Button>
+        ))}
         {/* hasta lo pintado no hay meta a la que saltar: la última foto es la última cerrada (11-i) */}
         {!painted && (
-          <button type="button" className={`${btn} ml-auto`} onClick={() => setI(last)}>
+          <Button size="sm" layout="ml-auto" onClick={() => setI(last)}>
             Finish
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {/* tres columnas desde `lg`: el sistema no tiene `xl` (§3.5; PR 21m) */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {row.groups.map((g, gi) => (
           <GroupCard key={`${g.kind}-${gi}`} g={g} name={names[gi] ?? ''} position={gi} />
         ))}

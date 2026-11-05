@@ -498,6 +498,27 @@ const canJump = (s: PlayerState): boolean =>
  */
 export const jumpable = (s: PlayerState): boolean => s.view !== 'digest' && canJump(s)
 
+/**
+ * POR QUÉ UN SALTO DE LA HOJA NO LLEVA A NINGÚN SITIO (8-j, 9-g; revisión del 21n), o null si lleva: lo oye el
+ * lector del salto apagado. `busy`, con otro salto en curso; `notYet`, el de atrás en la previa; `lastKm`, uno
+ * de adelante desde el último km (o desde la última salida, en la crono); `none`, sin destino o en el digest.
+ * Lleva justo cuando el salto lo hacía antes: con `jumpable`, sin ser atrás en la previa ni adelante desde el
+ * último km, y con destino.
+ */
+export type JumpWhy = 'busy' | 'notYet' | 'lastKm' | 'none'
+
+export function jumpWhy(
+  s: PlayerState,
+  back: boolean,
+  pastLast: boolean,
+  hasTarget: boolean,
+): JumpWhy | null {
+  if (!jumpable(s)) return s.view !== 'digest' && s.phase === 'seeking' ? 'busy' : 'none'
+  if (back && s.phase === 'preview') return 'notYet'
+  if (!back && pastLast) return 'lastKm'
+  return hasTarget ? null : 'none'
+}
+
 /** ¿Ha llegado lo servido al destino del salto en curso? En recorrido, por la cabeza en lo servido. */
 function seekServed(s: PlayerState, headKmAtEnd: number): boolean {
   if (s.seekS !== null) return s.servedS >= s.seekS

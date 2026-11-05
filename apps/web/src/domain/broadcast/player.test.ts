@@ -54,6 +54,7 @@ import {
   cueDeckStep,
   failureAction,
   headAtLine,
+  jumpWhy,
   playerInit,
   playerStep,
   recapOf,
@@ -2188,5 +2189,33 @@ describe('la cola de la crono sobre la e16 congelada (§9.5, §9.8; 9-d)', () =>
         `${of('tt_finish').length} FINISH, ${of('virtual_gc').length} VIRTUAL GC, ` +
         `${of('mishap').length} de ${tt.mishaps.length} percances; cola máxima ${maxWaiting}`,
     )
+  })
+})
+
+/**
+ * POR QUÉ UN SALTO DE LA HOJA NO LLEVA A NINGÚN SITIO (8-j, 9-g; revisión del 21n): lo oye el lector del salto
+ * apagado, y antes oía siempre `Nothing to skip to from here.`, también mientras otro salto estaba en curso.
+ */
+describe('jumpWhy', () => {
+  const previa = playerInit('watch', 4, null, false).next
+  const enMarcha: PlayerState = { ...previa, phase: 'playing' }
+
+  it('lleva a algún sitio: null', () => {
+    expect(jumpWhy(enMarcha, false, false, true)).toBeNull()
+  })
+
+  it('con otro salto en curso, busy; en el digest, none', () => {
+    expect(jumpWhy({ ...enMarcha, phase: 'seeking' }, false, false, true)).toBe('busy')
+    expect(jumpWhy({ ...enMarcha, view: 'digest' }, false, false, true)).toBe('none')
+  })
+
+  it('atrás en la previa, notYet; adelante en el último km, lastKm, y atrás sí se puede', () => {
+    expect(jumpWhy(previa, true, false, true)).toBe('notYet')
+    expect(jumpWhy(enMarcha, false, true, true)).toBe('lastKm')
+    expect(jumpWhy(enMarcha, true, true, true)).toBeNull()
+  })
+
+  it('sin destino, none', () => {
+    expect(jumpWhy(enMarcha, false, false, false)).toBe('none')
   })
 })

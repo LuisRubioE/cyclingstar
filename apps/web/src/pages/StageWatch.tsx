@@ -86,6 +86,7 @@ import {
   cueDeckSeat,
   cueDeckStep,
   headAtLine,
+  jumpWhy,
   jumpable,
   playerInit,
   playerStep,
@@ -476,8 +477,10 @@ const sameControls = (a: Shown, b: Shown): boolean =>
   a.hidden === b.hidden &&
   a.atLine === b.atLine &&
   a.revealed === b.revealed
+/** los mismos saltos, encendidos igual y, apagados, por lo mismo (el porqué cambia sin que cambie `enabled`) */
 const sameJumps = (a: readonly JumpOption[], b: readonly JumpOption[]): boolean =>
-  a.length === b.length && a.every((j, i) => j.id === b[i]?.id && j.enabled === b[i]?.enabled)
+  a.length === b.length &&
+  a.every((j, i) => j.id === b[i]?.id && j.enabled === b[i]?.enabled && j.why === b[i]?.why)
 
 /**
  * La primera hora de lo servido, en décimas de [loDs, hiDs], en que el km pintado de la cabeza llega a
@@ -958,25 +961,36 @@ function useWatchPlayer(
           setNamesDelayS(delay)
         }
         // los saltos que llevan a algún sitio (8-j, 9-g), y el aviso del salto en curso
-        const canJump = jumpable(s)
         const ttLast = timeTrial ? ttLastKmFromS(served.core) : null
         const nextJumps: JumpOption[] = timeTrial
-          ? CLOCK_JUMPS.map((id) => ({
-              id,
-              label: CLOCK_JUMP_LABEL[id],
-              enabled:
-                canJump &&
-                (id === 'back10' ? s.phase !== 'preview' : ttLast === null || s.t < ttLast) &&
+          ? CLOCK_JUMPS.map((id) => {
+              const why = jumpWhy(
+                s,
+                id === 'back10',
+                ttLast !== null && s.t >= ttLast,
                 ttSeekTargetS(id, s.t, plan) !== null,
-            }))
-          : ROAD_JUMPS.map((id) => ({
-              id,
-              label: ROAD_JUMP_LABEL[id],
-              enabled:
-                canJump &&
-                (id === 'back5' ? s.phase !== 'preview' : !s.lastKm) &&
+              )
+              return {
+                id,
+                label: CLOCK_JUMP_LABEL[id],
+                enabled: why === null,
+                ...(why === null ? {} : { why }),
+              }
+            })
+          : ROAD_JUMPS.map((id) => {
+              const why = jumpWhy(
+                s,
+                id === 'back5',
+                s.lastKm,
                 seekTargetKm(id, instant.headKm, head.stage.lengthKm, head.profile) !== null,
-            }))
+              )
+              return {
+                id,
+                label: ROAD_JUMP_LABEL[id],
+                enabled: why === null,
+                ...(why === null ? {} : { why }),
+              }
+            })
         if (!sameJumps(nextJumps, jumpsShown)) {
           jumpsShown = nextJumps
           setJumps(nextJumps)

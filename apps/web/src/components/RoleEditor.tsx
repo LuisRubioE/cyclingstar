@@ -77,7 +77,7 @@ export function RoleEditor({
     <div className="grid gap-3 rounded-ui bg-surface-2 p-3">
       <p className="text-meta text-ink-2">
         Pick a new role. This only changes your declared specialty (and which races you get called
-        to) — it's up to you to steer your training toward it.
+        to) — it&apos;s up to you to steer your training toward it.
       </p>
       <Field
         kind="select"

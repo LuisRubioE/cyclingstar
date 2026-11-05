@@ -222,8 +222,15 @@ describe('GroupBar · quién va y con qué maillot (§6.2; [DUEÑO 3]; E3, §14.
   it('cada fila es un botón con aria-expanded y aria-controls, y su lista, cerrada, no se pinta (Ruso-036)', () => {
     const rows = rowsOf(html(<GroupBar instant={sixPointOne()} cast={CAST} clock="exact" />))
     for (const row of rows) {
-      const boton = /<button type="button" aria-expanded="false" aria-controls="([^"]+)"/.exec(row)
+      // la fila, un `Expander` del catálogo (PR 21n): el mismo botón, con su `data-ui`
+      const boton =
+        /<button type="button" data-ui="Expander"[^>]*aria-expanded="false" aria-controls="([^"]+)"/.exec(
+          row,
+        )
       expect(boton).not.toBeNull()
+      // y dice que se pulsa: la variante de fila, con su flecha (punto 2 del dueño)
+      expect(row).toMatch(/<button type="button" data-ui="Expander" data-variant="row"/)
+      expect(row.match(/data-variant="chevron-down"/g)?.length).toBe(1)
       expect(row).toContain(`<ul id="${boton?.[1]}"`)
       expect(row).toMatch(/<ul id="[^"]+" data-group-list="\d+" hidden="">/)
       expect(row).not.toContain('data-ui="RiderLabel"')
@@ -325,8 +332,13 @@ describe('GroupBar · los que van en tránsito (6-e)', () => {
     const rows = rowsOf(html(<GroupBar instant={inst} cast={CAST} clock="exact" />)).map((r) =>
       textOf(`<x ${r}`),
     )
-    expect(rows[3]).toContain('↓ 3 dropping back')
-    expect(rows[2]).toContain('↑ 2 bridging across')
+    // la flecha, el icono `trend` girado y no un glifo (ui/10; PR 21n): las palabras lo dicen
+    expect(rows[3]).toContain('3 dropping back')
+    expect(rows[2]).toContain('2 bridging across')
+    expect(rows.join('')).not.toMatch(/[↓↑]/)
+    const filas = rowsOf(html(<GroupBar instant={inst} cast={CAST} clock="exact" />))
+    expect(filas[3]).toMatch(/data-variant="trend"[^>]*>(?:(?!<\/svg>)[\s\S])*rotate\(90 12 12\)/)
+    expect(filas[2]).toMatch(/data-variant="trend"[^>]*>(?:(?!<\/svg>)[\s\S])*rotate\(-90 12 12\)/)
     expect(rows[0]).not.toMatch(/dropping|bridging/)
   })
 })
@@ -381,6 +393,31 @@ describe('lo estimado, marcado (§3.8): el km con ~, el cursor hueco y el aviso'
     const text = textOf(html(<ClockNotice clock="estimated" />))
     expect(text).toBe('Recorded before full race data Positions of the groups behind are estimated')
     expect(html(<ClockNotice clock="exact" />)).toBe('')
+  })
+})
+
+describe('ProfileStrip · los cursores se mueven sin style (E3, ui/9; PR 21n)', () => {
+  it('ningún style, con movimiento o sin él; y con menos movimiento, los cursores sin transición', () => {
+    const head = headOf(CAST)
+    const pinta = (reducedMotion: boolean) =>
+      renderToStaticMarkup(
+        <ProfileStrip
+          profile={head.profile}
+          lengthKm={head.stage.lengthKm}
+          instant={sixPointOne()}
+          clock="exact"
+          reducedMotion={reducedMotion}
+        />,
+      )
+    expect(pinta(false)).not.toContain('style=')
+    expect(pinta(true)).not.toContain('style=')
+    // con menos movimiento, quietos (WCAG 2.3.3): la transición solo la expresa una clase, la propia de
+    // index.css (`transition-center`), y por eso, como `sr-only` en Button.test, se mira aquí; comparar los
+    // dos marcados no basta, porque con menos movimiento el km de cada cursor también se redondea
+    const conMovimiento = pinta(false).match(/<circle [^>]*data-cursor="[^"]*"[^>]*>/g) ?? []
+    expect(conMovimiento.length).toBeGreaterThan(0)
+    for (const c of conMovimiento) expect(c).toMatch(/\btransition-center\b/)
+    expect(pinta(true)).not.toContain('transition-center')
   })
 })
 

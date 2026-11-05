@@ -162,9 +162,9 @@ export const ProfileStrip = memo(function ProfileStrip({
             const km = kmOf(g)
             const hollow = clock === 'estimated' && g.number > 1
             const tone = cursorTone(g)
-            const motion = reducedMotion
-              ? undefined
-              : { transition: 'cx 0.25s linear, cy 0.25s linear' }
+            // se mueven a lo largo del perfil en 250 ms, salvo con menos movimiento (`transition-center`,
+            // de index.css: solo `cx` y `cy`; sin style desde el PR 21n, ui/9)
+            const motion = reducedMotion ? '' : ' transition-center duration-250 ease-linear'
             return (
               <circle
                 key={g.key}
@@ -172,11 +172,10 @@ export const ProfileStrip = memo(function ProfileStrip({
                 cx={x(km)}
                 cy={y(km)}
                 r={g.own ? 6 : 5}
-                className={hollow ? tone.stroke : `${tone.fill} ${tone.stroke}`}
+                className={`${hollow ? tone.stroke : `${tone.fill} ${tone.stroke}`}${motion}`}
                 fill={hollow ? 'none' : undefined}
                 fillOpacity={g.ghost > 0 ? 0.5 : 1}
                 strokeWidth={2}
-                style={motion}
               />
             )
           })}

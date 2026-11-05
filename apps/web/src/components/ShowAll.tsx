@@ -6,28 +6,5 @@
  * un resultado completo— ni volcar las 176 filas de una gran vuelta encima del jugador.
  */
 
-/** Filas visibles antes de pedir "Show all". */
+/** Filas visibles antes de pedir "Show all" (el botón es `ui/ShowAllRows`; el de antes se fue en el 21m). */
 export const TOP_ROWS = 20
-
-/** Interruptor "Show all (N)" / "Show top 20" que acompaña a toda tabla larga. */
-export function ShowAllButton({
-  total,
-  expanded,
-  onToggle,
-}: {
-  total: number
-  expanded: boolean
-  onToggle: () => void
-}) {
-  if (total <= TOP_ROWS) return null
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={expanded}
-      className="mt-2 text-sm font-medium text-brand-cyan hover:underline"
-    >
-      {expanded ? `Show top ${TOP_ROWS}` : `Show all ${total}`}
-    </button>
-  )
-}

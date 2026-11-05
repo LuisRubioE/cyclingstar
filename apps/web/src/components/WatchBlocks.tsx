@@ -29,7 +29,6 @@ import { Button } from './ui/Button'
 import { Notice } from './ui/Notice'
 import { Panel } from './ui/Panel'
 import { TextLink } from './ui/TextLink'
-import { FOCUS } from './ui/styles'
 
 /**
  * LA PORTADA BAJO EL VELO (E2, docs/retransmision.md §11.4; D-39, I-37, H-20, 11-q; paso 9b). Encima de lo
@@ -131,9 +130,6 @@ export function WatchBlocks() {
     </div>
   )
 }
-
-/** `Key stages`, que despliega y que el catálogo no tiene: con el aspecto de un `Button` `quiet` de 44. */
-const disclose = `inline-flex min-h-11 items-center rounded-ui px-4 text-body font-semibold text-accent hover:bg-surface-2 fine:min-h-8 fine:px-3 ${FOCUS}`
 
 /** Seguir o soltar una carrera y el `rev` de después en `['horizon']` (§10.9, regla 3). */
 function useDropRace(raceKey: string) {
@@ -344,14 +340,14 @@ function AwayRace({ block, watchOn }: { block: AwayBlock; watchOn: boolean }) {
           </Button>
         ) : (
           <>
-            <button
-              type="button"
-              className={disclose}
-              aria-expanded={keyOpen}
+            <Button
+              variant="quiet"
+              size="sm"
+              expanded={keyOpen}
               onClick={() => setKeyOpen((o) => !o)}
             >
               Key stages
-            </button>
+            </Button>
             <Button
               variant={watchOn ? 'secondary' : 'primary'}
               size="sm"
