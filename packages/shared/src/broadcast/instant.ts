@@ -282,7 +282,12 @@ export function groupRoleOf(
   })
 }
 
-/** CÓMO SE ROTULA la fila (§6.3). `jerseys` va en JERSEY_PRIORITY: el primero es el que nombra al grupo. */
+/**
+ * CÓMO SE ROTULA la fila (§6.3). `jerseys` va en JERSEY_PRIORITY: el primero es el que nombra al grupo. El que
+ * persigue o va descolgado se nombra por su maillot; el de cabeza, solo por el amarillo (la revisión de `Watch`
+ * del dueño, W1: «si ya no es el pelotón pero es el grupo donde va el maillot amarillo, llámalo así»), y una
+ * fuga con otro maillot sigue siendo `Lead group`; el grueso, `Bunch`, lleve lo que lleve.
+ */
 export function groupLabelOf(
   size: number,
   members: readonly number[],
@@ -294,6 +299,7 @@ export function groupLabelOf(
   if (size <= BROADCAST.byNamesUpTo) return { k: 'names', riders: members } // tres o menos, por sus nombres
   if ((role === 'chase' || role === 'gruppetto') && jerseys.length > 0)
     return { k: 'jersey_group', jersey: jerseys[0]! }
+  if (role === 'lead' && jerseys[0] === 'gc') return { k: 'jersey_group', jersey: 'gc' }
   return { k: 'role' }
 }
 

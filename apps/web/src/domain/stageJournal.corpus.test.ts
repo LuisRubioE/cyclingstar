@@ -106,8 +106,15 @@ function b5Lines(): string[] {
  * abría con el maillot y la bandera. Lo que dice cada etapa no cambia: la frase pelada (`chronicleLine`)
  * es la misma byte a byte en las 1.020, y quitando las marcas de bandera y de maillot también lo pintado;
  * cambian de sitio las marcas, en 831 de ellas. Era `d54f2219c8ede513c00471cc09c514bcf20f8a4f53f8a90a0ca8121f9796224b`.
+ *
+ * RE-SELLADO EN W1 (la revisión de `Watch` del dueño, su punto 4): el grupo de cabeza que lleva el amarillo y
+ * no es el pelotón se llama `Race leader’s group` en la barra, y la voz dice la palabra de la barra (D-18).
+ * La voz congelada de la e18 gana el maillot en 8 líneas y la de la e20 en 2 (`mainJersey`, y nada más), y de
+ * las 968 que se pintan cambia una, en la e18: `The lead group closes it down` pasa a `The race leader’s
+ * group closes it down`; las otras nueve usan plantillas que no nombran al grupo. Era
+ * `833679eca9e3f19df7ce87f8c27aed31618789734ffc04c809384e58649cc091`.
  */
-const B5_SHA256 = '833679eca9e3f19df7ce87f8c27aed31618789734ffc04c809384e58649cc091'
+const B5_SHA256 = '1808551a8619c31e66bc34c9e7d562cc50b610c9dc0a72ff7dc580b5ee43eb56'
 
 const CHILD = process.env.CORPUS_CHILD_OUT
 

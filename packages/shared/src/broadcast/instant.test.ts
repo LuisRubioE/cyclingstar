@@ -109,6 +109,27 @@ describe('groupRoleOf y groupLabelOf · un vocabulario y una regla (§6.3, D-18)
     expect(GROUP_WORDS.jersey.gc[1]).toBe('the race leader’s group')
   })
 
+  // LA REVISIÓN DE `Watch` DEL DUEÑO (W1, su punto 4): «si ya no es el pelotón pero es el grupo donde va el
+  // maillot amarillo, llámalo así». Antes, el de cabeza con el amarillo era `Lead group`.
+  it('el líder de la general en cabeza, en un grupo de 20 que no es el pelotón: Race leader’s group', () => {
+    const roles = groupRoleOf(road([20, 'fuga'], [110, 'peloton']), 176)
+    expect(roles[0]).toBe('lead')
+    expect(labelOf(20, roles[0]!, 2, ['gc'])).toBe('Race leader’s group')
+    expect(labelOf(20, roles[0]!, 2, ['gc', 'kom'])).toBe('Race leader’s group')
+  })
+
+  it('en cabeza, solo el amarillo nombra al grupo: una fuga con el de la montaña sigue siendo Lead group', () => {
+    const roles = groupRoleOf(road([20, 'fuga'], [110, 'peloton']), 176)
+    expect(labelOf(20, roles[0]!, 2, ['kom'])).toBe('Lead group')
+    expect(labelOf(20, roles[0]!, 2, ['points'])).toBe('Lead group')
+  })
+
+  it('el pelotón con el amarillo sigue siendo Bunch, también en cabeza', () => {
+    const roles = groupRoleOf(road([129, 'peloton'], [1, 'tierra']), 130)
+    expect(roles[0]).toBe('bunch')
+    expect(labelOf(129, roles[0]!, 2, ['gc'])).toBe('Bunch')
+  })
+
   it('una fuga de 5, el título con 100 de 176 (57 %) y 71 detrás: Lead group, Chase group, Gruppetto', () => {
     expect(groupRoleOf(road([5, 'fuga'], [100, 'peloton'], [71, 'grupeto']), 176)).toEqual([
       'lead',
@@ -149,12 +170,14 @@ describe('groupRoleOf y groupLabelOf · un vocabulario y una regla (§6.3, D-18)
     expect(labels).toEqual(['names', 'names', 'names', 'role', 'role', 'role', 'names'])
   })
 
-  it('el maillot nombra al grupo solo si persigue o va descolgado, y manda JERSEY_PRIORITY', () => {
+  // RE-SELLADO EN W1 (la revisión de `Watch` del dueño, su punto 4): el de cabeza con el amarillo era `role`
+  it('el maillot nombra al grupo si persigue o va descolgado; en cabeza, solo el amarillo; y manda JERSEY_PRIORITY', () => {
     expect(groupLabelOf(20, [], ['points', 'kom'], 'chase', 3)).toEqual({
       k: 'jersey_group',
       jersey: 'points',
     })
-    expect(groupLabelOf(20, [], ['gc'], 'lead', 3)).toEqual({ k: 'role' })
+    expect(groupLabelOf(20, [], ['gc'], 'lead', 3)).toEqual({ k: 'jersey_group', jersey: 'gc' })
+    expect(groupLabelOf(20, [], ['kom'], 'lead', 3)).toEqual({ k: 'role' })
     expect(groupLabelOf(20, [], ['gc'], 'bunch', 3)).toEqual({ k: 'role' })
   })
 
