@@ -36,6 +36,10 @@ export type FieldProps = FieldBase &
         readonly type?: 'text' | 'email' | 'password' | 'number' | 'search'
         readonly autoComplete?: string
         readonly placeholder?: string
+        /** con `number`, los del nativo: el disparo de las órdenes, de 0 a los km de la etapa (PR 21i) */
+        readonly min?: number
+        readonly max?: number
+        readonly step?: number
       }
     | {
         readonly kind: 'select'
@@ -126,6 +130,9 @@ export function Field(props: FieldProps) {
         readOnly={disabled}
         {...(props.autoComplete !== undefined ? { autoComplete: props.autoComplete } : {})}
         {...(props.placeholder !== undefined ? { placeholder: props.placeholder } : {})}
+        min={props.min}
+        max={props.max}
+        step={props.step}
         onChange={(e) => props.onChange(e.target.value)}
         className={`${CONTROL} min-h-12 fine:min-h-10 ${borde} ${color}`}
       />

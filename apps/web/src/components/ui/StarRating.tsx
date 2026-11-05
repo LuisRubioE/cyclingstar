@@ -7,8 +7,8 @@ import type { Layout } from './types'
  * nunca el número interno. Cinco, en un solo SVG con su nombre (`3.5 of 5 stars`), con las formas
  * `star-full`, `star-half` y `star-empty` del catálogo (§3.7), a 16 en una fila y a 20 en la ficha. Las
  * llenas, de relleno `gold` con su contorno en `gold-ink` (7,06:1), que se pinta encima; las vacías, solo
- * el contorno, en `line-strong` (3,66:1); la media, su mitad en `gold` y el contorno en `gold-ink`. Hoy
- * son `★` con un relleno por ancho (`StarRating.tsx` l. 2-20), que parte una estrella por donde caiga.
+ * el contorno, en `line-strong` (3,66:1); la media, su mitad en `gold` y el contorno en `gold-ink`. Eran
+ * `★` con un relleno por ancho, que partía una estrella por donde cayera; ese `StarRating` de antes se fue en el 21j.
  */
 
 export interface StarRatingProps {

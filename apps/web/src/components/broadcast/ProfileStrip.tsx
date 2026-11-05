@@ -18,6 +18,12 @@ import { type Cursor, climbAheadText, climbCatText } from '../../domain/broadcas
  * se pinta sin número). Sin ellos, un cursor por grupo con alguien dentro (`shownGroupsOf`).
  *
  * El componente y el tipo comparten nombre (§6.1): el tipo se importa con alias.
+ *
+ * Desde el PR 20 (E3, docs/visual.md §14.4; Ruso-039, 14-h): los colores son tokens (`line` el relieve,
+ * `gold` los puertos, `ink-3` las volantes y los cursores, `accent` el de la cabeza y `gold` el del
+ * espectador), y las cotas salen del dibujo. El dibujo es un `viewBox` de 600 que se pinta a 310 px a
+ * 360, así que un `<text>` de dentro no llegaba a 12 px; las categorías y los números van en una capa
+ * encima, un SVG sin `viewBox` con `x` e `y` en porcentaje, donde la letra se pinta a su tamaño.
  */
 
 const W = 600 // el ancho del dibujo; el alto, H: 6 a 1, unos 56 px de alto en un teléfono de 360
@@ -60,20 +66,14 @@ function reliefOf(profile: ProfileData, lengthKm: number) {
   }
   const relief = (
     <>
-      <path d={area} fill="#e2e8f0" />
+      <path d={area} className="fill-line" />
       {profile.climbs.map((c) => (
-        <g key={`${c.footKm}-${c.topKm}`}>
-          <path d={band(c.footKm, c.topKm)} fill="#fcd34d" fillOpacity={0.55} />
-          <text
-            x={x(c.topKm)}
-            y={Math.max(9, y(c.topKm) - 4)}
-            fontSize={9}
-            textAnchor="middle"
-            fill="#92400e"
-          >
-            {climbCatText(c.cat).replace('Cat. ', '')}
-          </text>
-        </g>
+        <path
+          key={`${c.footKm}-${c.topKm}`}
+          d={band(c.footKm, c.topKm)}
+          className="fill-gold"
+          fillOpacity={0.35}
+        />
       ))}
       {profile.sprintsKm.map((km) => (
         <line
@@ -82,14 +82,32 @@ function reliefOf(profile: ProfileData, lengthKm: number) {
           x2={x(km)}
           y1={H}
           y2={y(km)}
-          stroke="#059669"
+          className="stroke-ink-3"
           strokeWidth={1.5}
           strokeDasharray="3 2"
         />
       ))}
     </>
   )
-  return { x, y, relief }
+  /** Las categorías en la cima de cada puerto, en porcentaje del dibujo (el alto, `H`, es 100). */
+  const climbLabels = profile.climbs.map((c) => ({
+    key: `${c.footKm}-${c.topKm}`,
+    xPct: (x(c.topKm) / W) * 100,
+    yPct: y(c.topKm),
+    text: climbCatText(c.cat).replace('Cat. ', ''),
+  }))
+  return { x, y, relief, climbLabels }
+}
+
+/** El color de un cursor: el del espectador en `gold`, la cabeza en `accent` y los demás en `ink-3`. */
+function cursorTone(c: Cursor): {
+  readonly fill: string
+  readonly stroke: string
+  readonly label: string
+} {
+  if (c.own) return { fill: 'fill-gold', stroke: 'stroke-gold', label: 'fill-gold-ink' }
+  if (c.number === 1) return { fill: 'fill-accent', stroke: 'stroke-accent', label: 'fill-accent' }
+  return { fill: 'fill-ink-3', stroke: 'stroke-ink-3', label: 'fill-ink-3' }
 }
 
 /** Sin cambios en sus props (los cursores y la barra cambian a `barHz`), no se pinta otra vez (10b). */
@@ -109,7 +127,10 @@ export const ProfileStrip = memo(function ProfileStrip({
   /** los del reproductor, que siguen al grupo por su sucesor (`cursorsOf`) */
   cursors?: readonly Cursor[]
 }) {
-  const { x, y, relief } = useMemo(() => reliefOf(profile, lengthKm), [profile, lengthKm])
+  const { x, y, relief, climbLabels } = useMemo(
+    () => reliefOf(profile, lengthKm),
+    [profile, lengthKm],
+  )
   const ahead = climbAheadText(profile, instant.headKm)
   const drawn: readonly Cursor[] =
     given ??
@@ -125,51 +146,79 @@ export const ProfileStrip = memo(function ProfileStrip({
   const cursors = [...drawn].sort((a, b) =>
     a.ghost !== b.ghost ? b.ghost - a.ghost : b.number - a.number,
   )
+  const kmOf = (g: Cursor): number => (reducedMotion ? Math.floor(g.km) : g.km)
   return (
     <figure className="space-y-1">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="block h-auto w-full"
-        role="img"
-        aria-label={`Stage profile, ${lengthKm.toFixed(1)} km`}
-      >
-        {relief}
-        {cursors.map((g) => {
-          const km = reducedMotion ? Math.floor(g.km) : g.km
-          const color = g.own ? '#06b6d4' : g.number === 1 ? '#4f46e5' : '#475569'
-          const hollow = clock === 'estimated' && g.number > 1
-          const motion = reducedMotion
-            ? undefined
-            : { transition: 'cx 0.25s linear, cy 0.25s linear' }
-          return (
-            <g key={g.key}>
+      {/* el margen de arriba deja sitio a la cota de la cima más alta, que a 12 px sale del dibujo */}
+      <div className="relative mt-3">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="block h-auto w-full"
+          role="img"
+          aria-label={`Stage profile, ${lengthKm.toFixed(1)} km`}
+        >
+          {relief}
+          {cursors.map((g) => {
+            const km = kmOf(g)
+            const hollow = clock === 'estimated' && g.number > 1
+            const tone = cursorTone(g)
+            const motion = reducedMotion
+              ? undefined
+              : { transition: 'cx 0.25s linear, cy 0.25s linear' }
+            return (
               <circle
+                key={g.key}
                 data-cursor={g.ghost > 0 ? 'leaving' : g.number}
                 cx={x(km)}
                 cy={y(km)}
                 r={g.own ? 6 : 5}
-                fill={hollow ? 'none' : color}
+                className={hollow ? tone.stroke : `${tone.fill} ${tone.stroke}`}
+                fill={hollow ? 'none' : undefined}
                 fillOpacity={g.ghost > 0 ? 0.5 : 1}
-                stroke={color}
                 strokeWidth={2}
                 style={motion}
               />
-              {g.ghost === 0 && (
+            )
+          })}
+        </svg>
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+        >
+          {climbLabels.map((l) => (
+            <text
+              key={l.key}
+              data-label="climb"
+              x={`${l.xPct}%`}
+              y={`${l.yPct}%`}
+              dy={-4}
+              textAnchor="middle"
+              className="fill-gold-ink text-caption font-semibold"
+            >
+              {l.text}
+            </text>
+          ))}
+          {cursors
+            .filter((g) => g.ghost === 0)
+            .map((g) => {
+              const km = kmOf(g)
+              return (
                 <text
-                  x={x(km)}
-                  y={Math.max(8, y(km) - 8)}
-                  fontSize={8}
+                  key={g.key}
+                  data-label="cursor"
+                  x={`${(x(km) / W) * 100}%`}
+                  y={`${y(km)}%`}
+                  dy={-7}
                   textAnchor="middle"
-                  fill={color}
+                  className={`${cursorTone(g).label} text-caption font-semibold tabular-nums`}
                 >
                   {g.number}
                 </text>
-              )}
-            </g>
-          )
-        })}
-      </svg>
-      {ahead !== null && <figcaption className="text-xs text-slate-500">{ahead}</figcaption>}
+              )
+            })}
+        </svg>
+      </div>
+      {ahead !== null && <figcaption className="text-caption text-ink-2">{ahead}</figcaption>}
     </figure>
   )
 })

@@ -1,111 +1,144 @@
 import { COUNTRIES } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Flag } from '../components/Flag'
-import { Panel, SectionBar, InfoRow } from '../components/Panel'
-import { TeamLink } from '../components/TeamLink'
+import type { ReactNode } from 'react'
 import { type Offer, fetchMarket, respondToOffer } from '../api/market'
-import { roleLabel } from '../domain/labels'
+import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Flag } from '../components/ui/Flag'
+import { InfoButton } from '../components/ui/InfoButton'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { TextLink } from '../components/ui/TextLink'
+import { roleLabel } from '../domain/labels'
+import { divisionLabel, plural } from '../domain/words'
 
-const DIVISION_BADGE: Record<string, string> = {
-  WT: 'bg-indigo-100 text-indigo-700',
-  PRS: 'bg-sky-100 text-sky-700',
-  CON: 'bg-slate-100 text-slate-600',
-}
+/**
+ * EL MERCADO, CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21l): la cabecera en `PageHeader`;
+ * el contrato en su `Panel`, y las ofertas en otro, `Offers`, que contesta la 26 también vacío (§7.3: «el
+ * `Panel` de las ofertas»); cada una con su equipo en un `h3` y su ficha en un `TextLink`, y lo que ofrece en
+ * un `dl`, con la división en palabras; el porqué de la cláusula y de la casa, en un `InfoButton`, donde iba
+ * un `title` que el dedo no abre (ui/4); y firmar y rechazar, `Button` del catálogo. Iban en los paneles cian
+ * de antes, uno por oferta, con la marca de la división en una pastilla de colores, `InfoRow` y botones a
+ * mano, y la casa con su `🏠` (3-d).
+ */
 
 function money(n: number): string {
   return `${n.toLocaleString('en-US')}/wk`
 }
 
-function OfferCard({
-  offer,
-  onRespond,
-  busy,
+/** Una fila del `dl`: su rótulo encima, en `meta` 600, y lo que dice debajo; el porqué, junto al rótulo. */
+function Dato({
+  label,
+  why,
+  children,
 }: {
-  offer: Offer
-  onRespond: (id: string, action: 'accept' | 'reject') => void
-  busy: boolean
+  readonly label: string
+  readonly why?: { readonly about: string; readonly text: string }
+  readonly children: ReactNode
 }) {
+  // con su porqué, a lo ancho: su botón de 44 no descuadra la fila de al lado, y su caja cabe entera
   return (
-    <Panel
-      title={
-        <TeamLink
-          teamId={offer.teamId}
-          name={offer.teamName}
-          className="text-sm font-semibold text-white"
-        />
-      }
-      action={
-        <span
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIVISION_BADGE[offer.division] ?? ''}`}
-        >
-          {offer.division}
-        </span>
-      }
-    >
-      <div className="text-sm">
-        <InfoRow label="Role">{roleLabel(offer.role)}</InfoRow>
-        <InfoRow label="Salary">
+    <div className={`grid content-start gap-1${why === undefined ? '' : ' col-span-2'}`}>
+      <dt className="flex flex-wrap items-center gap-x-1 text-meta text-ink">
+        <span className="font-semibold">{label}</span>
+        {why !== undefined && <InfoButton label={why.about}>{why.text}</InfoButton>}
+      </dt>
+      <dd className="text-body text-ink">{children}</dd>
+    </div>
+  )
+}
+
+/** Lo que está pasando con las ofertas: cuál y qué se contesta, y si falló. */
+interface Respuesta {
+  readonly pending: { readonly id: string; readonly action: 'accept' | 'reject' } | null
+  readonly failedId: string | null
+}
+
+export function OfferItem({
+  offer,
+  respuesta,
+  onRespond,
+}: {
+  readonly offer: Offer
+  readonly respuesta: Respuesta
+  readonly onRespond: (id: string, action: 'accept' | 'reject') => void
+}) {
+  const ocupada = (action: 'accept' | 'reject') =>
+    respuesta.pending?.id === offer.id && respuesta.pending.action === action
+  return (
+    <li className="grid gap-3 py-4 first:pt-0 last:pb-0">
+      <div className="flex flex-wrap items-center justify-between gap-x-3">
+        <h3 className="text-body font-semibold text-ink">{offer.teamName}</h3>
+        <TextLink to={`/world/teams/${offer.teamId}`}>Team page</TextLink>
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <Dato label="Division">{divisionLabel(offer.division)}</Dato>
+        <Dato label="Role">{roleLabel(offer.role)}</Dato>
+        <Dato label="Salary">
           <span className="tabular-nums">{money(offer.salary)}</span>
-        </InfoRow>
-        <InfoRow label="Length">
-          <span className="tabular-nums">
-            {offer.seasons} {offer.seasons === 1 ? 'season' : 'seasons'}
-          </span>
-        </InfoRow>
-        <InfoRow
-          label={
-            <span
-              className="cursor-help underline decoration-dotted underline-offset-2"
-              title="Release clause: what another team must pay this team to sign you before your contract ends. A higher buyout means you're harder to poach."
-            >
-              Buyout
-            </span>
-          }
+        </Dato>
+        <Dato label="Length">
+          <span className="tabular-nums">{plural(offer.seasons, 'season')}</span>
+        </Dato>
+        <Dato
+          label="Buyout"
+          why={{
+            about: 'About the buyout',
+            text: "Release clause: what another team must pay this team to sign you before your contract ends. A higher buyout means you're harder to poach.",
+          }}
         >
           <span className="tabular-nums">{offer.releaseClause.toLocaleString('en-US')}</span>
-        </InfoRow>
+        </Dato>
         {offer.relocatesTo && (
-          <InfoRow label="Relocate to">
-            <span className="inline-flex items-center gap-1.5">
-              <Flag code={offer.relocatesTo} size={14} />
+          <Dato label="Relocate to">
+            <span className="inline-flex items-center gap-2">
+              {/* su nombre va al lado: la bandera, para el ojo */}
+              <span aria-hidden="true">
+                <Flag country={offer.relocatesTo} />
+              </span>
               {COUNTRIES.find((c) => c.code === offer.relocatesTo)?.name ?? offer.relocatesTo}
             </span>
-          </InfoRow>
+          </Dato>
         )}
         {offer.payHousing && (
-          <InfoRow
-            label={
-              <span
-                className="cursor-help underline decoration-dotted underline-offset-2"
-                title="This is an overseas move. The team covers your housing rent abroad, so the salary is a little lower but you pay no rent — you keep the same cash and lose the housing cost."
-              >
-                Housing
-              </span>
-            }
+          <Dato
+            label="Housing"
+            why={{
+              about: 'About the housing',
+              text: 'This is an overseas move. The team covers your housing rent abroad, so the salary is a little lower but you pay no rent — you keep the same cash and lose the housing cost.',
+            }}
           >
-            <span className="font-medium text-emerald-600">🏠 Team pays rent</span>
-          </InfoRow>
+            Team pays rent
+          </Dato>
         )}
-      </div>
-      <div className="mt-3 flex gap-2">
-        <button
+      </dl>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="primary"
+          ariaLabel={`Sign with ${offer.teamName}`}
+          busy={ocupada('accept')}
+          busyLabel="Signing…"
           onClick={() => onRespond(offer.id, 'accept')}
-          disabled={busy}
-          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
         >
           Sign
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="secondary"
+          ariaLabel={`Decline the offer from ${offer.teamName}`}
+          busy={ocupada('reject')}
+          busyLabel="Declining…"
           onClick={() => onRespond(offer.id, 'reject')}
-          disabled={busy}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
         >
           Decline
-        </button>
+        </Button>
       </div>
-    </Panel>
+      {respuesta.failedId === offer.id && (
+        <p role="alert" className="text-meta text-bad">
+          Could not answer this offer. Try again.
+        </p>
+      )}
+    </li>
   )
 }
 
@@ -127,49 +160,46 @@ export function Market() {
     return <QueryView query={query} label="the market" skeleton={{ kind: 'panel' }} />
   const data = query.data
 
+  const respuesta: Respuesta = {
+    pending: respond.isPending ? (respond.variables ?? null) : null,
+    failedId: respond.isError ? (respond.variables?.id ?? null) : null,
+  }
+  // una sola respuesta a la vez, como cuando los botones se deshabilitaban mientras tanto
+  const onRespond = (id: string, action: 'accept' | 'reject') => {
+    if (!respond.isPending) respond.mutate({ id, action })
+  }
+
   return (
     <section className="space-y-4">
-      <SectionBar>Transfer market</SectionBar>
-      <div>
-        <p className="text-sm text-slate-500">
-          As a free agent you get offers regularly — sign the one that fits your ambitions. Salary,
-          role and division all matter. You only join a team once you <strong>sign</strong>; until
-          then you stay a free agent.
-        </p>
-        <p className="mt-2 text-xs text-slate-400">
-          <strong>Buyout</strong> (release clause) is the fee another team must pay to sign you away
-          before your contract ends — the higher it is, the harder you are to poach.
-        </p>
-      </div>
+      <PageHeader title="Transfer market" />
+      <p className="text-body text-ink-2">
+        As a free agent you get offers regularly — sign the one that fits your ambitions. Salary,
+        role and division all matter. You only join a team once you{' '}
+        <strong className="font-semibold text-ink">sign</strong>; until then you stay a free agent.
+      </p>
 
       {data.contract && (
         <Panel title="Current contract">
-          <p className="text-sm text-slate-700">
-            <TeamLink
-              teamId={data.contract.teamId}
-              name={data.contract.teamName}
-              className="font-semibold"
-            />{' '}
-            ({data.contract.division}) · {roleLabel(data.contract.role)} ·{' '}
-            {money(data.contract.salary)} · through season {data.contract.endSeason + 1}
+          <p className="text-body text-ink">
+            <TextLink to={`/world/teams/${data.contract.teamId}`} inline>
+              {data.contract.teamName}
+            </TextLink>
+            {` · ${divisionLabel(data.contract.division)} · ${roleLabel(data.contract.role)} · ${money(data.contract.salary)} · through season ${data.contract.endSeason + 1}`}
           </p>
         </Panel>
       )}
 
-      {data.offers.length === 0 ? (
-        <EmptyState text="No offers on the table right now. New ones arrive as the world advances." />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {data.offers.map((offer) => (
-            <OfferCard
-              key={offer.id}
-              offer={offer}
-              busy={respond.isPending}
-              onRespond={(id, action) => respond.mutate({ id, action })}
-            />
-          ))}
-        </div>
-      )}
+      <Panel title="Offers" answer>
+        {data.offers.length === 0 ? (
+          <EmptyState text="No offers on the table right now. New ones arrive as the world advances." />
+        ) : (
+          <ul className="divide-y divide-line">
+            {data.offers.map((offer) => (
+              <OfferItem key={offer.id} offer={offer} respuesta={respuesta} onRespond={onRespond} />
+            ))}
+          </ul>
+        )}
+      </Panel>
     </section>
   )
 }

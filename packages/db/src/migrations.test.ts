@@ -202,17 +202,17 @@ describe('db: migraciones desde cero', () => {
   })
 
   /**
-   * LA SEMILLA DEL DIBUJO (E3, docs/visual.md §8.9; la 0050): el maillot que elige el dueño va a su
-   * columna, nula y sin defecto, para que `jersey_seed` siga siendo la identidad del equipo y el tick no
-   * cree un clon al cambiarlo. Añadirla no reescribe la tabla.
+   * LA SEMILLA DEL DIBUJO (E3, docs/visual.md §8.9 y §17.19): la 0050 la añadió, nula y sin defecto, para
+   * que el maillot que elegía el dueño no tocara `jersey_seed`, la identidad del equipo, y el tick no
+   * creara un clon al cambiarlo. Desde el 17b se dibuja el maillot y desde el 19e nadie la lee: la 0053 la
+   * borra, y la identidad se queda.
    */
-  it('la columna de la 0050: teams.jersey_style_seed, text y nula', async () => {
-    const cols = await t.client<
-      { data_type: string; is_nullable: string; column_default: string | null }[]
-    >`
-      select data_type, is_nullable, column_default from information_schema.columns
-      where table_schema = 'public' and table_name = 'teams' and column_name = 'jersey_style_seed'`
-    expect(cols).toEqual([{ data_type: 'text', is_nullable: 'YES', column_default: null }])
+  it('la 0053 borra teams.jersey_style_seed, y jersey_seed sigue', async () => {
+    const cols = await t.client<{ column_name: string }[]>`
+      select column_name from information_schema.columns
+      where table_schema = 'public' and table_name = 'teams'
+        and column_name in ('jersey_seed', 'jersey_style_seed')`
+    expect(cols.map((c) => c.column_name)).toEqual(['jersey_seed'])
   })
 
   /**
@@ -949,5 +949,63 @@ describe('db: la 0052 no toca los equipos que ya hay', () => {
     ])
     const [kits] = await t.client<{ n: number }[]>`select count(*)::int as n from team_kits`
     expect(kits!.n).toBe(0)
+  }, 120_000)
+})
+
+/**
+ * LA 0053, SIN LA SEMILLA DEL DIBUJO (E3, docs/visual.md §17.19; PR 19f), sobre un mundo vivo: con el journal
+ * cortado en la 0052 se siembra un equipo como los de producción, con la semilla que eligió su mánager
+ * antes de los maillots y el maillot de la traducción, se migra la carpeta entera y el equipo sigue entero,
+ * con su historia, y sin la columna. Lo que guardaba no lo lee nadie desde el 19e.
+ */
+describe('db: la 0053 solo borra la semilla del dibujo', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('el equipo sigue con su identidad, su culote, su maillot y su historia, y sin la columna', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0052_equipaciones')))
+    const [world] = await t.client<{ id: string }[]>`
+      insert into worlds (world_seed, engine_version) values ('sin-semilla-vivo', 91) returning id`
+    const identidad = 'sin-semilla-vivo:team:WT:0:jersey'
+    const [team] = await t.client<{ id: string }[]>`
+      insert into teams (world_id, name, division, philosophy, jersey_seed, jersey_style_seed, bib,
+                         kit_canonical, managed_since_day)
+      values (${world!.id}, 'Noord Cycling', 'WT', 'equilibrado', ${identidad}, 'la-que-eligió',
+              'base.panel', 'plain.navy', 40)
+      returning id`
+    await t.client`
+      insert into team_kits (team_id, valid_from_day, kit, set_by)
+      values (${team!.id}, 120, 'plain.navy', 'system'), (${team!.id}, 150, 'band.black.sky', 'manager')`
+    await t.detached((url) => runMigrations(url))
+    const rows = await t.client`
+      select name, jersey_seed, bib, kit_canonical, managed_since_day from teams
+      where world_id = ${world!.id}`
+    expect(rows).toEqual([
+      {
+        name: 'Noord Cycling',
+        jersey_seed: identidad,
+        bib: 'base.panel',
+        kit_canonical: 'plain.navy',
+        managed_since_day: 40,
+      },
+    ])
+    const kits = await t.client`
+      select valid_from_day, kit, set_by from team_kits where team_id = ${team!.id}
+      order by valid_from_day`
+    expect(kits).toEqual([
+      { valid_from_day: 120, kit: 'plain.navy', set_by: 'system' },
+      { valid_from_day: 150, kit: 'band.black.sky', set_by: 'manager' },
+    ])
+    const cols = await t.client`
+      select column_name from information_schema.columns
+      where table_schema = 'public' and table_name = 'teams' and column_name = 'jersey_style_seed'`
+    expect(cols).toEqual([])
   }, 120_000)
 })

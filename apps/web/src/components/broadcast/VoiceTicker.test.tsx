@@ -123,3 +123,21 @@ describe('VoiceTicker · lo que pone la web en la voz (§12.5; 6b)', () => {
     expect(text.indexOf('The gap has fallen')).toBeLessThan(text.indexOf(CAST[1]!.name))
   })
 })
+
+/**
+ * EL RENGLÓN DE LA VOZ (E3, docs/visual.md §14.5; Ruso-040, 14-i; PR 20): sigue en un renglón, que es el
+ * ritmo de E2, y es lo único de `Watch` que puede cortarse, porque la frase entera queda en el historial
+ * de la voz: lleva `data-clip-ok`, que la comprobación 2 de la prueba del teléfono respeta. Y sigue sin ser
+ * una región viva (§18.8).
+ */
+describe('VoiceTicker · el renglón que puede cortarse (14-i)', () => {
+  it('la línea dicha lleva data-clip-ok y aria-live off; el historial, no', () => {
+    const markup = renderToStaticMarkup(
+      <VoiceTicker lines={LINES} t={950} open unnamed={UNNAMED} />,
+    )
+    expect(markup).toMatch(
+      /^<div[^>]*><p[^>]*data-clip-ok=""[^>]*aria-live="off"|^<div[^>]*><p[^>]*aria-live="off"[^>]*data-clip-ok=""/,
+    )
+    expect(markup.match(/data-clip-ok/g)).toHaveLength(1)
+  })
+})

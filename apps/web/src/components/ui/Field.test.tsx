@@ -77,6 +77,16 @@ describe('Field', () => {
     expect(f).toMatch(/data-variant="chevron-down"[^>]*aria-hidden="true"/)
   })
 
+  it('input numérico, con su mínimo, su máximo y su paso, como el nativo (PR 21i)', () => {
+    const s = input({ type: 'number', value: '40', min: 0, max: 180, step: 15 })
+    expect(s).toMatch(/<input [^>]*type="number"/)
+    expect(s).toContain('min="0"')
+    expect(s).toContain('max="180"')
+    expect(s).toContain('step="15"')
+    // sin ellos, ninguno
+    expect(input()).not.toMatch(/ (?:min|max|step)="/)
+  })
+
   it('textarea', () => {
     const f = html({ kind: 'textarea', id: 'note', label: 'Note', value: '', onChange: change })
     expect(f).toContain('data-variant="textarea"')

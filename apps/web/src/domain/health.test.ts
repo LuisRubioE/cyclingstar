@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   HEALTH_LOOK,
   SPENT_FRESHNESS,
+  healthChip,
   healthDaysLeft,
   healthNote,
+  healthTone,
   healthUntilLabel,
   isOut,
 } from './health'
@@ -14,6 +16,14 @@ describe('etiquetas de salud', () => {
     expect(Object.keys(HEALTH_LOOK).sort()).toEqual(
       ['enfermo', 'lesionado', 'molestias', 'sano'].sort(),
     )
+  })
+
+  it('cada estado, con su tono (E3, PR 21h): sin clases de color, que eran de la ficha de antes', () => {
+    expect(healthTone('sano')).toBe('good')
+    expect(healthTone('molestias')).toBe('warn')
+    expect(healthTone('enfermo')).toBe('bad')
+    expect(healthTone('lesionado')).toBe('bad')
+    for (const look of Object.values(HEALTH_LOOK)) expect(look).not.toHaveProperty('cls')
   })
 
   it('solo enfermo y lesionado dejan fuera de combate', () => {
@@ -49,25 +59,25 @@ describe('días de baja que quedan', () => {
 })
 
 describe('hasta cuándo dura la baja', () => {
-  it('dice el día de juego y los días que restan', () => {
+  it('dice el día de la temporada y los días que restan; nunca GD (§4.10; PR 21h)', () => {
     expect(healthUntilLabel({ state: 'lesionado', untilDay: 143 }, 138)).toBe(
-      'out until GD 143 · ~6 days',
+      'out until Day 143 · ~6 days',
     )
   })
 
   it('el último día se dice en singular', () => {
     expect(healthUntilLabel({ state: 'enfermo', untilDay: 143 }, 143)).toBe(
-      'out until GD 143 · ~1 day',
+      'out until Day 143 · ~1 day',
     )
   })
 
   it('sin mundo se dice la fecha, sin contar días', () => {
-    expect(healthUntilLabel({ state: 'lesionado', untilDay: 143 }, null)).toBe('out until GD 143')
+    expect(healthUntilLabel({ state: 'lesionado', untilDay: 143 }, null)).toBe('out until Day 143')
   })
 
   it('usa el día DE LA TEMPORADA, como el reloj del mundo', () => {
     // El día de juego 500 es el 136 de la segunda temporada (364 días por temporada).
-    expect(healthUntilLabel({ state: 'lesionado', untilDay: 500 }, null)).toBe('out until GD 136')
+    expect(healthUntilLabel({ state: 'lesionado', untilDay: 500 }, null)).toBe('out until Day 136')
   })
 
   it('no dice nada si está sano, con molestias, sin fecha o con la fecha pasada', () => {
@@ -102,5 +112,23 @@ describe('la nota de la insignia de salud', () => {
     expect(healthNote('lesionado', 0)).toBe(HEALTH_LOOK.lesionado.note)
     expect(healthNote('enfermo', 0)).toBe(HEALTH_LOOK.enfermo.note)
     expect(healthNote('molestias', 0)).toBe(HEALTH_LOOK.molestias.note)
+  })
+})
+
+describe('la chapa de salud de la cabecera (E3, §4.6; PR 21h)', () => {
+  it('solo si no está sano: el estado, hasta cuándo y su tono', () => {
+    expect(healthChip({ state: 'sano', untilDay: null }, 138)).toBeNull()
+    expect(healthChip({ state: 'molestias', untilDay: 140 }, 138)).toEqual({
+      text: 'Niggle',
+      tone: 'warn',
+    })
+    expect(healthChip({ state: 'lesionado', untilDay: 143 }, 138)).toEqual({
+      text: 'Injured · out until Day 143 · ~6 days',
+      tone: 'bad',
+    })
+    expect(healthChip({ state: 'enfermo', untilDay: null }, 138)).toEqual({
+      text: 'Ill',
+      tone: 'bad',
+    })
   })
 })

@@ -1,12 +1,15 @@
 import {
   COUNTRIES,
-  type Vocation,
+  type FormResponse,
+  VOCATIONS,
   birthdayDayOfSeason,
-  maxMatchCount,
   raceIdFromKey,
+  seasonPosition,
+  stageRouteText,
 } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { useParams } from 'react-router-dom'
 import { type PublicRiderDetail, fetchPublicRider } from '../api/browse'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
@@ -15,28 +18,47 @@ import { fetchRiderPalmares, fetchRiderResults } from '../api/rankings'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { type CoachNote, fetchCoachView, fetchTrend } from '../api/sheet'
 import { AttributeList, type AttributeDetail } from '../components/AttributeList'
-import { BlockReport } from '../components/BlockReport'
 import { Badges } from '../components/Badges'
-import { Flag } from '../components/Flag'
-import { FormChart } from '../components/FormChart'
-import { RaceEffortLog } from '../components/RaceEffortLog'
+import { BlockReport } from '../components/BlockReport'
 import { LastRaceReport } from '../components/LastRaceReport'
-import { InfoRow, Panel, SectionBar } from '../components/Panel'
-import { RaceResultList } from '../components/RaceResults'
+import { RaceEffortLog } from '../components/RaceEffortLog'
+import { RaceResultsTable } from '../components/RaceResultsTable'
 import { RoleEditor } from '../components/RoleEditor'
-import { StageRoute } from '../components/StageRoute'
-import { StarRating } from '../components/StarRating'
-import { TeamLink } from '../components/TeamLink'
-import { conditionLabel } from '../domain/condition'
-import { HEALTH_LOOK, healthNote, healthUntilLabel } from '../domain/health'
-import { palmaresLabel, archetypeLabel } from '../domain/labels'
-import { horizonKey, useHorizonRev } from '../queryClient'
+import { useTeamsIdentity } from '../components/useTableIdentity'
 import { VeilNotice } from '../components/VeilNotice'
 import { Button } from '../components/ui/Button'
+import { Chip } from '../components/ui/Chip'
+import { Disclosure } from '../components/ui/Disclosure'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Flag } from '../components/ui/Flag'
+import { FormChart } from '../components/ui/FormChart'
+import { InfoButton } from '../components/ui/InfoButton'
+import { METER_EMPTY, Meter } from '../components/ui/Meter'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
-import { RIDER_NOT_FOUND } from '../components/ui/RiderHeader'
-import { StarRating as UiStarRating } from '../components/ui/StarRating'
+import { RIDER_NOT_FOUND, RiderHeader } from '../components/ui/RiderHeader'
+import { Stat } from '../components/ui/Stat'
+import { StarRating } from '../components/ui/StarRating'
+import { TextLink } from '../components/ui/TextLink'
+import { conditionLabel, conditionLevel } from '../domain/condition'
+import { HEALTH_LOOK, healthChip, healthNote, healthTone, healthUntilLabel } from '../domain/health'
+import { archetypeLabel, palmaresLabel } from '../domain/labels'
+import { type RaceNames, raceNamesOf } from '../domain/raceDay'
+import { rowTeam } from '../domain/tableIdentity'
+import { formatGameDay } from '../domain/words'
+import { horizonKey, useHorizonRev } from '../queryClient'
+
+/**
+ * LA FICHA DEL CORREDOR CON EL SISTEMA (E3, docs/visual.md §4.6 y §17.21, la cola larga; PR 21h). Una
+ * composición fija, en este orden: (1) `RiderHeader`, la bandera, el nombre y el maillot que lleva, que abre
+ * su hoja, con su `Chip` de jugador, el de su salud si no está sano y su papel; (2) en la propia, `Condition`,
+ * la respuesta (§7.3): la forma, el fondo y la frescura en su `Meter`, los cerillos en uno de cinco, la salud,
+ * la moral, `FormChart` y `Where the energy went`; (3) `Attributes`, la respuesta en la ajena, con (4) la frase
+ * del entrenador a la vista junto al de techo más alto; (5) `Season objectives` y `Season`; (6) el palmarés, los
+ * logros y los resultados en `RankTable`. Detrás, los datos de `Rider` y, en la propia, los dos informes. La
+ * ajena es la misma sin lo privado (`docs/navegacion.md` §3.6).
+ */
 
 /**
  * LAS FRASES POR REGLA (docs/entrenamiento.md §2.3). El servidor manda códigos y el texto vive aquí,
@@ -51,141 +73,128 @@ const COACH_NOTE_TEXT: Record<CoachNote, string> = {
   techo_cerca: "You're close to what you can give here. The room is somewhere else.",
 }
 
-/**
- * Cabecera de identidad: lo mismo para todo el mundo, con o sin sesión. La salud va aquí, junto al
- * nombre, porque es pública (§3.6): una insignia sobria basta para distinguir los cuatro estados y,
- * si hay baja, decir hasta cuándo.
- */
-function Identity({ rider, gameDay }: { rider: PublicRiderDetail; gameDay: number | null }) {
-  const country = COUNTRIES.find((c) => c.code === rider.country)
-  const abroad = rider.residence && rider.residence !== rider.country
-  const residence = COUNTRIES.find((c) => c.code === rider.residence)
-  const look = HEALTH_LOOK[rider.health.state]
-  const until = healthUntilLabel(rider.health, gameDay)
+/** La palabra de una barra de 0 a 100, en minúscula tras los dos puntos (§4.6): `Fitness: good`. */
+const palabra = (v: number): string => conditionLabel(v).toLowerCase()
+
+/** Una lectura de 0 a 100 en su `Meter`, con su palabra; sin dato, `No data yet` (§4.8). */
+function Lectura({ label, value }: { label: string; value: number | null }) {
+  return value === null ? (
+    <Meter label={label} value={null} />
+  ) : (
+    <Meter label={label} value={conditionLevel(value)} valueText={palabra(value)} />
+  )
+}
+
+/** Un medidor con su porqué al lado, que parte de línea si no cabe (§4.3). */
+function ConPorque({ children, about, why }: { children: ReactNode; about: string; why: string }) {
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <Flag code={rider.country} size={34} />
-      <div className="min-w-0">
-        <p className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight">
-          {rider.name}
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              rider.isBot ? 'bg-slate-100 text-slate-500' : 'bg-cyan-50 text-brand-cyan'
-            }`}
-          >
-            {rider.isBot ? 'NPC' : 'Player'}
-          </span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${look.cls}`}
-            title={look.note}
-          >
-            {look.label}
-            {until && <span className="ml-1 font-normal opacity-80">· {until}</span>}
-          </span>
-        </p>
-        <p className="text-sm text-slate-500">
-          {archetypeLabel(rider.archetype)}
-          {' · '}
-          <Link
-            to={`/world/nations/${rider.country}`}
-            className="hover:text-brand-cyan hover:underline"
-          >
-            {country?.name ?? rider.country}
-          </Link>
-          {rider.teamName && (
-            <>
-              {' · '}
-              <TeamLink teamId={rider.teamId} name={rider.teamName} className="text-brand-cyan" />
-            </>
-          )}
-          {abroad && (
-            <span className="inline-flex items-center gap-1">
-              {' · lives in '}
-              <Flag code={rider.residence} size={12} />
-              {residence?.name ?? rider.residence}
-            </span>
-          )}
-        </p>
-      </div>
+    <div className="flex flex-wrap items-center gap-x-1">
+      {children}
+      <InfoButton label={about}>{why}</InfoButton>
     </div>
   )
 }
 
-/**
- * Una magnitud de condición en barra 0-100, con su etiqueta cualitativa. Se pinta la palabra
- * ("Good", "Low") y no el número interno del modelo: el jugador no maneja unidades de carga.
- */
-function ConditionBar({
-  label,
-  hint,
-  value,
-  color,
+/** Lo que dice la condición, con `/form` ya en la mano. */
+function Condicion({
+  data,
+  morale,
+  gameDay,
+  raceNames,
 }: {
-  label: string
-  hint: string
-  value: number
-  color: string
+  readonly data: FormResponse
+  /** las estrellas de la moral: undefined, mientras llega el resumen; null, si no llegó */
+  readonly morale: number | null | undefined
+  readonly gameDay: number | null
+  readonly raceNames: RaceNames
 }) {
+  const { form, health, log } = data
+  const last = log[log.length - 1] ?? null
+  const until = healthUntilLabel(health ?? null, gameDay)
   return (
-    <div>
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <span>{label}</span>
-        <span className="font-semibold text-slate-700">{conditionLabel(value)}</span>
+    <div className="grid gap-4">
+      {form && (
+        <p className="flex items-center gap-2 text-row font-semibold text-ink">
+          Form
+          <StarRating value={form.stars} size={20} />
+        </p>
+      )}
+
+      {/*
+        Las DOS magnitudes que ve el jugador, ambas 0-100 y acotadas por el motor: el fondo que ha construido y
+        lo descansado que está hoy, en su `Meter` con la palabra y nunca la cifra (§4.8). La fatiga no necesita
+        número propio: la frescura ES su cara legible (MVP.md Paso 20). Siempre en su sitio: sin días todavía,
+        `No data yet`, y no un hueco (la revisión del 21h).
+      */}
+      <div className="grid gap-1">
+        <ConPorque
+          about="About fitness"
+          why="Your training base: the condition you have built up over the past weeks. It grows with steady work and fades with rest."
+        >
+          <Lectura label="Fitness" value={last?.fitness ?? null} />
+        </ConPorque>
+        <ConPorque
+          about="About freshness"
+          why="Your race readiness: how rested you are today. High = fresh and race-ready; low = fatigued from hard training. Easing off before a goal raises it: peaking is high fitness with high freshness."
+        >
+          <Lectura label="Freshness" value={last?.freshness ?? null} />
+        </ConPorque>
+        {/* los cerillos del día, de 2 a 5 (SPEC §6.6), uno a uno en un `Meter` de cinco (decisión 4-c) */}
+        <ConPorque
+          about="About matches"
+          why="Hard efforts you can make today. Every attack, chase or surge burns one. With none left you can still ride, but you cannot answer a move. Racing tired costs you one before the start."
+        >
+          <Meter label="Matches" value={form?.matches ?? null} steps={5} />
+        </ConPorque>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
-      </div>
-      <p className="mt-1.5 text-xs text-slate-500">{hint}</p>
+
+      {health && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Chip tone={healthTone(health.state)}>{HEALTH_LOOK[health.state].label}</Chip>
+          <span className="text-meta text-ink-2">
+            {until !== null && `${until}. `}
+            {healthNote(health.state, last?.freshness ?? null)}
+          </span>
+        </p>
+      )}
+
+      {/*
+        La moral en medias estrellas (DD-12, §13.7), en su `dl`, como en la portada; siempre en su sitio: mientras
+        llega el resumen, su renglón guardado, y si no llegó, `No data yet` (la revisión del 21h).
+      */}
+      <dl className="grid gap-1">
+        <dt className="text-caption font-semibold tracking-caps text-ink-3 uppercase">Morale</dt>
+        <dd className="flex min-h-10 items-center">
+          {morale === null ? (
+            <span className="text-meta text-ink-2">{METER_EMPTY}</span>
+          ) : (
+            morale !== undefined && <StarRating value={morale} size={20} />
+          )}
+        </dd>
+      </dl>
+
+      <FormChart points={log} />
+
+      {/*
+        …Y EN QUÉ SE FUE ESA FORMA. La gráfica dice CUÁNTO se gastó y esto dice EN QUÉ: es la pregunta del dueño
+        («me gustaría entender un poco mejor en qué se gastó la energía»), que la crónica no puede contestar
+        porque solo narra lo que es noticia. Plegado, debajo (§4.6).
+      */}
+      <Disclosure showLabel="Where the energy went" hideLabel="Hide where the energy went">
+        <div className="px-3">
+          <RaceEffortLog points={log} raceNames={raceNames} />
+        </div>
+      </Disclosure>
     </div>
   )
 }
 
 /**
- * LOS CERILLOS DEL DÍA, con su escala a la vista (SPEC 6.6).
- *
- * Era una casilla pelada con un número dentro —«Matches / 1»— al lado de dos barras que sí se
- * explican, y el dueño la mandó a paseo con razón: «eso no aporta, ni se entiende». No lo hacía
- * porque un cerillo suelto no significa nada: **«1» solo se entiende si sabes que el máximo es 5**,
- * y ahí lo que estaba diciendo la casilla es que ese día sales al suelo de la escala, que es
- * justamente lo que más importa saber antes de una carrera.
- *
- * Así que se cuenta como las de al lado: escala visible (`n de N`, con el techo que da el motor),
- * los cerillos dibujados uno a uno, y una línea que dice para qué sirven y qué te los quita.
+ * Bloque privado: forma, frescura, salud, cerillos y moral. Solo se monta si el perfil es MÍO, así que sus
+ * consultas (`/api/riders/me/...`) no se disparan nunca en la vista pública. Es la respuesta de la propia, y
+ * contesta también mientras llega `/form`, con su espera (§7.3).
  */
-function MatchRow({ value, max }: { value: number | null; max: number }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <span>Matches — hard efforts you can make today</span>
-        <span className="font-semibold text-slate-700 tabular-nums">
-          {value == null ? '—' : `${value} of ${max}`}
-        </span>
-      </div>
-      <div className="mt-1 flex gap-1" aria-hidden="true">
-        {Array.from({ length: max }, (_, i) => (
-          <span
-            key={i}
-            className={`h-2 flex-1 rounded-full ${
-              value != null && i < value ? 'bg-amber-500' : 'bg-slate-200'
-            }`}
-          />
-        ))}
-      </div>
-      <p className="mt-1.5 text-xs text-slate-500">
-        Every attack, chase or surge burns one. With none left you can still ride, but you cannot
-        answer a move. Racing tired costs you one before the start.
-      </p>
-    </div>
-  )
-}
-
-/**
- * Bloque privado: forma, frescura, salud, cerillos y moral. Solo se monta si el perfil es MÍO, así
- * que sus consultas (`/api/riders/me/...`) no se disparan nunca en la vista pública. Todo llega ya en su
- * forma de pantalla (E3, docs/visual.md §13.5 y §13.7; PR 19b): las dos barras, los cerillos que cuenta la
- * API y la moral en medias estrellas.
- */
-function OwnerCondition() {
+function OwnerCondition({ raceNames }: { readonly raceNames: RaceNames }) {
   const rev = useHorizonRev()
   const formQuery = useQuery({
     queryKey: horizonKey(['rider', 'form'], rev),
@@ -198,94 +207,28 @@ function OwnerCondition() {
     enabled: rev !== undefined,
   })
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
-
-  const form = formQuery.data?.form ?? null
-  const health = formQuery.data?.health ?? null
-  const log = formQuery.data?.log ?? []
-  const last = log[log.length - 1] ?? null
-  const gameDay = healthQuery.data?.gameDay ?? null
-  const until = healthUntilLabel(health, gameDay)
-  // Fondo y frescura del último día del diario, en barras de 0 a 100 que ya manda la API.
-  const bars = last ? { fitness: last.fitness, freshness: last.freshness } : null
-
-  // Cerillos del día: la MISMA cuenta que hará la etapa (SPEC 6.6), sobre los atributos efectivos
-  // de hoy —forma, salud y moral incluidas—, para que el jugador vea con qué sale de casa. La hace la
-  // API con las funciones del motor (E3, 19b): la web ya no tiene los números de los que sale.
-  const matches = form?.matches ?? null
-
+  // la moral: mientras llega el resumen, nada que decir todavía; si no llegó, que no hay dato
+  const morale = summaryQuery.data?.moraleStars ?? (summaryQuery.isError ? null : undefined)
   return (
-    <Panel title="Condition" action={form && <StarRating value={form.stars} />}>
-      {health && (
-        <div
-          className={`mb-3 rounded-md px-3 py-2 text-sm ring-1 ${HEALTH_LOOK[health.state].cls}`}
-        >
-          <span className="font-semibold">{HEALTH_LOOK[health.state].label}</span>
-          {until && <span className="ml-1 tabular-nums">— {until}</span>}
-          <span className="ml-2 opacity-80">
-            {healthNote(health.state, bars?.freshness ?? null)}
-          </span>
-        </div>
-      )}
-
-      {/*
-        Las DOS magnitudes que ve el jugador, ambas 0-100 y acotadas por el motor: el fondo que ha
-        construido y lo descansado que está hoy. Antes aquí abajo había una rejilla con «Fitness
-        (CTL)» y «Fatigue (ATL)» en crudo —carga acumulada del Banister, sin escala— y el dueño
-        llegaba a leer «fatiga 118». La fatiga no necesita número propio: la frescura ES su cara
-        legible (MVP.md Paso 20: forma en estrellas y frescura en barra, nunca números internos).
-      */}
-      {bars && (
-        <div className="space-y-3">
-          <ConditionBar
-            label="Fitness — training base"
-            hint="The condition you have built up over the past weeks. It grows with steady work and fades with rest."
-            value={bars.fitness}
-            color="bg-indigo-500"
+    <Panel title="Condition" answer>
+      <QueryView query={formQuery} label="your condition" skeleton={{ kind: 'panel' }}>
+        {(data) => (
+          <Condicion
+            data={data}
+            morale={morale}
+            gameDay={healthQuery.data?.gameDay ?? null}
+            raceNames={raceNames}
           />
-          <ConditionBar
-            label="Freshness — race readiness"
-            hint="How rested you are today. High = fresh and race-ready; low = fatigued from hard training. Easing off before a goal raises it: peaking is high fitness with high freshness."
-            value={bars.freshness}
-            color="bg-emerald-500"
-          />
-        </div>
-      )}
-
-      {/* Los cerillos van CON las barras: las tres dicen con qué sales hoy, y las tres se explican. */}
-      <div className="mt-3">
-        <MatchRow value={matches} max={maxMatchCount()} />
-      </div>
-
-      <dl className="mt-4">
-        <div className="rounded-md bg-slate-50 p-2.5">
-          <dt className="text-xs font-medium tracking-wide text-slate-400 uppercase">Morale</dt>
-          <dd className="mt-0.5 text-sm font-bold text-slate-800 tabular-nums">
-            {/* en medias estrellas (DD-12, §13.7): el porcentaje con decimales ya no cruza */}
-            {summaryQuery.data ? <UiStarRating value={summaryQuery.data.moraleStars} /> : '—'}
-          </dd>
-        </div>
-      </dl>
-
-      <div className="mt-4">
-        <FormChart points={log} />
-      </div>
-
-      {/*
-        …Y EN QUÉ SE FUE ESA FORMA. La gráfica dice CUÁNTO se gastó y esto dice EN QUÉ: es la
-        pregunta del dueño («me gustaría entender un poco mejor en qué se gastó la energía»), que la
-        crónica no puede contestar porque solo narra lo que es noticia.
-      */}
-      <div className="mt-6">
-        <h3 className="mb-1 text-xs font-medium tracking-wide text-slate-400 uppercase">
-          Where the energy went
-        </h3>
-        <RaceEffortLog points={log} />
-      </div>
+        )}
+      </QueryView>
     </Panel>
   )
 }
 
-/** Objetivos de temporada del corredor: qué carreras ha pedido y si le convocaron. Solo mío. */
+/**
+ * Objetivos de temporada del corredor: qué carreras ha pedido y si le convocaron, con su `Chip`, o el día en que
+ * empiezan, `Day 205`, y nunca `GD` (§4.10). Solo mío.
+ */
 function OwnerObjectives() {
   const rev = useHorizonRev()
   const { data } = useQuery({
@@ -293,29 +236,108 @@ function OwnerObjectives() {
     queryFn: fetchRacePrefs,
     enabled: rev !== undefined,
   })
+  const clock = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
+  const hoy = clock.data?.gameDay ? seasonPosition(clock.data.gameDay).dayOfSeason : null
   const wanted = (data ?? []).filter((r) => r.wanted)
   if (wanted.length === 0) return null
   return (
     <Panel title="Season objectives">
-      <ul className="divide-y divide-slate-100">
+      <ul className="divide-y divide-line">
         {wanted.map((r) => (
-          <li key={r.raceId} className="flex items-center justify-between gap-3 py-2 text-sm">
-            <Link
-              to={`/world/races/${raceIdFromKey(r.raceId)}`}
-              className="font-medium text-slate-700 hover:text-brand-cyan hover:underline"
-            >
-              {r.name}
-            </Link>
-            <span className="shrink-0 text-xs text-slate-500">
-              {r.callup === 'selected'
-                ? 'Selected'
-                : r.callup === 'not-selected'
-                  ? 'Not selected'
-                  : `GD ${r.startDay}`}
-            </span>
+          <li key={r.raceId} className="flex min-h-11 items-center justify-between gap-3">
+            <TextLink to={`/world/races/${raceIdFromKey(r.raceId)}`}>{r.name}</TextLink>
+            {r.callup === 'selected' ? (
+              <Chip tone="good">Selected</Chip>
+            ) : r.callup === 'not-selected' ? (
+              <Chip tone="neutral">Not selected</Chip>
+            ) : (
+              <span className="shrink-0 text-meta text-ink-2">
+                {formatGameDay(seasonPosition(r.startDay).dayOfSeason, hoy)}
+              </span>
+            )}
           </li>
         ))}
       </ul>
+    </Panel>
+  )
+}
+
+/** Una fila de los datos del corredor, de 44 (§4.5). */
+function Dato({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 border-b border-line py-1 last:border-0">
+      <dt className="text-meta font-semibold text-ink-2">{label}</dt>
+      <dd className="flex flex-wrap items-center gap-2 text-right text-row text-ink">{children}</dd>
+    </div>
+  )
+}
+
+/**
+ * Los datos del corredor, detrás de lo demás (§4.6): la edad, de dónde es, dónde vive, el equipo, el papel; y en
+ * la ajena, su salud con su porqué, que la cabecera no lleva (la propia lo dice en `Condition`).
+ */
+function RiderFacts({
+  rider,
+  owner,
+  declining,
+}: {
+  readonly rider: PublicRiderDetail
+  readonly owner: boolean
+  readonly declining: boolean
+}) {
+  const country = COUNTRIES.find((c) => c.code === rider.country)
+  const abroad = rider.residence !== '' && rider.residence !== rider.country
+  const residence = COUNTRIES.find((c) => c.code === rider.residence)
+  const vocation = VOCATIONS.find((v) => v === rider.archetype)
+  return (
+    <Panel title="Rider">
+      <dl className="grid">
+        <Dato label="Age">
+          {`${rider.age} · born on ${formatGameDay(birthdayDayOfSeason(rider.id), null)}`}
+          {declining && <Chip tone="warn">Declining</Chip>}
+        </Dato>
+        {!owner && rider.health.state !== 'sano' && (
+          <Dato label="Health">
+            <span className="text-meta text-ink-2">{HEALTH_LOOK[rider.health.state].note}</span>
+          </Dato>
+        )}
+        <Dato label="Nation">
+          {/* la bandera, para el ojo: su nombre lo dice el texto de al lado, que el lector no oiga dos veces */}
+          <span aria-hidden="true">
+            <Flag country={rider.country} height={16} />
+          </span>
+          <TextLink to={`/world/nations/${rider.country}`}>
+            {country?.name ?? rider.country}
+          </TextLink>
+        </Dato>
+        {abroad && (
+          <Dato label="Lives in">
+            <span aria-hidden="true">
+              <Flag country={rider.residence} height={16} />
+            </span>
+            {residence?.name ?? rider.residence}
+          </Dato>
+        )}
+        <Dato label="Team">
+          {rider.teamId !== null && rider.teamName !== null ? (
+            <TextLink to={`/world/teams/${rider.teamId}`}>{rider.teamName}</TextLink>
+          ) : (
+            'Free agent'
+          )}
+        </Dato>
+        <Dato label="Role">
+          {owner && vocation !== undefined ? (
+            <RoleEditor current={vocation} />
+          ) : (
+            archetypeLabel(rider.archetype)
+          )}
+        </Dato>
+        {rider.fieldSize > 0 && (
+          <Dato label="Season rank">
+            {`#${rider.seasonRank.toLocaleString('en-US')} of ${rider.fieldSize.toLocaleString('en-US')}`}
+          </Dato>
+        )}
+      </dl>
     </Panel>
   )
 }
@@ -357,6 +379,8 @@ export function RiderProfile() {
   // El día de juego actual, para decir hasta cuándo dura una baja. Es la misma consulta pública que
   // ya hace la cabecera (misma clave ⇒ misma caché), así que no añade tráfico.
   const clock = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
+  // El maillot de su equipo, el de mañana, de `GET /api/teams` (17-q): mientras llega, su hueco.
+  const teams = useTeamsIdentity()
 
   /**
    * LA CAPA QUE SOLO TIENE LA FICHA PROPIA (docs/entrenamiento.md §2.3): la marca de progreso, la
@@ -375,14 +399,14 @@ export function RiderProfile() {
     enabled: owner,
   })
 
-  // Los estados, con `QueryView` (E3, PR 10). Sin `:id` y sin corredor propio, el jugador aún no ha
-  // creado el suyo; y un fallo de `mine` ya no se pinta como «no tienes corredor».
+  // Los estados, con `QueryView` (E3, PR 10), que contestan (§7.3). Sin `:id` y sin corredor propio, el
+  // jugador aún no ha creado el suyo; y un fallo de `mine` ya no se pinta como «no tienes corredor».
   if (!routeId && mine.data === undefined)
-    return <QueryView query={mine} label="your rider" skeleton={{ kind: 'header' }} />
+    return <QueryView query={mine} label="your rider" skeleton={{ kind: 'header' }} answer />
   if (!routeId && mine.data === null) {
     return (
-      <section className="mx-auto max-w-md space-y-4">
-        <h1 className="text-page text-ink">No rider yet</h1>
+      <section className="mx-auto grid max-w-form gap-4">
+        <PageHeader title="No rider yet" />
         <EmptyState
           icon="rider"
           text="Create your rider to enter the world."
@@ -391,6 +415,7 @@ export function RiderProfile() {
               Create your rider
             </Button>
           }
+          answer
         />
       </section>
     )
@@ -415,124 +440,101 @@ export function RiderProfile() {
 
   const coach = coachQuery.data ?? null
   const detail: AttributeDetail = {
-    trend: Object.fromEntries((trendQuery.data ?? []).map((t) => [t.attr, t.arrow])),
+    // la flecha, cuando llega: antes, ninguna, y no un `Steady` que no se sabe (la revisión del 21h)
+    ...(trendQuery.data !== undefined && {
+      trend: Object.fromEntries(trendQuery.data.map((t) => [t.attr, t.arrow])),
+    }),
     opinion: Object.fromEntries((coach?.ceilings ?? []).map((c) => [c.attr, c.opinion])),
   }
   const notes = coach?.notes ?? []
   const declining = owner && (coach?.declining ?? false)
+  const gameDay = clock.data?.gameDay ?? null
+  const palmares = palmaresQuery.data ?? []
+  const results = resultsQuery.data ?? []
+  // el nombre de cada carrera, de sus resultados: el de un día de carrera del diario (`Race Liège · Stage 2`)
+  const raceNames = raceNamesOf(results)
 
   return (
-    <section className="space-y-4">
-      <SectionBar>{rider.name}</SectionBar>
+    <section className="grid gap-4">
+      <RiderHeader
+        rider={{ id: rider.id, name: rider.name, human: !rider.isBot, country: rider.country }}
+        team={rowTeam(rider.teamId, rider.teamName, teams) ?? null}
+        champion={rider.champion}
+        player={!rider.isBot}
+        health={healthChip(rider.health, gameDay)}
+        role={archetypeLabel(rider.archetype)}
+      />
       <VeilNotice kind="results" />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Rider" className="lg:col-span-2">
-          <Identity rider={rider} gameDay={clock.data?.gameDay ?? null} />
-          <InfoRow label="Age">
-            {rider.age} · born day {birthdayDayOfSeason(rider.id)} of the season
-            {declining && (
-              <span
-                className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200"
-                title="Past your peak: defend what you have and keep learning the trade."
-              >
-                Declining
-              </span>
-            )}
-          </InfoRow>
-          <InfoRow label="Team">
-            <TeamLink teamId={rider.teamId} name={rider.teamName} fallback="Free agent" />
-          </InfoRow>
-          <InfoRow label="Role">
-            {owner ? (
-              <RoleEditor current={rider.archetype as Vocation} />
-            ) : (
-              archetypeLabel(rider.archetype)
-            )}
-          </InfoRow>
-          {rider.fieldSize > 0 && (
-            <InfoRow label="Season rank">
-              #{rider.seasonRank.toLocaleString('en-US')} of{' '}
-              {rider.fieldSize.toLocaleString('en-US')}
-            </InfoRow>
-          )}
-        </Panel>
+      {owner && <OwnerCondition raceNames={raceNames} />}
 
-        <Panel title="Season" bodyClassName="p-0">
-          <dl>
-            {[{ label: 'Season points', value: rider.seasonPoints.toLocaleString('en-US') }].map(
-              (s, i) => (
-                <div
-                  key={s.label}
-                  className={`flex items-baseline justify-between px-4 py-2 ${
-                    i % 2 === 0 ? 'bg-slate-50' : ''
-                  }`}
-                >
-                  <dt className="text-sm font-semibold text-slate-600">{s.label}</dt>
-                  <dd className="text-sm font-bold tabular-nums text-slate-800">{s.value}</dd>
-                </div>
-              ),
-            )}
-          </dl>
+      <Panel title="Attributes" answer={!owner}>
+        <div className="grid gap-3">
+          {owner ? (
+            <AttributeList attributes={attributes} detail={detail} />
+          ) : (
+            <AttributeList attributes={attributes} />
+          )}
+          {owner && notes.length > 0 && (
+            <ul className="grid gap-1 border-t border-line pt-3">
+              {notes.map((note) => (
+                <li key={note} className="text-meta text-ink-2">
+                  “{COACH_NOTE_TEXT[note]}”
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Panel>
+
+      {owner && <OwnerObjectives />}
+
+      <Panel title="Season">
+        <Stat label="Season points" value={rider.seasonPoints} />
+      </Panel>
+
+      {palmares.length > 0 && (
+        <Panel title="Palmarès">
+          <ul className="divide-y divide-line">
+            {palmares.map((p, i) => {
+              // una victoria de etapa dice también de dónde a dónde fue
+              const route = stageRouteText(p.from, p.to)
+              return (
+                <li key={i} className="grid gap-0.5 py-2">
+                  <p className="text-row text-ink">
+                    <span className="font-semibold">{p.raceName}</span>
+                    {` · ${palmaresLabel(p.kind)}`}
+                    {p.detail && ` · ${p.detail}`}
+                  </p>
+                  <p className="text-meta text-ink-2">
+                    {`Season ${p.season + 1}`}
+                    {route !== null && ` · ${route}`}
+                  </p>
+                </li>
+              )
+            })}
+          </ul>
         </Panel>
-      </div>
+      )}
 
       <Badges riderId={rider.id} />
 
-      {owner && <OwnerCondition />}
-
-      <Panel title="Attributes">
-        <p className="mb-1 text-xs text-slate-400">
-          Tap an attribute to see what it does{owner && ', and what your coach makes of you'}.
-        </p>
-        {owner ? (
-          <AttributeList attributes={attributes} detail={detail} />
-        ) : (
-          <AttributeList attributes={attributes} />
-        )}
-        {owner && notes.length > 0 && (
-          <ul className="mt-3 space-y-1 border-t border-slate-100 pt-3">
-            {notes.map((note) => (
-              <li key={note} className="text-xs italic text-slate-500">
-                “{COACH_NOTE_TEXT[note]}”
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
-
-      {owner && <BlockReport />}
-
-      {palmaresQuery.data && palmaresQuery.data.length > 0 && (
-        <Panel title="Palmarès">
-          <ul className="space-y-1.5">
-            {palmaresQuery.data.map((p, i) => (
-              <li key={i} className="flex items-center gap-3 text-sm">
-                <span className="w-20 shrink-0 text-slate-400">Season {p.season + 1}</span>
-                <span className="font-medium text-slate-700">{p.raceName}</span>
-                <span className="text-slate-500">
-                  {palmaresLabel(p.kind)}
-                  {p.detail && ` · ${p.detail}`}
-                </span>
-                {/* Una victoria de etapa dice también de dónde a dónde fue. */}
-                <StageRoute from={p.from} to={p.to} className="truncate text-slate-400" />
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
-
       {/*
-        Una línea por CARRERA con su general de titular (§3.6): en una vuelta el resultado del
-        corredor es la general, y las etapas son el desglose que se despliega debajo.
+        Una línea por CARRERA con su general de titular (§3.6): en una vuelta el resultado del corredor es la
+        general, y las etapas son el desglose que se despliega debajo. En la `RankTable` de `My races` (§6.1).
       */}
-      {resultsQuery.data && resultsQuery.data.length > 0 && (
-        <Panel title="Recent results">
-          <RaceResultList results={resultsQuery.data} />
+      {results.length > 0 && (
+        <Panel title="Recent results" variant="bleed">
+          <RaceResultsTable
+            results={results}
+            caption={`${rider.name}'s races, most recent first: the overall place and the stages behind it`}
+          />
         </Panel>
       )}
 
-      {owner && <OwnerObjectives />}
+      <RiderFacts rider={rider} owner={owner} declining={declining} />
+
+      {owner && <BlockReport raceNames={raceNames} />}
       {owner && <LastRaceReport />}
     </section>
   )

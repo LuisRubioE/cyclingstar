@@ -22,7 +22,8 @@ import type { ColumnPriority, Layout } from './types'
  *   `clip` (el nombre del equipo), con `…` y `data-clip-ok`. Las dos cosas se pintan y el tema decide
  *   cuál se ve (`sm:` y `lg:`), sin medir nada.
  * - **El enlace es la celda de identidad entera**, en bloque y de 44 al menos (O-28): uno por fila, y un
- *   control para la prueba del teléfono, no un enlace de frase.
+ *   control para la prueba del teléfono, no un enlace de frase. Desde el PR 21b, esa celda es la cabecera
+ *   de su fila (`th scope="row"`), y el lector dice de quién es cada valor (`Race France, Place, 7th`).
  * - **Las 20 y `Show all 140`** (`TOP_ROWS`, de `ShowAll.tsx`), a todo lo ancho y de 44. **La fila propia**
  *   (I-26) más allá de la 20 se ancla tras las 20, detrás de una fila `…` de 24 que no se lee; dentro o
  *   fuera, con la barra `own` de 3 px, el fondo `own-tint`, el nombre en 600 y `aria-current`.
@@ -37,6 +38,10 @@ import type { ColumnPriority, Layout } from './types'
  * sin puesto dice su porqué (`inactiveLabel`: `OTL` en la llegada, `OUT` en la de equipos); una columna
  * puede decir otra cosa en el segundo renglón (`second`: `2 overall`, donde la columna dice `2`); y la
  * plantilla las pinta todas (`all`).
+ *
+ * Desde el PR 21b, una fila puede llevar algo plegado (`detail`): debajo de la identidad y de su segundo
+ * renglón, en su celda y fuera de su enlace, que no puede llevar un control dentro. Es el desglose de
+ * etapas de `My races`, un `Disclosure` de 44.
  */
 
 export interface RankTableColumn<Row> {
@@ -68,6 +73,8 @@ export interface RankTableProps<Row> {
   readonly href?: (row: Row) => string
   readonly columns: readonly RankTableColumn<Row>[]
   readonly isOwn?: (row: Row) => boolean
+  /** lo plegado de una fila, debajo de su segundo renglón y fuera del enlace: un `Disclosure` (PR 21b) */
+  readonly detail?: (row: Row) => ReactNode
   /** lo que dice una fila sin puesto donde iría su valor: `DNF` por defecto; `OTL`, `OUT` */
   readonly inactiveLabel?: (row: Row) => string
   /** todas las filas, sin `Show all`: la plantilla de un equipo (§6.1) */
@@ -286,7 +293,10 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
                       {puesto ?? ''}
                     </td>
                   )}
-                  <td className={`w-full max-w-0 p-0 align-top ${rank === undefined ? barra : ''}`}>
+                  <th
+                    scope="row"
+                    className={`w-full max-w-0 p-0 text-left align-top font-normal ${rank === undefined ? barra : ''}`}
+                  >
                     {href === undefined ? (
                       <span data-identity="" className={`block py-1${own ? ' font-semibold' : ''}`}>
                         <span className="block">{identity(row)}</span>
@@ -301,7 +311,8 @@ export function RankTable<Row>(props: RankTableProps<Row>) {
                         <SegundoRenglon row={row} columns={columns} />
                       </Link>
                     )}
-                  </td>
+                    {props.detail?.(row)}
+                  </th>
                   {columns.map((c, j) => (
                     <td
                       key={c.key}

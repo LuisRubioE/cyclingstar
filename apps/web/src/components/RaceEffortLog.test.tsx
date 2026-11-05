@@ -7,6 +7,10 @@ import { RaceEffortLog } from './RaceEffortLog'
 /**
  * EL DIARIO DE CARRERA, SIN TSS (E3, docs/visual.md §10.7 y §13.7; D-41, D-00o; PR 19b): el TSS sale de la
  * pantalla y de la API, y el día de carrera dice su carga en palabras, como el cuadro (`Load: hard`).
+ *
+ * Con el sistema desde el 21h: el día de la temporada (`Day 52`), el título de la etapa sin la clave cruda, la
+ * barra de los cinco conceptos en un SVG con tokens y sin `title`, con su porqué en palabras para el lector, y
+ * la leyenda en `caption`.
  */
 
 const etapa: FormPoint = {
@@ -31,10 +35,10 @@ const etapa: FormPoint = {
   to: 'Grenoble',
 }
 
-const pinta = (points: FormPoint[]) =>
+const pinta = (points: FormPoint[], raceNames?: ReadonlyMap<string, string>) =>
   renderToStaticMarkup(
     <MemoryRouter>
-      <RaceEffortLog points={points} />
+      <RaceEffortLog points={points} raceNames={raceNames} />
     </MemoryRouter>,
   )
 
@@ -44,9 +48,64 @@ describe('el diario de carrera (§10.7; 19b)', () => {
       etapa,
       { ...etapa, gameDay: 53, load: 4, activity: 'carrera:race-france:e4' },
     ])
-    expect(html).toContain('day 52 · Load: hard')
-    expect(html).toContain('day 53 · Load: very hard')
+    expect(html).toContain('Day 52 · Load: hard')
+    expect(html).toContain('Day 53 · Load: very hard')
     expect(html).not.toContain('TSS')
+  })
+
+  it('el título de la etapa, de su clave: France · Stage 3, y su recorrido tras su ·; nunca la clave', () => {
+    const html = pinta([etapa])
+    // la etapa y su recorrido, como toda etapa (§4.10): `Stage 3 · Gandia → Alcoi`
+    expect(html).toMatch(/>France · Stage 3 · <span data-ui="StageRoute"[^>]*>Lyon → Grenoble</)
+    expect(html).not.toContain('carrera:')
+    expect(html).not.toContain('capitalize')
+    // sin ciudades, la etapa sola, sin su ·
+    expect(pinta([{ ...etapa, from: null, to: null }])).toMatch(/>France · Stage 3<\/span>/)
+  })
+
+  it('con el nombre de la carrera de los resultados del corredor, el suyo (la revisión del 21h)', () => {
+    const html = pinta([etapa], new Map([['race-france', 'Race France']]))
+    expect(html).toMatch(/>Race France · Stage 3 · <span data-ui="StageRoute"/)
+  })
+
+  it('la barra: un SVG con un tramo por concepto con gasto, en sus tokens, sin title; y lo que dice, en palabras', () => {
+    const html = pinta([etapa])
+    const barra = /<svg[\s\S]*?<\/svg>/.exec(html)?.[0] ?? ''
+    // rodar 30, relevo 20, cerillos 10, reserva 5; las banderas, a cero, sin tramo
+    expect(barra.match(/<rect/g)).toHaveLength(4)
+    for (const f of ['fill-line-strong', 'fill-accent', 'fill-bad', 'fill-gold'])
+      expect(barra).toContain(f)
+    expect(barra).not.toContain('fill-good')
+    expect(html).not.toContain('title=')
+    expect(html).not.toContain('style=')
+    expect(html).toContain(
+      'Where it went, most first: riding in the bunch, on the front, attacks &amp; jumps, digging deep',
+    )
+  })
+
+  it('lo que dice la barra, del concepto que más gastó al que menos, sea cual sea su orden en la leyenda', () => {
+    const html = pinta([
+      {
+        ...etapa,
+        parte: {
+          ...etapa.parte!,
+          gasto: { rodar: 5, relevo: 20, reserva: 10, cerillos: 30, banderas: 0 },
+        },
+      },
+    ])
+    expect(html).toContain(
+      'Where it went, most first: attacks &amp; jumps, on the front, digging deep, riding in the bunch',
+    )
+  })
+
+  it('la leyenda, en caption y con los tokens de la barra', () => {
+    const html = pinta([etapa])
+    expect(html).not.toContain('text-[11px]')
+    for (const f of ['bg-line-strong', 'bg-accent', 'bg-bad', 'bg-gold', 'bg-good'])
+      expect(html).toContain(f)
+    expect(html).not.toMatch(
+      /\b(?:bg|text|border|ring|fill|stroke|from|to|divide)-(?:slate|indigo|emerald|amber|rose|cyan|red|orange)-\d/,
+    )
   })
 
   it('los días de entrenamiento no salen: no tienen parte', () => {

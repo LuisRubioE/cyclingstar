@@ -79,12 +79,12 @@ export function buildDashboard(input: DashboardInputs): DashboardAction[] {
     actions.push({
       id: 'race-orders',
       title: ongoing
-        ? `You are racing the ${raceName} right now`
+        ? `You are racing ${raceName} right now`
         : due === 0
           ? `You race today: ${raceName}`
           : due === 1
             ? `You race tomorrow: ${raceName}`
-            : `You race the ${raceName} in ${due} days`,
+            : `You race ${raceName} in ${due} days`,
       detail: 'You have no orders set — your coach will ride it for you.',
       to: `/me/orders?race=${encodeURIComponent(raceKey)}`,
       cta: 'Set orders',

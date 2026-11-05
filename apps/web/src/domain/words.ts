@@ -111,3 +111,17 @@ export function formatGameDay(day: number, today: number | null): string {
   if (n < 0 || n > 7) return `Day ${day}`
   return `Day ${day} · ${n === 0 ? 'today' : `in ${plural(n, 'day')}`}`
 }
+
+/**
+ * La división de un equipo, en palabras (§4.10; PR 21l): una por cosa, donde había cinco tablas y la de la
+ * carrera decía `WorldTour` y `ProTeams`. Un código que no es de las tres sale tal cual.
+ */
+const DIVISION_WORDS: Readonly<Record<string, string>> = {
+  WT: 'World Tour',
+  PRS: 'Pro Series',
+  CON: 'Continental',
+}
+
+export function divisionLabel(code: string): string {
+  return DIVISION_WORDS[code] ?? code
+}

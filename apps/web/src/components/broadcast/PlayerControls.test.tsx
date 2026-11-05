@@ -18,7 +18,12 @@ import {
  * a mano (§18.5).
  */
 
-/** Los botones del HTML, por orden, con su texto y si se ven a 360 px (ni él ni ninguno de sus padres lleva `hidden`). */
+/**
+ * Los botones del HTML, por orden, con su nombre y si se ven a 360 px (ni él ni ninguno de sus padres lleva
+ * `hidden`). RE-SELLADO EN EL PR 20 (E3, docs/visual.md §14.6 y §16.3): el nombre era el texto, `❚❚`, `▶︎`
+ * y `⋯`; desde que son los iconos `pause`, `play` y `more`, que `ui/10` pide en lugar de los glifos, un
+ * botón sin texto se nombra por su `aria-label`, que es lo que lee el lector.
+ */
 function buttonsOf(markup: string): { text: string; mobile: boolean; attrs: string }[] {
   const out: { text: string; mobile: boolean; attrs: string }[] = []
   const stack: boolean[] = []
@@ -31,10 +36,12 @@ function buttonsOf(markup: string): { text: string; mobile: boolean; attrs: stri
       stack.pop()
       if (name === 'button' && open !== null) {
         out.push({
-          text: markup
-            .slice(open.from, m.index)
-            .replace(/<[^>]+>/g, '')
-            .trim(),
+          text:
+            markup
+              .slice(open.from, m.index)
+              .replace(/<[^>]+>/g, '')
+              .trim() ||
+            (/ aria-label="([^"]*)"/.exec(open.attrs)?.[1] ?? ''),
           mobile: !open.hidden,
           attrs: open.attrs,
         })
@@ -101,9 +108,9 @@ function controls(state: Partial<ControlsState> = {}, canShowResult = true): str
 }
 
 describe('PlayerControls a 360 px (8-p, §8.12)', () => {
-  it('la fila lleva ❚❚, ×1, Next action, Commentary y ⋯, por ese orden; las cuatro velocidades son de escritorio', () => {
+  it('la fila lleva Pause, ×1, Next action, Commentary y More, por ese orden; las cuatro velocidades son de escritorio', () => {
     const markup = controls()
-    expect(mobileRow(markup)).toEqual(['❚❚', '×1', 'Next action', 'Commentary', '⋯'])
+    expect(mobileRow(markup)).toEqual(['Pause', '×1', 'Next action', 'Commentary', 'More'])
     // en escritorio, las cuatro a la vista (y el botón que pasa de una a otra, no)
     const desktop = buttonsOf(markup).filter((b) => !b.mobile)
     expect(desktop.map((b) => b.text)).toEqual(['×½', '×1', '×2', '×4'])
@@ -113,17 +120,17 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
     expect(markup).toContain('aria-expanded="false"')
   })
 
-  it('en el digest, solo ❚❚ y Show results (§8.1); sin sesión, solo ❚❚', () => {
-    expect(mobileRow(controls({ view: 'digest' }))).toEqual(['❚❚', 'Show results'])
+  it('en el digest, solo Pause y Show results (§8.1); sin sesión, solo Pause', () => {
+    expect(mobileRow(controls({ view: 'digest' }))).toEqual(['Pause', 'Show results'])
     expect(buttonsOf(controls({ view: 'digest' })).map((b) => b.text)).toEqual([
-      '❚❚',
+      'Pause',
       'Show results',
     ])
-    expect(buttonsOf(controls({ view: 'digest' }, false)).map((b) => b.text)).toEqual(['❚❚'])
+    expect(buttonsOf(controls({ view: 'digest' }, false)).map((b) => b.text)).toEqual(['Pause'])
   })
 
-  it('en pausa, ▶; Next action encendido va marcado, y en el último km no se puede encender (8-o)', () => {
-    expect(mobileRow(controls({ phase: 'paused' }))[0]).toBe('▶︎')
+  it('en pausa, Play; Next action encendido va marcado, y en el último km no se puede encender (8-o)', () => {
+    expect(mobileRow(controls({ phase: 'paused' }))[0]).toBe('Play')
     const on = buttonsOf(controls({ nextAction: true })).find((b) => b.text === 'Next action')!
     expect(on.attrs).toContain('aria-pressed="true"')
     expect(disabled(on.attrs)).toBe(false)
@@ -133,7 +140,9 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
 
   it('Connection lost · Retry (D-57) y Loading, en role="status"', () => {
     const offline = controls({ phase: 'paused', notice: 'offline' })
-    expect(offline).toMatch(/role="status">Connection lost · <button[^>]*>Retry<\/button>/)
+    expect(offline).toMatch(
+      /role="status">Connection lost · <button[^>]*>[\s\S]*?Retry[\s\S]*?<\/button>/,
+    )
     expect(mobileRow(offline)).toContain('Retry')
     expect(controls({ phase: 'waiting', notice: 'loading' })).toContain(
       'role="status">Loading</span>',
@@ -141,10 +150,51 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
   })
 
   it('escondidos, con opacidad: siguen en el árbol de accesibilidad y el foco dentro los enseña (8-p)', () => {
+    // RE-SELLADO EN EL PR 20 (E3, §16.3): miraba las clases de la opacidad; los mandos dicen su estado en
+    // `data-state`, y lo de dentro, los iconos, va `aria-hidden` sin esconder ningún botón
     const markup = controls({ hidden: true })
-    expect(markup).toContain('opacity-0 focus-within:opacity-100')
-    expect(markup).not.toContain('aria-hidden')
+    expect(markup).toMatch(/^<div[^>]*data-state="hidden"/)
+    expect(controls()).toMatch(/^<div[^>]*data-state="shown"/)
+    expect(markup).not.toMatch(/<(?:button|div)[^>]*aria-hidden/)
     expect(mobileRow(markup)).toHaveLength(5)
+  })
+
+  it('en el ámbito oscuro, con los iconos pause, play y more, sin un glifo, y ningún primary (E3, §14.6)', () => {
+    const playing = controls()
+    expect(playing).toMatch(/^<div[^>]*data-surface="dark"/)
+    expect(playing).toContain('data-variant="pause"')
+    expect(playing).toContain('data-variant="more"')
+    expect(controls({ phase: 'paused' })).toContain('data-variant="play"')
+    expect(playing).not.toMatch(/[▶❚⋯]/)
+    // el primary de Watch es el de la previa o el del cierre: los mandos no llevan ninguno
+    expect(playing).not.toContain('data-variant="primary"')
+  })
+
+  it('cada mando, de 44 como mínimo: los del catálogo y los que se conmutan (comprobación 5)', () => {
+    for (const b of buttonsOf(controls())) {
+      if (b.attrs.includes('data-ui="Button"')) continue
+      expect(b.attrs, b.text).toMatch(/min-h-11/)
+      expect(b.attrs, b.text).toMatch(/min-w-11/)
+    }
+  })
+
+  it('el encendido no lleva el fondo ni la tinta del apagado: de dos clases del mismo estado, gana la que la hoja pone después', () => {
+    // con `hover:bg-surface-2` y `hover:bg-accent-strong` a la vez, Tailwind ordena la hoja y no el atributo:
+    // al pasar el ratón por un mando encendido salía la tinta del encendido sobre el fondo del apagado
+    const all = buttonsOf(controls({ nextAction: true, speed: 2 }))
+    const on = all.filter((b) => b.attrs.includes('aria-pressed="true"'))
+    const off = all.filter((b) => b.attrs.includes('aria-pressed="false"'))
+    expect(on.length).toBeGreaterThan(1)
+    expect(off.length).toBeGreaterThan(1)
+    for (const b of on) {
+      expect(b.attrs, b.text).toMatch(/ hover:bg-accent-strong/)
+      expect(b.attrs, b.text).not.toMatch(/ hover:bg-surface-2/)
+      expect(b.attrs, b.text).not.toMatch(/ text-ink[\s"]/)
+    }
+    for (const b of off) {
+      expect(b.attrs, b.text).toMatch(/ hover:bg-surface-2/)
+      expect(b.attrs, b.text).not.toMatch(/ bg-accent[\s"]/)
+    }
   })
 })
 

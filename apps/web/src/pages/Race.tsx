@@ -1,4 +1,4 @@
-import type { HorizonSummary, RaceRouteSource, RouteSource } from '@cyclingstar/shared'
+import type { HorizonSummary } from '@cyclingstar/shared'
 import {
   type UseQueryResult,
   keepPreviousData,
@@ -23,18 +23,28 @@ import {
 } from '../api/race'
 import { putFollow } from '../api/watch'
 import { authClient } from '../auth/client'
-import { Flag } from '../components/Flag'
-import { TeamJersey } from '../components/ui/TeamJersey'
 import { RiderName } from '../components/RiderName'
 import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { DiagnosticStrip } from '../components/StageGate'
-import { StageRoute } from '../components/StageRoute'
+import { RestDay, StageLine } from '../components/StageLine'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
-import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { TabPanel, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
 import { useOwnIds } from '../components/useTableIdentity'
+import { Button } from '../components/ui/Button'
+import { Chip } from '../components/ui/Chip'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Flag } from '../components/ui/Flag'
+import { Icon } from '../components/ui/Icon'
+import { InfoButton } from '../components/ui/InfoButton'
+import { Notice } from '../components/ui/Notice'
+import { Panel } from '../components/ui/Panel'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
+import { type TabOption, Tabs } from '../components/ui/Tabs'
+import { TeamJersey } from '../components/ui/TeamJersey'
+import { TextLink } from '../components/ui/TextLink'
+import { FOCUS } from '../components/ui/styles'
+import type { Tone } from '../components/ui/types'
 import {
   ROUTE_SOURCE_LABEL,
   editionLabel,
@@ -48,6 +58,7 @@ import { stageRowLink, stageRowState } from '../domain/raceStages'
 import { type TableIdentity, identityFromStartlist } from '../domain/tableIdentity'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
 import { type ReadyRace, finalVeiled, raceKeyOn, raceVeil, raceVeilNotice } from '../domain/veil'
+import { divisionLabel } from '../domain/words'
 import {
   diagOf,
   useHealth,
@@ -65,33 +76,6 @@ const OneDaySections = lazy(() =>
   import('./OneDayRace').then((m) => ({ default: m.OneDaySections })),
 )
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
-const head = 'mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400'
-
-const KIND_DOT: Record<string, string> = {
-  llana: 'bg-emerald-400',
-  media: 'bg-amber-400',
-  reina: 'bg-rose-500',
-  cri: 'bg-violet-400',
-  clasica: 'bg-orange-500',
-}
-
-/**
- * El color de la marca de origen (docs/generador.md §11.4): verde solo lo real, ámbar lo que tiene
- * ciudades y distancia reales con el relieve generado, y gris lo inventado.
- */
-const SOURCE_BADGE: Record<RouteSource | RaceRouteSource, string> = {
-  real: 'bg-emerald-50 text-emerald-700',
-  edicion: 'bg-amber-50 text-amber-700',
-  mixto: 'bg-amber-50 text-amber-700',
-  generado: 'bg-slate-100 text-slate-600',
-}
-
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'WorldTour',
-  PRS: 'ProTeams',
-  CON: 'Continental',
-}
 const DIVISION_ORDER = ['WT', 'PRS', 'CON']
 
 /**
@@ -106,44 +90,43 @@ function Startlist({ data }: { data: RaceStartlist }) {
     teams: data.teams.filter((t) => t.division === div),
   })).filter((g) => g.teams.length > 0)
   return (
-    <div className={card}>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          {frozen ? 'Startlist' : 'Provisional startlist'}
-        </h2>
-        {data.daysUntil != null && (
-          <span className="text-xs text-slate-400">
+    <Panel
+      title={frozen ? 'Startlist' : 'Provisional startlist'}
+      action={
+        data.daysUntil != null && (
+          <span className="text-caption text-ink-3">
             starts in {data.daysUntil} {data.daysUntil === 1 ? 'day' : 'days'}
           </span>
-        )}
-      </div>
+        )
+      }
+    >
       {data.teams.length === 0 && data.freeAgents.length === 0 ? (
         <EmptyState text="No entries yet." />
       ) : (
         <div className="space-y-3">
           {byDivision.map((g) => (
             <div key={g.div}>
-              <h3 className="text-xs font-semibold text-slate-500">
-                {DIVISION_LABEL[g.div] ?? g.div}{' '}
-                <span className="font-normal text-slate-400">({g.teams.length})</span>
+              <h3 className="text-meta font-semibold text-ink-2">
+                {divisionLabel(g.div)}{' '}
+                <span className="font-normal text-ink-3">({g.teams.length})</span>
               </h3>
               {frozen ? (
                 // Escuadra congelada: cada equipo con sus corredores reales.
                 <div className="mt-1 space-y-2">
                   {g.teams.map((t) => (
                     <div key={t.id}>
-                      <div className="flex items-center gap-1.5 text-sm font-medium">
+                      <div className="flex items-center gap-1.5 text-meta font-semibold">
                         <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
-                        {t.country && <Flag code={t.country} size={14} />}
-                        <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
+                        {t.country && <Flag country={t.country} />}
+                        <TeamLink teamId={t.id} name={t.name} className="text-ink" />
                       </div>
                       <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 pl-1">
                         {t.riders.map((r) => (
-                          <span key={r.id} className="flex items-center gap-1 text-sm">
+                          <span key={r.id} className="flex items-center gap-1 text-meta">
                             {r.bib != null && (
-                              <span className="tabular-nums text-xs text-slate-400">{r.bib}</span>
+                              <span className="tabular-nums text-caption text-ink-3">{r.bib}</span>
                             )}
-                            <Flag code={r.country} size={12} />
+                            <Flag country={r.country} height={12} />
                             <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />
                           </span>
                         ))}
@@ -155,10 +138,10 @@ function Startlist({ data }: { data: RaceStartlist }) {
                 // Aún por congelar: solo los equipos previstos, sin nombrar corredores.
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                   {g.teams.map((t) => (
-                    <span key={t.id} className="flex items-center gap-1.5 text-sm">
+                    <span key={t.id} className="flex items-center gap-1.5 text-meta">
                       <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
-                      {t.country && <Flag code={t.country} size={14} />}
-                      <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
+                      {t.country && <Flag country={t.country} />}
+                      <TeamLink teamId={t.id} name={t.name} className="text-ink" />
                     </span>
                   ))}
                 </div>
@@ -167,14 +150,14 @@ function Startlist({ data }: { data: RaceStartlist }) {
           ))}
           {data.freeAgents.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-slate-500">
+              <h3 className="text-meta font-semibold text-ink-2">
                 Free agents{frozen ? '' : ' signed up'}{' '}
-                <span className="font-normal text-slate-400">({data.freeAgents.length})</span>
+                <span className="font-normal text-ink-3">({data.freeAgents.length})</span>
               </h3>
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                 {data.freeAgents.map((r) => (
-                  <span key={r.id} className="flex items-center gap-1.5 text-sm">
-                    <Flag code={r.country} size={14} />
+                  <span key={r.id} className="flex items-center gap-1.5 text-meta">
+                    <Flag country={r.country} />
                     <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />
                   </span>
                 ))}
@@ -183,42 +166,12 @@ function Startlist({ data }: { data: RaceStartlist }) {
           )}
         </div>
       )}
-      <p className="mt-3 text-xs text-slate-400">
+      <p className="mt-3 text-caption text-ink-3">
         {frozen
           ? 'Entries closed — these are the confirmed squads for the race.'
           : 'Provisional — each team names its squad of riders when entries close, about two weeks out.'}
       </p>
-    </div>
-  )
-}
-
-/** Recorrido de una etapa en una línea: tipo, salida → meta y kilómetros. */
-function StageLine({ stage, oneDay }: { stage: RaceStagePlan; oneDay: boolean }) {
-  return (
-    <>
-      <span
-        className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
-        aria-hidden
-      />
-      {/*
-        En una carrera de un día no hay «Stage 1» que numerar: la etapa ES la carrera, y su nombre
-        del calendario («Stage 1 · Classic») no dice nada que no diga ya la ficha de arriba. Se deja
-        solo la etiqueta.
-      */}
-      <span className="font-medium text-slate-700">
-        {oneDay ? stage.label : `Stage ${stage.index}`}
-      </span>
-      {/*
-        La ETIQUETA del calendario, no el tipo. Son dos vocabularios para lo mismo —«Summit finish»
-        contra «Mountain», «Uphill finish» contra «Hilly»— y el del calendario es el preciso: sabe
-        distinguir la reina que muere arriba de la que baja a meta. El tipo sigue mandando en el
-        color del punto, que es para lo que sirve.
-      */}
-      {!oneDay && <span className="hidden text-xs text-slate-400 sm:inline">{stage.label}</span>}
-      <StageRoute from={stage.from} to={stage.to} className="truncate text-slate-500" />
-      {stage.timeTrial && <span className="text-xs text-violet-500">ITT</span>}
-      <span className="ml-auto shrink-0 tabular-nums text-slate-400">{stage.km} km</span>
-    </>
+    </Panel>
   )
 }
 
@@ -236,18 +189,16 @@ function StageLine({ stage, oneDay }: { stage: RaceStagePlan; oneDay: boolean })
 function StageRouteNote({ stage }: { stage: RaceStagePlan }) {
   const real = stage.routeSource === 'real'
   return (
-    <div className="mb-1.5 space-y-1 pl-5 text-xs">
+    <div className="mb-1.5 space-y-1 pl-4 text-caption">
       <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-        <span className={`rounded-full px-2 py-0.5 font-medium ${SOURCE_BADGE[stage.routeSource]}`}>
-          {ROUTE_SOURCE_LABEL[stage.routeSource]}
-        </span>
-        {!real && <span className="text-slate-400">{editionLabel(stage.edicion)}</span>}
+        <Chip tone="neutral">{ROUTE_SOURCE_LABEL[stage.routeSource]}</Chip>
+        {!real && <span className="text-ink-3">{editionLabel(stage.edicion)}</span>}
       </p>
-      {!real && stage.arch && <p className="text-slate-600">{stage.arch.frase}</p>}
+      {!real && stage.arch && <p className="text-ink-2">{stage.arch.frase}</p>}
       {!real && stage.cambiosRespectoAnterior.length > 0 && (
         <div>
-          <p className="text-slate-400">Changes from the last edition</p>
-          <ul className="list-disc pl-4 text-slate-500">
+          <p className="text-ink-3">Changes from the last edition</p>
+          <ul className="list-disc pl-4 text-ink-2">
             {stage.cambiosRespectoAnterior.map((cambio) => (
               <li key={cambio}>{cambio}</li>
             ))}
@@ -262,36 +213,28 @@ function StageRouteNote({ stage }: { stage: RaceStagePlan }) {
 function RouteTab({ data }: { data: RaceView }) {
   const oneDay = data.stages.length === 1
   return (
-    <div className={card}>
-      <h2 className={head}>{oneDay ? 'Route' : 'Stage profiles'}</h2>
+    <Panel title={oneDay ? 'Route' : 'Stage profiles'}>
       <ol className="space-y-4">
         {data.stages.map((stage) => (
           <Fragment key={stage.index}>
             <li>
-              <div className="mb-1 flex items-center gap-3 text-sm">
+              <div className="mb-1 flex flex-wrap items-center gap-x-2 text-meta">
                 <StageLine stage={stage} oneDay={oneDay} />
               </div>
               <StageRouteNote stage={stage} />
               {/* Altimetría del recorrido que el mundo corre (relieve + puertos). SVG del backend. */}
               <div
-                className="w-full overflow-x-auto rounded-lg bg-slate-50 p-1"
+                className="w-full overflow-x-auto rounded-ui bg-surface-2 p-1"
                 role="img"
                 aria-label={`Elevation profile of ${stage.name}, ${stage.km} km`}
                 dangerouslySetInnerHTML={{ __html: stage.altimetry }}
               />
             </li>
-            {/* Día de descanso tras esta etapa (grandes vueltas y alguna vuelta por etapas). */}
-            {data.restAfter.includes(stage.index) && (
-              <li className="flex items-center gap-2 py-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-                <span className="h-px flex-1 bg-slate-200" />
-                Rest day
-                <span className="h-px flex-1 bg-slate-200" />
-              </li>
-            )}
+            {data.restAfter.includes(stage.index) && <RestDay />}
           </Fragment>
         ))}
       </ol>
-    </div>
+    </Panel>
   )
 }
 
@@ -319,74 +262,73 @@ function StagesTab({
 }) {
   const winnerOf = new Map(data.stageWinners.map((w) => [w.stageDay, w]))
   return (
-    <div className={card}>
-      <h2 className={head}>Stages</h2>
-      <ol className="space-y-1.5">
+    <Panel title="Stages">
+      <ol>
         {data.stages.map((stage) => {
           const winner = winnerOf.get(stage.index)
           const state = stageRowState(stage, winnerOf, data.runDays)
           const link = stageRowLink(raceId, stage.index, state, watchOn)
           return (
             <Fragment key={stage.index}>
-              <li className="border-b border-slate-100 py-1.5 last:border-0">
-                <div className="flex items-center gap-3 text-sm">
+              <li className="border-b border-line py-1.5 last:border-0">
+                <div className="flex flex-wrap items-center gap-x-2 text-meta">
                   <StageLine stage={stage} oneDay={data.stages.length === 1} />
                 </div>
-                <div className="mt-0.5 flex items-center gap-2 pl-5 text-sm">
+                <div className="flex min-h-11 items-center gap-2 pl-4 text-meta">
                   {state === 'report' && winner ? (
                     <>
-                      <Flag code={winner.country} size={14} />
+                      <Flag country={winner.country} />
                       <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
-                      <span className="hidden text-xs text-slate-400 sm:inline">
+                      <span className="hidden text-caption text-ink-3 sm:inline">
                         {raceTeamLabel(winner.teamName)}
                       </span>
                     </>
                   ) : state === 'watch' ? (
-                    <span className="text-xs font-medium text-emerald-700">Ready to watch</span>
+                    <span className="text-caption font-semibold text-good">Ready to watch</span>
                   ) : (
-                    <span className="text-xs text-slate-400">Not raced yet</span>
+                    <span className="text-caption text-ink-3">Not raced yet</span>
                   )}
                   {/* Directo al acta (o a la etapa, si está por ver), no a la etapa en su pestaña por
                       defecto: un clic menos en cada una de las 21 etapas de una gran vuelta. */}
                   {link !== null && (
-                    <Link
-                      to={link.to}
-                      className="ml-auto shrink-0 text-xs font-medium text-brand-cyan hover:underline"
-                    >
+                    <TextLink to={link.to} layout="ml-auto shrink-0">
                       {link.label}
-                    </Link>
+                    </TextLink>
                   )}
                 </div>
               </li>
-              {data.restAfter.includes(stage.index) && (
-                <li className="flex items-center gap-2 py-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-                  <span className="h-px flex-1 bg-slate-200" />
-                  Rest day
-                  <span className="h-px flex-1 bg-slate-200" />
-                </li>
-              )}
+              {data.restAfter.includes(stage.index) && <RestDay />}
             </Fragment>
           )
         })}
       </ol>
-    </div>
+    </Panel>
   )
 }
 
 type ClassTabId = 'gc' | 'points' | 'kom' | 'teams'
 
 const CLASS_TAB_IDS: readonly ClassTabId[] = ['gc', 'points', 'kom', 'teams']
+const CLASS_PANEL = 'race-classification'
 const CLASS_TABS: readonly TabOption<ClassTabId>[] = [
   { key: 'gc', label: 'General' },
   { key: 'points', label: 'Points' },
   { key: 'kom', label: 'Mountains' },
   { key: 'teams', label: 'Teams' },
 ]
-const CLASS_PANEL = 'race-classification'
+
+/** Un vacío en un `Panel` de borde a borde, con el relleno de lado que el panel no le da. */
+function Bare({ text }: { text: string }) {
+  return (
+    <div className="px-3 sm:px-4">
+      <EmptyState text={text} />
+    </div>
+  )
+}
 
 /**
  * Pestaña `Classifications` (o `Result` en una carrera de un día): general, puntos, montaña y
- * equipos como sub-pestañas.
+ * equipos, que se eligen en las pestañas del catálogo desde el PR 21a.
  *
  * Los maillots que se marcan son los de AHORA (`data.leaders`): la ficha de carrera enseña el
  * estado actual de la carrera, no el de un día concreto, así que aquí solo hay un juego. Y en una
@@ -427,33 +369,31 @@ function ClassificationsTab({
   const tabs = oneDay
     ? [{ key: 'gc' as const, label: 'Result' }, ...CLASS_TABS.slice(1)]
     : CLASS_TABS
+  // De borde a borde, en el `Panel` `bleed` de §6.1 (desde el PR 21a): a 320 el nombre cabe, y lo que no
+  // es la tabla lleva su propio relleno de lado.
   if (alone) {
     return (
-      <div className={card}>
-        <h2 className={head}>Result</h2>
+      <Panel title="Result" variant="bleed">
         {data.gc.length > 0 ? (
-          // en la tarjeta, casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1): a 320 el
-          // nombre cabe; y el margen negativo, en un hijo directo, no se sale de su caja
-          <GcRankTable rows={data.gc} caption="Result" {...ctx} layout="-mx-4" />
+          <GcRankTable rows={data.gc} caption="Result" {...ctx} />
         ) : (
-          <EmptyState text="No result yet." />
+          <Bare text="No result yet." />
         )}
-      </div>
+      </Panel>
     )
   }
   return (
-    <div className={card}>
+    <Panel ariaLabel="Classifications" variant="bleed">
+      {/* las cuatro, en las pestañas del catálogo, de 44, y no en un `Segmented`: con DejaVu Sans no
+          caben a lo ancho a 320 (piden 310 px y hay 272), y el carril de `Tabs` se desplaza (§6.3) */}
       <Tabs
         options={tabs}
         value={active}
         onChange={setActive}
         label="Classification"
-        variant="pill"
         panelId={CLASS_PANEL}
       />
-      {/* casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1), el panel y no la tabla: el
-          margen negativo, en un hijo directo de la tarjeta, no se sale de su caja de relleno */}
-      <TabPanel panelId={CLASS_PANEL} active={active} className="mt-4 -mx-4">
+      <TabPanel panelId={CLASS_PANEL} active={active} className="mt-3">
         {active === 'gc' &&
           (data.gc.length > 0 ? (
             <GcRankTable
@@ -462,19 +402,19 @@ function ClassificationsTab({
               {...ctx}
             />
           ) : (
-            <EmptyState text="No general classification yet." />
+            <Bare text="No general classification yet." />
           ))}
         {active === 'points' &&
           (data.points.length > 0 ? (
             <PointsRankTable rows={data.points} caption="Points classification" {...ctx} />
           ) : (
-            <EmptyState text="No sprint points awarded yet." />
+            <Bare text="No sprint points awarded yet." />
           ))}
         {active === 'kom' &&
           (data.kom.length > 0 ? (
             <PointsRankTable rows={data.kom} caption="Mountains classification" {...ctx} />
           ) : (
-            <EmptyState text="No mountain points awarded yet." />
+            <Bare text="No mountain points awarded yet." />
           ))}
         {active === 'teams' &&
           (data.teamGc.length > 0 ? (
@@ -488,39 +428,39 @@ function ClassificationsTab({
               <TeamClassNote />
             </>
           ) : (
-            <EmptyState text="No team classification yet." />
+            <Bare text="No team classification yet." />
           ))}
       </TabPanel>
-    </div>
+    </Panel>
   )
 }
 
 /** Pestaña `Roll of honour`: quién ganó la carrera en temporadas anteriores. */
 function HonoursTab({ data }: { data: RaceView }) {
   return (
-    <div className={card}>
-      <h2 className={head}>Roll of honour</h2>
+    <Panel title="Roll of honour">
       {data.history.length === 0 ? (
         <EmptyState text="Nobody has won this race yet — it is a new one." />
       ) : (
         <ol className="space-y-1.5">
           {data.history.map((h) => (
-            <li key={h.season} className="flex items-center gap-3 text-sm">
-              <span className="w-20 shrink-0 text-slate-400">Season {h.season + 1}</span>
-              <Flag code={h.winnerCountry} size={16} />
-              <span className="font-medium text-slate-700">{h.winnerName}</span>
+            <li key={h.season} className="flex items-center gap-3 text-meta">
+              <span className="w-20 shrink-0 text-ink-3">Season {h.season + 1}</span>
+              <Flag country={h.winnerCountry} />
+              <span className="font-semibold text-ink">{h.winnerName}</span>
             </li>
           ))}
         </ol>
       )}
-    </div>
+    </Panel>
   )
 }
 
-const STATUS_BADGE: Record<RaceStatus, { label: string; className: string }> = {
-  upcoming: { label: 'Upcoming', className: 'bg-slate-100 text-slate-600' },
-  racing: { label: 'Racing now', className: 'bg-emerald-100 text-emerald-700' },
-  finished: { label: 'Finished', className: 'bg-indigo-100 text-indigo-700' },
+/** El estado de la carrera, en un `Chip` desde el PR 21a: por correr, `neutral`; en curso, `good`; terminada, `info`. */
+const STATUS_CHIP: Record<RaceStatus, { label: string; tone: Tone }> = {
+  upcoming: { label: 'Upcoming', tone: 'neutral' },
+  racing: { label: 'Racing now', tone: 'good' },
+  finished: { label: 'Finished', tone: 'info' },
 }
 
 const RACE_PANEL = 'race-section'
@@ -540,8 +480,7 @@ function StartlistTab({
     return <QueryView query={startlist} label="the startlist" skeleton={{ kind: 'panel' }} />
   if (startlist.data.upcoming) return <Startlist data={startlist.data} />
   return (
-    <div className={card}>
-      <h2 className={head}>Startlist</h2>
+    <Panel title="Startlist">
       <EmptyState
         text={
           status === 'racing'
@@ -549,19 +488,22 @@ function StartlistTab({
             : 'The startlist is published about two weeks before the start, when teams name their squads.'
         }
       />
-    </div>
+    </Panel>
   )
 }
 
-/** El contador de una pestaña (`Tabs.tsx`, `badge`; sup. T4): cuenta etapas por ver, nunca resultados. */
+/**
+ * El contador de `Stages` (sup. T4): cuenta etapas por ver, nunca resultados. Desde el PR 21a, en el `Tabs`
+ * del catálogo: la cifra en un `Chip` `accent`, que el lector no oye, y la frase entera, que oye en su lugar.
+ */
 function StagesBadge({ n }: { n: number }) {
   return (
-    <span
-      className="rounded-full bg-brand-cyan px-1.5 py-0.5 text-[10px] font-semibold text-white"
-      aria-label={`${n} ${n === 1 ? 'stage' : 'stages'} ready to watch`}
-    >
-      {n}
-    </span>
+    <>
+      <span aria-hidden="true">
+        <Chip tone="accent">{String(n)}</Chip>
+      </span>
+      <span className="sr-only">{`${n} ${n === 1 ? 'stage' : 'stages'} ready to watch`}</span>
+    </>
   )
 }
 
@@ -612,7 +554,6 @@ function RaceSections({
         value={active}
         onChange={setActive}
         label="Race"
-        variant="underline"
         panelId={RACE_PANEL}
       />
       <TabPanel panelId={RACE_PANEL} active={active}>
@@ -647,16 +588,15 @@ function FollowRace({ raceKey, protecting }: { raceKey: string; protecting: bool
     },
   })
   return (
-    <span className="inline-flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => follow.mutate()}
-        disabled={follow.isPending}
-        className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200 disabled:opacity-60"
-      >
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <Button variant="secondary" size="sm" busy={follow.isPending} onClick={() => follow.mutate()}>
         {protecting ? 'Stop protecting this race' : 'Follow without spoilers'}
-      </button>
-      {follow.isError && <span className="text-xs text-red-600">Could not change this race.</span>}
+      </Button>
+      {follow.isError && (
+        <span role="alert" className="text-caption text-bad">
+          Could not change this race.
+        </span>
+      )}
     </span>
   )
 }
@@ -739,7 +679,7 @@ export function Race() {
   const startDay = data.race.startDay
   // Duración real de la carrera: sus etapas más los días de descanso intercalados.
   const endDay = raceEndDay(data)
-  const badge = STATUS_BADGE[status]
+  const chip = STATUS_CHIP[status]
   // En una carrera de un día la carrera Y la etapa son la misma cosa: los datos de la etapa (los
   // kilómetros y el tipo de recorrido) son los de la carrera, y su sitio es esta cabecera.
   const single = stageCount === 1 ? data.stages[0] : undefined
@@ -755,22 +695,26 @@ export function Race() {
   const pagePath = `/world/races/${raceId}`
 
   return (
-    <section className="space-y-5">
-      {/* Cabecera persistente: no cambia al cambiar de pestaña. */}
-      <div>
-        <Link to="/world/races" className="text-xs text-slate-400 hover:text-slate-600">
-          ← Races
+    <section className="space-y-4">
+      {/* Cabecera persistente: no cambia al cambiar de pestaña. Desde el PR 21a (E3, §17.21), con el sistema:
+          la vuelta de 44 de `PageHeader`, el `h1` en `page` con su bandera, el estado y la marca de origen en
+          `Chip`, el velo en un `Notice` y el objetivo y el seguimiento en `Button`. */}
+      <header className="grid gap-1">
+        <Link
+          to="/world/races"
+          className={`inline-flex min-h-11 items-center gap-1 self-start rounded-ui text-meta text-accent ${FOCUS}`}
+        >
+          <Icon name="chevron-left" size={20} />
+          Races
         </Link>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            {data.race.country && <Flag code={data.race.country} size={22} />}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="flex items-center gap-2 text-page text-ink">
+            {data.race.country && <Flag country={data.race.country} height={24} />}
             {data.race.name}
           </h1>
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
-            {badge.label}
-          </span>
+          <Chip tone={chip.tone}>{chip.label}</Chip>
         </div>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="text-meta text-ink-2">
           {data.race.level}
           {` · ${raceClassLabel(data.race.raceClass as RaceClass)}`}
           {` · ${formatLabel(data.race.format as RaceFormat)}`}
@@ -782,95 +726,89 @@ export function Race() {
         </p>
         {/* La marca de origen de la carrera entera (§11.4) y, si algo en ella se genera, su edición
             en este mundo: lo real no cambia de un año a otro y no tiene edición que contar. */}
-        <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
-          <span
-            className={`rounded-full px-2 py-0.5 font-medium ${SOURCE_BADGE[data.race.routeSource]}`}
-          >
-            {raceRouteSourceLabel(data.race.routeSource, data.stages)}
-          </span>
+        <p className="flex flex-wrap items-center gap-2 text-caption">
+          <Chip tone="neutral">{raceRouteSourceLabel(data.race.routeSource, data.stages)}</Chip>
           {data.race.routeSource !== 'real' && data.stages[0] && (
-            <span className="text-slate-400">{editionLabel(data.stages[0].edicion)}</span>
+            <span className="text-ink-3">{editionLabel(data.stages[0].edicion)}</span>
           )}
         </p>
         {status === 'finished' && winner && (
-          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-slate-400">Winner</span>
-            <Flag code={winner.country} size={16} />
-            <span className="font-semibold text-slate-800">
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-meta">
+            <span className="text-ink-3">Winner</span>
+            <Flag country={winner.country} />
+            <span className="font-semibold text-ink">
               <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
             </span>
-            <span className="text-xs text-slate-400">{raceTeamLabel(winner.teamName)}</span>
+            <span className="text-caption text-ink-3">{raceTeamLabel(winner.teamName)}</span>
           </p>
         )}
         {finalHidden && (
-          <p className="mt-2 text-sm font-medium text-emerald-700">Finished · ready to watch</p>
+          <p className="mt-1 text-meta font-semibold text-good">Finished · ready to watch</p>
         )}
         {status === 'upcoming' && (
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-1 text-meta text-ink-2">
             {untilStart != null && untilStart > 0
               ? `Not raced this season yet — it starts in ${untilStart} ${untilStart === 1 ? 'day' : 'days'}.`
               : 'Not raced this season yet. It runs on its start GD.'}
           </p>
         )}
         {status === 'racing' && (
-          <p className="mt-2 text-sm text-emerald-700">
+          <p className="mt-1 text-meta text-good">
             Under way — {data.runDays.length} of {stageCount} stages raced.
           </p>
         )}
-        {/* LO QUE ESCONDE (§11.5, sup. C2): las tablas son las de tras la última etapa conocida, y lo
-            dice con un texto que solo depende del horizonte, con la primera por ver a un toque. */}
-        {veil !== null && stageCount > 1 && firstToWatch !== null && (
-          <p
-            role="note"
-            className="mt-2 flex flex-wrap items-center gap-x-1.5 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200"
-          >
-            <span>{raceVeilNotice(veil.stages, stageCount)}</span>
-            <span aria-hidden>·</span>
-            <Link to={`${pagePath}/stages/${firstToWatch}`} className="font-medium underline">
-              {sw.watchOn ? `Watch stage ${firstToWatch}` : `Stage ${firstToWatch} →`}
-            </Link>
-          </p>
-        )}
-        {(myPref || canFollow) && (
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            {myPref && (
-              <button
-                type="button"
+      </header>
+      {/* LO QUE ESCONDE (§11.5, sup. C2): las tablas son las de tras la última etapa conocida, y lo dice
+          con un texto que solo depende del horizonte, con la primera por ver a un toque; desde el PR 21a,
+          un `Notice` `info` que está desde el principio (`note`). */}
+      {veil !== null && stageCount > 1 && firstToWatch !== null && (
+        <Notice
+          tone="info"
+          title={raceVeilNotice(veil.stages, stageCount)}
+          action={{
+            label: sw.watchOn ? `Watch stage ${firstToWatch}` : `Stage ${firstToWatch} →`,
+            to: `${pagePath}/stages/${firstToWatch}`,
+          }}
+        />
+      )}
+      {(myPref || canFollow) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {myPref && (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={myPref.wanted ? 'star-full' : 'star-empty'}
+                busy={targetMutation.isPending}
                 onClick={() => targetMutation.mutate(!myPref.wanted)}
-                disabled={targetMutation.isPending}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
-                  myPref.wanted
-                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-                title="Your team weighs your targeted races when picking squads (and missing one you targeted stings your morale)."
               >
-                {myPref.wanted ? '★ Targeted' : '☆ Target this race'}
-              </button>
-            )}
-            {myPref?.callup === 'selected' && (
-              <span className="text-xs font-medium text-emerald-600">You're in the squad</span>
-            )}
-            {myPref?.callup === 'not-selected' && (
-              <span className="text-xs text-slate-400">Not selected this time</span>
-            )}
-            {canFollow && raceKey !== null && (
-              <FollowRace raceKey={raceKey} protecting={veil !== null} />
-            )}
-          </div>
-        )}
-        {/* El modo diagnóstico del dueño (§11.15, 11-h): solo a un administrador con algo velado. */}
-        {!diag && sw.isAdmin && veilRaw !== null && (
-          <p className="mt-2 text-right">
-            <Link
-              to={hrefWith(pagePath, params, { diag: '1' })}
-              className="text-xs text-slate-400 hover:text-slate-600"
-            >
-              Diagnostic view
-            </Link>
-          </p>
-        )}
-      </div>
+                {myPref.wanted ? 'Targeted' : 'Target this race'}
+              </Button>
+              {/* el porqué, que antes vivía solo en un `title` que el dedo no abre (ui/4) */}
+              <InfoButton label="About targeted races">
+                Your team weighs your targeted races when picking squads (and missing one you
+                targeted stings your morale).
+              </InfoButton>
+            </>
+          )}
+          {myPref?.callup === 'selected' && (
+            <span className="text-caption font-semibold text-good">You&apos;re in the squad</span>
+          )}
+          {myPref?.callup === 'not-selected' && (
+            <span className="text-caption text-ink-3">Not selected this time</span>
+          )}
+          {canFollow && raceKey !== null && (
+            <FollowRace raceKey={raceKey} protecting={veil !== null} />
+          )}
+        </div>
+      )}
+      {/* El modo diagnóstico del dueño (§11.15, 11-h): solo a un administrador con algo velado; en
+          pequeño, como en la etapa (PR 20). */}
+      {!diag && sw.isAdmin && veilRaw !== null && (
+        <p className="text-right text-caption">
+          <TextLink to={hrefWith(pagePath, params, { diag: '1' })}>Diagnostic view</TextLink>
+        </p>
+      )}
 
       {diagOn && <DiagnosticStrip exitHref={hrefWith(pagePath, params, { diag: null })} />}
 

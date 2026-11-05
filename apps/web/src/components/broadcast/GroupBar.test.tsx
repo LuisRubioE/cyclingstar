@@ -82,8 +82,10 @@ describe('GroupBar · una fila por grupo (§6.2, §6.3)', () => {
     expect(text[4]).toContain('Gruppetto · 35')
     expect(text[5]).toContain('Gruppetto · 5')
     expect(text[6]).toContain(CAST[172]!.name)
-    // la palabra es de GROUP_WORDS y las mayúsculas, presentación (§6.3)
-    expect(rows[3]).toMatch(/class="[^"]*uppercase[^"]*">Bunch</)
+    // la palabra es de GROUP_WORDS y las mayúsculas, presentación (§6.3). RE-SELLADO EN EL PR 20 (E3,
+    // docs/visual.md §14.4 y §16.3): miraba la clase `uppercase`; el rótulo pasa a `caption` 600 en
+    // versales con los tokens, y el test mira `data-caps`, que dice lo mismo sin depender de las clases
+    expect(rows[3]).toMatch(/data-caps=""[^>]*>Bunch</)
   })
 
   it('el hueco a la cabeza: la fila 1 sin hueco, s.t. por debajo de sameTimeS', () => {

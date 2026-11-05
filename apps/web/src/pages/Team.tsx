@@ -1,25 +1,21 @@
 import { COUNTRIES, parseKit } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
 import { DiagnosticStrip } from '../components/StageGate'
-import { Panel } from '../components/Panel'
 import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
 import { bibWords, kitWords } from '../domain/labels'
+import { divisionLabel } from '../domain/words'
 import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 import { Button } from '../components/ui/Button'
 import { KitShowcase } from '../components/ui/KitShowcase'
+import { Notice } from '../components/ui/Notice'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel as UiPanel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
-
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'World Tour',
-  PRS: 'Pro Series',
-  CON: 'Continental',
-}
+import { TextLink } from '../components/ui/TextLink'
 
 export function Team() {
   const { id = '' } = useParams()
@@ -64,7 +60,7 @@ export function Team() {
   // (D-00c). El maillot a 160, y a su derecha las cifras y el maillot en palabras; sus vistas, en la
   // `Sheet` que abre al tocarlo, porque con las pestañas la plantilla bajaba a 544 px (8-x).
   const status = [
-    DIVISION_LABEL[data.division] ?? data.division,
+    divisionLabel(data.division),
     ...(data.country === null
       ? []
       : [COUNTRIES.find((c) => c.code === data.country)?.name ?? data.country]),
@@ -85,26 +81,27 @@ export function Team() {
         </KitShowcase>
       </UiPanel>
 
+      {/* tomarlo, un `Notice` con su acción, ocupada mientras pregunta (E3, PR 21k); su fallo, en `alert` */}
       {canTakeOver && (
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
-          <h2 className="text-sm font-semibold text-indigo-900">Take over this team</h2>
-          <p className="mt-0.5 text-sm text-indigo-800">
-            This is your rider&apos;s team and it&apos;s still bot-run. As a premium account you can
-            take control and manage it — later you&apos;ll be able to rename it and change its
-            country and jersey.
-          </p>
-          <button
-            type="button"
-            onClick={() => takeOver.mutate()}
-            disabled={takeOver.isPending}
-            className="mt-3 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-60"
-          >
-            {takeOver.isPending ? 'Taking over…' : 'Take control'}
-          </button>
+        <Notice
+          tone="info"
+          title="Take over this team"
+          action={{
+            label: 'Take control',
+            onClick: () => takeOver.mutate(),
+            busy: takeOver.isPending,
+            busyLabel: 'Taking over…',
+          }}
+        >
+          This is your rider&apos;s team and it&apos;s still bot-run. As a premium account you can
+          take control and manage it — later you&apos;ll be able to rename it and change its country
+          and jersey.
           {takeOver.isError && (
-            <p className="mt-2 text-sm text-red-600">Could not take over the team. Try again.</p>
+            <p role="alert" className="text-meta text-bad">
+              Could not take over the team. Try again.
+            </p>
           )}
-        </div>
+        </Notice>
       )}
       {/* El nombre, el país y el maillot se cambian en `My Team → Identity`, con un solo guardado (E3,
           docs/visual.md §8.7; 18b, 8-h). */}
@@ -118,23 +115,18 @@ export function Team() {
       </UiPanel>
 
       {teamNews.data && teamNews.data.length > 0 && (
-        <Panel
+        <UiPanel
           title="Recent news"
-          bodyClassName="p-0"
-          action={
-            !diag && isAdmin && veiled ? (
-              <Link
-                to={`/world/teams/${id}?diag=1`}
-                className="text-xs text-white/80 hover:text-white"
-              >
-                Diagnostic view
-              </Link>
-            ) : undefined
-          }
+          variant="bleed"
+          {...(!diag && isAdmin && veiled
+            ? {
+                action: <TextLink to={`/world/teams/${id}?diag=1`}>Diagnostic view</TextLink>,
+              }
+            : {})}
         >
           {diagOn && <DiagnosticStrip exitHref={`/world/teams/${id}`} />}
-          <TeamFeed items={teamNews.data} padding="px-5" />
-        </Panel>
+          <TeamFeed items={teamNews.data} padding="px-3 sm:px-4" />
+        </UiPanel>
       )}
     </section>
   )

@@ -3,20 +3,19 @@ import {
   type RaceLeaders,
   type StageGate,
   type StageReplay as StageReplayData,
-  stageRouteText,
 } from '@cyclingstar/shared'
 import { type ReactNode, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { StageClassEntry, StageGcEntry, TeamClassEntry } from '../api/results'
-import { Flag } from '../components/Flag'
 import { PaintedRaceRadio } from '../components/PaintedRaceRadio'
 import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { RaceRadioPanel } from '../components/RaceRadioPanel'
-import { ShareStage } from '../components/ShareStage'
+import { ShareStage, ShareStageIcon } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard, TwoDeviceNotice } from '../components/StageGate'
-import { StageRoute } from '../components/StageRoute'
+import { StageHead } from '../components/StageHead'
 import { StageStory } from '../components/StageStory'
-import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { TabPanel, useTabParam } from '../components/Tabs'
+import { type TabOption, Tabs } from '../components/ui/Tabs'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { useOwnIds, useRaceIdentity } from '../components/useTableIdentity'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -50,21 +49,21 @@ import { type DigestRun, StageWatch, watchViewOf } from './StageWatch'
 export { ResultTable, StageReportView, hasResult, raceKeyOf } from './stageView'
 export { useRevealActions } from '../queryClient'
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
-const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
+const card = 'rounded-ui border border-line bg-surface p-4 shadow-card'
+const head = 'text-caption font-semibold uppercase tracking-caps text-ink-2'
 
 const STAGE_PANEL = 'stage-section'
 
 type StageClassTabId = 'gc' | 'points' | 'kom' | 'teams'
 
 const STAGE_CLASS_TAB_IDS: readonly StageClassTabId[] = ['gc', 'points', 'kom', 'teams']
+const STAGE_CLASS_PANEL = 'stage-classification'
 const STAGE_CLASS_TABS: readonly TabOption<StageClassTabId>[] = [
   { key: 'gc', label: 'General' },
   { key: 'points', label: 'Points' },
   { key: 'kom', label: 'Mountains' },
   { key: 'teams', label: 'Teams' },
 ]
-const STAGE_CLASS_PANEL = 'stage-classification'
 
 /**
  * La general, los puntos y la montaña tal como quedaron tras esta etapa, en `RankTable` desde el PR 12b
@@ -77,7 +76,8 @@ export {
 } from '../components/RaceRankTables'
 
 /**
- * Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla.
+ * Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla. Desde el PR 21a (E3,
+ * §17.21), las del catálogo, de 44, como las de la ficha de carrera, y no las píldoras de 28.
  *
  * Solo aparece en carreras POR ETAPAS: en una de un día la etapa ES la carrera y su ficha ya enseña
  * el resultado (esta página redirige allí), así que aquí no hay caso especial que atender.
@@ -118,13 +118,12 @@ function StageClassifications({
   const ctx = { leaders, champions, identity, ownRiderId: own.riderId, answer: true } as const
   return (
     <div className={card}>
-      <p className="mb-3 text-xs text-slate-400">Standings after this stage.</p>
+      <p className="mb-3 text-caption text-ink-2">Standings after this stage.</p>
       <Tabs
         options={STAGE_CLASS_TABS}
         value={active}
         onChange={setActive}
         label="Stage classification"
-        variant="pill"
         panelId={STAGE_CLASS_PANEL}
       />
       {/* casi de borde a borde (`-mx-4`, como el `Panel` `bleed` de §6.1): a 320 el nombre cabe; el
@@ -161,7 +160,7 @@ function StageClassifications({
             responden aquí, sin obligar a saltar entre páginas—. */}
         {active === 'teams' &&
           (teamStage.length > 0 || teamGc.length > 0 ? (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {teamStage.length > 0 && (
                 <div>
                   <h3 className={`${head} px-4`}>Stage</h3>
@@ -305,8 +304,6 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
 
   const race = data.race
   const stageCount = race?.stageCount ?? 0
-  const prevDay = data.day > 1 ? data.day - 1 : null
-  const nextDay = stageCount > 0 && data.day < stageCount ? data.day + 1 : null
   const options = tabIds.map((id) => ({ key: id, label: stageTabLabel(id, watchOn) }))
   const pagePath = `/world/races/${raceId}/stages/${data.day}`
   const diagHref = isAdmin ? hrefWith(pagePath, params, { diag: '1' }) : null
@@ -373,81 +370,27 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
         ? watchHead.gate
         : null
 
-  const navButton =
-    'rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200'
-
   return (
     <section className="space-y-4">
-      {/* Cabecera con contexto: de qué carrera es la etapa, y anterior/siguiente para no volver atrás. */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link
-          to={`/world/races/${raceId}`}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700"
-        >
-          <span aria-hidden>←</span>
-          {race?.country && <Flag code={race.country} size={14} />}
-          <span className="font-medium">{race?.name ?? 'Back to the race'}</span>
-          {race && stageCount > 0 && (
-            <span className="text-slate-400">
-              · Stage {data.day} of {stageCount}
-            </span>
-          )}
-        </Link>
-        {stageCount > 0 && (
-          <nav aria-label="Stages" className="flex items-center gap-2">
-            {prevDay != null ? (
-              <Link to={stageHref(prevDay)} className={navButton}>
-                ‹ Stage {prevDay}
-              </Link>
-            ) : (
-              <span className={`${navButton} pointer-events-none opacity-40`} aria-hidden>
-                ‹ Prev
-              </span>
-            )}
-            {nextDay != null ? (
-              <Link to={stageHref(nextDay)} className={navButton}>
-                Stage {nextDay} ›
-              </Link>
-            ) : (
-              <span className={`${navButton} pointer-events-none opacity-40`} aria-hidden>
-                Next ›
-              </span>
-            )}
-          </nav>
-        )}
-      </div>
-
-      <header>
-        {/*
-          El nombre que da la API YA es la cabecera entera: el calendario nombra cada etapa
-          `Stage N · etiqueta` («Stage 3 · Hills», «Stage 2 · ITT», «Stage 3 · Summit finish»).
-          Anteponerle otro `Stage N` lo decía dos veces —«Stage 3 · Stage 3 · Hills»— y repetir
-          debajo el TIPO lo decía una tercera con otras palabras: «Summit finish» arriba y
-          «Mountain» abajo, o el «Uphill finish · Hilly» que se vio en producción. La etiqueta del
-          calendario es además la MÁS precisa de las dos (distingue el final en alto de la reina que
-          baja a meta), así que es la que se queda; el tipo sigue vivo en el dato, que es de donde
-          sale el color. Y el `· ITT` suelto sobraba por lo mismo: la etiqueta de una crono ya es ITT.
-        */}
-        <h1 className="text-xl font-bold tracking-tight text-slate-800">
-          {data.name || `Stage ${data.day}`}
-        </h1>
-        <p className="text-sm text-slate-500">
-          {/* De dónde a dónde, antes que los kilómetros: la etapa se reconoce por sus ciudades. */}
-          <StageRoute from={data.from} to={data.to} className="font-medium text-slate-600" />
-          {stageRouteText(data.from, data.to) !== null && ' · '}
-          {data.km} km{!data.run ? ' · not raced yet' : ''}
-        </p>
-        {/* Compartir (§11.10): ver siempre; el acta, solo a quien la conoce o la tiene delante. */}
-        {watchOn && run && (
-          <div className="mt-2">
-            <ShareStage
-              raceId={raceId}
-              day={data.day}
-              report={full !== null || (data.watch?.known ?? true)}
-            />
-          </div>
-        )}
-      </header>
+      {/* La cabeza (E3, §14.2; PR 20): la fila de 44 con la carrera y sus flechas, el `h1` con compartir
+          (§11.10: ver siempre; el acta, en `Report`) y la ruta debajo. */}
+      <StageHead
+        raceId={raceId}
+        race={
+          race === undefined || race === null
+            ? null
+            : { name: race.name, country: race.country ?? null }
+        }
+        day={data.day}
+        stageCount={stageCount}
+        stageHref={stageHref}
+        title={data.name || `Stage ${data.day}`}
+        from={data.from}
+        to={data.to}
+        km={data.km}
+        run={data.run}
+        share={watchOn && run ? <ShareStageIcon raceId={raceId} day={data.day} /> : null}
+      />
 
       {diagOn && <DiagnosticStrip exitHref={hrefWith(pagePath, params, { diag: null })} />}
 
@@ -461,7 +404,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
             value={active}
             onChange={setActive}
             label="Stage"
-            variant="underline"
+            variant="page"
             panelId={STAGE_PANEL}
           />
 
@@ -510,16 +453,25 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
               <>
                 {/* Sin `Watch` para esta etapa (§17.19): una crono sin línea, una lápida (D-12). */}
                 {watchOn && unavailable && (
-                  <p className="text-sm text-slate-500">Broadcast unavailable for this stage</p>
+                  <p className="text-meta text-ink-2">Broadcast unavailable for this stage</p>
                 )}
                 {withResult((d) =>
                   watchOn ? (
-                    <StageReportView
-                      data={d}
-                      onWatchAnyway={watchable && seen ? () => setActive('watch') : undefined}
-                      identity={identidad}
-                      ownRiderId={propio.riderId}
-                    />
+                    <>
+                      {/* el acta se comparte desde aquí, donde está; ver, desde la cabeza (§14.2) */}
+                      {run && <ShareStage raceId={raceId} day={data.day} report watch={false} />}
+                      <StageReportView
+                        data={d}
+                        onWatchAnyway={watchable && seen ? () => setActive('watch') : undefined}
+                        identity={identidad}
+                        ownRiderId={propio.riderId}
+                        classificationsHref={
+                          tabIds.includes('classifications')
+                            ? hrefWith(pagePath, params, { tab: 'classifications' })
+                            : undefined
+                        }
+                      />
+                    </>
                   ) : (
                     <StageStory data={d} onFullResult={() => setActive('result')} />
                   ),
@@ -601,7 +553,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   <EmptyState text="No profile available for this stage." />
                 )}
                 {!data.run && (
-                  <p className="mt-3 text-sm text-slate-500">
+                  <p className="mt-3 text-meta text-ink-2">
                     This stage hasn&apos;t been raced yet.
                   </p>
                 )}

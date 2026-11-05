@@ -104,7 +104,7 @@ describe('el feed bajo el velo (§11.7)', () => {
     const markup = feed([marker(1, 187)])
     expect(markup).toContain('<option value="race-france">Race France</option>')
     // sin corredores servidos, el desplegable de corredor está vacío y desactivado
-    expect(markup).toMatch(/<select id="news-rider"[^>]*disabled/)
+    expect(markup).toMatch(/<select id="news-rider"[^>]*aria-disabled="true"/)
     expect(feed([marker(1, 187), headline])).toContain('<option value="r1">Ana Ruiz</option>')
   })
 })

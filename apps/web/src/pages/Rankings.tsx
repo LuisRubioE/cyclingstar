@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   type AwardWinner,
   type RankingRow,
@@ -9,9 +8,6 @@ import {
   fetchSeasonAwards,
   fetchYoungRankings,
 } from '../api/rankings'
-import { Flag } from '../components/Flag'
-import { Panel, SectionBar } from '../components/Panel'
-import { RiderName } from '../components/RiderName'
 import { TabPanel } from '../components/Tabs'
 import { useOwnIds, useTeamsIdentity } from '../components/useTableIdentity'
 import { NO_TEAM_LABEL, archetypeLabel } from '../domain/labels'
@@ -19,7 +15,8 @@ import { type TableIdentity, rowTeam } from '../domain/tableIdentity'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 import { EmptyState } from '../components/ui/EmptyState'
-import { Panel as UiPanel } from '../components/ui/Panel'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { RankTable, type RankTableColumn } from '../components/ui/RankTable'
 import { RiderLabel } from '../components/ui/RiderLabel'
@@ -104,7 +101,12 @@ const AWARD_META: { key: keyof SeasonAwards; title: string; hint: string }[] = [
   { key: 'revelation', title: 'Revelation', hint: 'Best rider aged 23 or under' },
 ]
 
-function AwardCard({
+/**
+ * UN PREMIO (E3, PR 21k): su nombre; su ganador, en su `RiderLabel`, que enlaza a su ficha, con su tipo y sus
+ * puntos en `meta`; y su porqué. Iban en tarjetas a mano, con el porqué a 11 px en `slate-400`, y un `—` sin
+ * ganador: ahora lo dice, `None yet`.
+ */
+function Award({
   title,
   hint,
   winner,
@@ -114,24 +116,27 @@ function AwardCard({
   winner: AwardWinner | null
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</p>
+    <div className="grid content-start gap-1">
+      <h3 className="text-meta font-semibold text-ink">{title}</h3>
       {winner ? (
         <>
-          <p className="mt-1.5 flex items-center gap-2 text-sm font-bold text-slate-800">
-            <Flag code={winner.country} size={16} />
-            <Link to={`/world/riders/${winner.riderId}`} className="hover:underline">
-              <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
-            </Link>
-          </p>
-          <p className="mt-0.5 text-xs text-slate-400">
-            {archetypeLabel(winner.archetype)} · {winner.points.toLocaleString('en-US')} pts
+          <RiderLabel
+            rider={{
+              id: winner.riderId,
+              name: winner.name,
+              human: !winner.isBot,
+              country: winner.country || null,
+            }}
+            teamLine={false}
+          />
+          <p className="text-meta text-ink-2">
+            {`${archetypeLabel(winner.archetype)} · ${winner.points.toLocaleString('en-US')} pts`}
           </p>
         </>
       ) : (
-        <p className="mt-1.5 text-sm text-slate-400">—</p>
+        <p className="text-meta text-ink-2">None yet</p>
       )}
-      <p className="mt-2 text-[11px] text-slate-400">{hint}</p>
+      <p className="text-meta text-ink-2">{hint}</p>
     </div>
   )
 }
@@ -140,9 +145,9 @@ function AwardsPanel({ awards }: { awards: SeasonAwards }) {
   if (AWARD_META.every((m) => awards[m.key] === null)) return null
   return (
     <Panel title="Season awards">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {AWARD_META.map((m) => (
-          <AwardCard key={m.key} title={m.title} hint={m.hint} winner={awards[m.key]} />
+          <Award key={m.key} title={m.title} hint={m.hint} winner={awards[m.key]} />
         ))}
       </div>
     </Panel>
@@ -196,16 +201,11 @@ export function Rankings() {
 
   return (
     <section className="space-y-4">
-      <SectionBar>Rankings</SectionBar>
+      <PageHeader title="Rankings" />
       <VeilNotice kind="ranking" />
-      <p className="text-sm text-slate-500">
-        {tab === 'young'
-          ? 'Points scored by riders aged 23 and under in the current season.'
-          : 'Points scored over the last 12 months of racing — results drop out a year to the day after they were won.'}
-      </p>
 
       {/* La respuesta, arriba (§2.2): los premios, que no lo son, van debajo. */}
-      <UiPanel title="Ranking" variant="bleed">
+      <Panel title="Ranking" variant="bleed">
         <Tabs
           label="Ranking"
           options={PESTANAS}
@@ -214,6 +214,12 @@ export function Rankings() {
           panelId={PANEL_RANKING}
         />
         <TabPanel panelId={PANEL_RANKING} active={tab}>
+          {/* lo que cuenta cada pestaña, con ella y en `meta` (PR 21k): iba encima, fuera del `Panel` */}
+          <p className="px-3 py-2 text-meta text-ink-2 sm:px-4">
+            {tab === 'young'
+              ? 'Points scored by riders aged 23 and under in the current season.'
+              : 'Points scored over the last 12 months of racing — results drop out a year to the day after they were won.'}
+          </p>
           {active === undefined ? (
             <div className="px-3 sm:px-4">
               <QueryView
@@ -237,7 +243,7 @@ export function Rankings() {
             />
           )}
         </TabPanel>
-      </UiPanel>
+      </Panel>
 
       {awards.data && <AwardsPanel awards={awards.data} />}
     </section>

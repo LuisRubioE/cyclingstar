@@ -8,11 +8,12 @@ import {
   type TrendCode,
   sessionsForAttribute,
 } from '@cyclingstar/shared'
-import { useState } from 'react'
 import { COACH_OPINION_TEXT } from '../domain/coachOpinion'
 import { TREND_WORD } from '../domain/words'
-import { StarRating } from './StarRating'
 import { Icon } from './ui/Icon'
+import { InfoButton } from './ui/InfoButton'
+import { MeterSegments } from './ui/Meter'
+import { StarRating } from './ui/StarRating'
 
 /**
  * The extra layer that only YOUR OWN sheet gets (docs/entrenamiento.md §2.3): the progress mark
@@ -22,7 +23,8 @@ import { Icon } from './ui/Icon'
 export interface AttributeDetail {
   /**
    * The 28-day arrow per attribute, as the code `GET /trend` sends (E3, 13-a): the Δ it comes from stays on
-   * the server. Missing means it didn't move.
+   * the server. Missing means it didn't move; and no `trend` at all, that it hasn't arrived: then no arrow and
+   * no `Last 28 days`, rather than a `Steady` it doesn't know (the 21h review).
    */
   trend?: Partial<Record<Attribute, TrendCode>>
   /**
@@ -33,23 +35,25 @@ export interface AttributeDetail {
 }
 
 /**
+ * Las opiniones que solo lleva un atributo, el de techo más alto que ve el entrenador (`ceilingOpinions`,
+ * `packages/engine/src/coachView.ts`): `lo_tuyo` en la lectura clara y `asoma` en la primera. La de la lectura
+ * que se forma, `apunta`, la llevan varios, y no dice cuál es el más alto: esa no sale a la vista.
+ */
+const TECHO: readonly CeilingOpinion[] = ['lo_tuyo', 'asoma']
+
+/**
  * Four segments under the stars: which quarter of its band the attribute sits in, as the API sends it
- * (`mark`, 0 to 3; E3, 13-b).
+ * (`mark`, 0 to 3; E3, 13-b), in the segments of the `Meter` (§4.6; PR 21h), with its words for the reader.
  *
  * Four and not a continuous bar, on purpose: a continuous bar over a 16-point band would resolve
  * the attribute to under half a point, which is more resolution than the half-stars themselves and
  * amounts to showing the internal number through the back door.
  */
 function ProgressMark({ mark }: { mark: number }) {
-  const filled = mark
   return (
-    <span className="flex gap-[2px]" aria-label={`${filled + 1} of 4 through this band`}>
-      {[0, 1, 2, 3].map((i) => (
-        <span
-          key={i}
-          className={`h-[3px] w-2.5 rounded-full ${i <= filled ? 'bg-amber-400' : 'bg-slate-200'}`}
-        />
-      ))}
+    <span className="flex">
+      <MeterSegments value={mark + 1} />
+      <span className="sr-only">{`${mark + 1} of 4 through this band`}</span>
     </span>
   )
 }
@@ -63,27 +67,27 @@ const TREND_TURN: Readonly<Record<TrendCode, -90 | -45 | 0 | 45 | 90>> = {
   baja_mucho: 90,
 }
 
-/** The 28-day arrow: the `trend` icon turned for its code, with its words (E3, 13-a). */
+/** The 28-day arrow: the `trend` icon turned for its code, with its words, in its tone (E3, 13-a; PR 21h). */
 function TrendArrow({ code }: { code: TrendCode }) {
   const tone =
     code === 'sube_mucho' || code === 'sube'
-      ? 'text-emerald-500'
+      ? 'text-good'
       : code === 'baja_mucho' || code === 'baja'
-        ? 'text-rose-400'
-        : 'text-slate-300'
-  const words = TREND_WORD[code]
+        ? 'text-bad'
+        : 'text-ink-3'
   return (
-    <span className={tone} title={`${words} (last 28 days)`}>
-      <Icon name="trend" size={16} turn={TREND_TURN[code]} label={words} />
+    <span className={tone}>
+      <Icon name="trend" size={16} turn={TREND_TURN[code]} label={TREND_WORD[code]} />
     </span>
   )
 }
 
 /**
- * Attribute list with click-to-expand help (#8): tap an attribute to read what it is, what it's
- * for and which training sessions improve it. TAC also learns from racing. The stars, and the mark of
- * your own rider, come from the API already in their screen form (E3, §13.5): the value they come from
- * never reaches the browser.
+ * Attribute list (#8): what each attribute is, what it's for and which training sessions improve it, behind
+ * its `InfoButton` (E3, §4.6; PR 21h). TAC also learns from racing. The stars, and the mark of your own
+ * rider, come from the API already in their screen form (E3, §13.5): the value they come from never reaches
+ * the browser. Ten rows of 44, the stars at 20; on your own sheet, the arrow and the mark, and the coach's
+ * opinion in each box, with the one about your biggest potential out in view, under its row.
  */
 export function AttributeList({
   attributes,
@@ -92,56 +96,57 @@ export function AttributeList({
   attributes: Readonly<Record<Attribute, { readonly stars: number; readonly mark?: number }>>
   detail?: AttributeDetail
 }) {
-  const [open, setOpen] = useState<Attribute | null>(null)
-
+  const techo = ATTRIBUTES.find((a) => {
+    const o = detail?.opinion?.[a]
+    return o !== undefined && TECHO.includes(o)
+  })
   return (
-    <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
+    <ul className="grid sm:grid-cols-2 sm:gap-x-8">
       {ATTRIBUTES.map((attr) => {
-        const isOpen = open === attr
         const { stars, mark } = attributes[attr]
         const trainedBy = sessionsForAttribute(attr).map((s) => SESSION_CATALOG[s].label)
         const opinion = detail?.opinion?.[attr]
+        const trend = detail?.trend === undefined ? undefined : (detail.trend[attr] ?? 'igual')
         return (
-          <div key={attr} className="sm:contents">
-            <button
-              type="button"
-              onClick={() => setOpen(isOpen ? null : attr)}
-              aria-expanded={isOpen}
-              className="flex w-full items-center justify-between gap-4 rounded-lg py-2 text-left transition hover:bg-slate-50"
-            >
-              <dt className="flex items-center gap-1.5 text-sm text-slate-600">
-                {ATTRIBUTE_LABELS[attr]}
-                <span className="text-xs text-slate-300" aria-hidden>
-                  {isOpen ? '▲' : 'ⓘ'}
+          <li
+            key={attr}
+            className="flex min-h-11 flex-wrap items-center gap-x-2 border-b border-line py-1 last:border-0"
+          >
+            <span className="text-row text-ink">{ATTRIBUTE_LABELS[attr]}</span>
+            <span className="ml-auto flex items-center gap-2">
+              {trend !== undefined && <TrendArrow code={trend} />}
+              <span className="grid justify-items-end gap-1">
+                <StarRating value={stars} size={20} />
+                {detail && mark !== undefined && <ProgressMark mark={mark} />}
+              </span>
+            </span>
+            <InfoButton label={`About ${ATTRIBUTE_LABELS[attr]}`}>
+              <span className="block">{ATTRIBUTE_DESCRIPTIONS[attr]}</span>
+              <span className="block pt-2">
+                <span className="font-semibold text-ink">Improve with: </span>
+                {trainedBy.length > 0 ? trainedBy.join(', ') : 'racing experience'}
+                {attr === 'TAC' && trainedBy.length > 0 && ', and racing'}
+              </span>
+              {trend !== undefined && (
+                <span className="block pt-2">{`Last 28 days: ${TREND_WORD[trend]}`}</span>
+              )}
+              {opinion && (
+                <span className="block pt-2">
+                  <span className="font-semibold text-ink">Coach: </span>
+                  {COACH_OPINION_TEXT[opinion]}
                 </span>
-              </dt>
-              <dd className="flex items-center gap-2">
-                {detail && <TrendArrow code={detail.trend?.[attr] ?? 'igual'} />}
-                <span className="flex flex-col items-end gap-[3px]">
-                  <StarRating value={stars} />
-                  {detail && mark !== undefined && <ProgressMark mark={mark} />}
-                </span>
-              </dd>
-            </button>
-            {isOpen && (
-              <div className="mb-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600 sm:col-span-2">
-                <p>{ATTRIBUTE_DESCRIPTIONS[attr]}</p>
-                <p className="mt-2 text-slate-500">
-                  <span className="font-medium text-slate-600">Improve with: </span>
-                  {trainedBy.length > 0 ? trainedBy.join(', ') : 'racing experience'}
-                  {attr === 'TAC' && trainedBy.length > 0 && ', and racing'}
-                </p>
-                {opinion && (
-                  <p className="mt-2 italic text-slate-500">
-                    <span className="not-italic font-medium text-slate-600">Coach: </span>
-                    {COACH_OPINION_TEXT[opinion]}
-                  </p>
-                )}
-              </div>
+              )}
+            </InfoButton>
+            {/* la frase del entrenador a la vista, junto al atributo de techo más alto (§4.6, punto 4) */}
+            {techo === attr && opinion && (
+              <p className="basis-full pb-2 text-meta text-ink-2">
+                <span className="font-semibold text-ink">Coach: </span>
+                {COACH_OPINION_TEXT[opinion]}
+              </p>
             )}
-          </div>
+          </li>
         )
       })}
-    </dl>
+    </ul>
   )
 }

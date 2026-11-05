@@ -18,19 +18,19 @@ import {
 import { type TeamKitResponse, checkMyKit, fetchMyKit, saveMyKit } from '../api/kit'
 import { ApiError } from '../api/request'
 import { fetchRiderSummary } from '../api/rider'
-import { Flag } from '../components/Flag'
-import { InfoRow, Panel as LegacyPanel } from '../components/Panel'
 import { TeamFeed } from '../components/TeamFeed'
 import { TeamManager, teamEditError } from '../components/TeamManager'
 import { ActionBar, type ActionBarStatus } from '../components/ui/ActionBar'
 import { Button } from '../components/ui/Button'
 import { Disclosure } from '../components/ui/Disclosure'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Flag } from '../components/ui/Flag'
 import { Kit } from '../components/ui/Kit'
 import { KitPicker } from '../components/ui/KitPicker'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { SkeletonBar } from '../components/ui/Skeleton'
 import { TextLink } from '../components/ui/TextLink'
 import {
   type CheckState,
@@ -50,6 +50,7 @@ import {
 } from '../domain/kitPicker'
 import { archetypeLabel, bibWords } from '../domain/labels'
 import { useOnline } from '../net'
+import { divisionLabel } from '../domain/words'
 import { horizonKey, useHealth, useHorizonRev } from '../queryClient'
 
 /**
@@ -65,12 +66,6 @@ import { horizonKey, useHealth, useHorizonRev } from '../queryClient'
  * los demás); el nombre y el país; `The team` y `History`, como antes; y los rivales plegados. El dueño
  * guarda todo con una sola `ActionBar` (8-h): primero el nombre y el país, después el maillot.
  */
-
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'World Tour',
-  PRS: 'Pro Series',
-  CON: 'Continental',
-}
 
 const DIVISION_BLURB: Record<string, string> = {
   WT: 'Top flight: invited to every WorldTour race on the calendar.',
@@ -357,6 +352,16 @@ function OwnerIdentity({
   )
 }
 
+/** Una fila del `dl` del equipo: su rótulo encima, en `meta` 600, y lo que dice debajo (PR 21l). */
+function Dato({ label, children }: { readonly label: string; readonly children: ReactNode }) {
+  return (
+    <div className="grid content-start gap-1">
+      <dt className="text-meta font-semibold text-ink">{label}</dt>
+      <dd className="text-body text-ink">{children}</dd>
+    </div>
+  )
+}
+
 export function TeamIdentity() {
   const rev = useHorizonRev()
   const summary = useQuery({
@@ -414,38 +419,60 @@ export function TeamIdentity() {
   // Puesto del equipo en la clasificación por puntos de la temporada, si ya hay lista de equipos.
   const ranked = [...(teams.data ?? [])].sort((a, b) => b.pointsSeason - a.pointsSeason)
   const rank = ranked.findIndex((t) => t.id === data.id)
-  const division = DIVISION_LABEL[data.division] ?? data.division
+  const division = divisionLabel(data.division)
 
   // `The team` y `History`, como antes (§8.7); la frase de la filosofía, que iba en la tarjeta de identidad
-  // que se fue, abre `The team`.
+  // que se fue, abre `The team`. Con el sistema (E3, §17.21; PR 21l): los dos, `Panel` del catálogo, y los
+  // datos del equipo en un `dl`, donde iban los paneles cian con sus `InfoRow`; sin país ni puesto, en
+  // palabras, donde iba una raya; y el puesto, con su esqueleto mientras llega la lista de los equipos, y
+  // `Unavailable` si no llega, porque `Not ranked yet` sería decir algo que no se sabe.
   const middle = (
     <div className="grid gap-3 sm:grid-cols-2">
-      <LegacyPanel title="The team">
-        <p className="pb-3 text-sm leading-relaxed text-slate-600">{philosophy(data)}</p>
-        <InfoRow label="Division">{division}</InfoRow>
-        <InfoRow label="Based in">
-          <span className="inline-flex items-center gap-1.5">
-            {data.country && <Flag code={data.country} size={14} />}
-            {country?.name ?? data.country ?? '—'}
-          </span>
-        </InfoRow>
-        <InfoRow label="Riders">{data.roster.length}</InfoRow>
-        <InfoRow label="Season points">{data.pointsSeason.toLocaleString('en-US')}</InfoRow>
-        <InfoRow label="Rank among teams">
-          {rank >= 0 ? `#${rank + 1} of ${ranked.length}` : '—'}
-        </InfoRow>
-        <InfoRow label="Budget">{data.budget.toLocaleString('en-US')}</InfoRow>
-        <p className="pt-3 text-xs text-slate-400">
+      <Panel title="The team">
+        <p className="text-body text-ink-2">{philosophy(data)}</p>
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+          <Dato label="Division">{division}</Dato>
+          <Dato label="Based in">
+            {country === undefined ? (
+              (data.country ?? 'None')
+            ) : (
+              <span className="inline-flex items-center gap-2">
+                {/* su nombre va al lado: la bandera, para el ojo */}
+                <span aria-hidden="true">
+                  <Flag country={data.country} />
+                </span>
+                {country.name}
+              </span>
+            )}
+          </Dato>
+          <Dato label="Riders">{data.roster.length}</Dato>
+          <Dato label="Season points">{data.pointsSeason.toLocaleString('en-US')}</Dato>
+          <Dato label="Rank among teams">
+            {teams.data === undefined ? (
+              teams.isError ? (
+                'Unavailable'
+              ) : (
+                <SkeletonBar size="line" />
+              )
+            ) : rank >= 0 ? (
+              `#${rank + 1} of ${ranked.length}`
+            ) : (
+              'Not ranked yet'
+            )}
+          </Dato>
+          <Dato label="Budget">{data.budget.toLocaleString('en-US')}</Dato>
+        </dl>
+        <p className="mt-3 text-meta text-ink-2">
           {DIVISION_BLURB[data.division] ?? 'Its calendar follows its licence level.'}
         </p>
-      </LegacyPanel>
+      </Panel>
 
       {/* Los estados, con `QueryView` (E3, PR 10): cargando o con un fallo ya no se pinta «nada todavía». */}
-      <LegacyPanel title="History" bodyClassName="p-0">
+      <Panel title="History" variant="bleed">
         {news.data && news.data.length > 0 ? (
-          <TeamFeed items={news.data} padding="px-4" />
+          <TeamFeed items={news.data} padding="px-3 sm:px-4" />
         ) : (
-          <div className="px-4">
+          <div className="px-3 sm:px-4">
             <QueryView
               query={news}
               label="your team's history"
@@ -457,7 +484,7 @@ export function TeamIdentity() {
             />
           </div>
         )}
-      </LegacyPanel>
+      </Panel>
     </div>
   )
 

@@ -10,12 +10,14 @@ import {
 } from '@cyclingstar/shared'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
+import { CueCard } from '../../components/broadcast/CueCard'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
 import { ActionRow } from '../../components/ui/ActionRow'
 import { AppHeader } from '../../components/ui/AppHeader'
 import { BottomNav, type BottomNavItem } from '../../components/ui/BottomNav'
 import { Button } from '../../components/ui/Button'
 import { ChampionJersey } from '../../components/ui/ChampionJersey'
+import { Checkbox } from '../../components/ui/Checkbox'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
 import { ErrorState } from '../../components/ui/ErrorState'
@@ -31,6 +33,7 @@ import { KitShowcase } from '../../components/ui/KitShowcase'
 import type { KitSponsors } from '../../components/ui/kitText'
 import { LeaderJersey } from '../../components/ui/LeaderJersey'
 import { LegacyJersey } from '../../components/ui/LegacyJersey'
+import { FormChart } from '../../components/ui/FormChart'
 import { Meter } from '../../components/ui/Meter'
 import { Notice } from '../../components/ui/Notice'
 import { OfflineBannerView } from '../../components/ui/OfflineBanner'
@@ -82,11 +85,13 @@ import {
   LONG_CONSEQUENCE,
   LONGEST_TITLE,
   MANY_TABS,
+  NINETY_DAYS,
   OWN_RIDER_ID,
   PLAN_MODES,
   SEEN_AT,
   SHORT_CONSEQUENCE,
   TEAM_ROWS,
+  UI_CUES,
   UI_TEAMS,
   UI_QUERIES,
   type UiGcRow,
@@ -321,6 +326,29 @@ function Elecciones() {
           onChange={nada}
           disabledReason="Your team plan decides this month."
         />
+      </Estado>
+    </Demo>
+  )
+}
+
+/** La casilla (PR 21i): lo que se marca de varios a la vez, cada una en su fila de 44. */
+function Casillas() {
+  const [vetados, setVetados] = useState<readonly string[]>(['Team Mar'])
+  const marca = (team: string) => (marcado: boolean) =>
+    setVetados((v) => (marcado ? [...v, team] : v.filter((x) => x !== team)))
+  return (
+    <Demo name="Checkbox">
+      <Estado name="off · on">
+        <div className="grid">
+          {['Team Sol', 'Team Mar', 'Team Norte'].map((team) => (
+            <Checkbox
+              key={team}
+              label={team}
+              checked={vetados.includes(team)}
+              onChange={marca(team)}
+            />
+          ))}
+        </div>
       </Estado>
     </Demo>
   )
@@ -1249,6 +1277,17 @@ function Escalas() {
           <Meter label="Freshness" value={null} />
         </Estado>
       </Demo>
+      <Demo name="FormChart">
+        <Estado name="ready · 90 days">
+          <FormChart points={NINETY_DAYS} />
+        </Estado>
+        <Estado name="empty · fewer than two days">
+          <FormChart points={NINETY_DAYS.slice(0, 1)} />
+        </Estado>
+        <Estado name="loading">
+          <FormChart points={[]} loading />
+        </Estado>
+      </Demo>
     </>
   )
 }
@@ -1452,6 +1491,23 @@ function AmbitoOscuro() {
   )
 }
 
+/**
+ * EL RÓTULO DE `Watch` (E3, docs/visual.md §14.5; H-07, 14-a; PR 20): no es del catálogo, pero su título más
+ * largo vive aquí para que la prueba del teléfono mire cada día que va entero y a 12 px o más, y de noche
+ * con la letra al doble (§16.5). Lleva su propio ámbito oscuro, con los fondos de sus tres clases.
+ */
+function Rotulos() {
+  return (
+    <Demo name="Cue card (Watch)">
+      {UI_CUES.map(([name, cls, title, detail], i) => (
+        <Estado key={name} name={name}>
+          <CueCard cue={{ text: { title, detail }, cls, seq: i + 1 }} />
+        </Estado>
+      ))}
+    </Demo>
+  )
+}
+
 export function UiPage() {
   return (
     <main className="mx-auto flex max-w-page flex-col gap-8 px-3 py-6 sm:px-4">
@@ -1465,6 +1521,7 @@ export function UiPage() {
       <Enlaces />
       <Campos />
       <Elecciones />
+      <Casillas />
       <Porques />
       <Barras />
       <Estructura />
@@ -1483,6 +1540,7 @@ export function UiPage() {
       <Marcos />
       <Iconos />
       <AmbitoOscuro />
+      <Rotulos />
     </main>
   )
 }

@@ -18,6 +18,8 @@ export interface StatProps {
   /** dinero con signo: `+780` en `good`, `−80` en `bad`, `0` en `ink` */
   readonly signed?: boolean
   readonly loading?: boolean
+  /** la respuesta de su pantalla (§7.3): el saldo de la 27 (PR 21l) */
+  readonly answer?: boolean
   readonly layout?: Layout
 }
 
@@ -31,13 +33,21 @@ export function statFigure(
   return { text: money(value), tone: value > 0 ? 'text-good' : value < 0 ? 'text-bad' : 'text-ink' }
 }
 
-export function Stat({ label, value, signed = false, loading = false, layout }: StatProps) {
+export function Stat({
+  label,
+  value,
+  signed = false,
+  loading = false,
+  answer = false,
+  layout,
+}: StatProps) {
   const { text, tone } = statFigure(value, signed)
   return (
     <dl
       data-ui="Stat"
       data-variant={signed ? 'signed' : 'default'}
       data-state={loading ? 'loading' : 'ready'}
+      {...(answer ? { 'data-answer': '' } : {})}
       className={withLayout('grid gap-1', layout)}
     >
       <dt className="text-caption font-semibold tracking-caps text-ink-3 uppercase">{label}</dt>

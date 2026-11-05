@@ -1,14 +1,15 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { fetchStageReport, stageReportKey } from '../api/broadcast'
 import { ApiError, GateError } from '../api/request'
 import { fetchCalendarStage, stageReplayKey } from '../api/results'
 import { authClient } from '../auth/client'
-import { Flag } from '../components/Flag'
 import { ShareStage } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard } from '../components/StageGate'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Flag } from '../components/ui/Flag'
 import { QueryView } from '../components/ui/QueryView'
+import { TextLink } from '../components/ui/TextLink'
 import { useOwnIds, useRaceIdentity } from '../components/useTableIdentity'
 import { stageTitleInfo, usePageTitle } from '../domain/pageTitle'
 import { diagOf, useHealth, useHorizonRev, useRevealActions, useWatchOn } from '../queryClient'
@@ -85,28 +86,21 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link
-          to={`/world/races/${raceId}`}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700"
-        >
-          <span aria-hidden>←</span>
-          {race?.country && <Flag code={race.country} size={14} />}
-          <span className="font-medium">{race?.name ?? 'Back to the race'}</span>
+      {/* la cabeza del acta (E3, §14.2 y §14.6; PR 20): la carrera, a su ficha, y la página de la etapa */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 text-meta text-ink-2">
+        <p className="flex min-w-0 flex-wrap items-center gap-x-1.5">
+          {race?.country != null && <Flag country={race.country} height={12} />}
+          <TextLink to={`/world/races/${raceId}`}>{race?.name ?? 'Back to the race'}</TextLink>
           {race && race.stageCount > 1 && (
-            <span className="text-slate-400">
+            <span>
               · Stage {day} of {race.stageCount}
             </span>
           )}
-        </Link>
-        <Link to={stagePath} className="text-xs font-medium text-brand-cyan hover:underline">
-          Stage page →
-        </Link>
+        </p>
+        <TextLink to={stagePath}>Stage page →</TextLink>
       </div>
       <header>
-        <h1 className="text-xl font-bold tracking-tight text-slate-800">
-          {info?.name ?? `Stage ${day}`} · Report
-        </h1>
+        <h1 className="text-title text-ink">{info?.name ?? `Stage ${day}`} · Report</h1>
       </header>
 
       {diagOn && <DiagnosticStrip exitHref={`/world/races/${raceId}/stages/${day}/report`} />}
@@ -137,14 +131,19 @@ function ReportPage({ raceId, day }: { raceId: string; day: number }) {
           {(d) => (
             <>
               <ShareStage raceId={raceId} day={day} report />
-              <StageReportView data={d} identity={identidad} ownRiderId={propio.riderId} answer />
-              {watchOn && (
-                <p className="text-sm">
-                  <Link to={`${stagePath}?tab=watch`} className="font-medium text-brand-cyan">
-                    Watch this stage →
-                  </Link>
-                </p>
-              )}
+              <StageReportView
+                data={d}
+                identity={identidad}
+                ownRiderId={propio.riderId}
+                answer
+                // solo en una carrera por etapas: en una de un día, la ficha de la carrera no las tiene
+                classificationsHref={
+                  race !== undefined && race.stageCount > 1
+                    ? `${stagePath}?tab=classifications`
+                    : undefined
+                }
+              />
+              {watchOn && <TextLink to={`${stagePath}?tab=watch`}>Watch this stage →</TextLink>}
             </>
           )}
         </QueryView>
