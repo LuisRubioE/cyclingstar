@@ -142,6 +142,24 @@ describe('el ámbito oscuro (§3.3)', () => {
   })
 })
 
+/**
+ * EL LOGOTIPO (§18.3 y §14.7; D20; PR 21n): una marca, que no entra en las parejas (WCAG 1.4.3 exime los
+ * logotipos) y que E3 no redibuja. Sus dos colores de siempre en el claro; en el ámbito oscuro, los de la
+ * imagen de compartir, porque la cabecera es navy y el índigo de su trazo ahí no se veía.
+ */
+describe('el logotipo (§18.3; PR 21n)', () => {
+  it('en el claro, los de siempre: el trazo índigo y la estrella ámbar', () => {
+    expect(claro.logo).toBe('#4f46e5')
+    expect(claro['logo-star']).toBe('#f59e0b')
+  })
+
+  it('en el ámbito oscuro se ve: su trazo y su estrella pasan de 3:1 sobre navy, donde el índigo daba 1,87', () => {
+    expect(wcagContrast(claro.logo!, claro.navy!)).toBeCloseTo(1.87, 2)
+    expect(wcagContrast(ambito.logo!, ambito.navy!)).toBeGreaterThanOrEqual(GRAFICO)
+    expect(wcagContrast(ambito['logo-star']!, ambito.navy!)).toBeGreaterThanOrEqual(GRAFICO)
+  })
+})
+
 describe('el ΔE00 de los tonos, informado (§3.2): lo que distingue es el icono y la palabra', () => {
   it('se calcula en las cuatro visiones y en grises', () => {
     const tono: Readonly<Record<string, string>> = {

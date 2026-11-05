@@ -5,10 +5,13 @@
  * estrella en `gold`; y `Cycling Star` en blanco (11,76:1 sobre `navy`).
  *
  * El logotipo se pinta con React en el servidor de Vite (`ssrLoadModule`), así que un cambio de `Logo.tsx`
- * sale aquí sin tocar este fichero; el guion solo cambia sus dos colores, y falla si ya no los encuentra.
+ * sale aquí sin tocar este fichero. Desde el PR 21n sus dos colores son dos tokens (`logo` y `logo-star`) y
+ * sus marcas llevan sus clases (`stroke-logo`, `fill-logo`, `fill-logo-star`, `stroke-logo-star`): el guion
+ * las colorea con los del ámbito oscuro de `packages/shared/tokens.json`, el mismo de la cabecera, y falla si
+ * ya no las encuentra.
  * La compone el Chromium de Playwright, con la letra de la prueba del teléfono (`e2e/fonts.conf`, DejaVu
  * Sans), y apunta dos huellas en `huellas.json`: la de la imagen y la de sus fuentes (este guion, el
- * `Logo.tsx` y `LOGO_STAR` de hoy). `generados.test.ts` las mira; con `--check` solo se recalcula la de las
+ * `Logo.tsx`, `LOGO_STAR` y los dos colores del logotipo en el ámbito oscuro de hoy). `generados.test.ts` las mira; con `--check` solo se recalcula la de las
  * fuentes, sin pintar nada, y sale con 1 si no es la apuntada.
  *
  *   FONTCONFIG_FILE=apps/web/e2e/fonts.conf node apps/web/scripts/og-image.mjs
@@ -23,6 +26,7 @@ import { LOGO_STAR } from '@cyclingstar/shared'
 const WEB = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(WEB, 'public', 'og-default.png')
 const LOGO = join(WEB, 'src', 'components', 'Logo.tsx')
+const TOKENS = join(WEB, '..', '..', 'packages', 'shared', 'tokens.json')
 const HUELLAS = join(WEB, 'scripts', 'huellas.json')
 
 /** Lo que se pinta: el tamaño, los tres colores (§3.1) y el nombre. */
@@ -34,12 +38,22 @@ const OG = {
   white: '#ffffff',
   name: 'Cycling Star',
 }
-/** Los dos colores de `Logo.tsx` que se cambian: el trazo de la bicicleta y la estrella. */
-const LOGO_COLORS = { stroke: '#4f46e5', star: '#f59e0b' }
+/**
+ * Los dos colores del logotipo en el ámbito oscuro (`logo`, el trazo de la bicicleta, y `logo-star`, la
+ * estrella), los de la cabecera, y la propiedad que cada una de sus clases pinta con uno de ellos.
+ */
+const AMBITO = JSON.parse(readFileSync(TOKENS, 'utf8')).darkScope.color
+const LOGO_COLORS = { stroke: AMBITO.logo, star: AMBITO['logo-star'] }
+const LOGO_CLASSES = {
+  'stroke-logo': ['stroke', LOGO_COLORS.stroke],
+  'fill-logo': ['fill', LOGO_COLORS.stroke],
+  'fill-logo-star': ['fill', LOGO_COLORS.star],
+  'stroke-logo-star': ['stroke', LOGO_COLORS.star],
+}
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex')
 
-/** La huella de lo que hace la imagen: este guion, el logotipo y su estrella. */
+/** La huella de lo que hace la imagen: este guion, el logotipo, su estrella y sus dos colores. */
 function sourcesSha256() {
   return createHash('sha256')
     .update(readFileSync(fileURLToPath(import.meta.url)))
@@ -47,6 +61,8 @@ function sourcesSha256() {
     .update(readFileSync(LOGO))
     .update('\n')
     .update(LOGO_STAR)
+    .update('\n')
+    .update(`${LOGO_COLORS.stroke} ${LOGO_COLORS.star}`)
     .digest('hex')
 }
 
@@ -69,7 +85,7 @@ if (process.argv.includes('--check')) {
   process.exit(0)
 }
 
-/** El `Logo` de verdad, pintado por React en el servidor de Vite, con sus dos colores cambiados. */
+/** El `Logo` de verdad, pintado por React en el servidor de Vite, con las clases de sus dos colores. */
 async function logoSvg(size) {
   const { createServer } = await import('vite')
   const server = await createServer({
@@ -83,10 +99,10 @@ async function logoSvg(size) {
     const { createElement } = await import('react')
     const { renderToStaticMarkup } = await import('react-dom/server')
     const svg = renderToStaticMarkup(createElement(Logo, { size, decorative: true }))
-    for (const [what, color] of Object.entries(LOGO_COLORS))
-      if (!svg.includes(color))
-        throw new Error(`og-image: Logo.tsx ya no lleva el ${what} ${color}`)
-    return svg.replaceAll(LOGO_COLORS.stroke, OG.white).replaceAll(LOGO_COLORS.star, OG.gold)
+    const usadas = new Set([...svg.matchAll(/class="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)))
+    for (const clase of Object.keys(LOGO_CLASSES))
+      if (!usadas.has(clase)) throw new Error(`og-image: Logo.tsx ya no lleva la clase ${clase}`)
+    return svg
   } finally {
     await server.close()
   }
@@ -102,6 +118,9 @@ const html = `<!doctype html>
     font-family: 'DejaVu Sans', sans-serif;
   }
   span { color: ${OG.white}; font-size: 104px; font-weight: 700; letter-spacing: -1px; }
+${Object.entries(LOGO_CLASSES)
+  .map(([clase, [prop, color]]) => `  .${clase} { ${prop}: ${color}; }`)
+  .join('\n')}
 </style></head>
 <body>${svg}<span>${OG.name}</span></body></html>`
 

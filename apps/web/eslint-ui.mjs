@@ -143,7 +143,4 @@ export const UI_IGNORES = [
  * LOS HEREDADOS: los ficheros que el día del PR 8 ya tenían algún aviso `ui/`, en `warn` hasta que su PR
  * los limpia (paso 21 y los de cada componente). La lista solo encoge (`heredados.test.ts`).
  */
-export const UI_HEREDADOS = [
-  'apps/web/src/components/Logo.tsx',
-  'apps/web/src/components/RaceRadioPanel.tsx',
-]
+export const UI_HEREDADOS = ['apps/web/src/components/RaceRadioPanel.tsx']
