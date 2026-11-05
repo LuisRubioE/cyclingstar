@@ -99,11 +99,15 @@ const ROAD: readonly JumpOption[] = [
 
 const noop = (): void => {}
 
-function controls(state: Partial<ControlsState> = {}, canShowResult = true): string {
+function controls(
+  state: Partial<ControlsState> = {},
+  canShowResult = true,
+  commentaryOpen = false,
+): string {
   const el: ReactElement = (
     <PlayerControls
       state={{ ...PLAYING, ...state }}
-      commentaryOpen={false}
+      commentaryOpen={commentaryOpen}
       jumps={ROAD}
       canShowResult={canShowResult}
       onPlay={noop}
@@ -229,6 +233,15 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
       expect(b.attrs, b.text).toMatch(/ hover:bg-surface-2/)
       expect(b.attrs, b.text).not.toMatch(/ bg-accent[\s"]/)
     }
+  })
+})
+
+describe('Commentary, un mando que se conmuta (PR 21n)', () => {
+  it('dice si está desplegado: aria-pressed en false y, abierto, en true', () => {
+    const de = (open: boolean) =>
+      buttonsOf(controls({}, true, open)).find((b) => b.text === 'Commentary')?.attrs ?? ''
+    expect(de(false)).toContain('aria-pressed="false"')
+    expect(de(true)).toContain('aria-pressed="true"')
   })
 })
 

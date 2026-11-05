@@ -397,7 +397,7 @@ describe('lo estimado, marcado (§3.8): el km con ~, el cursor hueco y el aviso'
 })
 
 describe('ProfileStrip · los cursores se mueven sin style (E3, ui/9; PR 21n)', () => {
-  it('con movimiento o sin él, ningún style; y los dos marcados no son el mismo', () => {
+  it('ningún style, con movimiento o sin él; y con menos movimiento, los cursores sin transición', () => {
     const head = headOf(CAST)
     const pinta = (reducedMotion: boolean) =>
       renderToStaticMarkup(
@@ -411,7 +411,13 @@ describe('ProfileStrip · los cursores se mueven sin style (E3, ui/9; PR 21n)', 
       )
     expect(pinta(false)).not.toContain('style=')
     expect(pinta(true)).not.toContain('style=')
-    expect(pinta(false)).not.toBe(pinta(true))
+    // con menos movimiento, quietos (WCAG 2.3.3): la transición solo la expresa una clase, la propia de
+    // index.css (`transition-center`), y por eso, como `sr-only` en Button.test, se mira aquí; comparar los
+    // dos marcados no basta, porque con menos movimiento el km de cada cursor también se redondea
+    const conMovimiento = pinta(false).match(/<circle [^>]*data-cursor="[^"]*"[^>]*>/g) ?? []
+    expect(conMovimiento.length).toBeGreaterThan(0)
+    for (const c of conMovimiento) expect(c).toMatch(/\btransition-center\b/)
+    expect(pinta(true)).not.toContain('transition-center')
   })
 })
 

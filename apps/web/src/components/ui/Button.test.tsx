@@ -133,6 +133,26 @@ describe('Button', () => {
     )
   })
 
+  it('deshabilitado, sigue diciendo si está encendido, si despliega y qué despliega', () => {
+    const b = html(
+      <Button
+        variant="control"
+        pressed={false}
+        expanded={false}
+        controls="hoja"
+        disabledReason="Already in the last kilometre."
+        reasonHidden
+      >
+        Next action
+      </Button>,
+    )
+    const boton = /<button[^>]*>/.exec(b)?.[0] ?? ''
+    expect(boton).toContain('aria-disabled="true"')
+    expect(boton).toContain('aria-pressed="false"')
+    expect(boton).toContain('aria-expanded="false"')
+    expect(boton).toContain('aria-controls="hoja"')
+  })
+
   it('deshabilitado en una barra: el porqué, solo para el lector, y el mismo aria-disabled', () => {
     const b = html(
       <Button variant="control" disabledReason="Already at the last kilometre." reasonHidden>

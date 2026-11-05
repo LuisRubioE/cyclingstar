@@ -131,6 +131,20 @@ describe('FixedOverlay · la diferencia principal y contra quién (§6.2, 6-b)',
     expect(trendOf(<FixedOverlay instant={down} head={HEAD} />)).toBe('down 90')
   })
 
+  it('abierta, la tendencia que baja se escribe en positivo, con la flecha hacia abajo (PR 21n)', () => {
+    const up = breakAndBunch(86.54, 226)
+    const down = {
+      ...up,
+      mainGap: { ...up.mainGap!, trend: { deltaS: -24, windowKm: 5, arrow: 'down' as const } },
+    }
+    expect(overlayTrendOf(down, HEAD)).toEqual({ arrow: 'down', text: '0:24 in 5 km' })
+    const open = renderToStaticMarkup(<FixedOverlay instant={down} head={HEAD} expanded />)
+    expect(textOf(<FixedOverlay instant={down} head={HEAD} expanded />)).toContain(
+      ' · 0:24 in 5 km',
+    )
+    expect(open.match(/data-trend="down"/g)?.length).toBe(2)
+  })
+
   it('desde la hora, con las horas: +1:02:10', () => {
     expect(textOf(<FixedOverlay instant={breakAndBunch(86.54, 3730)} head={HEAD} />)).toContain(
       '+1:02:10',
