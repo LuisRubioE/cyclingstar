@@ -1,12 +1,15 @@
 import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { type TeamListItem, fetchTeams } from '../api/browse'
+import { TOP_ROWS } from '../components/ShowAll'
 import { VeilNotice } from '../components/VeilNotice'
 import { ActionRow } from '../components/ui/ActionRow'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { ShowAllRows } from '../components/ui/ShowAllRows'
 import { TeamJersey } from '../components/ui/TeamJersey'
 import { plural } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
@@ -17,7 +20,8 @@ import { horizonKey, useHorizonRev } from '../queryClient'
  * ficha, con su nombre seguido de su maillot de 28 y sin bandera al lado (4-i, D-00c), y debajo su país en
  * palabras, sus puntos y sus corredores; sin equipos, su vacío, que contesta. Iban en tarjetas a
  * mano, con la marca de su división en cada una, que ya dice su `Panel`, y las cifras en `slate-400`, que no
- * se leía (axe, 224 faltas en la 21).
+ * se leía (axe, 224 faltas en la 21). Cada división, con sus 20 primeros y `Show all` (§6.1), que el 21k no
+ * aplicó (PR 21l).
  */
 
 const DIVISIONES: readonly { readonly key: string; readonly label: string }[] = [
@@ -57,6 +61,8 @@ export function Teams() {
     queryFn: fetchTeams,
     enabled: rev !== undefined,
   })
+  // Las divisiones con todos sus equipos a la vista, pasados los 20 primeros (§6.1; PR 21l).
+  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(() => new Set())
   // Los estados, con `QueryView` (E3, PR 10).
   if (query.data === undefined)
     return <QueryView query={query} label="teams" skeleton={{ kind: 'rows', rowHeight: 44 }} />
@@ -74,15 +80,30 @@ export function Teams() {
       />
       <VeilNotice kind="results" />
       {divisiones.length === 0 && <EmptyState icon="team" text="No teams yet." answer />}
-      {divisiones.map((d, i) => (
-        <Panel key={d.key} title={d.label} answer={i === 0}>
-          <ul className={LISTA}>
-            {d.teams.map((t) => (
-              <TeamRow key={t.id} t={t} />
-            ))}
-          </ul>
-        </Panel>
-      ))}
+      {divisiones.map((d, i) => {
+        const todas = abiertas.has(d.key)
+        return (
+          <Panel key={d.key} title={d.label} answer={i === 0}>
+            <ul className={LISTA}>
+              {(todas ? d.teams : d.teams.slice(0, TOP_ROWS)).map((t) => (
+                <TeamRow key={t.id} t={t} />
+              ))}
+            </ul>
+            <ShowAllRows
+              total={d.teams.length}
+              expanded={todas}
+              onToggle={() =>
+                setAbiertas((prev) => {
+                  const next = new Set(prev)
+                  if (next.has(d.key)) next.delete(d.key)
+                  else next.add(d.key)
+                  return next
+                })
+              }
+            />
+          </Panel>
+        )
+      })}
     </section>
   )
 }

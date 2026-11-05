@@ -1,6 +1,8 @@
 import { CONTINENTS, COUNTRIES, type Continent, continentForCountry } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { type CountrySummary, fetchCountries } from '../api/browse'
+import { TOP_ROWS } from '../components/ShowAll'
 import { VeilNotice } from '../components/VeilNotice'
 import { ActionRow } from '../components/ui/ActionRow'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -8,6 +10,7 @@ import { Flag } from '../components/ui/Flag'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { ShowAllRows } from '../components/ui/ShowAllRows'
 import { plural } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
@@ -47,6 +50,7 @@ function NationRow({ c }: { c: CountrySummary }) {
  * Con el sistema desde el 21k (E3, docs/visual.md §17.21): la cabecera en `PageHeader`; cada continente en su
  * `Panel`, el primero la respuesta de la 22 (§7.3); y cada país, una `ActionRow` a su ranking, con su bandera
  * y su nombre, y debajo sus puntos y sus corredores, donde iban tarjetas a mano con las cifras en `slate-400`.
+ * Cada continente, con sus 20 primeros y `Show all` (§6.1), que el 21k no aplicó (PR 21l).
  */
 export function Countries() {
   const rev = useHorizonRev()
@@ -55,6 +59,8 @@ export function Countries() {
     queryFn: fetchCountries,
     enabled: rev !== undefined,
   })
+  // Los continentes con todos sus países a la vista, pasados los 20 primeros (§6.1; PR 21l).
+  const [abiertos, setAbiertos] = useState<ReadonlySet<Continent>>(() => new Set())
 
   // Los estados, con `QueryView` (E3, PR 10).
   if (query.data === undefined)
@@ -81,15 +87,31 @@ export function Countries() {
       {continentes.length === 0 && (
         <EmptyState icon="world" text="No countries with riders yet." answer />
       )}
-      {continentes.map((cont, i) => (
-        <Panel key={cont} title={CONTINENT_LABEL[cont]} answer={i === 0}>
-          <ul className={LISTA}>
-            {(byContinent.get(cont) ?? []).map((c) => (
-              <NationRow key={c.country} c={c} />
-            ))}
-          </ul>
-        </Panel>
-      ))}
+      {continentes.map((cont, i) => {
+        const todos = abiertos.has(cont)
+        const paises = byContinent.get(cont) ?? []
+        return (
+          <Panel key={cont} title={CONTINENT_LABEL[cont]} answer={i === 0}>
+            <ul className={LISTA}>
+              {(todos ? paises : paises.slice(0, TOP_ROWS)).map((c) => (
+                <NationRow key={c.country} c={c} />
+              ))}
+            </ul>
+            <ShowAllRows
+              total={paises.length}
+              expanded={todos}
+              onToggle={() =>
+                setAbiertos((prev) => {
+                  const next = new Set(prev)
+                  if (next.has(cont)) next.delete(cont)
+                  else next.add(cont)
+                  return next
+                })
+              }
+            />
+          </Panel>
+        )
+      })}
     </section>
   )
 }

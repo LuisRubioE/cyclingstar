@@ -53,4 +53,10 @@ describe('Stat', () => {
       'data-ui="Skeleton" data-variant="figure" data-state="loading" aria-hidden="true"',
     )
   })
+
+  it('la respuesta de su pantalla, si se le pide (§7.3; la 27, el saldo, PR 21l); si no, nada', () => {
+    const s = renderToStaticMarkup(<Stat label="Balance" value={10} answer />)
+    expect(s).toMatch(/^<dl data-ui="Stat"[^>]*data-answer=""[^>]*>/)
+    expect(renderToStaticMarkup(<Stat label="Balance" value={10} />)).not.toContain('data-answer')
+  })
 })

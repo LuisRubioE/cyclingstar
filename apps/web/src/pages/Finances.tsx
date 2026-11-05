@@ -1,18 +1,18 @@
 import { COUNTRIES, HOUSING_RENT_PER_WEEK, seasonPosition } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { Flag } from '../components/Flag'
-import { Panel, SectionBar } from '../components/Panel'
 import { type LedgerEntry, fetchLedger } from '../api/finances'
 import { fetchRiderSummary } from '../api/rider'
-import { ledgerKindLabel } from '../domain/labels'
-import { formatGameDay } from '../domain/words'
-import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 import { EmptyState } from '../components/ui/EmptyState'
-import { Panel as UiPanel } from '../components/ui/Panel'
+import { Flag } from '../components/ui/Flag'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { RankTable, type RankTableColumn } from '../components/ui/RankTable'
-import { statFigure } from '../components/ui/Stat'
+import { Stat, statFigure } from '../components/ui/Stat'
+import { ledgerKindLabel } from '../domain/labels'
+import { formatGameDay, plural } from '../domain/words'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
 /** Un movimiento con su clave: no traen id, y su orden (el más reciente primero) no cambia. */
 interface Movimiento {
@@ -69,7 +69,11 @@ function countryName(code: string): string {
   return COUNTRIES.find((c) => c.code === code)?.name ?? code
 }
 
-/** Situación de vivienda del corredor: en casa (gratis), fuera pagando alquiler, o cubierto por el equipo. */
+/**
+ * LA CASA (E3, docs/visual.md §17.21; PR 21l): en casa (gratis), fuera pagando alquiler, o cubierto por el
+ * equipo, en su `Panel`; sin el `🏠` de antes (3-d), que ya dicen su título y `Lives in`, y la bandera del
+ * catálogo, para el ojo, porque su nombre va al lado.
+ */
 function HousingCard() {
   const rev = useHorizonRev()
   const { data } = useQuery({
@@ -81,24 +85,25 @@ function HousingCard() {
   const atHome = data.residence === data.nationality
   return (
     <Panel title="Housing">
-      <div className="flex items-center gap-2 text-sm">
-        <span>🏠</span>
-        <span className="text-slate-500">Lives in</span>
-        <Flag code={data.residence} size={16} />
-        <span className="font-medium text-slate-800">{countryName(data.residence)}</span>
-      </div>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="flex flex-wrap items-center gap-x-2 text-body text-ink">
+        <span className="text-ink-2">Lives in</span>
+        <span aria-hidden="true">
+          <Flag country={data.residence} />
+        </span>
+        {countryName(data.residence)}
+      </p>
+      <p className="mt-2 text-body text-ink-2">
         {atHome ? (
           <>You live in your home country — the family home is free, no rent.</>
         ) : data.housingCovered ? (
           <>
             You live abroad, but your team covers your rent as a contract extra — you pay{' '}
-            <span className="font-medium text-emerald-600">nothing</span>.
+            <span className="font-semibold text-ink">nothing</span>.
           </>
         ) : (
           <>
             You live away from home, so you pay{' '}
-            <span className="font-medium text-rose-600">{HOUSING_RENT_PER_WEEK}/week</span> in rent
+            <span className="font-semibold text-ink">{HOUSING_RENT_PER_WEEK}/week</span> in rent
             (shown as Housing in the ledger).
           </>
         )}
@@ -108,30 +113,16 @@ function HousingCard() {
 }
 
 /**
- * Aviso de próximo día de pago: la nómina cae cada día de juego múltiplo de 7 (GD7, GD14, GD21…),
- * atada al reloj del mundo, no a tu fecha de fichaje. El siguiente pago es el primer múltiplo de 7
- * por delante del día actual (el día en curso ya está procesado).
+ * EL DÍA DE PAGO: la nómina cae cada día de juego múltiplo de 7, atada al reloj del mundo y no a la fecha de
+ * fichaje; el siguiente es el primer múltiplo de 7 por delante del de hoy, que ya está procesado. Su día, en
+ * palabras de la temporada (`Day 43`, con la suya si cae en la siguiente), y nunca `GD` (§4.10).
  */
-function NextSalaryCard({ gameDay, salary }: { gameDay: number; salary: number }) {
-  const nextPayday = (Math.floor(gameDay / 7) + 1) * 7
-  const daysUntil = nextPayday - gameDay
-  return (
-    <Panel title="Next salary">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-        <span className="text-lg font-bold tabular-nums text-emerald-600">
-          +{salary.toLocaleString('en-US')}
-        </span>
-        <span className="text-slate-500">
-          on <span className="font-semibold text-slate-700">GD{nextPayday}</span> ·{' '}
-          {daysUntil === 1 ? 'in 1 day' : `in ${daysUntil} days`}
-        </span>
-      </div>
-      <p className="mt-2 text-xs text-slate-400">
-        Salaries are paid weekly, on every game day that is a multiple of 7 (GD7, GD14, GD21…) —
-        tied to the world clock, not to your signing date.
-      </p>
-    </Panel>
-  )
+function nextPayday(gameDay: number): { readonly day: number; readonly text: string } {
+  const day = (Math.floor(gameDay / 7) + 1) * 7
+  const hoy = seasonPosition(gameDay)
+  const cae = seasonPosition(day)
+  const temporada = cae.season === hoy.season ? '' : ` · Season ${cae.season}`
+  return { day, text: `Day ${cae.dayOfSeason}${temporada} · in ${plural(day - gameDay, 'day')}` }
 }
 
 export function Finances() {
@@ -146,33 +137,43 @@ export function Finances() {
   if (query.data === undefined)
     return <QueryView query={query} label="your finances" skeleton={{ kind: 'stat' }} />
   const data = query.data
+  const pago =
+    data.salary != null && data.gameDay != null
+      ? { salary: data.salary, ...nextPayday(data.gameDay) }
+      : null
 
+  // Con el sistema (E3, §17.21; PR 21l): la cabecera en `PageHeader`; el saldo, un `Stat`, la respuesta de
+  // la 27 (§7.3), y a su lado el próximo sueldo, otro, con su signo; donde iban la barra dorada, los
+  // paneles cian y las cifras a mano en `emerald` y `slate`.
   return (
     <section className="space-y-4">
-      <SectionBar>Finances</SectionBar>
+      <PageHeader
+        title="Finances"
+        status="Every salary payment and race prize is logged here. Your balance is the sum of the ledger."
+      />
       <VeilNotice kind="results" />
-      <p className="text-sm text-slate-500">
-        Every salary payment and race prize is logged here. Your balance is the sum of the ledger.
-      </p>
 
-      <Panel title="Balance">
-        <p className="text-3xl font-bold tabular-nums text-slate-800">
-          {data.balance.toLocaleString('en-US')}
-        </p>
+      <Panel ariaLabel="Balance and next salary">
+        <div className="flex flex-wrap gap-x-8 gap-y-4">
+          <Stat label="Balance" value={data.balance} answer />
+          {pago !== null && <Stat label="Next salary" value={pago.salary} signed />}
+        </div>
+        {pago !== null && (
+          <p className="mt-3 text-meta text-ink-2">
+            Next payday: {pago.text}. Salaries are paid weekly on the world clock, not counted from
+            your signing date.
+          </p>
+        )}
       </Panel>
-
-      {data.salary != null && data.gameDay != null && (
-        <NextSalaryCard gameDay={data.gameDay} salary={data.salary} />
-      )}
 
       <HousingCard />
 
       {data.entries.length === 0 ? (
         <EmptyState text="No transactions yet. Salary lands weekly once you have a contract; prizes come from racing." />
       ) : (
-        <UiPanel ariaLabel="Transactions" variant="bleed">
+        <Panel ariaLabel="Transactions" variant="bleed">
           <LedgerTable entries={data.entries} />
-        </UiPanel>
+        </Panel>
       )}
     </section>
   )

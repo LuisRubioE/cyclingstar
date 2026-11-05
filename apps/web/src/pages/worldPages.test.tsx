@@ -8,6 +8,7 @@ import type {
   TeamListItem,
   TeamNewsItem,
 } from '@cyclingstar/shared'
+import { COUNTRIES, continentForCountry } from '@cyclingstar/shared'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -148,6 +149,18 @@ describe('los equipos (§17.21; PR 21k)', () => {
     expect(s).not.toMatch(PALETA)
     expect(s).not.toContain('rounded-2xl')
   })
+
+  it('las 20 primeras de cada división, y Show all (§6.1; lo que el 21k no aplicó, PR 21l)', () => {
+    const muchos = Array.from({ length: 25 }, (_, i) => equipo(`w${i}`, `World ${i}`, 'WT', 'FR'))
+    const s = pinta('/world/teams', '/world/teams', <Teams />, [
+      [key('teams'), [...muchos, EQUIPOS[3]]],
+    ])
+    const panel = pieza(s, 'Panel', 'World Tour')
+    expect(cuantas(panel, /<li data-ui="ActionRow"/)).toBe(20)
+    expect(panel).toMatch(/data-ui="ShowAllRows"[\s\S]*Show all 25/)
+    // la que no llega a 20, entera y sin el botón
+    expect(pieza(s, 'Panel', 'Pro Series')).not.toContain('ShowAllRows')
+  })
 })
 
 describe('los países (§17.21; PR 21k)', () => {
@@ -189,6 +202,19 @@ describe('los países (§17.21; PR 21k)', () => {
     expect(f[2]?.meta).toBe('50 pts · 1 rider')
     expect(f[0]?.raw).toMatch(/<span aria-hidden="true"><span data-ui="Flag"/)
     expect(html()).not.toMatch(PALETA)
+  })
+
+  it('los 20 primeros de cada continente, y Show all (§6.1; lo que el 21k no aplicó, PR 21l)', () => {
+    const europeos = COUNTRIES.filter((c) => continentForCountry(c.code) === 'Europe')
+      .slice(0, 25)
+      .map((c): CountrySummary => ({ country: c.code, riderCount: 2, totalPoints: 10 }))
+    const s = pinta('/world/nations', '/world/nations', <Countries />, [
+      [key('countries'), [...europeos, PAISES[1]]],
+    ])
+    const panel = pieza(s, 'Panel', 'Europe')
+    expect(cuantas(panel, /<li data-ui="ActionRow"/)).toBe(20)
+    expect(panel).toMatch(/data-ui="ShowAllRows"[\s\S]*Show all 25/)
+    expect(pieza(s, 'Panel', 'Asia')).not.toContain('ShowAllRows')
   })
 })
 

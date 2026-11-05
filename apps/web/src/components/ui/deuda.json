@@ -1,8 +1,8 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 338,
-    "arbitrarios": 11,
+    "tema": 217,
+    "arbitrarios": 10,
     "espaciado": 3,
     "layout": 0
   },
@@ -23,12 +23,6 @@
       "tema": 6,
       "arbitrarios": 0,
       "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/components/Panel.tsx": {
-      "tema": 18,
-      "arbitrarios": 0,
-      "espaciado": 0,
       "layout": 0
     },
     "apps/web/src/components/RaceRadioPanel.tsx": {
@@ -67,12 +61,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/components/VeilNotice.tsx": {
-      "tema": 7,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
     "apps/web/src/domain/stageJournal.ts": {
       "tema": 1,
       "arbitrarios": 0,
@@ -82,36 +70,6 @@
     "apps/web/src/pages/AdminPanel.tsx": {
       "tema": 69,
       "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Finances.tsx": {
-      "tema": 21,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Market.tsx": {
-      "tema": 29,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/News.tsx": {
-      "tema": 33,
-      "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/TeamIdentity.tsx": {
-      "tema": 5,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/TeamSquad.tsx": {
-      "tema": 8,
-      "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
     }

@@ -1,18 +1,18 @@
 import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import { fetchTeam } from '../api/browse'
 import { fetchRiderSummary } from '../api/rider'
-import { Flag } from '../components/Flag'
-import { TeamJersey } from '../components/ui/TeamJersey'
-import { Panel, SectionBar } from '../components/Panel'
 import { SquadTable } from '../components/SquadTable'
+import { VeilNotice } from '../components/VeilNotice'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
-import { Panel as UiPanel } from '../components/ui/Panel'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { TeamJersey } from '../components/ui/TeamJersey'
+import { TextLink } from '../components/ui/TextLink'
+import { plural } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
-import { VeilNotice } from '../components/VeilNotice'
 
 /**
  * `My Team → Squad` (docs/navegacion.md §3.4): mis compañeros de equipo, en SOLO LECTURA.
@@ -24,6 +24,11 @@ import { VeilNotice } from '../components/VeilNotice'
  * Cada compañero enlaza a su ficha, con su nivel, sus resultados y su palmarés: la celda de identidad
  * entera es el enlace (E3, docs/visual.md §6.1; PR 12b), y el desplegable `Detail` de antes, que pedía
  * eso mismo de las rutas públicas, ya no hace falta.
+ *
+ * Con el sistema (E3, §17.21; PR 21l): la cabecera en `PageHeader`, con el equipo y su división, como la de
+ * `Identity`; el maillot a 40 (`card`, §8.3) en su `Panel`, sin la bandera de al lado (6-f), con el país en
+ * palabras, los corredores y los puntos, y la ficha pública en un `TextLink`. Iban la barra dorada, un panel
+ * blanco a mano y la nota en `slate-400`.
  */
 
 const DIVISION_LABEL: Record<string, string> = {
@@ -58,7 +63,7 @@ export function TeamSquad() {
   if (!teamId) {
     return (
       <section className="space-y-4">
-        <SectionBar>Squad</SectionBar>
+        <PageHeader title="Squad" />
         <EmptyState
           icon="team"
           text="You are a free agent, so you have no teammates yet. Any contract offer you receive shows up in My Rider, under Contract."
@@ -74,36 +79,34 @@ export function TeamSquad() {
 
   const roster = [...team.data.roster].sort((a, b) => b.seasonPoints - a.seasonPoints)
   const country = COUNTRIES.find((c) => c.code === team.data.country)
+  const division = DIVISION_LABEL[team.data.division] ?? team.data.division
+  const cifras = [
+    ...(country ? [country.name] : []),
+    plural(roster.length, 'rider'),
+    `${team.data.pointsSeason.toLocaleString('en-US')} season points`,
+  ].join(' · ')
 
   return (
     <section className="space-y-4">
-      <SectionBar>Squad · {team.data.name}</SectionBar>
+      <PageHeader title="Squad" status={`${team.data.name} · ${division}`} />
       <VeilNotice kind="results" />
 
-      <Panel>
+      <Panel ariaLabel={`${team.data.name} kit and figures`}>
         <div className="flex flex-wrap items-center gap-3">
           <TeamJersey team={{ name: team.data.name, kit: team.data.kit }} size={40} />
-          {team.data.country && <Flag code={team.data.country} size={26} />}
-          <p className="text-sm text-slate-500">
-            {DIVISION_LABEL[team.data.division] ?? team.data.division}
-            {country ? ` · ${country.name}` : ''} · {roster.length} riders ·{' '}
-            {team.data.pointsSeason.toLocaleString('en-US')} season points
-          </p>
-          <Link
-            to={`/world/teams/${team.data.id}`}
-            className="ml-auto text-xs font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            Public team page →
-          </Link>
+          <p className="text-meta text-ink-2">{cifras}</p>
+          <TextLink to={`/world/teams/${team.data.id}`} layout="ml-auto">
+            Public team page
+          </TextLink>
         </div>
       </Panel>
 
       {/* La respuesta de la pantalla 14 (§7.3); los puntos los dice su columna, `Pts`. */}
-      <UiPanel title={`Riders (${roster.length})`} variant="bleed">
+      <Panel title={`Riders (${roster.length})`} variant="bleed">
         <SquadTable rows={roster} team={team.data} answer />
-      </UiPanel>
+      </Panel>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-meta text-ink-2">
         Read-only for now: picking who races, signing and releasing riders is manager work, and no
         human manages a team yet.
       </p>
