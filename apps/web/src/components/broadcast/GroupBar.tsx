@@ -14,6 +14,8 @@ import { Fragment, memo, useId, useLayoutEffect, useRef, useState } from 'react'
 import { isQuietFinal, mobileRowsOf, transitOf, yourRiderText } from '../../domain/broadcast/screen'
 import { type LineChip, fitTeamChips, teamLineOf } from '../../domain/broadcast/teamChips'
 import { Button } from '../ui/Button'
+import { Expander } from '../ui/Expander'
+import { Icon } from '../ui/Icon'
 import { Flag } from '../ui/Flag'
 import { LeaderJersey } from '../ui/LeaderJersey'
 import { RiderLabel } from '../ui/RiderLabel'
@@ -40,7 +42,7 @@ import { WornJerseyIcon, wornTeamOf } from './WornJerseyIcon'
  *
  * Desde el 6a, una fila por grupo con alguien dentro, con el número de lo pintado (`shownGroupsOf`): un
  * grupo recién nacido que aún no lleva a nadie no tiene fila, y los que van hacia él se cuentan bajo la
- * del grupo que dejan (`↑ 3 bridging across`). Y la identidad de cada fila es la de pantalla
+ * del grupo que dejan (`3 bridging across`, con el icono `trend` hacia arriba). Y la identidad de cada fila es la de pantalla
  * (`screenKeysOf`, D-03): un cambio de etiqueta no la cambia.
  *
  * Desde el 6b, la línea de quién tira bajo cada fila que tira (`Pulling: Team Beta (for 11 Sam Carter)`,
@@ -204,13 +206,8 @@ export function GroupRow({
       data-mobile={folded ? 'folded' : undefined}
       className={folded ? 'hidden sm:block' : 'block'}
     >
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={listId}
-        onClick={onToggle}
-        className="flex min-h-11 w-full items-center gap-2 text-left text-meta"
-      >
+      {/* la fila entera se pulsa (Ruso-036), un `Expander` del catálogo (PR 21n), que lleva lo suyo dentro */}
+      <Expander expanded={open} controls={listId} onToggle={onToggle}>
         <span className="w-4 shrink-0 text-right text-caption font-semibold tabular-nums text-ink-3">
           {g.number}
         </span>
@@ -225,30 +222,51 @@ export function GroupRow({
               className="h-2 w-2 shrink-0 rounded-full bg-accent"
               role="img"
               aria-label="Your rider"
-              title="Your rider"
             />
           )}
         </span>
-        <span className="ml-auto shrink-0 text-caption tabular-nums text-ink-3">
-          km {clock === 'estimated' && g.number > 1 ? '~' : ''}
-          {g.km.toFixed(1)}
-        </span>
-        {/* la fila 1 no lleva hueco: es la cabeza de la pantalla; salvo unos segundos, si la que
-            iba delante acaba de morir con los suyos en carrera y aún no tienen grupo (10a) */}
-        {(g.number > 1 || g.gap.toHeadS >= BROADCAST.sameTimeS) && !quiet && (
-          <span className="min-w-14 shrink-0 text-right text-meta font-semibold tabular-nums text-ink">
-            {mainGapText(g.gap.toHeadS)}
+        {/* el km y la diferencia, uno sobre otro en el teléfono y lado a lado desde 640 (PR 21n): lado a
+            lado, a 320 y a 360 no dejaban sitio a los nombres de un grupo nombrado, que se montaban en el km */}
+        <span className="ml-auto flex shrink-0 flex-col items-end sm:flex-row sm:items-baseline sm:gap-2">
+          <span className="text-caption tabular-nums text-ink-3">
+            km {clock === 'estimated' && g.number > 1 ? '~' : ''}
+            {g.km.toFixed(1)}
           </span>
-        )}
-      </button>
+          {/* la fila 1 no lleva hueco: es la cabeza de la pantalla; salvo unos segundos, si la que
+              iba delante acaba de morir con los suyos en carrera y aún no tienen grupo (10a) */}
+          {(g.number > 1 || g.gap.toHeadS >= BROADCAST.sameTimeS) && !quiet && (
+            <span className="min-w-14 text-right text-meta font-semibold tabular-nums text-ink">
+              {mainGapText(g.gap.toHeadS)}
+            </span>
+          )}
+        </span>
+      </Expander>
       {g.label.k !== 'names' && g.size <= BROADCAST.nameWholeGroupUpTo && (
-        <TeamLine group={g} cast={cast} mobile={g.number === 1 || g.own} onMore={onToggle} />
+        <TeamLine
+          group={g}
+          cast={cast}
+          mobile={g.number === 1 || g.own}
+          open={open}
+          controls={listId}
+          onMore={onToggle}
+        />
       )}
       {t !== undefined && (t.back > 0 || t.across > 0) && (
         <p className="pl-6 text-caption text-ink-2">
-          {t.back > 0 && <span>↓ {t.back} dropping back</span>}
+          {/* la flecha, el icono `trend` girado y para el ojo: las palabras ya lo dicen (ui/10; PR 21n) */}
+          {t.back > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Icon name="trend" size={16} turn={90} />
+              {t.back} dropping back
+            </span>
+          )}
           {t.back > 0 && t.across > 0 && ' · '}
-          {t.across > 0 && <span>↑ {t.across} bridging across</span>}
+          {t.across > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Icon name="trend" size={16} turn={-90} />
+              {t.across} bridging across
+            </span>
+          )}
         </p>
       )}
       <PullingRow group={g} cast={cast} mobile={g.kind === 'peloton' || g.own} />
@@ -281,7 +299,8 @@ function NamedRider({ card }: { card: RiderCard }) {
     <span className="inline-flex items-center gap-1">
       {card.bib !== null && <span className="tabular-nums text-ink-2">#{card.bib}</span>}
       <Flag country={card.country} />
-      <span>{card.name}</span>
+      {/* un apellido que no cabe en su renglón parte dentro de su caja antes que montarse en el km */}
+      <span className="wrap-anywhere">{card.name}</span>
       <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
     </span>
   )
@@ -364,12 +383,17 @@ function TeamLine({
   group,
   cast,
   mobile,
+  open,
+  controls,
   onMore,
 }: {
   group: GroupNow
   cast: readonly RiderCard[]
   /** también en el móvil: la fila 1 y las del espectador */
   mobile: boolean
+  /** `+N teams` abre la misma lista que la fila: lo dice con `aria-expanded` y `aria-controls` */
+  open: boolean
+  controls: string
   onMore: () => void
 }) {
   const chips = teamLineOf(group.members, cast)
@@ -412,14 +436,13 @@ function TeamLine({
       ))}
       {/* solo si algo no cabe; hasta que se pinta, `fitTeamChips` estima su ancho */}
       {hidden > 0 && (
-        <button
-          type="button"
-          data-chip-more=""
-          onClick={onMore}
-          className="inline-flex min-h-11 items-center text-caption font-semibold text-accent"
-        >
-          +{hidden} {hidden === 1 ? 'team' : 'teams'}
-        </button>
+        // su ancho lo mide `fitTeamChips` en el `span`, que lleva la marca; el botón, el mando del catálogo
+        // (PR 21n): `control`, de 91 px a 360, deja las fichas de §14.4 (cuatro y tres en el segundo renglón)
+        <span data-chip-more="" className="inline-flex">
+          <Button variant="control" expanded={open} controls={controls} onClick={onMore}>
+            {`+${hidden} ${hidden === 1 ? 'team' : 'teams'}`}
+          </Button>
+        </span>
       )}
     </div>
   )

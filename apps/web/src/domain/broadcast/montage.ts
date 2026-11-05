@@ -304,11 +304,12 @@ export interface ClosingResultRow {
   readonly note: string | null
 }
 
-/** Una fila de la general tras la etapa, con su flecha (`▲2`, `▼1`, `=`). */
+/** Una fila de la general tras la etapa, con lo que se mueve en cifra: la flecha la pone la pantalla (PR 21n). */
 export interface ClosingGcRow {
   readonly key: string
   readonly rank: number
-  readonly move: string
+  /** lo que sube (positivo) o baja (negativo) en la general con la etapa; la flecha la pone la pantalla (ui/10) */
+  readonly move: number
   readonly name: string
   readonly gap: string
   readonly own: boolean
@@ -331,8 +332,6 @@ export type ClosingCard =
       readonly text: string | null
       readonly nextDay: number | null
     }
-
-const moveText = (move: number): string => (move > 0 ? `▲${move}` : move < 0 ? `▼${-move}` : '=')
 
 /** El motivo de un abandono en el resultado, como hoy. */
 const dnfText = (reason: string | null | undefined): string =>
@@ -392,7 +391,7 @@ export function closingCardsOf(
       rows: closing.gcAfter.map((g) => ({
         key: `gc${g.rider}`,
         rank: g.rank,
-        move: moveText(g.move),
+        move: g.move,
         name: short(g.rider),
         gap: g.rank === 1 ? '' : `+${clockText(g.gapS)}`,
         own: cast[g.rider]?.own === true,

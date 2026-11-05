@@ -20,6 +20,9 @@ import { QueryView } from './ui/QueryView'
  * `Finish`. Los tramos son los de la caché de `Watch` (su misma clave) y, si faltan hasta lo alcanzado,
  * se piden igual que los pide el reproductor; uno que no llega corta ahí la radio, que enseña lo que hay
  * y nunca más.
+ *
+ * Con el sistema (E3, docs/visual.md §14; PR 21m): el aviso de la radio vacía, con los tokens de las tarjetas
+ * de la página de etapa, donde iba la paleta.
  */
 export function PaintedRaceRadio({
   head,
@@ -51,8 +54,10 @@ export function PaintedRaceRadio({
     return <QueryView query={chunks} label="the race radio" skeleton={{ kind: 'panel' }} />
   if (radio.kms.length === 0)
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xs font-semibold tracking-wide text-slate-400 uppercase">Race Radio</h2>
+      <div className="rounded-ui border border-line bg-surface p-4 shadow-card">
+        <h2 className="text-caption font-semibold tracking-caps text-ink-2 uppercase">
+          Race Radio
+        </h2>
         <EmptyState
           text="Nothing to show yet: the race radio fills in as far as you've watched."
           action={

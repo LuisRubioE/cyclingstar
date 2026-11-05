@@ -42,11 +42,13 @@ export const WornJerseyIcon = memo(function WornJerseyIcon({
   if (worn.kind === 'leader') return <LeaderJersey kind={worn.jersey} size={size} {...sobre} />
   if (worn.kind === 'champion') return <ChampionJersey title={worn.title} size={size} {...sobre} />
   if (team === null)
+    // el hueco de su lado, que no se lee: un svg vacío, con su ancho y su alto y sin style (PR 21n, ui/9)
     return (
-      <span
+      <svg
         aria-hidden="true"
+        width={size}
+        height={size}
         className="inline-block shrink-0 align-middle"
-        style={{ width: size, height: size }}
       />
     )
   return <TeamJersey team={team} size={size} {...sobre} />

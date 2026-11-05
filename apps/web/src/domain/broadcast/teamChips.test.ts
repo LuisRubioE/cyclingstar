@@ -58,7 +58,8 @@ describe('teamLineOf', () => {
 })
 
 describe('fitTeamChips', () => {
-  // una ficha mide 50,4 px con DejaVu Sans (el maillot, 4 de hueco y la cuenta); `+N teams`, más
+  // una ficha mide 50,4 px con DejaVu Sans (el maillot, 4 de hueco y la cuenta); `+N teams`, 91 (el `Button`
+  // `control` del 21n, medido en Chromium: con 110, el `quiet`, el segundo renglón llevaría una ficha menos)
   const chip = 50.4
   const twelve = Array(12).fill(chip)
 

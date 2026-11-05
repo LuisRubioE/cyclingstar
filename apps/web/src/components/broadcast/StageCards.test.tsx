@@ -383,9 +383,18 @@ describe('el cierre (§8.6): seis cuadros de closingCardS', () => {
   })
 
   it('GENERAL CLASSIFICATION · after stage 18, con flechas', () => {
+    // RE-SELLADO EN EL PR 21n (E3, ui/10): el ▲ y el ▼ pasan al icono `trend`, que no se lee; el lector
+    // oye `up` y `down` delante de la cifra
     expect(text(view(1))).toBe(
-      'GENERAL CLASSIFICATION · after stage 18 1 ▲2 15 Nicolás Moreno 2 ▼1 11 Sam Carter +0:21 3 ▼1 2 Iñigo Arrieta +0:48 4 = 12 Erik Voss +1:00',
+      'GENERAL CLASSIFICATION · after stage 18 1 up 2 15 Nicolás Moreno 2 down 1 11 Sam Carter +0:21 3 down 1 2 Iñigo Arrieta +0:48 4 = 12 Erik Voss +1:00',
     )
+  })
+
+  it('sus flechas, el icono trend girado hacia arriba o hacia abajo, sin glifos (ui/10)', () => {
+    const s = view(1)
+    expect(s).not.toMatch(/[▲▼]/)
+    expect(s.match(/rotate\(-90 12 12\)/g)?.length).toBe(1)
+    expect(s.match(/rotate\(90 12 12\)/g)?.length).toBe(2)
   })
 
   it('JERSEYS TOMORROW con new donde cambian; tras la última, FINAL JERSEYS', () => {

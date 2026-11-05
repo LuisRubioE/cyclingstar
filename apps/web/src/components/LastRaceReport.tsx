@@ -105,7 +105,7 @@ export function LastRaceReport() {
                 <li>Contest climbs: {data.orders.contestClimbs ? 'yes' : 'no'}</li>
               </ul>
             ) : (
-              <p className="text-meta text-ink-2">Coach's default plan.</p>
+              <p className="text-meta text-ink-2">Coach&apos;s default plan.</p>
             )}
           </div>
           <div className="grid gap-1">

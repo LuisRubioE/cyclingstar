@@ -2,7 +2,11 @@ import { BROADCAST } from '@cyclingstar/shared'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { overlaySummaryText } from '../../domain/broadcast/screen'
+import {
+  overlayDetailText,
+  overlaySummaryText,
+  overlayTrendOf,
+} from '../../domain/broadcast/screen'
 import { FixedOverlay } from './FixedOverlay'
 import { castOf, headOf, instantOf, leaderWorn, range } from './__fixtures__/screen'
 
@@ -95,6 +99,16 @@ describe('FixedOverlay · los km a meta (§6.2)', () => {
  * deja un glifo en la interfaz. El texto que se lee pierde la flecha; dónde está y hacia dónde apunta lo
  * mira `trendOf`.
  */
+/** Todas las flechas de la capa, en orden: la de la primera línea y, abierta, la de la segunda (revisión del 21n). */
+function trendsOf(node: ReactElement): string[] {
+  const html = renderToStaticMarkup(node)
+  return [
+    ...html.matchAll(
+      /data-trend="(up|down)"[^>]*>\s*<svg[^>]*aria-hidden="true"[^>]*>\s*<g transform="rotate\((-?\d+) 12 12\)">/g,
+    ),
+  ].map((m) => `${m[1]} ${m[2]}`)
+}
+
 function trendOf(node: ReactElement): string | null {
   const html = renderToStaticMarkup(node)
   const m =
@@ -125,6 +139,25 @@ describe('FixedOverlay · la diferencia principal y contra quién (§6.2, 6-b)',
       mainGap: { ...up.mainGap!, trend: { deltaS: -24, windowKm: 5, arrow: 'down' as const } },
     }
     expect(trendOf(<FixedOverlay instant={down} head={HEAD} />)).toBe('down 90')
+  })
+
+  it('abierta, la tendencia que baja se escribe en positivo, con la flecha hacia abajo (PR 21n)', () => {
+    const up = breakAndBunch(86.54, 226)
+    const down = {
+      ...up,
+      mainGap: { ...up.mainGap!, trend: { deltaS: -24, windowKm: 5, arrow: 'down' as const } },
+    }
+    expect(overlayTrendOf(down, HEAD)).toEqual({ arrow: 'down', text: '0:24 in 5 km' })
+    const open = renderToStaticMarkup(<FixedOverlay instant={down} head={HEAD} expanded />)
+    expect(textOf(<FixedOverlay instant={down} head={HEAD} expanded />)).toContain(
+      ' · 0:24 in 5 km',
+    )
+    expect(open.match(/data-trend="down"/g)?.length).toBe(2)
+    // las dos, hacia abajo: la de la primera línea y la de la segunda
+    expect(trendsOf(<FixedOverlay instant={down} head={HEAD} expanded />)).toEqual([
+      'down 90',
+      'down 90',
+    ])
   })
 
   it('desde la hora, con las horas: +1:02:10', () => {
@@ -209,7 +242,27 @@ describe('FixedOverlay · la segunda línea, al tocarla (6-f)', () => {
     expect(closed).not.toContain('2:09:00')
     const open = textOf(<FixedOverlay instant={withSpeed} head={HEAD} expanded />)
     // la cota del km 86 al 87 sube 50 m: 5,0 %; el tramo del tiempo desde el km 80 lleva lluvia y viento cruzado
-    expect(open).toContain('2:09:00 · 22.9 km/h · 5.0% · 21°C · rain · crosswind · ▲ 0:24 in 5 km')
+    // RE-SELLADO EN EL PR 21n (E3, ui/10): el ▲ de la tendencia pasa al icono `trend`, girado y que no se
+    // lee, como el de la primera línea; las palabras, las de siempre
+    expect(open).toContain('2:09:00 · 22.9 km/h · 5.0% · 21°C · rain · crosswind · 0:24 in 5 km')
+    expect(overlayDetailText(withSpeed, HEAD)).toBe(
+      '2:09:00 · 22.9 km/h · 5.0% · 21°C · rain · crosswind',
+    )
+    expect(overlayTrendOf(withSpeed, HEAD)).toEqual({ arrow: 'up', text: '0:24 in 5 km' })
+    const openMarkup = renderToStaticMarkup(
+      <FixedOverlay instant={withSpeed} head={HEAD} expanded />,
+    )
+    const closedMarkup = renderToStaticMarkup(<FixedOverlay instant={withSpeed} head={HEAD} />)
+    expect(openMarkup).not.toMatch(/[▲▼]/)
+    expect(openMarkup.match(/data-trend="up"/g)?.length).toBe(
+      (closedMarkup.match(/data-trend="up"/g)?.length ?? 0) + 1,
+    )
+    // las dos, hacia arriba, cerrada una y abierta dos (revisión del 21n: solo se contaban)
+    expect(trendsOf(<FixedOverlay instant={withSpeed} head={HEAD} />)).toEqual(['up -90'])
+    expect(trendsOf(<FixedOverlay instant={withSpeed} head={HEAD} expanded />)).toEqual([
+      'up -90',
+      'up -90',
+    ])
   })
 
   it('sin velocidad medida ni tendencia, no se escriben', () => {
@@ -235,16 +288,21 @@ describe('FixedOverlay · la segunda línea, al tocarla (6-f)', () => {
  * sin ser una región viva.
  */
 describe('FixedOverlay · el ámbito oscuro y el resumen accesible (§14.3)', () => {
-  /** Un atributo del botón, con las entidades de React deshechas. */
-  const attrOf = (node: ReactElement, name: string): string | null => {
-    const m = new RegExp(`^<button[^>]*\\s${name}="([^"]*)"`).exec(renderToStaticMarkup(node))
+  /** Un atributo de la raíz (la respuesta, en el ámbito oscuro), con las entidades de React deshechas. */
+  const rootAttr = (node: ReactElement, name: string): string | null => {
+    const m = new RegExp(`^<div[^>]*\\s${name}="([^"]*)"`).exec(renderToStaticMarkup(node))
+    return m === null ? null : m[1]!.replace(/&#x27;/g, "'").replace(/&amp;/g, '&')
+  }
+  /** Un atributo del botón que la abre y la cierra, con las entidades de React deshechas. */
+  const buttonAttr = (node: ReactElement, name: string): string | null => {
+    const m = new RegExp(`<button[^>]*\\s${name}="([^"]*)"`).exec(renderToStaticMarkup(node))
     return m === null ? null : m[1]!.replace(/&#x27;/g, "'").replace(/&amp;/g, '&')
   }
 
   it('en el ámbito oscuro, y sigue sin ser una región viva', () => {
     const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
-    expect(attrOf(node, 'data-surface')).toBe('dark')
-    expect(attrOf(node, 'aria-live')).toBe('off')
+    expect(rootAttr(node, 'data-surface')).toBe('dark')
+    expect(rootAttr(node, 'aria-live')).toBe('off')
   })
 
   it('su nombre es el resumen, con las dos frases, abierta o cerrada', () => {
@@ -253,22 +311,49 @@ describe('FixedOverlay · el ámbito oscuro y el resumen accesible (§14.3)', ()
     expect(summary).toMatch(
       /^98\.5 km to go, lead group 3 riders, bunch at 3 minutes 46\. Race time 2 hours 9 minutes, /,
     )
-    expect(attrOf(<FixedOverlay instant={instant} head={HEAD} />, 'aria-label')).toBe(summary)
-    expect(attrOf(<FixedOverlay instant={instant} head={HEAD} expanded />, 'aria-label')).toBe(
+    expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} />, 'aria-label')).toBe(summary)
+    expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} expanded />, 'aria-label')).toBe(
       summary,
     )
   })
 
   it('en los últimos quietFinalM, el nombre también es solo la distancia', () => {
     const node = <FixedOverlay instant={breakAndBunch(LENGTH - 0.45, 12)} head={HEAD} />
-    expect(attrOf(node, 'aria-label')).toBe('450 m to go.')
+    expect(buttonAttr(node, 'aria-label')).toBe('450 m to go.')
   })
 
   it('es la respuesta de Watch (§7.3): data-ui FixedOverlay y data-answer, que mira la comprobación 7', () => {
     const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
-    expect(attrOf(node, 'data-ui')).toBe('FixedOverlay')
-    expect(attrOf(node, 'data-answer')).toBe('')
+    expect(rootAttr(node, 'data-ui')).toBe('FixedOverlay')
+    expect(rootAttr(node, 'data-answer')).toBe('')
     // la página está lista cuando su respuesta está en ready (§7.5): lo espera la prueba de noche
-    expect(attrOf(node, 'data-state')).toBe('ready')
+    expect(rootAttr(node, 'data-state')).toBe('ready')
+  })
+
+  it('se pulsa entera con el Expander del catálogo, hijo único de la raíz, y ningún button a mano (ui/1)', () => {
+    const instant = breakAndBunch(86.54, 226)
+    const closed = renderToStaticMarkup(<FixedOverlay instant={instant} head={HEAD} />)
+    const open = renderToStaticMarkup(<FixedOverlay instant={instant} head={HEAD} expanded />)
+    // la raíz y, dentro y sin nada más, el Expander: toda la capa es el botón
+    expect(closed).toMatch(/^<div[^>]*data-ui="FixedOverlay"[^>]*><button[^>]*data-ui="Expander"/)
+    expect(closed).toMatch(/<\/button><\/div>$/)
+    expect(closed.match(/<button/g)?.length).toBe(1)
+    // la capa ya es una superficie: el Expander sin flecha
+    expect(closed).toContain('data-ui="Expander" data-variant="surface"')
+    expect(closed).not.toContain('chevron-down')
+    expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} />, 'aria-expanded')).toBe(
+      'false',
+    )
+    expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} />, 'data-state')).toBe('closed')
+    expect(
+      buttonAttr(<FixedOverlay instant={instant} head={HEAD} expanded />, 'aria-expanded'),
+    ).toBe('true')
+    expect(open).toMatch(/<button[^>]*data-state="open"/)
+    // la segunda línea, solo abierta y dentro del botón: tocarla otra vez la cierra
+    const detail = overlayDetailText(instant, HEAD)
+    expect(detail.length).toBeGreaterThan(0)
+    expect(closed).not.toContain(detail)
+    expect(open.indexOf(detail)).toBeGreaterThan(open.indexOf('<button'))
+    expect(open.indexOf(detail)).toBeLessThan(open.indexOf('</button>'))
   })
 })

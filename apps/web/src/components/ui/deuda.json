@@ -1,71 +1,10 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 210,
-    "arbitrarios": 9,
-    "espaciado": 3,
+    "tema": 0,
+    "arbitrarios": 0,
+    "espaciado": 0,
     "layout": 0
   },
-  "ficheros": {
-    "apps/web/src/App.tsx": {
-      "tema": 10,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/components/ErrorBoundary.tsx": {
-      "tema": 19,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/PaintedRaceRadio.tsx": {
-      "tema": 6,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/components/RaceRadioPanel.tsx": {
-      "tema": 58,
-      "arbitrarios": 6,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/RiderName.tsx": {
-      "tema": 3,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/ShowAll.tsx": {
-      "tema": 3,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/StageStory.tsx": {
-      "tema": 23,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
-    "apps/web/src/components/Tabs.tsx": {
-      "tema": 18,
-      "arbitrarios": 2,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/domain/stageJournal.ts": {
-      "tema": 1,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/AdminPanel.tsx": {
-      "tema": 69,
-      "arbitrarios": 1,
-      "espaciado": 0,
-      "layout": 0
-    }
-  }
+  "ficheros": {}
 }

@@ -59,6 +59,10 @@
   --color-kit-edge: rgb(0 0 0 / 0.3);
   --color-kit-edge-strong: rgb(0 0 0 / 0.35);
   --color-kit-ink: #10202f;
+  /* EL LOGOTIPO (D20, §18.3; PR 21n): una marca, no un color del sistema, y fuera de las parejas (WCAG 1.4.3
+     exime los logotipos). Sus dos colores de siempre: el trazo y la estrella. */
+  --color-logo: #4f46e5;
+  --color-logo-star: #f59e0b;
   /* HEREDADOS (index.css de hoy, l. 6-11): los borra el paso 22. */
   --color-brand-navy: #123a5c;
   --color-brand-navy-dark: #0b2740;
@@ -119,6 +123,11 @@
   --fixed-bottom: 0px;
 }
 
+/* Los cursores del perfil de `Watch` (`ProfileStrip`), que se mueven solo de sitio: su centro (PR 21n). */
+@utility transition-center {
+  transition-property: cx, cy;
+}
+
 /* Un carril que se desplaza de lado sin barra a la vista (Tabs, §4.4). */
 @utility scrollbar-none {
   scrollbar-width: none;
@@ -146,25 +155,13 @@
   --color-disabled-ink: #a3b2c3;
   --color-kit-edge: rgb(255 255 255 / 0.6);
   --color-kit-edge-strong: rgb(255 255 255 / 0.6);
+  /* el logotipo, como en la imagen de compartir (§14.7): sobre navy, el índigo de su trazo daba 1,87:1 */
+  --color-logo: #ffffff;
+  --color-logo-star: #e0a106;
   color: var(--color-ink);
 }
 
 body {
   background-color: var(--color-canvas);
   color: var(--color-ink);
-}
-
-/* La caja de una bandera (`components/Flag.tsx`; E3, docs/visual.md §12.2, PR 6): la de `.fi` de
-   `flag-icons`, sin capa como estaba, para que nada se mueva al pintar del sprite. El `::before` le da
-   el renglón de 1 em de alto, y ha de ser un espacio que no se colapsa (U+00A0, como el de `.fi`): con
-   uno normal, la caja se queda sin renglón y mide 0 de alto. */
-.flag {
-  position: relative;
-  display: inline-block;
-  width: 1.333333em;
-  line-height: 1em;
-  background-repeat: no-repeat;
-}
-.flag::before {
-  content: '\00a0';
 }

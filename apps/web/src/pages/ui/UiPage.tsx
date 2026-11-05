@@ -20,6 +20,7 @@ import { ChampionJersey } from '../../components/ui/ChampionJersey'
 import { Checkbox } from '../../components/ui/Checkbox'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
+import { Expander } from '../../components/ui/Expander'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Field } from '../../components/ui/Field'
@@ -209,6 +210,30 @@ function Botones() {
           </Button>
         </div>
       </Estado>
+      {/* el mando de una barra (PR 21n), donde vive, en el ámbito oscuro de `Watch`: encendido, apagado, uno
+          que despliega y uno deshabilitado con su porqué solo para el lector */}
+      <Estado name="control · on, off, expands, disabled (Watch, dark scope)">
+        <Oscuro>
+          <div className="flex flex-wrap items-center gap-1">
+            <Button variant="control" icon="pause" ariaLabel="Pause" />
+            <Button variant="control" pressed>
+              ×1
+            </Button>
+            <Button variant="control" pressed={false}>
+              ×2
+            </Button>
+            <Button
+              variant="control"
+              pressed={false}
+              disabledReason="Already in the last kilometre."
+              reasonHidden
+            >
+              Next action
+            </Button>
+            <Button variant="control" icon="more" ariaLabel="More" expanded={false} />
+          </div>
+        </Oscuro>
+      </Estado>
     </Demo>
   )
 }
@@ -385,6 +410,28 @@ function Porques() {
           <Disclosure showLabel="Show the 28 days" hideLabel="Hide the 28 days" defaultOpen>
             <p className="px-3 py-2 text-meta text-ink-2">Day 51 · Build · Load: steady</p>
           </Disclosure>
+        </Estado>
+      </Demo>
+      {/* la fila que se pulsa entera, la de un grupo de la barra de `Watch` (PR 21n) */}
+      <Demo name="Expander">
+        <Estado name="row · closed">
+          <Expander expanded={false} onToggle={() => {}}>
+            <span className="flex-1 text-ink">Lead group · 5 riders</span>
+            <span className="text-meta text-ink tabular-nums">+0:42</span>
+          </Expander>
+        </Estado>
+        <Estado name="row · open">
+          <Expander expanded onToggle={() => {}}>
+            <span className="flex-1 text-ink">Lead group · 5 riders</span>
+            <span className="text-meta text-ink tabular-nums">+0:42</span>
+          </Expander>
+        </Estado>
+        <Estado name="surface · on the dark scope">
+          <div data-surface="dark" className="rounded-ui bg-surface text-ink">
+            <Expander variant="surface" expanded={false} onToggle={() => {}}>
+              <span className="min-w-0 flex-1 px-3 py-2 text-display tabular-nums">98.5 km</span>
+            </Expander>
+          </div>
         </Estado>
       </Demo>
     </>

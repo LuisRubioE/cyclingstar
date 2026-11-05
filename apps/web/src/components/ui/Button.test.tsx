@@ -101,4 +101,99 @@ describe('Button', () => {
     expect(porId(b, id)).toContain('Nothing to save yet. Change a day first.')
     expect(b).not.toContain('title=')
   })
+
+  // LOS MANDOS DE UNA BARRA (E3, docs/visual.md §17.21; PR 21n): los de `Watch`, que E2 fija en un renglón.
+  it('un mando que se conmuta: variante control, con aria-pressed y su estado, encendido o apagado', () => {
+    const on = html(
+      <Button variant="control" pressed onClick={() => {}}>
+        Commentary
+      </Button>,
+    )
+    expect(on).toMatch(/^<button[^>]*data-ui="Button" data-variant="control" data-state="active"/)
+    expect(on).toContain('aria-pressed="true"')
+    const off = html(
+      <Button variant="control" pressed={false} onClick={() => {}}>
+        Commentary
+      </Button>,
+    )
+    // apagado, `inactive`, como `Segmented` y `Checkbox` (revisión del 21n)
+    expect(off).toMatch(/data-state="inactive"/)
+    expect(off).toContain('aria-pressed="false"')
+    // sin `pressed`, no es un conmutador
+    expect(html(<Button variant="control">Next</Button>)).not.toContain('aria-pressed')
+  })
+
+  it('lo que despliega: aria-expanded y aria-controls', () => {
+    const b = html(
+      <Button variant="control" icon="more" ariaLabel="More" expanded controls="hoja" />,
+    )
+    expect(b).toContain('aria-expanded="true"')
+    expect(b).toContain('aria-controls="hoja"')
+    // abierto o cerrado, como `Disclosure`, `InfoButton` y `Expander` (revisión del 21n)
+    expect(b).toContain('data-state="open"')
+    const cerrado = html(<Button ariaLabel="More" icon="more" expanded={false} />)
+    expect(cerrado).toContain('aria-expanded="false"')
+    expect(cerrado).toContain('data-state="closed"')
+  })
+
+  it('un mando que se apaga sigue siendo el mismo button: React no lo vuelve a montar y el foco se queda', () => {
+    // la revisión del 21n: con la raíz en un `span` al apagarse, React desmontaba el botón enfocado y el
+    // foco caía al `body` (Next action al entrar en el último km); con la misma raíz, lo reutiliza
+    const encendido = html(
+      <Button variant="control" pressed={false} onClick={() => {}}>
+        Next action
+      </Button>,
+    )
+    const apagado = html(
+      <Button
+        variant="control"
+        pressed={false}
+        disabledReason="Already in the last kilometre."
+        reasonHidden
+      >
+        Next action
+      </Button>,
+    )
+    for (const s of [encendido, apagado])
+      expect(s).toMatch(/^<button type="button" data-ui="Button"/)
+  })
+
+  it('deshabilitado, sigue diciendo si está encendido, si despliega y qué despliega', () => {
+    const b = html(
+      <Button
+        variant="control"
+        pressed={false}
+        expanded={false}
+        controls="hoja"
+        disabledReason="Already in the last kilometre."
+        reasonHidden
+      >
+        Next action
+      </Button>,
+    )
+    const boton = /<button[^>]*>/.exec(b)?.[0] ?? ''
+    expect(boton).toContain('aria-disabled="true"')
+    expect(boton).toContain('aria-pressed="false"')
+    expect(boton).toContain('aria-expanded="false"')
+    expect(boton).toContain('aria-controls="hoja"')
+  })
+
+  it('deshabilitado en una barra: el porqué, solo para el lector, y el mismo aria-disabled', () => {
+    const b = html(
+      <Button variant="control" disabledReason="Already at the last kilometre." reasonHidden>
+        Next action
+      </Button>,
+    )
+    // RE-SELLADO EN LA REVISIÓN DEL 21n: la raíz es el mismo `button` que encendido, y el porqué va detrás,
+    // con `hidden`: lo lee `aria-describedby`, y no se oye otra vez al recorrer la página
+    expect(b).toMatch(/^<button[^>]*data-ui="Button" data-variant="control" data-state="disabled"/)
+    expect(b).toContain('aria-disabled="true"')
+    const id = /aria-describedby="([^"]+)"/.exec(b)?.[1] ?? ''
+    expect(porId(b, id)).toContain('Already at the last kilometre.')
+    expect(b).toMatch(new RegExp(`</button><span id="${id.replace(/[:]/g, '\\:')}" hidden="">`))
+    // sin `reasonHidden`, a la vista, como siempre
+    const visible = html(<Button disabledReason="Nothing to save yet.">Save</Button>)
+    expect(visible).not.toContain('hidden=""')
+    expect(visible).toMatch(/^<span data-ui="Button"/)
+  })
 })
