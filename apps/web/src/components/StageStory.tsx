@@ -1,9 +1,11 @@
 import { JERSEY_PRIORITY, type StageReplay } from '@cyclingstar/shared'
 import { ChronicleSentence } from './ChronicleSentence'
-import { Flag } from './Flag'
 import { RiderJersey } from './Jersey'
+import { Button } from './ui/Button'
+import { Flag } from './ui/Flag'
+import { InfoButton } from './ui/InfoButton'
 import { LeaderJersey } from './ui/LeaderJersey'
-import { RiderName } from './RiderName'
+import { TextLink } from './ui/TextLink'
 import { timeTrialStory } from '../domain/stageJournal'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
@@ -21,6 +23,11 @@ import { raceTeamLabel } from '../domain/labels'
  *
  * `podium` (E2, paso 9a): `Report`, el acta de la página de etapa con `Watch` encendido, lleva el
  * resultado entero encima y no repite el podio (decisión 1 del dueño durante la implementación).
+ *
+ * Con el sistema (E3, docs/visual.md §14 y §8.3; PR 21m): solo cambia el aspecto. Las tarjetas con los
+ * tokens de la página de etapa, el porqué de `On the road today` en un `InfoButton` y no en un `title`
+ * (`ui/4`), `Full result →` en un `Button` y el podio en filas de 44, con la identidad en el orden de
+ * D-00c (la bandera, el nombre y el maillot) y el nombre en `TextLink`, con su peso de humano o de bot.
  */
 export function StageStory({
   data,
@@ -31,8 +38,8 @@ export function StageStory({
   onFullResult?: () => void
   podium?: boolean
 }) {
-  const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
-  const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
+  const card = 'rounded-ui border border-line bg-surface p-4 shadow-card'
+  const head = 'text-caption font-semibold uppercase tracking-caps text-ink-3'
   const results = data.results ?? []
   // En una carrera de un día la etapa ES la carrera: el rótulo lo dice como lo diría un periódico.
   const oneDay = data.race?.stageCount === 1
@@ -62,9 +69,9 @@ export function StageStory({
     <>
       {data.journalUnavailable && (
         <div className={card}>
-          <p className="text-sm text-slate-500">
-            The detailed journal wasn't recorded for this stage — it was raced before the chronicle
-            was saved. The result is still the official one.
+          <p className="text-meta text-ink-2">
+            The detailed journal wasn&apos;t recorded for this stage — it was raced before the
+            chronicle was saved. The result is still the official one.
           </p>
         </div>
       )}
@@ -76,7 +83,7 @@ export function StageStory({
           <h2 className={head}>Against the clock</h2>
           <ul className="mt-3 space-y-2">
             {timeTrialStory(results).map((line, i) => (
-              <li key={i} className="text-sm text-slate-700">
+              <li key={i} className="text-meta text-ink">
                 {line}
               </li>
             ))}
@@ -94,30 +101,32 @@ export function StageStory({
               pueden no coincidir; esta línea es la que lo explica, en vez de dejar que el lector
               descubra la contradicción por su cuenta. */}
           {wornToday.length > 0 && (
-            <p
-              className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500"
-              title="The jerseys as they were worn at the start of this stage — the standings after it are in Classifications."
-            >
-              <span className="text-slate-400">On the road today</span>
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-ink-2">
+              <span className="text-ink-3">On the road today</span>
               {wornToday.map((kind) => (
                 <span key={kind} className="flex items-center gap-1">
                   <LeaderJersey kind={kind} size={28} />
                   {leaderName(onRoad?.[kind])}
                 </span>
               ))}
+              {/* el porqué, que vivía en un `title` que el dedo no abre (ui/4; PR 21m) */}
+              <InfoButton label="About the jerseys on the road">
+                The jerseys as they were worn at the start of this stage — the standings after it
+                are in Classifications.
+              </InfoButton>
             </p>
           )}
           <ol className="mt-3 space-y-2">
             {data.chronicle.map((e, i) => (
-              <li key={i} className="flex gap-3 text-sm">
+              <li key={i} className="flex gap-3 text-meta">
                 {/* EL MARGEN DICE DÓNDE VA LA CARRERA, y en una crono eso no es el kilómetro sino
                     LA HORA: mientras uno cruza la meta, otro aún no ha tomado la rampa, así que la
                     crónica va ordenada por el reloj de carrera (`buildChronicle`, byClock) y la
                     columna tiene que decir lo mismo o el lector la lee como si retrocediera. */}
-                <span className="w-14 shrink-0 text-right tabular-nums text-slate-400">
+                <span className="w-14 shrink-0 text-right tabular-nums text-ink-3">
                   {data.timeTrial ? formatTime(e.tS) : `km ${e.km}`}
                 </span>
-                <span className="text-slate-700">
+                <span className="text-ink">
                   {/* Cada mención con su bandera, su maillot y su enlace (`ChronicleSentence`). */}
                   <ChronicleSentence e={e} rev={rev} />
                 </span>
@@ -132,27 +141,35 @@ export function StageStory({
           <h2 className={head}>Podium</h2>
           <ol className="mt-2 space-y-1.5">
             {results.slice(0, 3).map((r) => (
-              <li key={r.riderId} className="flex items-center gap-3 text-sm">
-                <span className="w-5 shrink-0 tabular-nums text-slate-400">{r.puesto}</span>
-                <Flag code={r.country} size={16} />
+              <li
+                key={r.riderId}
+                className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 text-meta"
+              >
+                <span className="w-5 shrink-0 tabular-nums text-ink-3">{r.puesto}</span>
+                {/* la identidad en el orden de D-00c (E3, §14.1; PR 21m): la bandera, el nombre y el
+                    maillot; el nombre, en negrita si es de un humano y en cursiva si es de un bot */}
+                <Flag country={r.country} />
+                <span
+                  data-rider={r.isBot ? 'bot' : 'human'}
+                  className={r.isBot ? 'font-normal italic' : 'font-semibold'}
+                >
+                  <TextLink to={`/world/riders/${r.riderId}`} variant="rider" inline>
+                    {r.name}
+                  </TextLink>
+                </span>
                 {/* El podio es el RESULTADO —el orden de llegada de esta tarde—, así que lleva los
                     maillots que se llevaban PUESTOS en la carretera, igual que la crónica de arriba
                     y que la tabla de `Result`. Los de después de la etapa están en
                     `Classifications`, que es la pestaña que muestra el estado nuevo. */}
                 <RiderJersey leaders={data.leaders?.onRoad} riderId={r.riderId} />
-                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                <span className="text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
+                <span className="text-caption text-ink-3">{raceTeamLabel(r.teamName)}</span>
               </li>
             ))}
           </ol>
           {onFullResult && (
-            <button
-              type="button"
-              onClick={onFullResult}
-              className="mt-2 text-sm font-medium text-brand-cyan hover:underline"
-            >
+            <Button variant="quiet" size="sm" layout="mt-2" onClick={onFullResult}>
               Full result →
-            </button>
+            </Button>
           )}
         </div>
       )}
