@@ -15,7 +15,7 @@ import { Flag } from './ui/Flag'
 import { InfoButton } from './ui/InfoButton'
 import { LeaderJersey } from './ui/LeaderJersey'
 import { FOCUS } from './ui/styles'
-import { TextLink } from './ui/TextLink'
+import { TextLink, gluedLastWord } from './ui/TextLink'
 
 /**
  * LA RACE RADIO: la carrera en UN punto del recorrido.
@@ -41,8 +41,8 @@ import { TextLink } from './ui/TextLink'
  * CON EL SISTEMA (E3, docs/visual.md §14 y §6.4; PR 21m): solo cambia el aspecto. Los tokens donde iba la
  * paleta, la letra de 12 como mínimo, los botones del catálogo y el nombre enlazado con `TextLink`. Los
  * glifos del relevo (`⏵` y `⌂`) se van, porque el rótulo de su lista ya dice lo mismo (3-d), y su porqué,
- * que vivía en un `title`, pasa a un `InfoButton` junto al título (`ui/4`). El nombre ya no se corta: la
- * fila parte y crece; lo que se corta, con `data-clip-ok`, es el equipo y el motivo.
+ * que vivía en un `title`, pasa a un `InfoButton` junto al título (`ui/4`). Nada se corta: la fila parte
+ * y crece, y la bandera, el nombre y el maillot van juntos, como en `RiderLabel` (D-00c).
  */
 
 /**
@@ -213,8 +213,6 @@ function RiderLine({ r }: { r: RadioRider }) {
     <li className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-caption">
       {/* el orden de D-00c (E3, §14.1; PR 17a): el dorsal, la bandera, el nombre y el maillot */}
       <span className="w-7 shrink-0 text-right tabular-nums text-ink-3">{r.bib ?? ''}</span>
-      {/* sin país, la `Flag` del catálogo deja el hueco de su ancho, que no se lee */}
-      <Flag country={r.country} height={12} />
       {/* El nombre lleva a su ficha (v58): «cuando salga el nombre de un ciclista que tenga enlace
           a su ficha». Sin id —una etapa congelada de alguien que ya no está— se lee igual, sin
           enlace, que es mejor que un enlace roto. */}
@@ -225,28 +223,28 @@ function RiderLine({ r }: { r: RadioRider }) {
         el nombre y salía «R… B…». En el grupo de cabeza no pasaba porque «working the break» es
         corto, que es lo que hacía que pareciera cosa del grupo.
         La prioridad es la de una tabla de carrera: primero quién, después para qué.
-        Desde el PR 21m (E3, §6.4) el nombre de un corredor nunca se corta: la fila parte de línea.
+        Desde el PR 21m (E3, §6.4) no se corta nada, tampoco el motivo, que suele acabar en un
+        nombre: la fila parte de línea. La bandera, el nombre y el maillot, siempre juntos (D-00c),
+        como en `RiderLabel`: en `nowrap`, y el nombre parte por sus espacios salvo en su última
+        palabra, pegada al maillot. Sin país, la `Flag` deja el hueco de su ancho, que no se lee.
       */}
-      <span className="min-w-0 break-words text-ink">
+      <span className="min-w-0 whitespace-nowrap text-ink">
+        <Flag country={r.country} height={12} layout="mr-1" />
         {r.id ? (
-          <TextLink to={`/world/riders/${r.id}`} variant="rider" inline>
+          <TextLink to={`/world/riders/${r.id}`} variant="rider" inline glueEnd>
             {r.name}
           </TextLink>
         ) : (
-          r.name
+          gluedLastWord(r.name)
+        )}
+        {r.jersey && (
+          <span className="ml-1 inline-flex align-middle">
+            <LeaderJersey kind={r.jersey} size={28} />
+          </span>
         )}
       </span>
-      {r.jersey && <LeaderJersey kind={r.jersey} size={28} />}
-      {r.team && (
-        <span data-clip-ok="" className="min-w-0 truncate text-ink-3">
-          {r.team}
-        </span>
-      )}
-      {motivo && (
-        <span data-clip-ok="" className="ml-auto min-w-0 truncate text-ink-3 italic">
-          {motivo}
-        </span>
-      )}
+      {r.team && <span className="min-w-0 break-words text-ink-3">{r.team}</span>}
+      {motivo && <span className="ml-auto min-w-0 break-words text-ink-3 italic">{motivo}</span>}
     </li>
   )
 }
@@ -346,10 +344,11 @@ function GroupCard({ g, name, position }: { g: RadioGroup; name: string; positio
 }
 
 /**
- * LOS SALTOS, CON EL `Button` DEL CATÁLOGO (PR 21m): su texto y cuántos km mueve. En un borde ya no se
- * deshabilitan: el catálogo solo deshabilita con su porqué escrito debajo, que saldría repetido en tres
- * botones, y quitarlos movería el de al lado bajo el dedo. Allí no hacen nada, como antes, porque `step`
- * no sale de la etapa.
+ * LOS SALTOS, CON EL `Button` DEL CATÁLOGO (PR 21m): su texto y cuántos km mueve. Antes, en un borde, los
+ * que no podían moverse estaban `disabled` y no se podían pulsar. Ahora es una decisión: no se
+ * deshabilitan, porque deshabilitar pide su porqué a la vista (§4.1), que saldría repetido bajo tres
+ * botones, y quitarlos movería el de al lado bajo el dedo. Se pueden pulsar y no mueven la foto, porque
+ * `step` no sale de la etapa.
  */
 const JUMPS: readonly (readonly [string, number])[] = [
   ['−20', -20],

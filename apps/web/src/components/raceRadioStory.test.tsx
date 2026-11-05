@@ -14,7 +14,7 @@ import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
-import { PALETA, cuantas, pieza } from '../pages/__fixtures__/markup'
+import { PALETA, cuantas, elementoEn, pieza } from '../pages/__fixtures__/markup'
 import { PaintedRaceRadio } from './PaintedRaceRadio'
 import { RaceRadioPanel, radioGroupNames } from './RaceRadioPanel'
 import { StageStory } from './StageStory'
@@ -57,6 +57,18 @@ const maillots = (markup: string): number[] =>
   [...markup.matchAll(/<svg[^>]*data-kit="leader-[^"]*"[^>]*width="(\d+)"/g)].map((m) =>
     Number(m[1]),
   )
+
+/**
+ * La identidad de un corredor, entera: el elemento que abre justo antes de su bandera (la `Flag` del
+ * catálogo, la primera que sigue a `desde`), con lo que lleva dentro.
+ */
+const identidad = (markup: string, desde: number): string => {
+  const bandera = markup.indexOf('<span data-ui="Flag"', desde)
+  return bandera < 0 ? '' : elementoEn(markup, markup.lastIndexOf('<span class="', bandera))
+}
+
+/** La etiqueta de apertura de un elemento entero. */
+const apertura = (elemento: string): string => /^<[^>]*>/.exec(elemento)?.[0] ?? ''
 
 /** Los roles del marcado: solo los de las banderas y los maillots, como hoy. */
 const roles = (markup: string): string[] => [
@@ -178,6 +190,30 @@ describe('RaceRadioPanel con el sistema (21m)', () => {
     // hasta lo pintado, sin Finish (11-i)
     expect(cuantas(painted, /data-ui="Button"/)).toBe(6)
     expect(texto(painted)).not.toContain('Finish')
+  })
+
+  it('en los bordes, los saltos no se deshabilitan: deshabilitar pide su porqué a la vista (§4.1)', () => {
+    // la radio abre en la salida, así que los tres de atrás están en su borde
+    for (const t of ['−20', '−5', '◀ km', 'km ▶', '+5', '+20']) {
+      const boton = pieza(markup, 'Button', `>${t}<`)
+      expect(apertura(boton), t).toContain('data-state="ready"')
+      expect(boton, t).not.toMatch(/\sdisabled|aria-disabled/)
+    }
+  })
+
+  it('la bandera, el nombre y el maillot, juntos en un nowrap (D-00c), y nada cortado (§6.4)', () => {
+    const fila = identidad(markup, markup.indexOf('>21<'))
+    expect(apertura(fila)).toMatch(/\bwhitespace-nowrap\b/)
+    for (const s of ['aria-label="Spain"', 'href="/world/riders/r1"', 'data-kit="leader-kom"'])
+      expect(fila, s).toContain(s)
+    // el nombre parte por sus espacios salvo en su última palabra, pegada al maillot (`glueEnd`),
+    // y se lee entero (sin el `<title>` del maillot)
+    expect(texto(fila.replace(/<svg[\s\S]*?<\/svg>/g, ''))).toBe('Ana Ruiz')
+    // sin enlace, igual
+    expect(texto(identidad(markup, markup.indexOf('>45<')))).toBe('Carla Gil')
+    // ni el nombre, ni el equipo, ni el motivo, que suele acabar en un nombre, se cortan
+    expect(markup).not.toContain('data-clip-ok')
+    expect(markup).not.toMatch(/class="[^"]*\btruncate\b/)
   })
 
   it('los glifos del relevo se van (3-d) y su porqué va en un InfoButton (ui/4)', () => {
@@ -326,8 +362,29 @@ describe('StageStory con el sistema (21m)', () => {
     )
     expect(donde.every((i) => i >= 0)).toBe(true)
     expect([...donde].sort((a, b) => a - b)).toEqual(donde)
-    expect(markup).toContain('data-rider="human"')
-    expect(markup).toContain('data-rider="bot"')
+  })
+
+  it('el podio, fila a fila: la identidad junta (D-00c) y el peso de humano o de bot', () => {
+    const filas = markup.split('<li').filter((li) => /data-rider=/.test(li))
+    expect(filas.map((li) => /data-rider="([a-z]+)"/.exec(li)?.[1])).toEqual([
+      'human',
+      'bot',
+      'bot',
+    ])
+    for (const li of filas) {
+      const peso = /data-rider="[a-z]+" class="([^"]*)"/.exec(li)?.[1] ?? ''
+      if (li.includes('data-rider="human"')) expect(peso).toMatch(/\bfont-semibold\b/)
+      else expect(peso).toMatch(/\bitalic\b/)
+      // la bandera, el nombre y el maillot, en una fila flexible que no parte
+      const junta = identidad(li, 0)
+      expect(apertura(junta)).toMatch(/\binline-flex\b/)
+      expect(apertura(junta)).not.toMatch(/\bflex-wrap\b/)
+      expect(junta).toContain('aria-label="Spain"')
+      expect(junta).toMatch(/<a [^>]*>Corredor [a-z]+<\/a>/)
+    }
+    expect(identidad(filas[1] ?? '', 0)).toContain('aria-label="Race leader"')
+    expect(markup).not.toContain('data-clip-ok')
+    expect(markup).not.toMatch(/class="[^"]*\btruncate\b/)
   })
 
   it('los textos de hoy, intactos', () => {

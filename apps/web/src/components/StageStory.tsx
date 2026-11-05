@@ -1,6 +1,5 @@
-import { JERSEY_PRIORITY, type StageReplay } from '@cyclingstar/shared'
+import { JERSEY_PRIORITY, type StageReplay, jerseyOf } from '@cyclingstar/shared'
 import { ChronicleSentence } from './ChronicleSentence'
-import { RiderJersey } from './Jersey'
 import { Button } from './ui/Button'
 import { Flag } from './ui/Flag'
 import { InfoButton } from './ui/InfoButton'
@@ -27,7 +26,8 @@ import { raceTeamLabel } from '../domain/labels'
  * Con el sistema (E3, docs/visual.md §14 y §8.3; PR 21m): solo cambia el aspecto. Las tarjetas con los
  * tokens de la página de etapa, el porqué de `On the road today` en un `InfoButton` y no en un `title`
  * (`ui/4`), `Full result →` en un `Button` y el podio en filas de 44, con la identidad en el orden de
- * D-00c (la bandera, el nombre y el maillot) y el nombre en `TextLink`, con su peso de humano o de bot.
+ * D-00c (la bandera, el nombre y el maillot, siempre juntos, como en `RiderLabel`) y el nombre en
+ * `TextLink`, con su peso de humano o de bot.
  */
 export function StageStory({
   data,
@@ -39,7 +39,7 @@ export function StageStory({
   podium?: boolean
 }) {
   const card = 'rounded-ui border border-line bg-surface p-4 shadow-card'
-  const head = 'text-caption font-semibold uppercase tracking-caps text-ink-3'
+  const head = 'text-caption font-semibold uppercase tracking-caps text-ink-2'
   const results = data.results ?? []
   // En una carrera de un día la etapa ES la carrera: el rótulo lo dice como lo diría un periódico.
   const oneDay = data.race?.stageCount === 1
@@ -65,6 +65,17 @@ export function StageStory({
   // entre las que existían cuando se corrió. La sirven el acta (`/report`) y el paquete de meta; la
   // ruta de etapa no, y sin ella vale 0, la de toda etapa corrida hasta hoy.
   const rev = data.tplRev ?? 0
+  /** El maillot que llevaba en la carretera, junto a su nombre como en `RiderLabel`; sin él, nada. */
+  const podiumJersey = (riderId: string) => {
+    const kind = jerseyOf(data.leaders?.onRoad, riderId)
+    return (
+      kind !== null && (
+        <span className="ml-1 inline-flex align-middle">
+          <LeaderJersey kind={kind} size={28} />
+        </span>
+      )
+    )
+  }
   return (
     <>
       {data.journalUnavailable && (
@@ -146,22 +157,32 @@ export function StageStory({
                 className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 text-meta"
               >
                 <span className="w-5 shrink-0 tabular-nums text-ink-3">{r.puesto}</span>
-                {/* la identidad en el orden de D-00c (E3, §14.1; PR 21m): la bandera, el nombre y el
-                    maillot; el nombre, en negrita si es de un humano y en cursiva si es de un bot */}
-                <Flag country={r.country} />
-                <span
-                  data-rider={r.isBot ? 'bot' : 'human'}
-                  className={r.isBot ? 'font-normal italic' : 'font-semibold'}
-                >
-                  <TextLink to={`/world/riders/${r.riderId}`} variant="rider" inline>
-                    {r.name}
-                  </TextLink>
+                {/* la identidad en el orden de D-00c (E3, §14.1; PR 21m), siempre junta: la bandera, el
+                    nombre y el maillot en una fila flexible que no parte, y el nombre parte por sus
+                    espacios dentro de su caja. Sin el `glueEnd` de `RiderLabel`, que partiría el texto
+                    del enlace en dos nodos: `stageStoryJerseys.test.tsx` lee el nombre del podio como
+                    el texto entero de su enlace. En negrita si es de un humano, en cursiva si es de un
+                    bot. */}
+                <span className="inline-flex min-w-0 items-center">
+                  <Flag country={r.country} layout="mr-1" />
+                  <span
+                    data-rider={r.isBot ? 'bot' : 'human'}
+                    className={
+                      r.isBot
+                        ? 'min-w-0 break-words font-normal italic'
+                        : 'min-w-0 break-words font-semibold'
+                    }
+                  >
+                    <TextLink to={`/world/riders/${r.riderId}`} variant="rider" inline>
+                      {r.name}
+                    </TextLink>
+                  </span>
+                  {/* El podio es el RESULTADO (el orden de llegada de esta tarde), así que lleva los
+                      maillots que se llevaban PUESTOS en la carretera, igual que la crónica de arriba
+                      y que la tabla de `Result`. Los de después de la etapa están en
+                      `Classifications`, que es la pestaña que muestra el estado nuevo. */}
+                  {podiumJersey(r.riderId)}
                 </span>
-                {/* El podio es el RESULTADO —el orden de llegada de esta tarde—, así que lleva los
-                    maillots que se llevaban PUESTOS en la carretera, igual que la crónica de arriba
-                    y que la tabla de `Result`. Los de después de la etapa están en
-                    `Classifications`, que es la pestaña que muestra el estado nuevo. */}
-                <RiderJersey leaders={data.leaders?.onRoad} riderId={r.riderId} />
                 <span className="text-caption text-ink-3">{raceTeamLabel(r.teamName)}</span>
               </li>
             ))}

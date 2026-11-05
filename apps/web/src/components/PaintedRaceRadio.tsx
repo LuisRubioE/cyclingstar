@@ -55,7 +55,7 @@ export function PaintedRaceRadio({
   if (radio.kms.length === 0)
     return (
       <div className="rounded-ui border border-line bg-surface p-4 shadow-card">
-        <h2 className="text-caption font-semibold tracking-caps text-ink-3 uppercase">
+        <h2 className="text-caption font-semibold tracking-caps text-ink-2 uppercase">
           Race Radio
         </h2>
         <EmptyState
