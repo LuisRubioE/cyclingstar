@@ -1,0 +1,60 @@
+{
+  "route": "GET /api/teams/me/calendar",
+  "url": "/api/teams/me/calendar",
+  "status": 200,
+  "body": {
+    "calendar": {
+      "teamId": "74df4318-905f-4275-9cdf-75f1d9f57a42",
+      "teamName": "Noord Cycling",
+      "teamCountry": "BE",
+      "budget": 6173210,
+      "weeklyIncome": 26000,
+      "weeklyWages": 25220,
+      "weeklyNet": 780,
+      "races": [
+        {
+          "raceId": "race-opening-classic",
+          "name": "Race Opening Classic",
+          "country": "BE",
+          "startDay": 59,
+          "level": "WT",
+          "raceClass": "WT",
+          "format": "un-dia",
+          "travelPerRider": 0,
+          "squad": 7,
+          "drafted": true,
+          "natural": true,
+          "travelTier": "home"
+        },
+        {
+          "raceId": "race-ardeche",
+          "name": "Race Ardèche",
+          "country": "FR",
+          "startDay": 59,
+          "level": "PRS",
+          "raceClass": "Pro",
+          "format": "un-dia",
+          "travelPerRider": 48,
+          "squad": 7,
+          "drafted": false,
+          "natural": false,
+          "travelTier": "continental"
+        },
+        {
+          "raceId": "race-drome",
+          "name": "Race Drôme",
+          "country": "FR",
+          "startDay": 60,
+          "level": "PRS",
+          "raceClass": "Pro",
+          "format": "un-dia",
+          "travelPerRider": 48,
+          "squad": 7,
+          "drafted": false,
+          "natural": false,
+          "travelTier": "continental"
+        }
+      ]
+    }
+  }
+}

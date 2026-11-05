@@ -1,0 +1,49 @@
+{
+  "route": "GET /api/riders/me/trend",
+  "url": "/api/riders/me/trend",
+  "status": 200,
+  "body": {
+    "trend": [
+      {
+        "attr": "RES",
+        "arrow": "sube_mucho"
+      },
+      {
+        "attr": "REC",
+        "arrow": "sube_mucho"
+      },
+      {
+        "attr": "LLA",
+        "arrow": "sube_mucho"
+      },
+      {
+        "attr": "MON",
+        "arrow": "sube_mucho"
+      },
+      {
+        "attr": "COL",
+        "arrow": "igual"
+      },
+      {
+        "attr": "CRI",
+        "arrow": "igual"
+      },
+      {
+        "attr": "SPR",
+        "arrow": "igual"
+      },
+      {
+        "attr": "DES",
+        "arrow": "igual"
+      },
+      {
+        "attr": "PAV",
+        "arrow": "igual"
+      },
+      {
+        "attr": "TAC",
+        "arrow": "igual"
+      }
+    ]
+  }
+}

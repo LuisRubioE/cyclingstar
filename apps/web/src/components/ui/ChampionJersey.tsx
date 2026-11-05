@@ -4,7 +4,7 @@ import {
   CHAMPION_STAR_EDGE,
   COLLAR,
   COUNTRY_NAMES,
-  type ChampionTitle,
+  type ChampionTitleView,
   type KitBigSize,
   type KitSize,
   LOGO_STAR,
@@ -63,7 +63,7 @@ const STAR_SCALE = WORLD_STAR.widthU / 22
 export type ChampionSponsors = Partial<Readonly<Record<'back' | 'sleeves', SponsorMark>>>
 
 type ChampionCommon = {
-  readonly title: ChampionTitle
+  readonly title: ChampionTitleView
   /** sin ella, el filete sigue al tema (el token kit-edge-strong) */
   readonly surface?: KitSurface
   readonly sponsors?: ChampionSponsors

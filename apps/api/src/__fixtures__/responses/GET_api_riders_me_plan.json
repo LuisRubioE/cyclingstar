@@ -1,0 +1,15 @@
+{
+  "route": "GET /api/riders/me/plan",
+  "url": "/api/riders/me/plan",
+  "status": 200,
+  "body": {
+    "mode": "mixto",
+    "plan": {
+      "startDay": 51,
+      "blocks": ["construccion", "especifico", "afinado", "recuperacion"],
+      "focusAttr": null,
+      "intensity": "normal"
+    },
+    "currentDay": 50
+  }
+}

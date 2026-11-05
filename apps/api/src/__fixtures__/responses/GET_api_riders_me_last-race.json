@@ -1,0 +1,17 @@
+{
+  "route": "GET /api/riders/me/last-race",
+  "url": "/api/riders/me/last-race",
+  "status": 200,
+  "body": {
+    "report": null,
+    "ready": {
+      "raceName": "Race Jaén",
+      "season": 0,
+      "stageDay": 1,
+      "stageCount": 1,
+      "km": 191,
+      "label": "Hills",
+      "stageKind": "media"
+    }
+  }
+}

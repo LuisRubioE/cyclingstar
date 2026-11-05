@@ -13,7 +13,6 @@ const report = (over: Partial<RiderRaceReport> = {}): RiderRaceReport => ({
   timeGapToWinnerS: 120,
   sprintPoints: 0,
   komPoints: 0,
-  bonusS: 0,
   winnerName: 'Ana',
   personalEvents: [],
   story: [],

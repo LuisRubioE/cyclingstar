@@ -1,9 +1,11 @@
 import { anonHorizon, computeHorizon } from '@cyclingstar/db'
+import { fitnessFactor } from '@cyclingstar/engine'
 import { pageTitle } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { stageReadyEmail } from './emails.js'
 import { preStageInfoFor, shellMetaFor } from './spaShell.js'
 import {
+  CANARY_POST_READS,
   OWN_RIDER,
   RACE_ID,
   RACE_KEY,
@@ -15,7 +17,9 @@ import {
   serverErrors,
   startSpoilerWorld,
   sweep,
+  sweepPostReads,
 } from './__fixtures__/spoilerWorld.js'
+import { excused } from './frontera.js'
 
 /**
  * B1a · EL CANARIO (docs/retransmision.md §16.3; I-30, D-54; E2, paso 7a). Suite rápida.
@@ -78,6 +82,43 @@ async function plantCanary(w: SpoilerWorld): Promise<void> {
   await w.t
     .client`update news set data = jsonb_set(data, '{stageDay}', ${String(CANARY.stageDay)}::jsonb) where game_day = ${day} and data ? 'stageDay'`
 }
+
+/**
+ * LOS TESTIGOS DE LA FRONTERA (E3, docs/visual.md §13.2, punto 4; I-09; PR 19a): tres números internos que
+ * ninguna respuesta puede devolver con esa cifra. Hasta el 19b los dejaba salir `FRONTERA_SIN_USO`, cada uno
+ * en su hoja; desde el 19b cruzan solo en su forma de pantalla. Una regla de nombres sola no basta: un
+ * campo con decimales y otro nombre la pasa, y esto lo caza. Con la hoja por la que salían.
+ */
+const FRONTERA = [
+  {
+    what: 'el MON visible',
+    value: 63.4172,
+    re: /(?<![0-9])63\.4172(?![0-9])/,
+    field: 'rider.attributes.MON',
+  },
+  {
+    what: 'el ctl del diario',
+    value: 61.98765,
+    re: /(?<![0-9])61\.98765(?![0-9])/,
+    field: 'log[].ctl',
+  },
+  {
+    what: 'la moral',
+    value: 57.31415,
+    re: /(?<![0-9])57\.31415(?![0-9])/,
+    field: 'summary.morale',
+  },
+] as const
+
+async function plantFrontera(w: SpoilerWorld): Promise<void> {
+  const [mon, ctl, moral] = FRONTERA
+  await w.t
+    .client`update rider_attrs set value = ${mon.value} where rider_id = ${OWN_RIDER} and attr = 'MON'`
+  await w.t
+    .client`update rider_daily_log set ctl = ${ctl.value} where rider_id = ${OWN_RIDER} and game_day = (select max(game_day) from rider_daily_log where rider_id = ${OWN_RIDER})`
+  await w.t.client`update riders set morale = ${moral.value} where id = ${OWN_RIDER}`
+}
+
 const leaking = (bodies: ReadonlyMap<string, Swept>): string[] =>
   [...bodies].filter(([, r]) => TOKENS.some((t) => t.test(r.body))).map(([k]) => k)
 
@@ -93,6 +134,7 @@ describe('B1a · el canario', () => {
     w = await startSpoilerWorld('b1a-base')
     await w.runVeiled('b1a-velada')
     await plantCanary(w)
+    await plantFrontera(w)
     const winner = await w.winner()
     w.extraRiders.push(winner) // su ficha es la que más tendría que contar
     winnerName = (
@@ -110,6 +152,37 @@ describe('B1a · el canario', () => {
 
   it('ninguna respuesta del barrido es un 5xx: un 500 no cuenta ni destripa, es un banco que no ha mirado', async () => {
     expect(serverErrors(await veiledSweep())).toEqual([])
+  })
+
+  it('las POST de lectura, también: ni cuentan el desenlace ni dan un 5xx (CANARY_POST_READS, 13-d)', async () => {
+    const posts = await sweepPostReads(w)
+    expect([...posts.keys()].map(routeOf).sort()).toEqual([...CANARY_POST_READS.keys()].sort())
+    expect(leaking(posts)).toEqual([])
+    expect(serverErrors(posts)).toEqual([])
+    for (const route of CANARY_POST_READS.keys())
+      expect(w.app.spoilerRegistry.get(route)?.method).toBe('POST')
+  })
+
+  it('los testigos de la frontera no salen en ninguna respuesta, y cruzan en su forma de pantalla (§13.2; 19b)', async () => {
+    const bodies = new Map([...(await veiledSweep()), ...(await sweepPostReads(w))])
+    const fuera = FRONTERA.flatMap((t) =>
+      [...bodies]
+        .filter(([k, r]) => t.re.test(r.body) && !excused(routeOf(k), t.field))
+        .map(([k]) => `${t.what}: ${k}`),
+    )
+    expect(fuera).toEqual([])
+    // no vacío: los tres están plantados, y cada uno llega a la pantalla en su forma
+    const cuerpo = (route: string): unknown => {
+      const r = [...bodies].find(([k]) => routeOf(k) === route)
+      return r === undefined ? null : JSON.parse(r[1].body)
+    }
+    const me = cuerpo('GET /api/riders/me') as { rider: { attributes: Record<string, unknown> } }
+    // 63,4172: tres estrellas, en el segundo cuarto de su banda
+    expect(me.rider.attributes.MON).toEqual({ stars: 3, mark: 1 })
+    const form = cuerpo('GET /api/riders/me/form') as { log: { fitness: number }[] }
+    expect(form.log.at(-1)?.fitness).toBe(Math.round(100 * fitnessFactor(61.98765)))
+    const summary = cuerpo('GET /api/riders/me/summary') as { summary: { moraleStars: number } }
+    expect(summary.summary.moraleStars).toBe(3)
   })
 
   it('ni el título, ni las og:, ni el aviso llevan al ganador; el robot sin cookie sí lo ve en el acta, marcado', async () => {

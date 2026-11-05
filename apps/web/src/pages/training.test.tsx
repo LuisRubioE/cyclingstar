@@ -4,7 +4,7 @@ import {
   type PlanPreview,
   type PlanPreviewDay,
   type PlanPreviewRace,
-  type PublicRider,
+  type MyRider,
   type TeamTraining,
 } from '@cyclingstar/shared'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -26,14 +26,15 @@ import { healthWith } from './__fixtures__/world'
 
 const key = (...base: unknown[]) => horizonKey(base, 'world')
 
-const RIDER: PublicRider = {
+const RIDER: MyRider = {
   id: 'r1',
   name: 'José Quintáns',
   country: 'ES',
   gender: 'M',
   archetype: 'escalada',
-  birthSeason: 1,
-  attributes: Object.fromEntries(ATTRIBUTES.map((a) => [a, 60])) as PublicRider['attributes'],
+  attributes: Object.fromEntries(
+    ATTRIBUTES.map((a) => [a, { stars: 3, mark: 1 }]),
+  ) as MyRider['attributes'],
 }
 
 const VAR: PlanPreviewRace = {
@@ -151,7 +152,6 @@ function mundo(mode: TrainingPlanResponse['mode']) {
       blocks: [...BLOQUES],
       focusAttr: null,
       intensity: 'normal',
-      goalRaceId: null,
     },
     currentDay: 50,
   }

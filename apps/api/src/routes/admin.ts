@@ -17,7 +17,17 @@ import {
   worldHorizon,
 } from '@cyclingstar/db'
 import { type StageInput, checkReplay } from '@cyclingstar/engine'
-import { currentSeason, kitRevertBodySchema, kitRevertResponseSchema } from '@cyclingstar/shared'
+import {
+  currentSeason,
+  kitRevertBodySchema,
+  kitRevertResponseSchema,
+  adminUsersResponseSchema,
+  adminWhoamiResponseSchema,
+  blocklistAddResponseSchema,
+  blocklistResponseSchema,
+  okResponseSchema,
+  worldHealthResponseSchema,
+} from '@cyclingstar/shared'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { badRequest, notFound, sendError } from '../http.js'
@@ -63,7 +73,13 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
   */
   app.get(
     '/api/admin/whoami',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    {
+      config: {
+        response: { 200: adminWhoamiResponseSchema },
+        spoiler: 'horizon',
+        veil: ADMIN_VEIL,
+      },
+    },
     async (request, reply) => {
       const actor = await requireAdmin(request, reply)
       if (!actor) return
@@ -74,7 +90,9 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
   // Cuentas (panel de administración): listar con búsqueda por correo, cambiar y borrar.
   app.get<{ Querystring: { q?: string } }>(
     '/api/admin/users',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    {
+      config: { response: { 200: adminUsersResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL },
+    },
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       const q = userSearchSchema.safeParse(request.query.q)
@@ -85,7 +103,7 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
 
   app.patch<{ Params: { id: string } }>(
     '/api/admin/users/:id',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
     async (request, reply) => {
       const actor = await requireAdmin(request, reply)
       if (!actor) return
@@ -103,7 +121,7 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
 
   app.delete<{ Params: { id: string } }>(
     '/api/admin/users/:id',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
     async (request, reply) => {
       const actor = await requireAdmin(request, reply)
       if (!actor) return
@@ -156,7 +174,9 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
   // "Base secreta" no enlazada en la web.
   app.get<{ Querystring: { kind?: string } }>(
     '/api/admin/blocklist',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    {
+      config: { response: { 200: blocklistResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL },
+    },
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       const kind = kindSchema.safeParse(request.query.kind)
@@ -167,7 +187,13 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
 
   app.post(
     '/api/admin/blocklist',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    {
+      config: {
+        response: { 200: blocklistAddResponseSchema, 201: blocklistAddResponseSchema },
+        spoiler: 'horizon',
+        veil: ADMIN_VEIL,
+      },
+    },
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       const parsed = addSchema.safeParse(request.body)
@@ -180,7 +206,7 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
 
   app.delete<{ Params: { id: string } }>(
     '/api/admin/blocklist/:id',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       const id = z.string().uuid().safeParse(request.params.id)
@@ -196,8 +222,7 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
   app.post<{ Params: { id: string } }>(
     '/api/admin/teams/:id/kit/revert',
     {
-      config: { spoiler: 'horizon', veil: ADMIN_VEIL },
-      schema: { response: { 200: kitRevertResponseSchema } },
+      config: { response: { 200: kitRevertResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL },
     },
     async (request, reply) => {
       const actor = await requireAdmin(request, reply)
@@ -218,7 +243,13 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
   // Salud del mundo para el panel de admin (#84): día, censo y últimos ticks. Solo lectura.
   app.get(
     '/api/admin/health',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    {
+      config: {
+        response: { 200: worldHealthResponseSchema },
+        spoiler: 'horizon',
+        veil: ADMIN_VEIL,
+      },
+    },
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       return { ok: true, health: await getWorldHealth(db) }
@@ -228,7 +259,7 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
   // Concede/retira premium por email (admin). Premium habilita tomar el control de un equipo bot.
   app.post(
     '/api/admin/premium',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       const parsed = premiumSchema.safeParse(request.body)
@@ -238,6 +269,34 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       return { ok: true }
     },
   )
+
+  /**
+   * Lo que devuelve el snapshot (E3, docs/visual.md §13.2; 19a): lo lee la radio (`scripts/race-radio.mjs`),
+   * no la web. `input` es la entrada entera del motor y cruza tal cual, porque reconstruir la etapa es
+   * justo para lo que sirve, y por eso va tras el token de administración.
+   */
+  const stageSnapshotResponseSchema = z.object({
+    ok: z.literal(true),
+    raceKey: z.string(),
+    stageDay: z.number().int(),
+    seed: z.string(),
+    engineVersion: z.number().int(),
+    input: z.unknown(),
+    replay: z.object({
+      faithful: z.boolean(),
+      ranWith: z.number().int(),
+      today: z.number().int(),
+    }),
+    riders: z.array(
+      z.object({
+        riderId: z.string(),
+        name: z.string(),
+        country: z.string(),
+        teamName: z.string().nullable(),
+        bib: z.number().int().nullable(),
+      }),
+    ),
+  })
 
   /**
    * EL SNAPSHOT DE UNA ETAPA CORRIDA: la semilla, la entrada y la versión del motor con que corrió.
@@ -258,7 +317,13 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
    */
   app.get<{ Params: { raceId: string; day: string }; Querystring: { season?: string } }>(
     '/api/admin/stage-snapshot/:raceId/:day',
-    { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
+    {
+      config: {
+        response: { 200: stageSnapshotResponseSchema },
+        spoiler: 'horizon',
+        veil: ADMIN_VEIL,
+      },
+    },
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       const raceId = parseRaceId(request.params.raceId)

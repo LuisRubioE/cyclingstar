@@ -6,9 +6,20 @@
  * con estos esquemas, así un cambio de campo en el backend falla en el borde con un mensaje claro
  * en vez de propagarse como `undefined` por la interfaz.
  *
+ * LA REGLA DE LA FRONTERA (E3, docs/visual.md §13.1; D-53):
+ *
+ * > Toda respuesta de la API es un subconjunto de lo que una pantalla enseña a quien la pide, en su forma
+ * > de pantalla. Un número interno (un atributo con decimales, CTL, ATL, TSB, TSS, un techo, el talento,
+ * > la fragilidad, la moral exacta) no cruza nunca; cruza su estrella, su tramo, su palabra, su barra de 0
+ * > a 100 o su flecha. Las excepciones van en una lista con su motivo y su PR de salida, y la lista solo
+ * > encoge.
+ *
+ * Desde el 19a, cada ruta declara su esquema de respuesta (`config.response`) y el serializador de la API
+ * quita lo que no declara, a cualquier profundidad; la lista es `FRONTERA_SIN_USO` (`apps/api/src/frontera.ts`).
+ *
  * Convenciones:
- * - Los objetos son "strip" por defecto (Zod ignora campos extra): añadir un campo en la API nunca
- *   rompe la web.
+ * - Los objetos son "strip" por defecto (Zod ignora campos extra): un campo de más no rompe la web, y desde
+ *   el 19a tampoco sale de la API. Un esquema de respuesta nunca lleva `.strict()` (§13.3).
  * - `.optional()` solo donde la API puede NO enviar el campo (ramas sin mundo, respuestas parciales).
  * - Los vocabularios internos del dominio siguen en español (roles, mentalidades…), como en el motor.
  */
@@ -17,14 +28,32 @@ import { z } from 'zod'
 // Solo tipos (14-a): `import type` se borra al compilar y este fichero no carga nada de broadcast/.
 import type { StageRef } from './broadcast/timeline.js'
 import type { PreStageInfo, StageGate, SwitchMode, WatchState } from './broadcast/wire.js'
-import type { ChampionTitle, RaceLeaders } from './jerseys.js'
+import type { ChampionTitle, ChampionTitleView, RaceLeaders } from './jerseys.js'
 import { BIB_STYLES, kitCodeSchema } from './kit.js'
-import { newsPayloadSchema } from './news.js'
-import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
+import { newsPayloadViewSchema } from './news.js'
+import { maxMatchCount } from './engineCopies.js'
+import { ATTRIBUTES, GENDERS, HEALTH_STATES, VOCATIONS } from './rider.js'
 import { INTENSITIES, SESSIONS } from './training.js'
 import { TRAINING_DAY_SOURCES } from './trainingDay.js'
 
 // --- Piezas comunes ------------------------------------------------------------------------
+
+// La resolución en el tipo (E3, docs/visual.md §13.2; D-54; PR 19a): un campo que la pantalla pinta como
+// estrellas, barra, flecha, marca o carga en palabras se declara con su forma, y un `63.4172` no pasa el
+// contrato. Desde el 19b los llevan los atributos, la condición, la flecha y la moral.
+
+/** Medias estrellas de 0 a 5: lo que pinta StarRating (`attrStars`, rider.ts). */
+export const starsSchema = z.number().multipleOf(0.5).min(0).max(5)
+/** Una barra entera de 0 a 100: lo que pinta Meter (fondo y frescura, `condition.ts`). */
+export const barSchema = z.number().int().min(0).max(100)
+/** La flecha de 28 días, en sus cinco niveles: los códigos de `TREND_ARROW_CODE` (rider.ts; 13-a). */
+export const arrowSchema = z.enum(['sube_mucho', 'sube', 'igual', 'baja', 'baja_mucho'])
+/** El código de la flecha de 28 días. */
+export type TrendCode = z.infer<typeof arrowSchema>
+/** El cuarto de banda de un atributo propio, de 0 a 3 (`attrProgress`; 13-b). */
+export const markSchema = z.number().int().min(0).max(3)
+/** La carga de un día en palabras, de `Rest` (0) a `Very hard` (4): `loadLevelOf`. Nunca un TSS (13b). */
+export const loadLevelSchema = z.number().int().min(0).max(4)
 
 /**
  * EL MAILLOT DE UN EQUIPO UN DÍA (E3, docs/visual.md §8.5; PR 16b): su código, o `null` mientras la
@@ -46,7 +75,18 @@ export type SavedResponse = z.infer<typeof savedResponseSchema>
 /** Cuerpo de error uniforme de la API (`setErrorHandler`). */
 export const apiErrorBodySchema = z.object({ ok: z.literal(false).optional(), error: z.string() })
 
-export const attributesSchema = z.record(z.enum(ATTRIBUTES), z.number())
+/**
+ * LOS DIEZ ATRIBUTOS, EN SU FORMA DE PANTALLA (E3, docs/visual.md §13.5; D-55; PR 19b). De cualquier
+ * corredor, sus medias estrellas y nada más; del propio, además, la marca de cuarto de banda. El valor del
+ * que salen no cruza: `attrStars` y `attrProgress` corren en la API (`apps/api/src/screenShape.ts`). Van
+ * los diez siempre, que la API rellena a 0 en la base.
+ */
+export const attributeStarsSchema = z.object({ stars: starsSchema })
+export type AttributeStars = z.infer<typeof attributeStarsSchema>
+export const ownAttributeSchema = z.object({ stars: starsSchema, mark: markSchema })
+export type OwnAttribute = z.infer<typeof ownAttributeSchema>
+const attributeStarsByAttrSchema = z.record(z.enum(ATTRIBUTES), attributeStarsSchema)
+const ownAttributesSchema = z.record(z.enum(ATTRIBUTES), ownAttributeSchema)
 
 export const genderSchema = z.enum(GENDERS)
 export const vocationSchema = z.enum(VOCATIONS)
@@ -80,18 +120,22 @@ export type Effort = z.infer<typeof effortSchema>
 
 // --- /api/riders/me y compañía (el ciclista del jugador) ------------------------------------
 
-/** Vista pública del ciclista propio; debe cuadrar con la interfaz `PublicRider` de SPEC 3. */
-export const publicRiderSchema = z.object({
+/**
+ * El ciclista propio, `GET /api/riders/me`: el `PublicRider` de SPEC 3 con los atributos en su forma de
+ * pantalla, sus estrellas y su marca (19b). `PublicRider` (rider.ts) sigue siendo lo que leen la API y la
+ * base, con los valores.
+ */
+export const myRiderSchema = z.object({
   id: z.string(),
   name: z.string(),
   country: z.string(),
   gender: genderSchema,
   archetype: vocationSchema,
-  birthSeason: z.number().int(),
-  attributes: attributesSchema,
-}) satisfies z.ZodType<PublicRider>
+  attributes: ownAttributesSchema,
+})
+export type MyRider = z.infer<typeof myRiderSchema>
 
-export const myRiderResponseSchema = z.object({ rider: publicRiderSchema.nullable() })
+export const myRiderResponseSchema = z.object({ rider: myRiderSchema.nullable() })
 
 // --- La ficha del corredor: tendencia, opinión e informe (docs/entrenamiento.md §2.3 y §4.6) ---
 
@@ -105,7 +149,8 @@ export const myRiderResponseSchema = z.object({ rider: publicRiderSchema.nullabl
 
 export const attrTrendRowSchema = z.object({
   attr: z.enum(ATTRIBUTES),
-  delta28: z.number(),
+  /** La flecha de 28 días, en su código (13-a; 19b): el Δ28 del que sale no cruza. */
+  arrow: arrowSchema,
 })
 export type AttrTrendRow = z.infer<typeof attrTrendRowSchema>
 export const trendResponseSchema = z.object({ trend: z.array(attrTrendRowSchema) })
@@ -150,8 +195,7 @@ export const coachViewSchema = z.object({
   ceilings: z.array(z.object({ attr: z.enum(ATTRIBUTES), opinion: ceilingOpinionSchema })),
   notes: z.array(coachNoteSchema),
   declining: z.boolean(),
-  facilities: z.enum(['bajo', 'normal', 'alto']).nullable(),
-  season: z.number().int(),
+  // el gimnasio en tres palabras y la temporada de la opinión no se pintan: no cruzan (E3, §13.5; 19c)
 })
 export type CoachView = z.infer<typeof coachViewSchema>
 export const coachViewResponseSchema = z.object({ coachView: coachViewSchema.nullable() })
@@ -165,9 +209,8 @@ export const attrLogSourceSchema = z.enum([
 ])
 export type AttrLogSource = z.infer<typeof attrLogSourceSchema>
 
+/** El informe del bloque: de dónde salió cada punto. Sus días no se pintan, y no cruzan (E3, §13.5; 19c). */
 export const blockReportSchema = z.object({
-  fromDay: z.number().int(),
-  toDay: z.number().int(),
   rows: z.array(
     z.object({
       attr: z.enum(ATTRIBUTES),
@@ -220,9 +263,10 @@ export const putTrainingPlanSchema = z.object({
   startFresh: z.boolean().optional(),
 })
 
+/** El plan vivo, sin `goalRaceId`: el objetivo no tiene control, así que no cruza (E3, §13.5; 19c). */
 export const trainingPlanResponseSchema = z.object({
   mode: trainingModeSchema,
-  plan: trainingPlanSchema.nullable(),
+  plan: trainingPlanSchema.omit({ goalRaceId: true }).nullable(),
   currentDay: z.number().int(),
 })
 
@@ -239,9 +283,8 @@ export const geoCountryResponseSchema = z.object({
   cabeceras: z.record(z.string(), z.string()).nullish().default(null),
 })
 
+/** El nombre propuesto, entero, que es lo que pinta la pantalla (E3, §13.5; 19c). */
 export const generatedNameSchema = z.object({
-  firstName: z.string(),
-  surname: z.string(),
   fullName: z.string(),
 })
 export type GeneratedName = z.infer<typeof generatedNameSchema>
@@ -272,13 +315,12 @@ export type UpcomingRace = z.infer<typeof upcomingRaceSchema>
 export const upcomingRacesResponseSchema = z.object({ races: z.array(upcomingRaceSchema) })
 
 /**
- * Retirada VOLUNTARIA de una carrera por etapas en marcha (docs/motor.md §V.5). `alreadyOut` marca
- * la repetición: el endpoint es idempotente y la web lo usa para no cantar dos veces la retirada.
+ * Retirada VOLUNTARIA de una carrera por etapas en marcha (docs/motor.md §V.5). El endpoint es
+ * idempotente; si ya estaba fuera, la web no lo distingue, así que `alreadyOut` no cruza (E3, §13.5; 19c).
  */
 export const retireFromRaceResponseSchema = z.object({
   ok: z.literal(true),
   raceName: z.string(),
-  alreadyOut: z.boolean(),
 })
 export type RetireFromRaceResponse = z.infer<typeof retireFromRaceResponseSchema>
 
@@ -286,8 +328,11 @@ export const riderSummarySchema = z.object({
   teamId: z.string().nullable(),
   teamName: z.string().nullable(),
   money: z.number(),
-  morale: z.number(),
-  fame: z.number(),
+  /**
+   * La moral en medias estrellas (DD-12, §13.7; 19b), con la escala de la forma (`formStarsScale`): una
+   * magnitud de 0 a 100 sin umbrales de dominio. La exacta no cruza.
+   */
+  moraleStars: starsSchema,
   seasonPoints: z.number(),
   seasonRank: z.number(),
   fieldSize: z.number(),
@@ -337,10 +382,14 @@ export type StageEffortView = z.infer<typeof stageEffortSchema>
 
 export const formPointSchema = z.object({
   gameDay: z.number().int(),
-  ctl: z.number(),
-  atl: z.number(),
-  tsb: z.number(),
-  tss: z.number(),
+  /**
+   * El fondo y la frescura del día, en barras enteras de 0 a 100 (§4.8 y §13.5; 19b): lo que hacía
+   * `conditionBars` en la web, ya en la API. El ctl, la atl y el tsb del diario no cruzan.
+   */
+  fitness: barSchema,
+  freshness: barSchema,
+  /** La carga del día en palabras (§10.7; D-41, D-00o; 19b): el TSS no cruza. */
+  load: loadLevelSchema,
   activity: z.string(),
   /**
    * El parte de ese día si fue de CARRERA. `nullish` con default a propósito: un día de
@@ -361,7 +410,18 @@ export type RiderHealth = z.infer<typeof riderHealthSchema>
 
 export const formResponseSchema = z.object({
   log: z.array(formPointSchema),
-  form: z.object({ stars: z.number(), freshness: z.number() }).nullable(),
+  /**
+   * La condición de hoy (19b): la forma en medias estrellas, la frescura en barra y los cerillos del día
+   * (SPEC 6.6), que cuenta la API con las funciones del motor, de 0 a `maxMatchCount()`; null sin la salud o
+   * sin la moral.
+   */
+  form: z
+    .object({
+      stars: starsSchema,
+      freshness: barSchema,
+      matches: z.number().int().min(0).max(maxMatchCount()).nullable(),
+    })
+    .nullable(),
   // Sin ciclista la API no envía `health` (solo `{ log, form }`).
   health: riderHealthSchema.nullable().optional(),
 })
@@ -380,8 +440,6 @@ export type TrainingOrder = z.infer<typeof trainingOrderSchema>
 
 /** Quién decide un día: los siete orígenes de `resolveTrainingDay`, en su orden. */
 export const trainingDaySourceSchema = z.enum(TRAINING_DAY_SOURCES)
-/** La carga de un día en palabras, de `Rest` (0) a `Very hard` (4): `loadLevelOf`. Nunca un TSS. */
-export const loadLevelSchema = z.number().int().min(0).max(4)
 const dayBlockSchema = z.object({ code: coachBlockSchema, week: z.number().int().min(1).max(4) })
 
 /**
@@ -589,11 +647,22 @@ export const championTitleSchema = z.object({
 }) satisfies z.ZodType<ChampionTitle>
 
 /**
+ * EL TÍTULO SERVIDO (E3, §13.5; PR 19c y 19d): sin `validToDay` ni `provisional`, que no se pintan; el 19c
+ * los dejó opcionales y servidos para la web de ayer (regla 6 de §17.1; D-50), y el 19d los quita. El de
+ * arriba, entero, es el del reparto grabado (el códec); este, el de las tablas, la ficha y el rótulo de la
+ * cabecera.
+ */
+export const championTitleViewSchema = championTitleSchema.omit({
+  validToDay: true,
+  provisional: true,
+}) satisfies z.ZodType<ChampionTitleView>
+
+/**
  * LOS CAMPEONES DE UNA TABLA (E3, §8.5; 4-l): el título que lleva cada corredor el día de la tabla, por
  * `riderId`, el de la disciplina y la categoría del día y de mayor alcance (`wearableTitles`), sin los
  * que vienen de una etapa velada para quien mira. Una vez por respuesta, junto a sus `leaders`.
  */
-export const championsSchema = z.record(z.string(), championTitleSchema).default({})
+export const championsSchema = z.record(z.string(), championTitleViewSchema).default({})
 
 // --- /api/calendar/:raceId (ficha de carrera) ----------------------------------------------
 
@@ -668,8 +737,8 @@ export const teamClassEntrySchema = z.object({
   kit: teamKitSchema,
   /** Suma de tiempos: la de la etapa, o la acumulada de la carrera. */
   tiempoS: z.number(),
-  /** Suma de los puestos de los corredores que puntúan (primer desempate). */
-  sumaPuestos: z.number().int(),
+  // la suma de puestos desempata, en la base, y no se pinta: no cruza (E3, §13.5; opcional en el 19c para la
+  // web de ayer, fuera en el 19d)
   /** Etapas puntuadas (1 en la clasificación de una etapa). */
   stagesScored: z.number().int(),
   /** Fuera de la clasificación: se quedó sin tres clasificados en alguna etapa. */
@@ -698,13 +767,12 @@ export const raceRouteSourceSchema = z.enum(['real', 'mixto', 'generado'])
 export type RaceRouteSource = z.infer<typeof raceRouteSourceSchema>
 
 /**
- * La ficha del generador que enseña la pantalla (§3.11, D10): la frase de arquitectura, el esqueleto
- * y la zona. `skeleton` y `geo` van como texto porque `shared` no importa el motor.
+ * La ficha del generador que enseña la pantalla (§3.11, D10): la frase de arquitectura y el esqueleto,
+ * como texto porque `shared` no importa el motor. La zona no se pinta, y no cruza (E3, §13.5; 19c).
  */
 export const stageArchSchema = z.object({
   frase: z.string(),
   skeleton: z.string(),
-  geo: z.string(),
 })
 export type StageArch = z.infer<typeof stageArchSchema>
 
@@ -890,8 +958,11 @@ export const takeOverResponseSchema = z.object({
  * fila anterior a la 0046 no los tiene, y la web de ayer los descarta (strip).
  */
 const newsDataFields = {
-  /** Los datos del titular (news.data); null en las filas viejas y en las que no validan. */
-  payload: newsPayloadSchema.nullish(),
+  /**
+   * Los datos del titular (news.data), en su forma de pantalla (19c y 19d); null en las filas viejas y en
+   * las que no validan.
+   */
+  payload: newsPayloadViewSchema.nullish(),
   /** La semilla de la variante (D-46). */
   seed: z.string().nullish(),
   /** news.tpl_rev: la revisión de las plantillas con que se escribió. */
@@ -925,8 +996,9 @@ export const publicRiderDetailSchema = z.object({
   seasonPoints: z.number(),
   seasonRank: z.number(),
   fieldSize: z.number(),
-  fame: z.number(),
-  attributes: attributesSchema,
+  // la fama vale siempre 0 (la columna no se escribe) y no se pinta: no cruza (E3, §13.5; 19c)
+  /** Solo sus estrellas: de un corredor cualquiera, nada más (§13.5; 19b). */
+  attributes: attributeStarsByAttrSchema,
   /**
    * Estado de salud, PÚBLICO a propósito: en el ciclismo real una lesión es noticia y un rival
    * querría saberla. Lo que sigue siendo privado es el detalle fino (frescura, fatiga, forma), que
@@ -937,7 +1009,7 @@ export const publicRiderDetailSchema = z.object({
    * Su título vigente de mayor alcance, el de ruta antes que el de crono, para `RiderHeader` (E3, §8.5;
    * 4-l); null sin título o si viene de una etapa velada para quien mira.
    */
-  champion: championTitleSchema.nullable().default(null),
+  champion: championTitleViewSchema.nullable().default(null),
 })
 export type PublicRiderDetail = z.infer<typeof publicRiderDetailSchema>
 export const publicRiderDetailResponseSchema = z.object({ rider: publicRiderDetailSchema })
@@ -967,7 +1039,6 @@ export const countryRiderSchema = z.object({
   teamId: z.string().nullable(),
   teamName: z.string().nullable(),
   seasonPoints: z.number(),
-  fame: z.number(),
 })
 export type CountryRider = z.infer<typeof countryRiderSchema>
 export const countryRidersResponseSchema = z.object({
@@ -983,7 +1054,6 @@ export const freeAgentSchema = z.object({
   age: z.number().int(),
   isBot: z.boolean(),
   seasonPoints: z.number(),
-  fame: z.number(),
 })
 export type FreeAgent = z.infer<typeof freeAgentSchema>
 export const freeAgentsResponseSchema = z.object({ riders: z.array(freeAgentSchema) })
@@ -1378,19 +1448,40 @@ export const teamRacePlanResponseSchema = z.object({ plan: teamRacePlanSchema.nu
  * cita y un despertador. El caso `km` es el `triggerKm` de siempre, que se queda porque las hojas ya
  * guardadas lo usan y porque a veces un kilómetro es lo que el jugador quiere decir.
  */
-export const triggerCondSchema = z.discriminatedUnion('at', [
-  z.object({ at: z.literal('km'), km: z.number().int().nonnegative() }),
-  z.object({
+const triggerAt = {
+  km: z.object({ at: z.literal('km'), km: z.number().int().nonnegative() }),
+  climb: z.object({
     at: z.literal('climb'),
     which: z.enum(['last', 'penultimate']),
     part: z.enum(['pie', 'duro', 'cima']),
   }),
-  z.object({ at: z.literal('attack'), byRiderId: z.string() }),
-  z.object({ at: z.literal('gap'), overS: z.number().int().nonnegative() }),
-  z.object({ at: z.literal('weather'), cond: z.enum(['lluvia', 'viento']) }),
-  z.object({ at: z.literal('sector'), index: z.number().int().nonnegative() }),
+  attack: z.object({ at: z.literal('attack'), byRiderId: z.string() }),
+  gap: z.object({ at: z.literal('gap'), overS: z.number().int().nonnegative() }),
+  weather: z.object({ at: z.literal('weather'), cond: z.enum(['lluvia', 'viento']) }),
+  sector: z.object({ at: z.literal('sector'), index: z.number().int().nonnegative() }),
+}
+export const triggerCondSchema = z.discriminatedUnion('at', [
+  triggerAt.km,
+  triggerAt.climb,
+  triggerAt.attack,
+  triggerAt.gap,
+  triggerAt.weather,
+  triggerAt.sector,
 ])
 export type TriggerCond = z.infer<typeof triggerCondSchema>
+
+/**
+ * EL DISPARO SERVIDO (E3, docs/visual.md §13.5; PR 19c): sin `attack`, el único que nombra a un corredor. La
+ * web no lo ofrece y lo pinta como «ninguno», así que `GET /api/my-orders` lo manda como `null`; el de arriba,
+ * entero, es el del cuerpo de `PUT` y el que lee el motor.
+ */
+export const triggerCondViewSchema = z.discriminatedUnion('at', [
+  triggerAt.km,
+  triggerAt.climb,
+  triggerAt.gap,
+  triggerAt.weather,
+  triggerAt.sector,
+])
 
 /** Qué hace su equipo con una fuga (paso 17a · S-215, S-071). */
 export const chasePolicySchema = z.enum(['nunca', 'si_amenaza', 'siempre'])
@@ -1432,6 +1523,10 @@ export const stageOrderSchema = z.object({
   dayGoal: dayGoalSchema.nullish(),
 })
 export type StageOrder = z.infer<typeof stageOrderSchema>
+/** La orden servida (19c): la misma, con el disparo en su forma de pantalla. */
+export const stageOrderViewSchema = stageOrderSchema.extend({
+  triggerOn: triggerCondViewSchema.nullish(),
+})
 
 /** Tipos de etapa del motor (StageKind). La web declaraba solo cuatro y se dejaba fuera 'clasica'. */
 export const stageKindSchema = z.enum(['llana', 'media', 'reina', 'cri', 'clasica'])
@@ -1517,7 +1612,7 @@ export type RosterRider = z.infer<typeof rosterRiderSchema>
 export const raceOrdersResponseSchema = z.object({
   race: z.object({ id: z.string(), name: z.string() }),
   stages: z.array(raceStageSchema),
-  orders: z.array(stageOrderSchema),
+  orders: z.array(stageOrderViewSchema),
   /** Compañeros de equipo en la carrera (objetivos de lanzador/gregario). */
   teammates: z.array(rosterRiderSchema),
   /** Rivales en la carrera (a quién marcar/seguir), por fama. */
@@ -1910,7 +2005,7 @@ export const riderRaceReportSchema = z.object({
   timeGapToWinnerS: z.number(),
   sprintPoints: z.number(),
   komPoints: z.number(),
-  bonusS: z.number(),
+  // la bonificación no se pinta: no cruza (E3, §13.5; opcional en el 19c para la web de ayer, fuera en el 19d)
   winnerName: z.string().nullable(),
   /**
    * Los momentos del corredor en la etapa re-simulada, solo `{ km, plantilla }`. Desde el paso 12 de E2

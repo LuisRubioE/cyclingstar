@@ -321,6 +321,7 @@ export {
   countRidersForUser,
   getRiderForUser,
   getRiderHealth,
+  getRiderMorale,
   getRiderSummary,
   getSeasonRank,
   getWorldClock,

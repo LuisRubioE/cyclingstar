@@ -1,4 +1,4 @@
-import { type ChampionTitle, type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
+import { type ChampionTitleView, type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
 import type { StageResultEntry } from '../api/results'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
@@ -26,7 +26,7 @@ export interface RaceTableContext {
    * el título que lleva cada corredor el día de la tabla (`champions` de la respuesta; E3, §6.1, 4-l): el
    * de campeón, si no lleva uno de líder
    */
-  readonly champions?: Readonly<Record<string, ChampionTitle>>
+  readonly champions?: Readonly<Record<string, ChampionTitleView>>
   /** el dorsal y el dibujo del equipo (`useRaceIdentity`); sin él, ni dorsal ni equipación */
   readonly identity?: TableIdentity
   /** el corredor del jugador: su fila, anclada si no está entre las 20 */

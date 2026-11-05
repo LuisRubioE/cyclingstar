@@ -285,7 +285,6 @@ function headOf(tl: TimelineCore): BroadcastHead {
     startState: {
       leaders: { gc: 3, points: null, kom: null },
       gcTop: [{ rider: 3, rank: 1, gapS: 0 }],
-      racingAtStart: tl.riderIds.length,
     },
     pace: [...BROADCAST.pace],
     estimateS: 300,

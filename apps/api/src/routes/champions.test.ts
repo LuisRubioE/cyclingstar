@@ -19,7 +19,9 @@ import { SEASON_CALENDAR } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
   type ChampionTitle,
+  type ChampionTitleView,
   DAYS_PER_SEASON,
+  championTitleView,
   publicRiderDetailResponseSchema,
   raceViewSchema,
   stageReplaySchema,
@@ -76,23 +78,29 @@ const TODAY = dayOf(3)
 
 /** El día de juego de un campeonato de la temporada 0: el de su única etapa. */
 const ncDay = (raceId: string): number => stageGameDay(`${raceId}:s0`, 1)
-/** El título que da un campeonato nacional de la temporada 0 (§7.4): vale un año desde el día siguiente. */
+/**
+ * El título que da un campeonato nacional de la temporada 0 (§7.4): vale un año desde el día siguiente. Se
+ * sirve en su forma de pantalla, sin hasta cuándo vale ni si es provisional (E3, docs/visual.md §13.5; 19d).
+ */
 const titleOf = (
   raceId: string,
   country: string,
   discipline: 'road' | 'itt',
   category: 'elite' | 'u23',
-): ChampionTitle => ({
-  scope: 'national',
-  country,
-  discipline,
-  category,
-  season: 0,
-  validFromDay: ncDay(raceId),
-  validToDay: ncDay(raceId) + DAYS_PER_SEASON,
-  source: { raceKey: `${raceId}:s0`, stageDay: 1 },
-  provisional: true,
-})
+): ChampionTitleView => {
+  const title: ChampionTitle = {
+    scope: 'national',
+    country,
+    discipline,
+    category,
+    season: 0,
+    validFromDay: ncDay(raceId),
+    validToDay: ncDay(raceId) + DAYS_PER_SEASON,
+    source: { raceKey: `${raceId}:s0`, stageDay: 1 },
+    provisional: true,
+  }
+  return championTitleView(title)
+}
 const ROAD_ES = titleOf('nc-es-road', 'ES', 'road', 'elite')
 const ITT_ES = titleOf('nc-es-itt', 'ES', 'itt', 'elite')
 const U23_ES = titleOf('nc-es-u23-road', 'ES', 'road', 'u23')
@@ -314,8 +322,13 @@ describe('el maillot de campeón en las tablas y en la ficha (docs/visual.md §8
     })
 
     it('el acta de una etapa lleva los mismos que su ficha', async () => {
-      const report = stageReplaySchema.parse((await getFrom(app, `${stageUrl(2)}/report`)).json)
+      const raw = await getFrom(app, `${stageUrl(2)}/report`)
+      const report = stageReplaySchema.parse(raw.json)
       expect(report.champions).toEqual({ [ROAD]: ROAD_ES, [BOTH]: ROAD_FR })
+      // el acta no pasa por el serializador (`responseCheck: 'tests'`): los títulos salen ya en su forma de
+      // pantalla de `tableChampions`, sin hasta cuándo valen ni si son provisionales (§13.5; 19d)
+      expect(raw.json.champions).toEqual({ [ROAD]: ROAD_ES, [BOTH]: ROAD_FR })
+      expect(raw.body).not.toMatch(/"validToDay"|"provisional"/)
     })
 
     it('la etapa sin correr: vacío, sin tablas', async () => {

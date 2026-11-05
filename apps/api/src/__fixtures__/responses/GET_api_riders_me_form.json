@@ -1,0 +1,42 @@
+{
+  "route": "GET /api/riders/me/form",
+  "url": "/api/riders/me/form",
+  "status": 200,
+  "body": {
+    "log": [
+      {
+        "gameDay": 1,
+        "fitness": 47,
+        "freshness": 55,
+        "load": 1,
+        "activity": "descanso_activo",
+        "parte": null
+      },
+      {
+        "gameDay": 2,
+        "fitness": 48,
+        "freshness": 57,
+        "load": 3,
+        "activity": "fondo",
+        "parte": null
+      },
+      {
+        "gameDay": 3,
+        "fitness": 50,
+        "freshness": 52,
+        "load": 4,
+        "activity": "puertos",
+        "parte": null
+      }
+    ],
+    "form": {
+      "stars": 1.5,
+      "freshness": 20,
+      "matches": 1
+    },
+    "health": {
+      "state": "sano",
+      "untilDay": null
+    }
+  }
+}

@@ -6,8 +6,9 @@ import {
   titlesSeenOn,
 } from '@cyclingstar/db'
 import {
-  type ChampionTitle,
+  type ChampionTitleView,
   type WornInput,
+  championTitleView,
   highestTitle,
   wearableTitles,
 } from '@cyclingstar/shared'
@@ -17,7 +18,8 @@ import {
  * ficha de carrera y la de la etapa llevan, una vez por respuesta y junto a sus `leaders`, el título que
  * lleva cada corredor de sus tablas el día de la tabla (`champions`); la ficha del corredor, su título
  * vigente de mayor alcance (`champion`). Los dos salen de `titlesSeenOn`, sin los títulos de un
- * campeonato velado para quien mira (B13).
+ * campeonato velado para quien mira (B13). Los dos, en su forma de pantalla (19d): sin hasta cuándo vale el
+ * título ni si es provisional, que no se pintan.
  */
 
 /** El día de una tabla: la etapa que enseña, si es crono y la categoría de la carrera. */
@@ -41,7 +43,7 @@ export async function tableChampions(
   worldId: string,
   day: TableDay,
   riderIds: Iterable<string>,
-): Promise<Record<string, ChampionTitle>> {
+): Promise<Record<string, ChampionTitleView>> {
   const ids = new Set(riderIds)
   if (ids.size === 0) return {}
   const input: Pick<WornInput, 'titles' | 'discipline' | 'category'> = {
@@ -49,10 +51,10 @@ export async function tableChampions(
     discipline: day.timeTrial ? 'itt' : 'road',
     category: day.category,
   }
-  const out: Record<string, ChampionTitle> = {}
+  const out: Record<string, ChampionTitleView> = {}
   for (const riderId of ids) {
     const title = wearableTitles(input, riderId)[0]
-    if (title !== undefined) out[riderId] = title
+    if (title !== undefined) out[riderId] = championTitleView(title)
   }
   return out
 }
@@ -66,7 +68,8 @@ export async function riderChampion(
   h: Horizon,
   world: WorldRef,
   riderId: string,
-): Promise<ChampionTitle | null> {
+): Promise<ChampionTitleView | null> {
   const titles = await titlesSeenOn(db, h, world.worldId, world.currentDay)
-  return highestTitle(titles.get(riderId) ?? [])
+  const title = highestTitle(titles.get(riderId) ?? [])
+  return title === null ? null : championTitleView(title)
 }

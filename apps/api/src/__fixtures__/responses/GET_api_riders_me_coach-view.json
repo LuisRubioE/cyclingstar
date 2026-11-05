@@ -1,0 +1,53 @@
+{
+  "route": "GET /api/riders/me/coach-view",
+  "url": "/api/riders/me/coach-view",
+  "status": 200,
+  "body": {
+    "coachView": {
+      "ceilings": [
+        {
+          "attr": "RES",
+          "opinion": "asoma"
+        },
+        {
+          "attr": "REC",
+          "opinion": "pronto"
+        },
+        {
+          "attr": "LLA",
+          "opinion": "pronto"
+        },
+        {
+          "attr": "MON",
+          "opinion": "pronto"
+        },
+        {
+          "attr": "COL",
+          "opinion": "pronto"
+        },
+        {
+          "attr": "CRI",
+          "opinion": "pronto"
+        },
+        {
+          "attr": "SPR",
+          "opinion": "pronto"
+        },
+        {
+          "attr": "DES",
+          "opinion": "pronto"
+        },
+        {
+          "attr": "PAV",
+          "opinion": "pronto"
+        },
+        {
+          "attr": "TAC",
+          "opinion": "pronto"
+        }
+      ],
+      "notes": [],
+      "declining": false
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "route": "GET /api/riders/me/race-prefs",
+  "url": "/api/riders/me/race-prefs",
+  "status": 200,
+  "body": {
+    "races": [
+      {
+        "raceId": "race-tachira",
+        "name": "Race Táchira",
+        "level": "CON",
+        "format": "una-semana",
+        "startDay": 9,
+        "stageCount": 10,
+        "wanted": false,
+        "callup": null
+      },
+      {
+        "raceId": "race-pune",
+        "name": "Race Pune",
+        "level": "CON",
+        "format": "una-semana",
+        "startDay": 19,
+        "stageCount": 5,
+        "wanted": false,
+        "callup": null
+      },
+      {
+        "raceId": "race-down-under",
+        "name": "Race Down Under",
+        "level": "WT",
+        "format": "una-semana",
+        "startDay": 20,
+        "stageCount": 5,
+        "wanted": false,
+        "callup": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "route": "GET /api/countries",
+  "url": "/api/countries",
+  "status": 200,
+  "body": {
+    "countries": [
+      {
+        "country": "AU",
+        "riderCount": 85,
+        "totalPoints": 2055
+      },
+      {
+        "country": "ES",
+        "riderCount": 117,
+        "totalPoints": 1998
+      },
+      {
+        "country": "FR",
+        "riderCount": 226,
+        "totalPoints": 1240
+      }
+    ]
+  }
+}

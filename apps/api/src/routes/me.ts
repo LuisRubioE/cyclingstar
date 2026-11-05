@@ -16,14 +16,15 @@ import {
   type HorizonSummary,
   followBodySchema,
   fromDs,
+  horizonSummarySchema,
   instantAt,
   photoBlocksOf,
+  revResponseSchema,
   revealBodySchema,
-  type revResponseSchema,
   spoilerScopeBodySchema,
   visibilityOf,
   watchProgressBodySchema,
-  type watchResponseSchema,
+  watchResponseSchema,
 } from '@cyclingstar/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { z } from 'zod'
@@ -98,7 +99,14 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.post<{ Params: StageParams }>(
     '/api/me/watch/:raceKey/:day',
-    { config: { rateLimit: PLAYER_RATE_LIMIT, spoiler: 'watch', veil: { by: ['B'] } } },
+    {
+      config: {
+        response: { 200: watchResponseSchema },
+        rateLimit: PLAYER_RATE_LIMIT,
+        spoiler: 'watch',
+        veil: { by: ['B'] },
+      },
+    },
     async (request, reply) => {
       const userId = await sessionUser(request, reply)
       if (userId === null) return reply
@@ -147,7 +155,7 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.post<{ Params: StageParams }>(
     '/api/me/reveal/:raceKey/:day',
-    { config: { spoiler: 'watch', veil: { by: ['G'] } } },
+    { config: { response: { 200: revResponseSchema }, spoiler: 'watch', veil: { by: ['G'] } } },
     async (request, reply) => {
       const userId = await sessionUser(request, reply)
       if (userId === null) return reply
@@ -172,7 +180,7 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.put<{ Params: { readonly raceKey: string } }>(
     '/api/me/follow/:raceKey',
-    { config: { spoiler: 'safe' } },
+    { config: { response: { 200: revResponseSchema }, spoiler: 'safe' } },
     async (request, reply) => {
       const userId = await sessionUser(request, reply)
       if (userId === null) return reply
@@ -192,21 +200,27 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
     },
   )
 
-  app.put('/api/me/spoiler-scope', { config: { spoiler: 'safe' } }, async (request, reply) => {
-    const userId = await sessionUser(request, reply)
-    if (userId === null) return reply
-    const body = spoilerScopeBodySchema.safeParse(request.body)
-    if (!body.success) return badRequest(reply)
-    const world = await request.world()
-    if (world === null) return notFound(reply)
-    // exactOptionalPropertyTypes: ausente no es undefined, y setSpoilerScope recibe lo que llegó.
-    const r = await setSpoilerScope(db, userId, body.data.scope, body.data.revealConfirm)
-    return { rev: await revAfter(request, world, r.horizonRev) } satisfies RevResponse
-  })
+  app.put(
+    '/api/me/spoiler-scope',
+    { config: { response: { 200: revResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await sessionUser(request, reply)
+      if (userId === null) return reply
+      const body = spoilerScopeBodySchema.safeParse(request.body)
+      if (!body.success) return badRequest(reply)
+      const world = await request.world()
+      if (world === null) return notFound(reply)
+      // exactOptionalPropertyTypes: ausente no es undefined, y setSpoilerScope recibe lo que llegó.
+      const r = await setSpoilerScope(db, userId, body.data.scope, body.data.revealConfirm)
+      return { rev: await revAfter(request, world, r.horizonRev) } satisfies RevResponse
+    },
+  )
 
   app.get(
     '/api/me/horizon',
-    { config: { spoiler: 'horizon', veil: { by: ['N'] } } },
+    {
+      config: { response: { 200: horizonSummarySchema }, spoiler: 'horizon', veil: { by: ['N'] } },
+    },
     async (request, reply) => {
       const viewer = await request.viewer()
       if (viewer === null) return unauthorized(reply)
@@ -245,7 +259,6 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
             start: {
               leaders: { gc: null, points: null, kom: null },
               gcTop: [],
-              racingAtStart: tl.riderIds.length,
             },
             photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
           }).toGoKm

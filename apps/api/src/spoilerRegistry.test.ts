@@ -1,9 +1,11 @@
-import type { TickSummary } from '@cyclingstar/db'
 import Fastify, { type FastifyPluginAsync, type RouteShorthandOptions } from 'fastify'
+import { validatorCompiler } from 'fastify-type-provider-zod'
 import { describe, expect, it } from 'vitest'
-import type { AppDeps } from './app.js'
-import { buildApp } from './app.js'
+import { z } from 'zod'
+import { productionDeps, registryOf } from './__fixtures__/productionRegistry.js'
+import { responseSerializerCompiler } from './responseSerializer.js'
 import {
+  RESPONSE_EXEMPT,
   type RouteEntry,
   type RouteRegistry,
   type SpoilerPolicy,
@@ -212,35 +214,6 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
 /** Lo que añade `@fastify/static` cuando sirve la web compilada: se clasifica sola (`STATIC_ROUTES`). */
 const STATIC_VEIL: VeilSpec = { by: ['N'], why: 'la web compilada: ningún dato de juego' }
 
-const summary = { currentDay: 1, daysProcessed: 0 } as unknown as TickSummary
-
-/** Las dependencias con que `index.ts` arranca la app, en dobles. */
-function productionDeps(serveWeb: boolean): AppDeps {
-  return {
-    db: {} as never,
-    auth: {
-      api: { getSession: async () => null },
-      handler: async () => new Response('{}', { status: 200 }),
-    } as unknown as NonNullable<AppDeps['auth']>,
-    migrationsApplied: true,
-    tickIntervalMinutes: 360,
-    adminToken: 'a'.repeat(32),
-    adminEmail: 'dueno@example.com',
-    onAdminTick: async () => summary,
-    onAdminAdvance: async () => summary,
-    switches: { broadcastWatch: 'off', spoilerMode: 'off' },
-    serveWeb,
-  }
-}
-
-/** El registro de la app ya lista (los `register` de buildApp no cargan nada hasta `ready()`). */
-async function registryOf(deps: AppDeps): Promise<RouteRegistry> {
-  const app = buildApp(deps)
-  await app.ready()
-  await app.close()
-  return app.spoilerRegistry
-}
-
 const sinHead = (registry: RouteRegistry): RouteEntry[] =>
   [...registry.values()].filter((e) => e.method !== 'HEAD')
 
@@ -357,5 +330,138 @@ describe('B1d · el registro de rutas y la tabla de §11.3', () => {
       readyWith({ config: { spoiler: 'horizon', veil: { by: ['L'], why: '  ' } } }),
     ).rejects.toThrow('mecanismo L sin motivo escrito')
     await expect(readyWith({ config: { spoiler: 'safe' } })).resolves.toBeUndefined()
+  })
+})
+
+/**
+ * LA FRONTERA EN EL REGISTRO (E3, docs/visual.md §13.2 y §13.4; D-54; PR 19a). Toda ruta de `/api` y
+ * `/health` declara lo que devuelve (`config.response`), y sin ello el servidor no arranca, como sin su
+ * clase de destripe. Con `responseCheck: 'runtime'`, el de por defecto, el esquema va al serializador, que
+ * quita todo lo que no declara a cualquier profundidad; con `'tests'` se declara y lo comprueban
+ * `frontera.test.ts` y `responses.test.ts`, sin serializar en cada petición.
+ */
+
+/** Una app de prueba con el registro, el serializador de la API y una sola ruta, ya lista. */
+async function appWith(url: string, options: RouteShorthandOptions, body: unknown) {
+  const app = Fastify()
+  app.setValidatorCompiler(validatorCompiler)
+  app.setSerializerCompiler(responseSerializerCompiler)
+  registerSpoilerGuard(app, null)
+  const plugin: FastifyPluginAsync = async (p) => {
+    p.get(url, options, async () => body)
+  }
+  void app.register(plugin)
+  await app.ready()
+  return app
+}
+
+describe('E3 · la frontera: toda ruta dice qué devuelve (§13.2; PR 19a)', () => {
+  it('toda ruta de /api y /health lleva su esquema; sin él solo las de better-auth y las dos de /admin', async () => {
+    const registry = await registryOf(productionDeps(false))
+    const sin = sinHead(registry)
+      .filter((e) => e.response === null)
+      .map((e) => `${e.method} ${e.url}`)
+      .sort()
+    expect(sin).toEqual(
+      [
+        ...Object.keys(TABLE).filter((k) => k.split(' ')[1]!.startsWith('/api/auth/')),
+        'POST /admin/advance',
+        'POST /admin/tick',
+      ].sort(),
+    )
+    expect([...RESPONSE_EXEMPT.keys()]).toEqual(['/api/auth/*'])
+  })
+
+  it('con responseCheck tests solo van el acta y la meta: las de más de 20 ms de p95 (§13.4; medido en el 19a)', async () => {
+    const registry = await registryOf(productionDeps(false))
+    expect(
+      sinHead(registry)
+        .filter((e) => e.responseCheck === 'tests')
+        .map((e) => `${e.method} ${e.url}`)
+        .sort(),
+    ).toEqual([
+      'GET /api/races/:raceId/stages/:day/report',
+      'POST /api/races/:raceId/stages/:day/broadcast/finish',
+    ])
+  })
+
+  it('una ruta de /api sin esquema no deja arrancar; fuera de /api y /health, sí', async () => {
+    await expect(appWith('/api/prueba', { config: { spoiler: 'safe' } }, {})).rejects.toThrow(
+      'ruta sin esquema de respuesta (config.response): GET /api/prueba',
+    )
+    await expect(appWith('/health', { config: { spoiler: 'safe' } }, {})).rejects.toThrow(
+      'ruta sin esquema de respuesta (config.response): GET /health',
+    )
+    const fuera = await appWith('/prueba', { config: { spoiler: 'safe' } }, { ok: true })
+    await fuera.close()
+  })
+
+  it('con runtime, el serializador quita lo que el esquema no declara, también lo anidado', async () => {
+    const schema = z.object({ id: z.string(), days: z.array(z.object({ gameDay: z.number() })) })
+    const app = await appWith(
+      '/api/prueba',
+      { config: { spoiler: 'safe', response: { 200: schema } } },
+      { id: 'a', ctl: 61.98765, days: [{ gameDay: 1, tsb: 3 }] },
+    )
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/prueba' })
+      expect(res.statusCode).toBe(200)
+      expect(res.json()).toEqual({ id: 'a', days: [{ gameDay: 1 }] })
+      expect(app.spoilerRegistry.get('GET /api/prueba')).toMatchObject({
+        response: { 200: schema },
+        responseCheck: 'runtime',
+      })
+    } finally {
+      await app.close()
+    }
+  })
+
+  it('con tests, se declara y no se serializa con él: lo comprueban los tests', async () => {
+    const schema = z.object({ id: z.string() })
+    const app = await appWith(
+      '/api/prueba',
+      { config: { spoiler: 'safe', response: { 200: schema }, responseCheck: 'tests' } },
+      { id: 'a', extra: 1 },
+    )
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/prueba' })
+      expect(res.json()).toEqual({ id: 'a', extra: 1 })
+      expect(app.spoilerRegistry.get('GET /api/prueba')).toMatchObject({ responseCheck: 'tests' })
+    } finally {
+      await app.close()
+    }
+  })
+
+  it('el serializador lee como la web: un campo con default que falta sale con su valor, no da 500', async () => {
+    // `safeEncode`, el del paquete, no rellena `.default()` ni recoge `.catch()` (medido en el 19a)
+    const schema = z.object({
+      travelOut: z.array(z.number()).default([]),
+      motivo: z.enum(['a', 'b']).nullable().catch(null),
+    })
+    const app = await appWith(
+      '/api/prueba',
+      { config: { spoiler: 'safe', response: { 200: schema } } },
+      { motivo: 'zz' },
+    )
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/prueba' })
+      expect(res.statusCode).toBe(200)
+      expect(res.json()).toEqual({ travelOut: [], motivo: null })
+    } finally {
+      await app.close()
+    }
+  })
+
+  it('una respuesta que no casa con su esquema es un 500, no un aviso: por eso responses.test.ts (§13.4)', async () => {
+    const app = await appWith(
+      '/api/prueba',
+      { config: { spoiler: 'safe', response: { 200: z.object({ d: z.string() }) } } },
+      { d: new Date(0) },
+    )
+    try {
+      expect((await app.inject({ method: 'GET', url: '/api/prueba' })).statusCode).toBe(500)
+    } finally {
+      await app.close()
+    }
   })
 })

@@ -239,6 +239,20 @@ export async function getRiderHealth(
   return { state: r.health as HealthState, untilDay: r.healthUntilDay }
 }
 
+/**
+ * La moral de hoy del corredor (0-100), sin velo, como la sirve `getRiderSummary`: no la mueve ninguna etapa
+ * (la escriben el entrenamiento del día y las convocatorias). La lee `GET /api/riders/me/form` para contar
+ * los cerillos del día (E3, docs/visual.md §13.5; PR 19b); null si el corredor no existe.
+ */
+export async function getRiderMorale(db: Database, riderId: string): Promise<number | null> {
+  const rows = await db
+    .select({ morale: riders.morale })
+    .from(riders)
+    .where(eq(riders.id, riderId))
+    .limit(1)
+  return rows[0]?.morale ?? null
+}
+
 export interface RiderSummary {
   teamId: string | null
   teamName: string | null

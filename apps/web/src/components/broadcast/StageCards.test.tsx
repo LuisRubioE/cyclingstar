@@ -78,7 +78,6 @@ const head: BroadcastHead = {
       { rider: 2, rank: 3, gapS: 9 },
       { rider: 3, rank: 4, gapS: 31 },
     ],
-    racingAtStart: cast.length,
   },
   preview: {
     route: {

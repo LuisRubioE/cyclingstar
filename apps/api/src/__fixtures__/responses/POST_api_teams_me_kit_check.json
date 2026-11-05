@@ -1,0 +1,13 @@
+{
+  "route": "POST /api/teams/me/kit/check",
+  "url": "/api/teams/me/kit/check",
+  "status": 200,
+  "body": {
+    "ok": false,
+    "code": "kit_igual",
+    "conflict": null,
+    "reserved": null,
+    "takenBy": null,
+    "nextChangeDay": null
+  }
+}

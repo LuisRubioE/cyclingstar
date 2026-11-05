@@ -45,6 +45,7 @@ import {
   finishBodySchema,
   fromDs,
   instantAt,
+  newsPayloadView,
   photoBlocksOf,
   playbackEstimateS,
   seekBodySchema,
@@ -52,6 +53,11 @@ import {
   startStateOf,
   ttPlaybackEstimateS,
   visibilityOf,
+  broadcastChunkSchema,
+  broadcastHeadSchema,
+  broadcastSeekSchema,
+  broadcastFinishSchema,
+  stageReplaySchema,
 } from '@cyclingstar/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import {
@@ -285,7 +291,13 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.get<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/broadcast',
-    { config: { spoiler: 'watch', veil: { by: ['B', 'G'] } } },
+    {
+      config: {
+        response: { 200: broadcastHeadSchema },
+        spoiler: 'watch',
+        veil: { by: ['B', 'G'] },
+      },
+    },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       if (!q.success) return badRequest(reply)
@@ -320,7 +332,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           kits: await kitsOn(db, teamIds, stageGameDay(ctx.raceKey, ctx.day)),
         },
       )
-      const startState = startStateOf(veilCast(tl.cast, a.h), tl.riderIds.length)
+      const startState = startStateOf(veilCast(tl.cast, a.h))
       // El nombre, la etiqueta y el tipo, como la ruta de etapa para una etapa corrida (stageHead).
       const raced = (await lineSourceOf(db, tl, ctx.raceKey, ctx.day)).racedProfile
       // Las cimas que el grabador dejó sin pie, con el de su recorrido (nota 5 del 3c, 6b).
@@ -381,7 +393,14 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.get<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/broadcast/chunk',
-    { config: { rateLimit: PLAYER_RATE_LIMIT, spoiler: 'watch', veil: { by: ['B'] } } },
+    {
+      config: {
+        response: { 200: broadcastChunkSchema },
+        rateLimit: PLAYER_RATE_LIMIT,
+        spoiler: 'watch',
+        veil: { by: ['B'] },
+      },
+    },
     async (request, reply) => {
       const q = chunkQuerySchema.safeParse(request.query)
       if (!q.success) return badRequest(reply)
@@ -409,7 +428,15 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
   app.post<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/broadcast/finish',
     // F desde el 17a de E3: los títulos de `champions` del acta, sin los velados (docs/visual.md §8.5)
-    { config: { spoiler: 'watch', veil: { by: ['G', 'F'] } } },
+    {
+      config: {
+        response: { 200: broadcastFinishSchema },
+        // la meta lleva el acta entera: 'tests', como ella (abajo)
+        responseCheck: 'tests',
+        spoiler: 'watch',
+        veil: { by: ['G', 'F'] },
+      },
+    },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       const body = finishBodySchema.safeParse(request.body)
@@ -442,8 +469,12 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
         result: replay.results,
         closing: await closingOf(a.ctx, tl, replay, ix),
         report: { ...withoutRadio(replay), tplRev: await tplRevOf(tl, a) },
-        // La meta se sirve tras su puerta y con ella la etapa pasa a conocida: sus noticias, enteras.
-        news: await getStageNews(db, worldHorizon, a.ctx.worldId, a.ctx.raceKey, a.ctx.day),
+        // La meta se sirve tras su puerta y con ella la etapa pasa a conocida: sus noticias, enteras, y en
+        // su forma de pantalla (19d): la meta no pasa por el serializador, así que lo que no se pinta lo
+        // quita esto
+        news: (await getStageNews(db, worldHorizon, a.ctx.worldId, a.ctx.raceKey, a.ctx.day)).map(
+          (n) => (n.payload == null ? n : { ...n, payload: newsPayloadView(n.payload) }),
+        ),
         // las caídas de la línea grabada (sus `mishap` de estado); el tipo de final, por la etiqueta
         // (en alto, sin la regla), que es lo que la API sabe del `bunchFinish` del motor (6-o)
         threeKmRule: threeKmRuleRiders(tl, a.ctx.spec.label === 'Summit finish'),
@@ -466,7 +497,14 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
    */
   app.post<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/broadcast/seek',
-    { config: { rateLimit: PLAYER_RATE_LIMIT, spoiler: 'watch', veil: { by: ['G'] } } },
+    {
+      config: {
+        response: { 200: broadcastSeekSchema },
+        rateLimit: PLAYER_RATE_LIMIT,
+        spoiler: 'watch',
+        veil: { by: ['G'] },
+      },
+    },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       const body = seekBodySchema.safeParse(request.body)
@@ -482,7 +520,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       // la hora de destino, como la busca la web al aterrizar: sobre la línea, con el reparto de quien mira
       const ctx: InstantContext = {
         own: await ownOf(request, tl),
-        start: startStateOf(veilCast(tl.cast, a.h), tl.riderIds.length),
+        start: startStateOf(veilCast(tl.cast, a.h)),
         photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
       }
       const destDs = firstDsAtKm(
@@ -551,7 +589,17 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
   app.get<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/report',
     // F desde el 17a de E3: los títulos de `champions`, sin los velados (docs/visual.md §8.5)
-    { config: { spoiler: 'watch', veil: { by: ['G', 'F'] } } },
+    {
+      config: {
+        response: { 200: stageReplaySchema },
+        // De 9 KB a 3,16 MB en el mundo de la prueba, y su lectura con el esquema llega a 73 ms de p95 (47
+        // de p50, en la más pesada; medido en el 19a): por encima de los 20 ms de §13.4, se declara y lo
+        // comprueban frontera.test.ts y responses.test.ts, sin serializar en cada petición.
+        responseCheck: 'tests',
+        spoiler: 'watch',
+        veil: { by: ['G', 'F'] },
+      },
+    },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       if (!q.success) return badRequest(reply)

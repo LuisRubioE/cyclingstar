@@ -1,0 +1,178 @@
+{
+  "route": "GET /api/calendar",
+  "url": "/api/calendar",
+  "status": 200,
+  "body": {
+    "races": [
+      {
+        "id": "nc-au-itt",
+        "name": "Australia ITT Championship",
+        "level": "CON",
+        "raceClass": "NC",
+        "championshipCountry": "AU",
+        "championshipCategory": "elite",
+        "country": "AU",
+        "format": "un-dia",
+        "startDay": 8,
+        "openTo": [],
+        "winner": "Jack Kaur",
+        "restAfter": [],
+        "stages": [
+          {
+            "index": 1,
+            "name": "Australia ITT Championship",
+            "label": "ITT",
+            "kind": "cri",
+            "km": 39,
+            "timeTrial": true,
+            "from": "Albury",
+            "to": "Albury"
+          }
+        ]
+      },
+      {
+        "id": "nc-au-u23-itt",
+        "name": "Australia U23 ITT Championship",
+        "level": "CON",
+        "raceClass": "NC",
+        "championshipCountry": "AU",
+        "championshipCategory": "u23",
+        "country": "AU",
+        "format": "un-dia",
+        "startDay": 8,
+        "openTo": [],
+        "winner": "Xavier Phillips",
+        "restAfter": [],
+        "stages": [
+          {
+            "index": 1,
+            "name": "Australia U23 ITT Championship",
+            "label": "ITT",
+            "kind": "cri",
+            "km": 27,
+            "timeTrial": true,
+            "from": "Albury",
+            "to": "Albury"
+          }
+        ]
+      },
+      {
+        "id": "race-tachira",
+        "name": "Race Táchira",
+        "level": "CON",
+        "raceClass": "2",
+        "championshipCountry": null,
+        "championshipCategory": null,
+        "country": "VE",
+        "format": "una-semana",
+        "startDay": 9,
+        "openTo": ["PRS", "CON"],
+        "winner": "Anderson Grosvenor",
+        "restAfter": [],
+        "stages": [
+          {
+            "index": 1,
+            "name": "Stage 1 · Flat",
+            "label": "Flat",
+            "kind": "llana",
+            "km": 210,
+            "timeTrial": false,
+            "from": "San Cristobal",
+            "to": "Socopo"
+          },
+          {
+            "index": 2,
+            "name": "Stage 2 · Uphill finish",
+            "label": "Uphill finish",
+            "kind": "media",
+            "km": 210,
+            "timeTrial": false,
+            "from": "Socopo",
+            "to": "San Cristobal"
+          },
+          {
+            "index": 3,
+            "name": "Stage 3 · Uphill finish",
+            "label": "Uphill finish",
+            "kind": "media",
+            "km": 117,
+            "timeTrial": false,
+            "from": "San Cristobal",
+            "to": "San Cristobal"
+          },
+          {
+            "index": 4,
+            "name": "Stage 4 · Mountains",
+            "label": "Mountains",
+            "kind": "reina",
+            "km": 163,
+            "timeTrial": false,
+            "from": "La Fria",
+            "to": "Merida"
+          },
+          {
+            "index": 5,
+            "name": "Stage 5 · Hills",
+            "label": "Hills",
+            "kind": "media",
+            "km": 121,
+            "timeTrial": false,
+            "from": "Merida",
+            "to": "Merida"
+          },
+          {
+            "index": 6,
+            "name": "Stage 6 · Summit finish",
+            "label": "Summit finish",
+            "kind": "reina",
+            "km": 166,
+            "timeTrial": false,
+            "from": "El Vigia",
+            "to": "La Grita"
+          },
+          {
+            "index": 7,
+            "name": "Stage 7 · Hills",
+            "label": "Hills",
+            "kind": "media",
+            "km": 151,
+            "timeTrial": false,
+            "from": "Tariba",
+            "to": "San Cristobal"
+          },
+          {
+            "index": 8,
+            "name": "Stage 8 · Hills",
+            "label": "Hills",
+            "kind": "media",
+            "km": 155,
+            "timeTrial": false,
+            "from": "Abejales",
+            "to": "Capacho"
+          },
+          {
+            "index": 9,
+            "name": "Stage 9 · Hills",
+            "label": "Hills",
+            "kind": "media",
+            "km": 134,
+            "timeTrial": false,
+            "from": "Junin",
+            "to": "Junin"
+          },
+          {
+            "index": 10,
+            "name": "Stage 10 · Flat",
+            "label": "Flat",
+            "kind": "llana",
+            "km": 99,
+            "timeTrial": false,
+            "from": "Urena",
+            "to": "San Cristobal"
+          }
+        ]
+      }
+    ],
+    "dayOfSeason": 50
+  }
+}

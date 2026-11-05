@@ -1,0 +1,45 @@
+{
+  "route": "GET /api/riders/me/race-entries",
+  "url": "/api/riders/me/race-entries",
+  "status": 200,
+  "body": {
+    "races": [
+      {
+        "raceId": "race-var",
+        "name": "Race Var",
+        "country": "FR",
+        "startDay": 52,
+        "raceClass": "1",
+        "travelMoney": 48,
+        "travelDays": 1,
+        "entered": true,
+        "enrolled": true,
+        "affordable": true
+      },
+      {
+        "raceId": "race-alaiye",
+        "name": "Race Alaiye",
+        "country": "TR",
+        "startDay": 52,
+        "raceClass": "2",
+        "travelMoney": 48,
+        "travelDays": 1,
+        "entered": false,
+        "enrolled": false,
+        "affordable": true
+      },
+      {
+        "raceId": "race-alpes-maritimes",
+        "name": "Race Alpes-Maritimes",
+        "country": "FR",
+        "startDay": 53,
+        "raceClass": "1",
+        "travelMoney": 48,
+        "travelDays": 1,
+        "entered": false,
+        "enrolled": false,
+        "affordable": true
+      }
+    ]
+  }
+}

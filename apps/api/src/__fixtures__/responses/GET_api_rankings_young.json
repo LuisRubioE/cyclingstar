@@ -1,0 +1,279 @@
+{
+  "route": "GET /api/rankings/young",
+  "url": "/api/rankings/young",
+  "status": 200,
+  "body": {
+    "ranking": [
+      {
+        "riderId": "af2d56a2-52f9-45ee-807c-240123f99baa",
+        "name": "Xavier Phillips",
+        "country": "AU",
+        "teamId": "d71cf35a-77c7-4474-80a5-eefef2bd2454",
+        "teamName": "Vanguard Racing",
+        "isBot": true,
+        "points": 200
+      },
+      {
+        "riderId": "744ed470-b488-42cc-aeaa-63bbc6bc91a5",
+        "name": "James Papadopoulos",
+        "country": "AU",
+        "teamId": "d71cf35a-77c7-4474-80a5-eefef2bd2454",
+        "teamName": "Vanguard Racing",
+        "isBot": true,
+        "points": 125
+      },
+      {
+        "riderId": "ba0d5238-2442-4faa-a3bd-2ecb3b71957f",
+        "name": "Talib Al-Ismaili",
+        "country": "OM",
+        "teamId": "6a651862-9350-4264-bf80-9550f7ff978a",
+        "teamName": "Qyran Cycling",
+        "isBot": true,
+        "points": 120
+      },
+      {
+        "riderId": "a8c18801-e088-4402-baf4-2f7d9bead4f1",
+        "name": "Mason Jarvis",
+        "country": "AU",
+        "teamId": "f72f622d-559e-4e7d-95f5-92b471dc3bda",
+        "teamName": "Frontier Racing",
+        "isBot": true,
+        "points": 105
+      },
+      {
+        "riderId": "cf2a1951-e41a-4d76-ba86-da7fc7a1e6e6",
+        "name": "Xavier Gardiner",
+        "country": "AU",
+        "teamId": "ca8ad46b-c19a-42eb-a8a7-d6a0bacd631c",
+        "teamName": "Granite Wheelers",
+        "isBot": true,
+        "points": 100
+      },
+      {
+        "riderId": "4274f3bd-e8d7-4bb3-b4f5-542e9b2adf98",
+        "name": "Oliver Thomas",
+        "country": "AU",
+        "teamId": null,
+        "teamName": null,
+        "isBot": true,
+        "points": 90
+      },
+      {
+        "riderId": "f6647242-6922-4909-a866-3e212dce1315",
+        "name": "Lucas Ferguson",
+        "country": "NZ",
+        "teamId": null,
+        "teamName": null,
+        "isBot": true,
+        "points": 80
+      },
+      {
+        "riderId": "0cb69542-420e-4779-ad61-08a261d2feb0",
+        "name": "Xavier Wilson",
+        "country": "AU",
+        "teamId": "ca8ad46b-c19a-42eb-a8a7-d6a0bacd631c",
+        "teamName": "Granite Wheelers",
+        "isBot": true,
+        "points": 75
+      },
+      {
+        "riderId": "8de868ba-1027-415a-b212-51195a0e9187",
+        "name": "Jackson Jones",
+        "country": "AU",
+        "teamId": "ca8ad46b-c19a-42eb-a8a7-d6a0bacd631c",
+        "teamName": "Granite Wheelers",
+        "isBot": true,
+        "points": 65
+      },
+      {
+        "riderId": "a63a6bd5-825a-403a-b58b-fbfd3d418910",
+        "name": "William Simpson",
+        "country": "NZ",
+        "teamId": null,
+        "teamName": null,
+        "isBot": true,
+        "points": 60
+      },
+      {
+        "riderId": "e2e071b5-334d-47d4-9f8e-3b939680b1c6",
+        "name": "Gastón Pereyra",
+        "country": "UY",
+        "teamId": null,
+        "teamName": null,
+        "isBot": true,
+        "points": 20
+      },
+      {
+        "riderId": "43a4845f-ae79-4fa8-b489-78c24bd1163a",
+        "name": "Jimmy Rodríguez",
+        "country": "CO",
+        "teamId": "e9ea6f28-7235-4e12-a591-b02668be6909",
+        "teamName": "Flèche Course",
+        "isBot": true,
+        "points": 15
+      },
+      {
+        "riderId": "de227205-c48b-48b9-9edb-fb54f44000e6",
+        "name": "Nico Ramaekers",
+        "country": "NL",
+        "teamId": "ba623681-09c4-4bdd-94c6-aac306d2af57",
+        "teamName": "Berg Wielrennen",
+        "isBot": true,
+        "points": 14
+      },
+      {
+        "riderId": "f4ba3171-6ab8-468c-8f8a-4921704aaba9",
+        "name": "Joaquín Orellana",
+        "country": "CL",
+        "teamId": "619be87a-5c94-446d-8a8e-21c82901ddf2",
+        "teamName": "Andes Racing",
+        "isBot": true,
+        "points": 10
+      },
+      {
+        "riderId": "f8f881f1-6f13-408b-a9a3-d4b11ea93b76",
+        "name": "Mark Nepomuceno",
+        "country": "PH",
+        "teamId": "b18d281e-2cae-46d1-ab93-0e4eefe1d952",
+        "teamName": "Relámpago Pro Cycling",
+        "isBot": true,
+        "points": 7
+      },
+      {
+        "riderId": "028a2b5a-2347-4725-9acf-b580254f3344",
+        "name": "Victor Garcia",
+        "country": "PA",
+        "teamId": "8281a56d-fed7-4bf1-baa3-bce665ab4616",
+        "teamName": "Atlântico Pro Cycling",
+        "isBot": true,
+        "points": 5
+      },
+      {
+        "riderId": "a06dcbd2-a1c0-4af7-af2e-e3b5752227e7",
+        "name": "Bernard Vidal",
+        "country": "FR",
+        "teamId": "9d45dbf1-0708-414b-a45a-d1a54f651ea8",
+        "teamName": "Onde Course",
+        "isBot": true,
+        "points": 1
+      },
+      {
+        "riderId": "e1603e39-b8e4-47ed-a5df-d8b1b59e682e",
+        "name": "Sandro Boukhari",
+        "country": "FR",
+        "teamId": "d8b499cc-bb56-4599-bc64-751cfd2f405b",
+        "teamName": "Faucon Course",
+        "isBot": true,
+        "points": 1
+      },
+      {
+        "riderId": "e79667d5-34f2-44d5-81c5-12d08b096bd9",
+        "name": "Hossein Safarzadeh",
+        "country": "IR",
+        "teamId": "cdb3807a-2267-43df-8c23-cedd8eaebf55",
+        "teamName": "Simorgh Team",
+        "isBot": true,
+        "points": 1
+      },
+      {
+        "riderId": "00b7abfc-0686-4aa5-a357-ee07a09e5325",
+        "name": "Peter Bruun",
+        "country": "DK",
+        "teamId": "be194543-90a6-4863-a648-9c37dd0b8c3e",
+        "teamName": "Falk Sykkel",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "010f499e-2c1a-422c-9c98-2bd35b8f56ad",
+        "name": "Zorigt Ulziisaikhan",
+        "country": "MN",
+        "teamId": "91b96ba3-e8c8-4a63-a9e2-16a6bd2f1b2e",
+        "teamName": "Storm Sykkel",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "02913fd1-f2f4-4fcc-9b1f-e240ce169154",
+        "name": "Arben Prekpalaj",
+        "country": "XK",
+        "teamId": "ae358500-4293-4a91-b907-aad78824bbe8",
+        "teamName": "Shqiponja Çiklizëm",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "04d01a32-80f1-40e9-b71c-2fd25ce0e82c",
+        "name": "Anatol Bejan",
+        "country": "MD",
+        "teamId": "804b18aa-d147-425c-8375-c2dc39448b55",
+        "teamName": "Ironside Racing",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "05388c31-1aad-429e-b8e7-89fce83c73ae",
+        "name": "Milad Mahmoudi",
+        "country": "IR",
+        "teamId": "cdb3807a-2267-43df-8c23-cedd8eaebf55",
+        "teamName": "Simorgh Team",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "05554304-8a6f-431e-9df2-994fec34265a",
+        "name": "Franco Nistor",
+        "country": "IT",
+        "teamId": "6f080af9-b66d-4df5-a4f6-2148262e5ec6",
+        "teamName": "Onda Pro Cycling",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "05de56ac-6c9d-4c19-88e9-8644d617b006",
+        "name": "Lennert Vervoort",
+        "country": "BE",
+        "teamId": "6768ca9f-2b13-4be6-9f3f-411f9515242f",
+        "teamName": "Bliksem Cycling",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "06ab1454-b0f1-410f-bc77-7f09b04a655d",
+        "name": "Ming Wang",
+        "country": "CN",
+        "teamId": "f6fa5630-6f1f-42ec-a3ef-259effad75cf",
+        "teamName": "Feilong Che Dui",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "07301721-21ae-445e-bac8-ba66a902931c",
+        "name": "Ashvin Koonjul",
+        "country": "MU",
+        "teamId": null,
+        "teamName": null,
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "08946e4b-4050-4579-90f3-0abf918e21b3",
+        "name": "Matteo Giordano",
+        "country": "IT",
+        "teamId": "323fe40c-8371-4a70-8df2-a7e8a50e1a8f",
+        "teamName": "Falco Ciclismo",
+        "isBot": true,
+        "points": 0
+      },
+      {
+        "riderId": "090ed3f6-1c9d-4471-8d81-1bd0354c2508",
+        "name": "Mert Yıldırım",
+        "country": "TR",
+        "teamId": "51b010a6-84a7-41d9-96ba-39d94d2ea498",
+        "teamName": "Ateş Racing",
+        "isBot": true,
+        "points": 0
+      }
+    ]
+  }
+}

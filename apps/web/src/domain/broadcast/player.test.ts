@@ -565,7 +565,6 @@ function playStage(name: HeadTrackName, opts: RunOptions): StageRun {
     start: {
       leaders: { gc: null, points: null, kom: null },
       gcTop: [],
-      racingAtStart: line.riderIds.length,
     },
     photoBlocks: photoBlocksOf(track.lengthKm, DX),
   }
@@ -834,7 +833,7 @@ describe('cueDeckStep · la cola de rótulos del reproductor, paso a paso (§6.5
   })
   const ictx: InstantContext = {
     own: new Set(),
-    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 8 },
+    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
     photoBlocks: photoBlocksOf(track.lengthKm, DX),
   }
   const deckCtx = (line: TimelineCore): CueDeckContext => ({
@@ -1049,7 +1048,7 @@ function simStage(name: string, kind: StageKind): SimStage {
     finishDs: visibilityOf(tl).finishDs,
     ictx: {
       own: new Set(),
-      start: startStateOf(tl.cast, tl.riderIds.length),
+      start: startStateOf(tl.cast),
       photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
     },
     kind,
@@ -2058,7 +2057,7 @@ describe('la cola de la crono sobre la e16 congelada (§9.5, §9.8; 9-d)', () =>
     'elite',
     new Map(),
   )
-  const start = startStateOf(tl.cast, n)
+  const start = startStateOf(tl.cast)
   const ictx: InstantContext = {
     own: new Set(),
     start,

@@ -1,0 +1,58 @@
+{
+  "route": "GET /api/riders/:id",
+  "url": "/api/riders/61a657ed-73d3-4b5b-b340-05bcbc71dde4",
+  "status": 200,
+  "body": {
+    "rider": {
+      "id": "61a657ed-73d3-4b5b-b340-05bcbc71dde4",
+      "name": "José Quintáns",
+      "country": "ES",
+      "residence": "ES",
+      "archetype": "escalada",
+      "age": 18,
+      "isBot": false,
+      "teamId": null,
+      "teamName": null,
+      "seasonPoints": 0,
+      "seasonRank": 467,
+      "fieldSize": 3902,
+      "attributes": {
+        "RES": {
+          "stars": 1.5
+        },
+        "REC": {
+          "stars": 1
+        },
+        "LLA": {
+          "stars": 1
+        },
+        "MON": {
+          "stars": 1.5
+        },
+        "COL": {
+          "stars": 1
+        },
+        "CRI": {
+          "stars": 1
+        },
+        "SPR": {
+          "stars": 1
+        },
+        "DES": {
+          "stars": 1
+        },
+        "PAV": {
+          "stars": 1
+        },
+        "TAC": {
+          "stars": 0.5
+        }
+      },
+      "health": {
+        "state": "sano",
+        "untilDay": null
+      },
+      "champion": null
+    }
+  }
+}

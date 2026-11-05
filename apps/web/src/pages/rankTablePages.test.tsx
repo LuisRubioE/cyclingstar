@@ -207,7 +207,6 @@ describe('la nación (§6.1)', () => {
     teamId: 't2',
     teamName: 'Andes Ruta',
     seasonPoints: 500 - n,
-    fame: 0,
   })
   const nacion = () =>
     pinta('/world/nations/es', '/world/nations/:code', <Country />, [
@@ -338,8 +337,7 @@ describe('la plantilla (§6.1)', () => {
       teamId: 't1',
       teamName: 'Mistral Racing',
       money: 0,
-      morale: 60,
-      fame: 0,
+      moraleStars: 3,
       seasonPoints: 0,
       seasonRank: 0,
       fieldSize: 0,

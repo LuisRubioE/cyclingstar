@@ -1,0 +1,8 @@
+{
+  "route": "GET /api/riders/me/palmares",
+  "url": "/api/riders/me/palmares",
+  "status": 200,
+  "body": {
+    "palmares": []
+  }
+}

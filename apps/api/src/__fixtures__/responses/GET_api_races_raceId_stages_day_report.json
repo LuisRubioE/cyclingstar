@@ -1,0 +1,1711 @@
+{
+  "route": "GET /api/races/:raceId/stages/:day/report",
+  "url": "/api/races/race-valencia/stages/3/report",
+  "status": 200,
+  "body": {
+    "day": 3,
+    "name": "Stage 3 · Summit finish",
+    "km": 158,
+    "run": true,
+    "race": {
+      "id": "race-valencia",
+      "name": "Race Valencia",
+      "country": "ES",
+      "stageCount": 5
+    },
+    "from": "Orihuela",
+    "to": "San Vicente del Raspeig",
+    "kind": "reina",
+    "timeTrial": false,
+    "altimetry": "<svg viewBox=\"0 0 720 200\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-label=\"Altimetría\"><polygon points=\"24.0,176.0 24.0,174.7 30.0,173.9 35.5,174.6 42.7,176.0 49.5,174.8 55.5,174.3 61.4,174.8 66.5,175.7 71.6,175.1 80.1,174.0 88.2,174.8 94.2,175.6 99.7,175.1 108.2,173.8 116.3,175.1 122.2,175.6 127.8,175.2 135.9,174.5 143.5,175.2 149.9,175.9 155.8,175.2 163.1,174.6 170.3,175.1 176.3,175.8 181.8,175.1 190.3,173.8 198.4,174.5 203.1,175.3 207.7,174.6 214.5,173.8 221.3,174.6 226.0,175.4 230.7,174.8 235.8,174.2 240.9,174.7 249.4,175.6 257.9,174.9 263.5,174.2 269.0,174.7 274.5,175.6 280.0,174.8 287.3,173.9 294.5,174.5 304.7,164.2 313.6,153.1 322.6,141.6 331.9,135.9 340.4,122.2 351.1,109.4 362.1,97.8 372.3,87.1 385.5,105.8 400.4,131.0 414.9,154.3 418.3,153.9 421.2,154.2 431.5,140.9 440.4,127.1 448.9,113.5 457.8,105.5 465.9,90.1 476.1,74.7 486.7,60.3 496.5,47.1 509.7,65.8 524.6,91.0 539.1,114.3 542.5,113.7 545.4,114.1 555.6,103.1 564.6,91.5 573.1,80.0 582.4,73.7 590.5,60.2 600.7,47.3 611.4,35.4 621.6,24.0 634.8,42.7 649.6,67.9 664.1,91.2 667.5,90.7 670.5,91.1 679.8,78.4 688.3,64.5 696.0,47.1 696.0,176.0\" fill=\"#6366f1\" opacity=\"0.18\"/><polyline points=\"24.0,174.7 30.0,173.9 35.5,174.6 42.7,176.0 49.5,174.8 55.5,174.3 61.4,174.8 66.5,175.7 71.6,175.1 80.1,174.0 88.2,174.8 94.2,175.6 99.7,175.1 108.2,173.8 116.3,175.1 122.2,175.6 127.8,175.2 135.9,174.5 143.5,175.2 149.9,175.9 155.8,175.2 163.1,174.6 170.3,175.1 176.3,175.8 181.8,175.1 190.3,173.8 198.4,174.5 203.1,175.3 207.7,174.6 214.5,173.8 221.3,174.6 226.0,175.4 230.7,174.8 235.8,174.2 240.9,174.7 249.4,175.6 257.9,174.9 263.5,174.2 269.0,174.7 274.5,175.6 280.0,174.8 287.3,173.9 294.5,174.5 304.7,164.2 313.6,153.1 322.6,141.6 331.9,135.9 340.4,122.2 351.1,109.4 362.1,97.8 372.3,87.1 385.5,105.8 400.4,131.0 414.9,154.3 418.3,153.9 421.2,154.2 431.5,140.9 440.4,127.1 448.9,113.5 457.8,105.5 465.9,90.1 476.1,74.7 486.7,60.3 496.5,47.1 509.7,65.8 524.6,91.0 539.1,114.3 542.5,113.7 545.4,114.1 555.6,103.1 564.6,91.5 573.1,80.0 582.4,73.7 590.5,60.2 600.7,47.3 611.4,35.4 621.6,24.0 634.8,42.7 649.6,67.9 664.1,91.2 667.5,90.7 670.5,91.1 679.8,78.4 688.3,64.5 696.0,47.1\" fill=\"none\" stroke=\"#4f46e5\" stroke-width=\"2\"/><line x1=\"372.8\" y1=\"24\" x2=\"372.8\" y2=\"176\" stroke=\"#dc2626\" stroke-width=\"1\" stroke-dasharray=\"2 4\" opacity=\"0.3\"/><line x1=\"496.1\" y1=\"24\" x2=\"496.1\" y2=\"176\" stroke=\"#dc2626\" stroke-width=\"1\" stroke-dasharray=\"3 3\" opacity=\"0.7\"/><text x=\"496.1\" y=\"18\" fill=\"#dc2626\" font-size=\"11\" text-anchor=\"middle\" font-family=\"sans-serif\">Cat 1</text><line x1=\"623.7\" y1=\"24\" x2=\"623.7\" y2=\"176\" stroke=\"#dc2626\" stroke-width=\"1\" stroke-dasharray=\"2 4\" opacity=\"0.3\"/><line x1=\"696.0\" y1=\"24\" x2=\"696.0\" y2=\"176\" stroke=\"#dc2626\" stroke-width=\"1\" stroke-dasharray=\"3 3\" opacity=\"0.7\"/><text x=\"696.0\" y=\"18\" fill=\"#dc2626\" font-size=\"11\" text-anchor=\"middle\" font-family=\"sans-serif\">Cat 2</text><circle cx=\"373.0\" cy=\"88.0\" r=\"3.5\" fill=\"#0f172a\"/><text x=\"373.0\" y=\"80.0\" fill=\"#0f172a\" font-size=\"10\" text-anchor=\"middle\" font-family=\"sans-serif\">banner</text><circle cx=\"398.9\" cy=\"128.5\" r=\"3.5\" fill=\"#0f172a\"/><text x=\"398.9\" y=\"142.5\" fill=\"#0f172a\" font-size=\"10\" text-anchor=\"middle\" font-family=\"sans-serif\">attack</text><circle cx=\"420.2\" cy=\"154.1\" r=\"3.5\" fill=\"#0f172a\"/><text x=\"420.2\" y=\"146.1\" fill=\"#0f172a\" font-size=\"10\" text-anchor=\"middle\" font-family=\"sans-serif\">attack</text><circle cx=\"496.3\" cy=\"47.4\" r=\"3.5\" fill=\"#0f172a\"/><text x=\"496.3\" y=\"61.4\" fill=\"#0f172a\" font-size=\"10\" text-anchor=\"middle\" font-family=\"sans-serif\">banner</text><circle cx=\"623.9\" cy=\"27.3\" r=\"3.5\" fill=\"#0f172a\"/><text x=\"623.9\" y=\"19.3\" fill=\"#0f172a\" font-size=\"10\" text-anchor=\"middle\" font-family=\"sans-serif\">banner</text><circle cx=\"695.8\" cy=\"47.6\" r=\"3.5\" fill=\"#0f172a\"/><text x=\"695.8\" y=\"61.6\" fill=\"#0f172a\" font-size=\"10\" text-anchor=\"middle\" font-family=\"sans-serif\">banner</text><circle cx=\"696.0\" cy=\"47.1\" r=\"3.5\" fill=\"#0f172a\"/><text x=\"696.0\" y=\"39.1\" fill=\"#0f172a\" font-size=\"10\" text-anchor=\"middle\" font-family=\"sans-serif\">finish</text><text x=\"696\" y=\"194\" fill=\"#94a3b8\" font-size=\"10\" font-family=\"sans-serif\" text-anchor=\"end\">158 km</text></svg>",
+    "results": [
+      {
+        "riderId": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+        "name": "Gilles Roelants",
+        "country": "BE",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "puesto": 1,
+        "tiempoS": 18849,
+        "bonificacionS": 10,
+        "puntosVolante": 25,
+        "puntosMontana": 16,
+        "dnf": false,
+        "reason": null
+      },
+      {
+        "riderId": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+        "name": "Giuseppe Testa",
+        "country": "IT",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "puesto": 2,
+        "tiempoS": 18883,
+        "bonificacionS": 6,
+        "puntosVolante": 20,
+        "puntosMontana": 0,
+        "dnf": false,
+        "reason": null
+      },
+      {
+        "riderId": "b7a5cfaa-7e9c-4e88-8fba-d7112ce0e2b8",
+        "name": "Volkan Claes",
+        "country": "BE",
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "teamName": "Vuur Racing",
+        "isBot": true,
+        "puesto": 3,
+        "tiempoS": 18883,
+        "bonificacionS": 4,
+        "puntosVolante": 16,
+        "puntosMontana": 2,
+        "dnf": false,
+        "reason": null
+      }
+    ],
+    "chronicle": [
+      {
+        "km": 6,
+        "tS": 525,
+        "plantilla": "attack_short",
+        "protagonists": [
+          {
+            "id": "1b5ef534-d8d8-43eb-8e2d-d54cad8df029",
+            "name": "Alexis Nijs",
+            "bib": 185,
+            "team": "Vuur Racing",
+            "country": "BE"
+          },
+          {
+            "id": "20ee1a74-f07a-408f-8be6-6324c603fa07",
+            "name": "Angelo Mariani",
+            "bib": 146,
+            "team": "Onda Pro Cycling",
+            "country": "IT"
+          },
+          {
+            "id": "2163abc5-4630-4f7a-8ac3-8644012c3d6c",
+            "name": "Muhammad Lee",
+            "bib": 23,
+            "team": "Gipfel Racing",
+            "country": "MY"
+          }
+        ],
+        "datos": {
+          "kind": "fuga",
+          "toGo": 154,
+          "grupo": 139,
+          "hueco": 9,
+          "narra": 1,
+          "cuerda": 0,
+          "saltan": 18,
+          "tierra": 13,
+          "mainRole": "bunch",
+          "km": 2,
+          "solo": 0
+        }
+      },
+      {
+        "km": 8,
+        "tS": 712,
+        "plantilla": "attack_go",
+        "protagonists": [
+          {
+            "id": "9aad759d-e113-47b6-9e44-2c618de2adcc",
+            "name": "François Benoit",
+            "bib": 62,
+            "team": "Aurore Équipe",
+            "country": "FR"
+          },
+          {
+            "id": "121c51fa-20ea-4fc6-b1fa-ab3f165c1974",
+            "name": "Klaus Wagner",
+            "bib": 117,
+            "team": "Pfeil Radteam",
+            "country": "DE"
+          },
+          {
+            "id": "149c3532-6973-4955-adc8-07fdcf9ccf22",
+            "name": "Giovanni Usai",
+            "bib": 145,
+            "team": "Onda Pro Cycling",
+            "country": "IT"
+          }
+        ],
+        "datos": {
+          "kind": "fuga",
+          "toGo": 150,
+          "grupo": 139,
+          "hueco": 7,
+          "narra": 1,
+          "cuerda": 0,
+          "saltan": 21,
+          "tierra": 1,
+          "mainRole": "bunch",
+          "solo": 0
+        }
+      },
+      {
+        "km": 10,
+        "tS": 815,
+        "plantilla": "attack_reeled",
+        "protagonists": [
+          {
+            "id": "121c51fa-20ea-4fc6-b1fa-ab3f165c1974",
+            "name": "Klaus Wagner",
+            "bib": 117,
+            "team": "Pfeil Radteam",
+            "country": "DE"
+          },
+          {
+            "id": "149c3532-6973-4955-adc8-07fdcf9ccf22",
+            "name": "Giovanni Usai",
+            "bib": 145,
+            "team": "Onda Pro Cycling",
+            "country": "IT"
+          },
+          {
+            "id": "17bff345-a88b-4f80-a771-74d3e32d0706",
+            "name": "Emmanuel Mukamana",
+            "bib": 163,
+            "team": "Fénix Cycling",
+            "country": "RW"
+          }
+        ],
+        "datos": {
+          "km": 1,
+          "kind": "fuga",
+          "narra": 1,
+          "mainRole": "bunch"
+        }
+      }
+    ],
+    "gc": [
+      {
+        "riderId": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+        "name": "Gilles Roelants",
+        "country": "BE",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "tiempoTotalS": 34760,
+        "dnf": false
+      },
+      {
+        "riderId": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+        "name": "Giuseppe Testa",
+        "country": "IT",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "tiempoTotalS": 34809,
+        "dnf": false
+      },
+      {
+        "riderId": "b7a5cfaa-7e9c-4e88-8fba-d7112ce0e2b8",
+        "name": "Volkan Claes",
+        "country": "BE",
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "teamName": "Vuur Racing",
+        "isBot": true,
+        "tiempoTotalS": 34814,
+        "dnf": false
+      }
+    ],
+    "kom": [
+      {
+        "riderId": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+        "name": "Gilles Roelants",
+        "country": "BE",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "puntos": 16
+      },
+      {
+        "riderId": "067120f4-01f9-465b-be0d-2ad92cc43cd1",
+        "name": "Gabriel Zúñiga",
+        "country": "CR",
+        "teamId": "aebd7576-10f4-4f70-bec4-0e0732de5620",
+        "teamName": "Sierra Cycling",
+        "isBot": true,
+        "puntos": 13
+      },
+      {
+        "riderId": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+        "name": "Haritz Arias",
+        "country": "ES",
+        "teamId": "1d176574-0d84-4c49-a66b-8744496f0a38",
+        "teamName": "Aurora Racing",
+        "isBot": true,
+        "puntos": 7
+      },
+      {
+        "riderId": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+        "name": "Giuseppe Testa",
+        "country": "IT",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "puntos": 5
+      },
+      {
+        "riderId": "b62400c2-2932-4e1d-98ee-50bb33bc10fa",
+        "name": "Zakaria Cornelis",
+        "country": "BE",
+        "teamId": "6ff154e7-8180-498e-aa42-b7bd10cb2d29",
+        "teamName": "Havik Wielrennen",
+        "isBot": true,
+        "puntos": 4
+      },
+      {
+        "riderId": "7d4217f1-8f9d-4c14-868d-573dbf7e2825",
+        "name": "Noah Coleman",
+        "country": "US",
+        "teamId": "fddcc41d-3055-45d5-8e66-972a901bcd5b",
+        "teamName": "Granite Pro Cycling",
+        "isBot": true,
+        "puntos": 2
+      },
+      {
+        "riderId": "85968056-6ad9-4bd9-8077-9a28b491f4db",
+        "name": "Marc Piret",
+        "country": "BE",
+        "teamId": "6ff154e7-8180-498e-aa42-b7bd10cb2d29",
+        "teamName": "Havik Wielrennen",
+        "isBot": true,
+        "puntos": 2
+      },
+      {
+        "riderId": "b7a5cfaa-7e9c-4e88-8fba-d7112ce0e2b8",
+        "name": "Volkan Claes",
+        "country": "BE",
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "teamName": "Vuur Racing",
+        "isBot": true,
+        "puntos": 2
+      },
+      {
+        "riderId": "f77d3a52-1848-4243-8037-f641794cf7cb",
+        "name": "Andrea Ferraro",
+        "country": "IT",
+        "teamId": "6f080af9-b66d-4df5-a4f6-2148262e5ec6",
+        "teamName": "Onda Pro Cycling",
+        "isBot": true,
+        "puntos": 1
+      }
+    ],
+    "points": [
+      {
+        "riderId": "067120f4-01f9-465b-be0d-2ad92cc43cd1",
+        "name": "Gabriel Zúñiga",
+        "country": "CR",
+        "teamId": "aebd7576-10f4-4f70-bec4-0e0732de5620",
+        "teamName": "Sierra Cycling",
+        "isBot": true,
+        "puntos": 37
+      },
+      {
+        "riderId": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+        "name": "Gilles Roelants",
+        "country": "BE",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "puntos": 33
+      },
+      {
+        "riderId": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+        "name": "Giuseppe Testa",
+        "country": "IT",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "puntos": 32
+      },
+      {
+        "riderId": "8bdc6681-4a51-40c1-a0d1-2fb7e26d5182",
+        "name": "Themba Kambarami",
+        "country": "ZW",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "puntos": 26
+      },
+      {
+        "riderId": "017ab86e-1465-4069-9c6c-601434c6d4c4",
+        "name": "Noah Cassiers",
+        "country": "BE",
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "teamName": "Vuur Racing",
+        "isBot": true,
+        "puntos": 20
+      },
+      {
+        "riderId": "b7a5cfaa-7e9c-4e88-8fba-d7112ce0e2b8",
+        "name": "Volkan Claes",
+        "country": "BE",
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "teamName": "Vuur Racing",
+        "isBot": true,
+        "puntos": 16
+      },
+      {
+        "riderId": "d39d94d8-d356-4688-9e50-38e08fc98011",
+        "name": "Abhishek Gupta",
+        "country": "IN",
+        "teamId": "5ebf973c-a339-4b76-8526-bc0a96f59a32",
+        "teamName": "Csillag Racing",
+        "isBot": true,
+        "puntos": 16
+      },
+      {
+        "riderId": "73f17a87-c2b2-4c80-94fd-3d6a564f7e00",
+        "name": "Ka Ho Yeung",
+        "country": "HK",
+        "teamId": "d1aa0a40-0d79-4312-a08d-c82db4b5b767",
+        "teamName": "Mistral Équipe",
+        "isBot": true,
+        "puntos": 14
+      },
+      {
+        "riderId": "b62400c2-2932-4e1d-98ee-50bb33bc10fa",
+        "name": "Zakaria Cornelis",
+        "country": "BE",
+        "teamId": "6ff154e7-8180-498e-aa42-b7bd10cb2d29",
+        "teamName": "Havik Wielrennen",
+        "isBot": true,
+        "puntos": 14
+      },
+      {
+        "riderId": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+        "name": "Haritz Arias",
+        "country": "ES",
+        "teamId": "1d176574-0d84-4c49-a66b-8744496f0a38",
+        "teamName": "Aurora Racing",
+        "isBot": true,
+        "puntos": 8
+      },
+      {
+        "riderId": "be1c3c53-ed0d-4ed6-9a92-a9ef5fe6835d",
+        "name": "Michel Servais",
+        "country": "BE",
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "teamName": "Vuur Racing",
+        "isBot": true,
+        "puntos": 7
+      },
+      {
+        "riderId": "d3b872b5-2abe-4b18-b016-6f972088b5cf",
+        "name": "Bo-Wei Liu",
+        "country": "TW",
+        "teamId": "1d176574-0d84-4c49-a66b-8744496f0a38",
+        "teamName": "Aurora Racing",
+        "isBot": true,
+        "puntos": 7
+      },
+      {
+        "riderId": "c6a8950e-3518-4edd-887b-3489e2db9eac",
+        "name": "Brandon Furbert",
+        "country": "BM",
+        "teamId": "b8e3ca7f-4418-4afb-9f7e-204a948b36ab",
+        "teamName": "Mistral Racing",
+        "isBot": true,
+        "puntos": 6
+      },
+      {
+        "riderId": "56565c9c-37c4-460a-859d-3d1d463160d3",
+        "name": "Jean Bonnafous",
+        "country": "FR",
+        "teamId": "5f069a80-000f-4436-8163-3359881e24aa",
+        "teamName": "Lampo Racing",
+        "isBot": true,
+        "puntos": 5
+      },
+      {
+        "riderId": "c56b87c5-ace3-4f7f-91f8-beae991e5cfb",
+        "name": "Ferre Maréchal",
+        "country": "BE",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "puntos": 5
+      },
+      {
+        "riderId": "1154a444-5cac-46de-8e37-21a4cfe943cf",
+        "name": "Nathan Wallace",
+        "country": "US",
+        "teamId": "fddcc41d-3055-45d5-8e66-972a901bcd5b",
+        "teamName": "Granite Pro Cycling",
+        "isBot": true,
+        "puntos": 4
+      },
+      {
+        "riderId": "6beeb676-c70c-4a8e-a89b-f1ce4294a874",
+        "name": "Giovanni Donati",
+        "country": "IT",
+        "teamId": "fddcc41d-3055-45d5-8e66-972a901bcd5b",
+        "teamName": "Granite Pro Cycling",
+        "isBot": true,
+        "puntos": 4
+      },
+      {
+        "riderId": "aca801b6-df5c-4592-b484-c082aa4bfa3e",
+        "name": "Roland Suter",
+        "country": "CH",
+        "teamId": "b18d281e-2cae-46d1-ab93-0e4eefe1d952",
+        "teamName": "Relámpago Pro Cycling",
+        "isBot": true,
+        "puntos": 3
+      },
+      {
+        "riderId": "f77d3a52-1848-4243-8037-f641794cf7cb",
+        "name": "Andrea Ferraro",
+        "country": "IT",
+        "teamId": "6f080af9-b66d-4df5-a4f6-2148262e5ec6",
+        "teamName": "Onda Pro Cycling",
+        "isBot": true,
+        "puntos": 3
+      },
+      {
+        "riderId": "7d4217f1-8f9d-4c14-868d-573dbf7e2825",
+        "name": "Noah Coleman",
+        "country": "US",
+        "teamId": "fddcc41d-3055-45d5-8e66-972a901bcd5b",
+        "teamName": "Granite Pro Cycling",
+        "isBot": true,
+        "puntos": 2
+      },
+      {
+        "riderId": "a4712879-edad-499f-9fba-745c318a293d",
+        "name": "Adrien Fontaine",
+        "country": "FR",
+        "teamId": "aebd7576-10f4-4f70-bec4-0e0732de5620",
+        "teamName": "Sierra Cycling",
+        "isBot": true,
+        "puntos": 2
+      },
+      {
+        "riderId": "b9a96087-4e3a-4f4b-bd8f-780bd2ceebe7",
+        "name": "Daniel Morales",
+        "country": "ES",
+        "teamId": "16eb5845-1c1d-49f1-a30e-578b2750953b",
+        "teamName": "Fénix Cycling",
+        "isBot": true,
+        "puntos": 1
+      },
+      {
+        "riderId": "e0c022a5-afac-41b2-aa4b-e685e9fcd5b6",
+        "name": "João Gonçalves",
+        "country": "PT",
+        "teamId": "1d176574-0d84-4c49-a66b-8744496f0a38",
+        "teamName": "Aurora Racing",
+        "isBot": true,
+        "puntos": 1
+      }
+    ],
+    "teamStage": [
+      {
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "country": "BE",
+        "kit": "sides.blue.navy",
+        "tiempoS": 56615,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "teamName": "Vuur Racing",
+        "country": "BE",
+        "kit": "yoke.brown.blue",
+        "tiempoS": 56649,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "1d176574-0d84-4c49-a66b-8744496f0a38",
+        "teamName": "Aurora Racing",
+        "country": "ES",
+        "kit": "yoke.red.black",
+        "tiempoS": 57333,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "fddcc41d-3055-45d5-8e66-972a901bcd5b",
+        "teamName": "Granite Pro Cycling",
+        "country": "US",
+        "kit": "sides.green.teal",
+        "tiempoS": 57736,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "6f080af9-b66d-4df5-a4f6-2148262e5ec6",
+        "teamName": "Onda Pro Cycling",
+        "country": "IT",
+        "kit": "sides.blue.sky",
+        "tiempoS": 58171,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "aebd7576-10f4-4f70-bec4-0e0732de5620",
+        "teamName": "Sierra Cycling",
+        "country": "ES",
+        "kit": "yoke.orange.brown",
+        "tiempoS": 58237,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "b8e3ca7f-4418-4afb-9f7e-204a948b36ab",
+        "teamName": "Mistral Racing",
+        "country": "FR",
+        "kit": "plain.black",
+        "tiempoS": 58284,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "6ff154e7-8180-498e-aa42-b7bd10cb2d29",
+        "teamName": "Havik Wielrennen",
+        "country": "BE",
+        "kit": "band.blue.brown",
+        "tiempoS": 58372,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "b18d281e-2cae-46d1-ab93-0e4eefe1d952",
+        "teamName": "Relámpago Pro Cycling",
+        "country": "ES",
+        "kit": "sash.pink.brown",
+        "tiempoS": 58672,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "6575330d-d0da-4141-9e98-465ba5c79da3",
+        "teamName": "Cima Squadra",
+        "country": "IT",
+        "kit": "yoke.taupe.sky",
+        "tiempoS": 58750,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "5f069a80-000f-4436-8163-3359881e24aa",
+        "teamName": "Lampo Racing",
+        "country": "IT",
+        "kit": "sides.brown.pink",
+        "tiempoS": 58750,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "b13196bd-b02e-49a0-8840-feade28cafaf",
+        "teamName": "Pfeil Radteam",
+        "country": "CH",
+        "kit": "yoke.sky.taupe",
+        "tiempoS": 58981,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "be275f00-62e2-4d06-8939-b1ae8379fb71",
+        "teamName": "Falcon Velo",
+        "country": "US",
+        "kit": "yoke.navy.blue",
+        "tiempoS": 58984,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "b84a413c-f620-403d-b23e-d22ee0f4aac5",
+        "teamName": "Gipfel Racing",
+        "country": "CH",
+        "kit": "band.teal.plum",
+        "tiempoS": 59077,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "d1aa0a40-0d79-4312-a08d-c82db4b5b767",
+        "teamName": "Mistral Équipe",
+        "country": "FR",
+        "kit": "hoops.green.yellow",
+        "tiempoS": 59586,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "16eb5845-1c1d-49f1-a30e-578b2750953b",
+        "teamName": "Fénix Cycling",
+        "country": "ES",
+        "kit": "sides.sky.red",
+        "tiempoS": 59817,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "9a192e3d-21a4-4d61-b053-911c05f3c9cf",
+        "teamName": "Andes Ruta",
+        "country": "ES",
+        "kit": "hoops.red.orange",
+        "tiempoS": 60147,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "5ebf973c-a339-4b76-8526-bc0a96f59a32",
+        "teamName": "Csillag Racing",
+        "country": "HU",
+        "kit": "band.pink.brown",
+        "tiempoS": 60700,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "8c1be02a-036e-4509-a342-b04fcb6739be",
+        "teamName": "Aurore Équipe",
+        "country": "FR",
+        "kit": "plain.blue",
+        "tiempoS": 61306,
+        "stagesScored": 1,
+        "out": false
+      },
+      {
+        "teamId": "dae2050d-8ccb-4aec-a8f6-ffe4e44c1013",
+        "teamName": "Lince Ciclismo",
+        "country": "ES",
+        "kit": "hoops.purple.sky",
+        "tiempoS": 62599,
+        "stagesScored": 1,
+        "out": false
+      }
+    ],
+    "teamGc": [
+      {
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "country": "BE",
+        "kit": "sides.blue.navy",
+        "tiempoS": 104419,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "teamName": "Vuur Racing",
+        "country": "BE",
+        "kit": "yoke.brown.blue",
+        "tiempoS": 104563,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "1d176574-0d84-4c49-a66b-8744496f0a38",
+        "teamName": "Aurora Racing",
+        "country": "ES",
+        "kit": "yoke.red.black",
+        "tiempoS": 105366,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "fddcc41d-3055-45d5-8e66-972a901bcd5b",
+        "teamName": "Granite Pro Cycling",
+        "country": "US",
+        "kit": "sides.green.teal",
+        "tiempoS": 105824,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "aebd7576-10f4-4f70-bec4-0e0732de5620",
+        "teamName": "Sierra Cycling",
+        "country": "ES",
+        "kit": "yoke.orange.brown",
+        "tiempoS": 106290,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "b8e3ca7f-4418-4afb-9f7e-204a948b36ab",
+        "teamName": "Mistral Racing",
+        "country": "FR",
+        "kit": "plain.black",
+        "tiempoS": 106398,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "6f080af9-b66d-4df5-a4f6-2148262e5ec6",
+        "teamName": "Onda Pro Cycling",
+        "country": "IT",
+        "kit": "sides.blue.sky",
+        "tiempoS": 106455,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "6ff154e7-8180-498e-aa42-b7bd10cb2d29",
+        "teamName": "Havik Wielrennen",
+        "country": "BE",
+        "kit": "band.blue.brown",
+        "tiempoS": 106800,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "5f069a80-000f-4436-8163-3359881e24aa",
+        "teamName": "Lampo Racing",
+        "country": "IT",
+        "kit": "sides.brown.pink",
+        "tiempoS": 106881,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "6575330d-d0da-4141-9e98-465ba5c79da3",
+        "teamName": "Cima Squadra",
+        "country": "IT",
+        "kit": "yoke.taupe.sky",
+        "tiempoS": 106884,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "be275f00-62e2-4d06-8939-b1ae8379fb71",
+        "teamName": "Falcon Velo",
+        "country": "US",
+        "kit": "yoke.navy.blue",
+        "tiempoS": 107142,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "b18d281e-2cae-46d1-ab93-0e4eefe1d952",
+        "teamName": "Relámpago Pro Cycling",
+        "country": "ES",
+        "kit": "sash.pink.brown",
+        "tiempoS": 107207,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "b13196bd-b02e-49a0-8840-feade28cafaf",
+        "teamName": "Pfeil Radteam",
+        "country": "CH",
+        "kit": "yoke.sky.taupe",
+        "tiempoS": 107453,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "b84a413c-f620-403d-b23e-d22ee0f4aac5",
+        "teamName": "Gipfel Racing",
+        "country": "CH",
+        "kit": "band.teal.plum",
+        "tiempoS": 107604,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "d1aa0a40-0d79-4312-a08d-c82db4b5b767",
+        "teamName": "Mistral Équipe",
+        "country": "FR",
+        "kit": "hoops.green.yellow",
+        "tiempoS": 107742,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "16eb5845-1c1d-49f1-a30e-578b2750953b",
+        "teamName": "Fénix Cycling",
+        "country": "ES",
+        "kit": "sides.sky.red",
+        "tiempoS": 108080,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "9a192e3d-21a4-4d61-b053-911c05f3c9cf",
+        "teamName": "Andes Ruta",
+        "country": "ES",
+        "kit": "hoops.red.orange",
+        "tiempoS": 108437,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "5ebf973c-a339-4b76-8526-bc0a96f59a32",
+        "teamName": "Csillag Racing",
+        "country": "HU",
+        "kit": "band.pink.brown",
+        "tiempoS": 109402,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "8c1be02a-036e-4509-a342-b04fcb6739be",
+        "teamName": "Aurore Équipe",
+        "country": "FR",
+        "kit": "plain.blue",
+        "tiempoS": 110076,
+        "stagesScored": 3,
+        "out": false
+      },
+      {
+        "teamId": "dae2050d-8ccb-4aec-a8f6-ffe4e44c1013",
+        "teamName": "Lince Ciclismo",
+        "country": "ES",
+        "kit": "hoops.purple.sky",
+        "tiempoS": 111989,
+        "stagesScored": 3,
+        "out": false
+      }
+    ],
+    "leaders": {
+      "onRoad": {
+        "gc": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+        "points": "067120f4-01f9-465b-be0d-2ad92cc43cd1",
+        "kom": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+        "team": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0"
+      },
+      "afterStage": {
+        "gc": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+        "points": "067120f4-01f9-465b-be0d-2ad92cc43cd1",
+        "kom": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+        "team": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0"
+      }
+    },
+    "champions": {},
+    "radio": {
+      "starters": 139,
+      "kms": [
+        {
+          "km": 0.1,
+          "groups": [
+            {
+              "kind": "peloton",
+              "size": 139,
+              "gapS": 0,
+              "gapToPrevS": 0,
+              "speedKmh": 39.8,
+              "mishap": null,
+              "riders": [
+                {
+                  "id": "222eaa06-40d6-4c7f-85ae-761570be5ff6",
+                  "name": "Seppe Dendoncker",
+                  "bib": 176,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "90c42f26-79e1-4ae3-85e1-426d197db84a",
+                  "name": "Ricardo Baladán",
+                  "bib": 177,
+                  "team": "Noord Wielrennen",
+                  "country": "UY",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "a2235902-35dd-4b69-a469-bf04edf9da8b",
+                  "name": "Roberts Bērzkalns",
+                  "bib": 174,
+                  "team": "Noord Wielrennen",
+                  "country": "LV",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "c56b87c5-ace3-4f7f-91f8-beae991e5cfb",
+                  "name": "Ferre Maréchal",
+                  "bib": 175,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                  "name": "Gilles Roelants",
+                  "bib": 172,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "jersey": "gc",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "067120f4-01f9-465b-be0d-2ad92cc43cd1",
+                  "name": "Gabriel Zúñiga",
+                  "bib": 191,
+                  "team": "Sierra Cycling",
+                  "country": "CR",
+                  "jersey": "points",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+                  "name": "Giuseppe Testa",
+                  "bib": 173,
+                  "team": "Noord Wielrennen",
+                  "country": "IT",
+                  "jersey": "kom",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "1154a444-5cac-46de-8e37-21a4cfe943cf",
+                  "name": "Nathan Wallace",
+                  "bib": 41,
+                  "team": "Granite Pro Cycling",
+                  "country": "US",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "d39d94d8-d356-4688-9e50-38e08fc98011",
+                  "name": "Abhishek Gupta",
+                  "bib": 91,
+                  "team": "Csillag Racing",
+                  "country": "IN",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+                  "name": "Haritz Arias",
+                  "bib": 121,
+                  "team": "Aurora Racing",
+                  "country": "ES",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "e0c022a5-afac-41b2-aa4b-e685e9fcd5b6",
+                  "name": "João Gonçalves",
+                  "bib": 122,
+                  "team": "Aurora Racing",
+                  "country": "PT",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "d3b872b5-2abe-4b18-b016-6f972088b5cf",
+                  "name": "Bo-Wei Liu",
+                  "bib": 123,
+                  "team": "Aurora Racing",
+                  "country": "TW",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "b62400c2-2932-4e1d-98ee-50bb33bc10fa",
+                  "name": "Zakaria Cornelis",
+                  "bib": 131,
+                  "team": "Havik Wielrennen",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "8bdc6681-4a51-40c1-a0d1-2fb7e26d5182",
+                  "name": "Themba Kambarami",
+                  "bib": 171,
+                  "team": "Noord Wielrennen",
+                  "country": "ZW",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "017ab86e-1465-4069-9c6c-601434c6d4c4",
+                  "name": "Noah Cassiers",
+                  "bib": 181,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "b7a5cfaa-7e9c-4e88-8fba-d7112ce0e2b8",
+                  "name": "Volkan Claes",
+                  "bib": 182,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "be1c3c53-ed0d-4ed6-9a92-a9ef5fe6835d",
+                  "name": "Michel Servais",
+                  "bib": 183,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                }
+              ],
+              "unnamed": 122,
+              "pullingTotal": 4
+            }
+          ],
+          "racing": 139,
+          "gone": 0
+        },
+        {
+          "km": 1.1,
+          "groups": [
+            {
+              "kind": "peloton",
+              "size": 139,
+              "gapS": 0,
+              "gapToPrevS": 0,
+              "speedKmh": 39.8,
+              "mishap": null,
+              "riders": [
+                {
+                  "id": "31f5a105-c281-44a6-973f-765d82a0165e",
+                  "name": "Koech Mutua",
+                  "bib": 15,
+                  "team": "Mistral Racing",
+                  "country": "KE",
+                  "role": "pulling",
+                  "motivo": "equipo_general",
+                  "para": {
+                    "id": "20cda2a4-1980-455c-96bf-bfd447c4aa8a",
+                    "name": "Bernard Michel",
+                    "bib": 12,
+                    "team": "Mistral Racing",
+                    "country": "FR"
+                  }
+                },
+                {
+                  "id": "8bdc6681-4a51-40c1-a0d1-2fb7e26d5182",
+                  "name": "Themba Kambarami",
+                  "bib": 171,
+                  "team": "Noord Wielrennen",
+                  "country": "ZW",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "b7999cfd-40dc-429b-a799-c1ba7a6ec77a",
+                  "name": "Kristian Vik",
+                  "bib": 126,
+                  "team": "Aurora Racing",
+                  "country": "NO",
+                  "role": "pulling",
+                  "motivo": "equipo_general",
+                  "para": {
+                    "id": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+                    "name": "Haritz Arias",
+                    "bib": 121,
+                    "team": "Aurora Racing",
+                    "country": "ES"
+                  }
+                },
+                {
+                  "id": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+                  "name": "Giuseppe Testa",
+                  "bib": 173,
+                  "team": "Noord Wielrennen",
+                  "country": "IT",
+                  "jersey": "kom",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "222eaa06-40d6-4c7f-85ae-761570be5ff6",
+                  "name": "Seppe Dendoncker",
+                  "bib": 176,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "90c42f26-79e1-4ae3-85e1-426d197db84a",
+                  "name": "Ricardo Baladán",
+                  "bib": 177,
+                  "team": "Noord Wielrennen",
+                  "country": "UY",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "a2235902-35dd-4b69-a469-bf04edf9da8b",
+                  "name": "Roberts Bērzkalns",
+                  "bib": 174,
+                  "team": "Noord Wielrennen",
+                  "country": "LV",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "c56b87c5-ace3-4f7f-91f8-beae991e5cfb",
+                  "name": "Ferre Maréchal",
+                  "bib": 175,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                  "name": "Gilles Roelants",
+                  "bib": 172,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "jersey": "gc",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "067120f4-01f9-465b-be0d-2ad92cc43cd1",
+                  "name": "Gabriel Zúñiga",
+                  "bib": 191,
+                  "team": "Sierra Cycling",
+                  "country": "CR",
+                  "jersey": "points",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "1154a444-5cac-46de-8e37-21a4cfe943cf",
+                  "name": "Nathan Wallace",
+                  "bib": 41,
+                  "team": "Granite Pro Cycling",
+                  "country": "US",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "d39d94d8-d356-4688-9e50-38e08fc98011",
+                  "name": "Abhishek Gupta",
+                  "bib": 91,
+                  "team": "Csillag Racing",
+                  "country": "IN",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+                  "name": "Haritz Arias",
+                  "bib": 121,
+                  "team": "Aurora Racing",
+                  "country": "ES",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "e0c022a5-afac-41b2-aa4b-e685e9fcd5b6",
+                  "name": "João Gonçalves",
+                  "bib": 122,
+                  "team": "Aurora Racing",
+                  "country": "PT",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "d3b872b5-2abe-4b18-b016-6f972088b5cf",
+                  "name": "Bo-Wei Liu",
+                  "bib": 123,
+                  "team": "Aurora Racing",
+                  "country": "TW",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "b62400c2-2932-4e1d-98ee-50bb33bc10fa",
+                  "name": "Zakaria Cornelis",
+                  "bib": 131,
+                  "team": "Havik Wielrennen",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "017ab86e-1465-4069-9c6c-601434c6d4c4",
+                  "name": "Noah Cassiers",
+                  "bib": 181,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "b7a5cfaa-7e9c-4e88-8fba-d7112ce0e2b8",
+                  "name": "Volkan Claes",
+                  "bib": 182,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "be1c3c53-ed0d-4ed6-9a92-a9ef5fe6835d",
+                  "name": "Michel Servais",
+                  "bib": 183,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                }
+              ],
+              "unnamed": 120,
+              "pullingTotal": 8
+            }
+          ],
+          "racing": 139,
+          "gone": 0
+        },
+        {
+          "km": 2.1,
+          "groups": [
+            {
+              "kind": "peloton",
+              "size": 139,
+              "gapS": 0,
+              "gapToPrevS": 0,
+              "speedKmh": 40.8,
+              "mishap": null,
+              "riders": [
+                {
+                  "id": "121c51fa-20ea-4fc6-b1fa-ab3f165c1974",
+                  "name": "Klaus Wagner",
+                  "bib": 117,
+                  "team": "Pfeil Radteam",
+                  "country": "DE",
+                  "role": "pulling",
+                  "motivo": "equipo_general",
+                  "para": {
+                    "id": "a85c8f17-b0c2-4f83-915c-871029dc7c98",
+                    "name": "Tobias Bachmann",
+                    "bib": 111,
+                    "team": "Pfeil Radteam",
+                    "country": "CH"
+                  }
+                },
+                {
+                  "id": "149c3532-6973-4955-adc8-07fdcf9ccf22",
+                  "name": "Giovanni Usai",
+                  "bib": 145,
+                  "team": "Onda Pro Cycling",
+                  "country": "IT",
+                  "role": "pulling",
+                  "motivo": "equipo_general",
+                  "para": {
+                    "id": "f77d3a52-1848-4243-8037-f641794cf7cb",
+                    "name": "Andrea Ferraro",
+                    "bib": 141,
+                    "team": "Onda Pro Cycling",
+                    "country": "IT"
+                  }
+                },
+                {
+                  "id": "38cd12d1-4bb2-4eca-829d-d3e51777e665",
+                  "name": "José Fuentes",
+                  "bib": 166,
+                  "team": "Fénix Cycling",
+                  "country": "ES",
+                  "role": "pulling",
+                  "motivo": "equipo_general",
+                  "para": {
+                    "id": "b9a96087-4e3a-4f4b-bd8f-780bd2ceebe7",
+                    "name": "Daniel Morales",
+                    "bib": 161,
+                    "team": "Fénix Cycling",
+                    "country": "ES"
+                  }
+                },
+                {
+                  "id": "73c52334-53b8-4057-a073-e28c827638fc",
+                  "name": "William Morales",
+                  "bib": 45,
+                  "team": "Granite Pro Cycling",
+                  "country": "US",
+                  "role": "pulling",
+                  "motivo": "equipo_general",
+                  "para": {
+                    "id": "7d4217f1-8f9d-4c14-868d-573dbf7e2825",
+                    "name": "Noah Coleman",
+                    "bib": 42,
+                    "team": "Granite Pro Cycling",
+                    "country": "US"
+                  }
+                },
+                {
+                  "id": "222eaa06-40d6-4c7f-85ae-761570be5ff6",
+                  "name": "Seppe Dendoncker",
+                  "bib": 176,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "31f5a105-c281-44a6-973f-765d82a0165e",
+                  "name": "Koech Mutua",
+                  "bib": 15,
+                  "team": "Mistral Racing",
+                  "country": "KE",
+                  "role": "pulling",
+                  "motivo": "equipo_general",
+                  "para": {
+                    "id": "20cda2a4-1980-455c-96bf-bfd447c4aa8a",
+                    "name": "Bernard Michel",
+                    "bib": 12,
+                    "team": "Mistral Racing",
+                    "country": "FR"
+                  }
+                },
+                {
+                  "id": "8bdc6681-4a51-40c1-a0d1-2fb7e26d5182",
+                  "name": "Themba Kambarami",
+                  "bib": 171,
+                  "team": "Noord Wielrennen",
+                  "country": "ZW",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "90c42f26-79e1-4ae3-85e1-426d197db84a",
+                  "name": "Ricardo Baladán",
+                  "bib": 177,
+                  "team": "Noord Wielrennen",
+                  "country": "UY",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "a2235902-35dd-4b69-a469-bf04edf9da8b",
+                  "name": "Roberts Bērzkalns",
+                  "bib": 174,
+                  "team": "Noord Wielrennen",
+                  "country": "LV",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "b7999cfd-40dc-429b-a799-c1ba7a6ec77a",
+                  "name": "Kristian Vik",
+                  "bib": 126,
+                  "team": "Aurora Racing",
+                  "country": "NO",
+                  "role": "pulling",
+                  "motivo": "equipo_general",
+                  "para": {
+                    "id": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+                    "name": "Haritz Arias",
+                    "bib": 121,
+                    "team": "Aurora Racing",
+                    "country": "ES"
+                  }
+                },
+                {
+                  "id": "c56b87c5-ace3-4f7f-91f8-beae991e5cfb",
+                  "name": "Ferre Maréchal",
+                  "bib": 175,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+                  "name": "Giuseppe Testa",
+                  "bib": 173,
+                  "team": "Noord Wielrennen",
+                  "country": "IT",
+                  "jersey": "kom",
+                  "role": "pulling",
+                  "motivo": "equipo_maillot",
+                  "para": {
+                    "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                    "name": "Gilles Roelants",
+                    "bib": 172,
+                    "team": "Noord Wielrennen",
+                    "country": "BE",
+                    "jersey": "gc"
+                  }
+                },
+                {
+                  "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+                  "name": "Gilles Roelants",
+                  "bib": 172,
+                  "team": "Noord Wielrennen",
+                  "country": "BE",
+                  "jersey": "gc",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "067120f4-01f9-465b-be0d-2ad92cc43cd1",
+                  "name": "Gabriel Zúñiga",
+                  "bib": 191,
+                  "team": "Sierra Cycling",
+                  "country": "CR",
+                  "jersey": "points",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "1154a444-5cac-46de-8e37-21a4cfe943cf",
+                  "name": "Nathan Wallace",
+                  "bib": 41,
+                  "team": "Granite Pro Cycling",
+                  "country": "US",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "d39d94d8-d356-4688-9e50-38e08fc98011",
+                  "name": "Abhishek Gupta",
+                  "bib": 91,
+                  "team": "Csillag Racing",
+                  "country": "IN",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+                  "name": "Haritz Arias",
+                  "bib": 121,
+                  "team": "Aurora Racing",
+                  "country": "ES",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "e0c022a5-afac-41b2-aa4b-e685e9fcd5b6",
+                  "name": "João Gonçalves",
+                  "bib": 122,
+                  "team": "Aurora Racing",
+                  "country": "PT",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "d3b872b5-2abe-4b18-b016-6f972088b5cf",
+                  "name": "Bo-Wei Liu",
+                  "bib": 123,
+                  "team": "Aurora Racing",
+                  "country": "TW",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "b62400c2-2932-4e1d-98ee-50bb33bc10fa",
+                  "name": "Zakaria Cornelis",
+                  "bib": 131,
+                  "team": "Havik Wielrennen",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "017ab86e-1465-4069-9c6c-601434c6d4c4",
+                  "name": "Noah Cassiers",
+                  "bib": 181,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "b7a5cfaa-7e9c-4e88-8fba-d7112ce0e2b8",
+                  "name": "Volkan Claes",
+                  "bib": 182,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                },
+                {
+                  "id": "be1c3c53-ed0d-4ed6-9a92-a9ef5fe6835d",
+                  "name": "Michel Servais",
+                  "bib": 183,
+                  "team": "Vuur Racing",
+                  "country": "BE",
+                  "role": "sheltered",
+                  "motivo": null,
+                  "para": null
+                }
+              ],
+              "unnamed": 116,
+              "pullingTotal": 12
+            }
+          ],
+          "racing": 139,
+          "gone": 0
+        }
+      ]
+    },
+    "tplRev": 0
+  }
+}

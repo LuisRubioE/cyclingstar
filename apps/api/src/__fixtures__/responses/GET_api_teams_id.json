@@ -1,0 +1,301 @@
+{
+  "route": "GET /api/teams/:id",
+  "url": "/api/teams/2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+  "status": 200,
+  "body": {
+    "team": {
+      "id": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+      "name": "Noord Wielrennen",
+      "country": "BE",
+      "division": "WT",
+      "budget": 6455231,
+      "pointsSeason": 1050,
+      "jerseySeed": "cyclingstar-2:team:WT:0:jersey",
+      "kit": "sides.blue.navy",
+      "bib": "black",
+      "human": false,
+      "roster": [
+        {
+          "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+          "name": "Gilles Roelants",
+          "country": "BE",
+          "archetype": "fondo",
+          "isBot": true,
+          "seasonPoints": 313,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "8bdc6681-4a51-40c1-a0d1-2fb7e26d5182",
+          "name": "Themba Kambarami",
+          "country": "ZW",
+          "archetype": "escalada",
+          "isBot": true,
+          "seasonPoints": 302,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+          "name": "Giuseppe Testa",
+          "country": "IT",
+          "archetype": "fondo",
+          "isBot": true,
+          "seasonPoints": 159,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "30acd4a3-c657-464e-ad42-6db7a1b62515",
+          "name": "Tinashe Nyathi",
+          "country": "ZW",
+          "archetype": "clasicas",
+          "isBot": true,
+          "seasonPoints": 100,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "cdcbef30-5444-4bb4-b62d-25f9b8240a8c",
+          "name": "Anthony Van Rooijen",
+          "country": "NL",
+          "archetype": "escalada",
+          "isBot": true,
+          "seasonPoints": 82,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "c56b87c5-ace3-4f7f-91f8-beae991e5cfb",
+          "name": "Ferre Maréchal",
+          "country": "BE",
+          "archetype": "escalada",
+          "isBot": true,
+          "seasonPoints": 41,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "fda4a62a-6fe6-4676-b5b3-61610b4a48f0",
+          "name": "Haile Yimer",
+          "country": "ET",
+          "archetype": "velocidad",
+          "isBot": true,
+          "seasonPoints": 36,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "222eaa06-40d6-4c7f-85ae-761570be5ff6",
+          "name": "Seppe Dendoncker",
+          "country": "BE",
+          "archetype": "velocidad",
+          "isBot": true,
+          "seasonPoints": 8,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "841e6331-a22d-4d2c-b286-a0b37e309977",
+          "name": "Joppe Willems",
+          "country": "BE",
+          "archetype": "gregario",
+          "isBot": true,
+          "seasonPoints": 8,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "4f4954b2-40c0-48d7-8529-3c584164ca5b",
+          "name": "Dwayne Illidge",
+          "country": "SX",
+          "archetype": "rodador",
+          "isBot": true,
+          "seasonPoints": 1,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "0bb46a68-2f06-4c00-a19f-8571301928b9",
+          "name": "Dries Ysebaert",
+          "country": "BE",
+          "archetype": "crono",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "1aaf9e6e-5c04-4f50-97f7-b6f63ab6a5fe",
+          "name": "Uladzislau Adamovich",
+          "country": "BY",
+          "archetype": "escalada",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "3099d56d-0c5b-4f52-b094-3516b14ffe20",
+          "name": "Modibo Fané",
+          "country": "ML",
+          "archetype": "gregario",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "3d1403aa-2bb8-4af0-805e-dc8c34721d42",
+          "name": "Valentin Apostolov",
+          "country": "BG",
+          "archetype": "fondo",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "4931c7c0-1533-4748-893d-3380f13c8d12",
+          "name": "Aram Tadevosyan",
+          "country": "AM",
+          "archetype": "velocidad",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "509cf3aa-3552-4835-ad6e-322afe9b7bc8",
+          "name": "Aleksa Knežević",
+          "country": "ME",
+          "archetype": "clasicas",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "lesionado"
+        },
+        {
+          "id": "643360fd-3370-466f-b2ec-94d2bbdc0bc1",
+          "name": "Wilfried Peeters",
+          "country": "BE",
+          "archetype": "gregario",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "78daf7ea-2ea9-4c77-b015-84fe2e4f3c2b",
+          "name": "Ruben Coppens",
+          "country": "BE",
+          "archetype": "gregario",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "85b2b351-f1b3-4bd4-a6fd-171aebe359a1",
+          "name": "Jean Claes",
+          "country": "BE",
+          "archetype": "puncheur",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "90c42f26-79e1-4ae3-85e1-426d197db84a",
+          "name": "Ricardo Baladán",
+          "country": "UY",
+          "archetype": "velocidad",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "a2235902-35dd-4b69-a469-bf04edf9da8b",
+          "name": "Roberts Bērzkalns",
+          "country": "LV",
+          "archetype": "fondo",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "a77cd1b2-b557-4804-874c-c21f1561fa37",
+          "name": "Jonas Thomé",
+          "country": "BE",
+          "archetype": "gregario",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "b0b1baa8-1cf4-4943-af05-8256ac3b40b2",
+          "name": "Josef Sailer",
+          "country": "AT",
+          "archetype": "crono",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "sano"
+        },
+        {
+          "id": "d60bd5a5-eebf-41ad-9521-e97a72ca2935",
+          "name": "Lars Verhoeven",
+          "country": "BE",
+          "archetype": "gregario",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "enfermo"
+        },
+        {
+          "id": "d826d2d3-dd2c-4a5f-bee8-bc7b81e141b7",
+          "name": "Jean Renard",
+          "country": "BE",
+          "archetype": "velocidad",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "dfc883af-2cf8-4da3-af48-250f42ea1087",
+          "name": "Nathan Vandenbroucke",
+          "country": "BE",
+          "archetype": "fondo",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "e68d5e3d-28b7-4080-a4d7-61ee5bfbca3b",
+          "name": "Cas Gilson",
+          "country": "BE",
+          "archetype": "velocidad",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": false,
+          "health": "sano"
+        },
+        {
+          "id": "edad29dc-a536-49bd-b16a-c5e14d6a6274",
+          "name": "Phong Le",
+          "country": "VN",
+          "archetype": "clasicas",
+          "isBot": true,
+          "seasonPoints": 0,
+          "foreign": true,
+          "health": "sano"
+        }
+      ]
+    }
+  }
+}

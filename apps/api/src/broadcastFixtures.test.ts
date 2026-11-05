@@ -339,7 +339,6 @@ const ctxOf = (tl: StageTimeline): InstantContext => ({
   start: {
     leaders: { gc: null, points: null, kom: null },
     gcTop: [],
-    racingAtStart: tl.riderIds.length,
   },
   photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
 })
@@ -836,9 +835,7 @@ describe('B13 · la procedencia: nada del reparto con procedencia velada viaja (
         ctx,
       )
       expect(served, name).toEqual(head!.cast)
-      expect(startStateOf(veilCast(cast, worldHorizon), cast.riders.length), name).toEqual(
-        head!.startState,
-      )
+      expect(startStateOf(veilCast(cast, worldHorizon)), name).toEqual(head!.startState)
     }
   })
 
@@ -882,7 +879,7 @@ describe('B13 · la procedencia: nada del reparto con procedencia velada viaja (
         ] as const)
           for (const r of refsIn(JSON.parse(JSON.stringify(value)) as unknown))
             if (keys.has(r)) leaks.push(`${where}: ${what} lleva ${r}`)
-        const start = startStateOf(out, cast.riders.length)
+        const start = startStateOf(out)
         for (const jersey of JERSEY_PRIORITY) {
           const holder = start.leaders[jersey]
           const worn = holder === null ? null : cast.riders[holder]?.worn

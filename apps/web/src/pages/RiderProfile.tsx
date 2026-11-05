@@ -1,12 +1,7 @@
 import {
-  ATTRIBUTES,
   COUNTRIES,
-  type Attribute,
-  type Eff,
   type Vocation,
   birthdayDayOfSeason,
-  eff0,
-  matchCount,
   maxMatchCount,
   raceIdFromKey,
 } from '@cyclingstar/shared'
@@ -32,7 +27,7 @@ import { RoleEditor } from '../components/RoleEditor'
 import { StageRoute } from '../components/StageRoute'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
-import { conditionBars, conditionLabel } from '../domain/condition'
+import { conditionLabel } from '../domain/condition'
 import { HEALTH_LOOK, healthNote, healthUntilLabel } from '../domain/health'
 import { palmaresLabel, archetypeLabel } from '../domain/labels'
 import { horizonKey, useHorizonRev } from '../queryClient'
@@ -41,6 +36,7 @@ import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { QueryView } from '../components/ui/QueryView'
 import { RIDER_NOT_FOUND } from '../components/ui/RiderHeader'
+import { StarRating as UiStarRating } from '../components/ui/StarRating'
 
 /**
  * LAS FRASES POR REGLA (docs/entrenamiento.md §2.3). El servidor manda códigos y el texto vive aquí,
@@ -185,9 +181,11 @@ function MatchRow({ value, max }: { value: number | null; max: number }) {
 
 /**
  * Bloque privado: forma, frescura, salud, cerillos y moral. Solo se monta si el perfil es MÍO, así
- * que sus consultas (`/api/riders/me/...`) no se disparan nunca en la vista pública.
+ * que sus consultas (`/api/riders/me/...`) no se disparan nunca en la vista pública. Todo llega ya en su
+ * forma de pantalla (E3, docs/visual.md §13.5 y §13.7; PR 19b): las dos barras, los cerillos que cuenta la
+ * API y la moral en medias estrellas.
  */
-function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> }) {
+function OwnerCondition() {
   const rev = useHorizonRev()
   const formQuery = useQuery({
     queryKey: horizonKey(['rider', 'form'], rev),
@@ -207,25 +205,13 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
   const last = log[log.length - 1] ?? null
   const gameDay = healthQuery.data?.gameDay ?? null
   const until = healthUntilLabel(health, gameDay)
-  // Fondo y frescura del último día del diario, ya traducidos a 0-100 (domain/condition.ts).
-  const bars = last ? conditionBars(last) : null
+  // Fondo y frescura del último día del diario, en barras de 0 a 100 que ya manda la API.
+  const bars = last ? { fitness: last.fitness, freshness: last.freshness } : null
 
   // Cerillos del día: la MISMA cuenta que hará la etapa (SPEC 6.6), sobre los atributos efectivos
-  // de hoy —forma, salud y moral incluidas—, para que el jugador vea con qué sale de casa. Es la copia
-  // de `packages/shared`, atada al motor por test: la web no importa el motor (E2, 10b, §18.5).
-  const morale = summaryQuery.data?.morale ?? null
-  const matches =
-    last && health && morale != null
-      ? matchCount(
-          Object.fromEntries(
-            ATTRIBUTES.map((a) => [
-              a,
-              eff0(attributes[a], last.ctl, last.tsb, health.state, morale),
-            ]),
-          ) as Eff,
-          last.tsb,
-        )
-      : null
+  // de hoy —forma, salud y moral incluidas—, para que el jugador vea con qué sale de casa. La hace la
+  // API con las funciones del motor (E3, 19b): la web ya no tiene los números de los que sale.
+  const matches = form?.matches ?? null
 
   return (
     <Panel title="Condition" action={form && <StarRating value={form.stars} />}>
@@ -274,7 +260,8 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
         <div className="rounded-md bg-slate-50 p-2.5">
           <dt className="text-xs font-medium tracking-wide text-slate-400 uppercase">Morale</dt>
           <dd className="mt-0.5 text-sm font-bold text-slate-800 tabular-nums">
-            {summaryQuery.data ? `${Math.round(summaryQuery.data.morale)}%` : '—'}
+            {/* en medias estrellas (DD-12, §13.7): el porcentaje con decimales ya no cruza */}
+            {summaryQuery.data ? <UiStarRating value={summaryQuery.data.moraleStars} /> : '—'}
           </dd>
         </div>
       </dl>
@@ -422,13 +409,13 @@ export function RiderProfile() {
     )
 
   const rider = riderQuery.data
-  const attributes = Object.fromEntries(
-    ATTRIBUTES.map((a) => [a, rider.attributes[a] ?? 0]),
-  ) as Record<Attribute, number>
+  // Las estrellas de cualquiera son las de su ficha pública; las del propio, con su marca, las de
+  // `GET /api/riders/me`, que solo se le mandan a él (E3, §13.5; 19b).
+  const attributes = owner && mine.data ? mine.data.attributes : rider.attributes
 
   const coach = coachQuery.data ?? null
   const detail: AttributeDetail = {
-    trend: Object.fromEntries((trendQuery.data ?? []).map((t) => [t.attr, t.delta28])),
+    trend: Object.fromEntries((trendQuery.data ?? []).map((t) => [t.attr, t.arrow])),
     opinion: Object.fromEntries((coach?.ceilings ?? []).map((c) => [c.attr, c.opinion])),
   }
   const notes = coach?.notes ?? []
@@ -492,7 +479,7 @@ export function RiderProfile() {
 
       <Badges riderId={rider.id} />
 
-      {owner && <OwnerCondition attributes={attributes} />}
+      {owner && <OwnerCondition />}
 
       <Panel title="Attributes">
         <p className="mb-1 text-xs text-slate-400">

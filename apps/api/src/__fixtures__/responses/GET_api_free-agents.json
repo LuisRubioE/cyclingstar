@@ -1,0 +1,36 @@
+{
+  "route": "GET /api/free-agents",
+  "url": "/api/free-agents",
+  "status": 200,
+  "body": {
+    "riders": [
+      {
+        "id": "01b9b4f6-8a37-44f8-94fa-222f5f90946a",
+        "name": "Francois Ndlovu",
+        "country": "ZA",
+        "archetype": "escalada",
+        "age": 27,
+        "isBot": true,
+        "seasonPoints": 150
+      },
+      {
+        "id": "cb8a4840-8295-4f2c-a9c9-fb48df251543",
+        "name": "Fillemon Coetzee",
+        "country": "NA",
+        "archetype": "puncheur",
+        "age": 26,
+        "isBot": true,
+        "seasonPoints": 140
+      },
+      {
+        "id": "0a97fe87-152e-4543-91d5-3b0fc8e64eac",
+        "name": "Pieter Amunyela",
+        "country": "NA",
+        "archetype": "gregario",
+        "age": 29,
+        "isBot": true,
+        "seasonPoints": 125
+      }
+    ]
+  }
+}

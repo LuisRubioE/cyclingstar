@@ -273,6 +273,20 @@ export const TREND_ARROWS = ['↓', '↘', '→', '↗', '↑'] as const
 export type TrendArrow = (typeof TREND_ARROWS)[number]
 
 /**
+ * La flecha como cruza la frontera (E3, docs/visual.md §13.2; 13-a; PR 19a): un código en castellano por
+ * glifo, como el resto de códigos de juego del contrato. El glifo es forma de pantalla de la web de hoy; la
+ * ruta `/trend` manda el código desde el 19b y la web pinta el icono `trend`. `contracts.ts` importa este
+ * fichero, y no al revés.
+ */
+export const TREND_ARROW_CODE = {
+  '↑': 'sube_mucho',
+  '↗': 'sube',
+  '→': 'igual',
+  '↘': 'baja',
+  '↓': 'baja_mucho',
+} as const satisfies Record<TrendArrow, string>
+
+/**
  * FLECHA DE TENDENCIA SOBRE VENTANA DE 28 DÍAS (SPEC 3.2, con dos parámetros sobrescritos).
  *
  * El SPEC pedía 7 días y tres niveles. Las dos cosas se cambian y hay que decirlo: a siete días el

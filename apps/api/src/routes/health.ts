@@ -1,3 +1,4 @@
+import { healthSchema } from '@cyclingstar/shared'
 import { type Database, getWorldClock } from '@cyclingstar/db'
 import { ENGINE_VERSION } from '@cyclingstar/engine'
 import type { Health, SwitchMode } from '@cyclingstar/shared'
@@ -20,7 +21,7 @@ export const healthRoutes: FastifyPluginAsync<HealthRouteContext> = async (app, 
   // agotarse el cupo de nadie (ni agotar el suyo) por un sondeo de infraestructura.
   app.get(
     '/health',
-    { config: { rateLimit: false, spoiler: 'safe' } },
+    { config: { response: { 200: healthSchema }, rateLimit: false, spoiler: 'safe' } },
     async (): Promise<Health> => {
       let gameDay: number | null = null
       let nextTickAtMs: number | null = null

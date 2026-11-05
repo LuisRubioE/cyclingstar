@@ -1,0 +1,39 @@
+{
+  "route": "GET /api/riders/me/upcoming-races",
+  "url": "/api/riders/me/upcoming-races",
+  "status": 200,
+  "body": {
+    "races": [
+      {
+        "raceId": "race-var",
+        "raceKey": "race-var:s0",
+        "raceName": "Race Var",
+        "raceClass": "1",
+        "country": "FR",
+        "startGameDay": 52,
+        "daysUntil": 2,
+        "stageCount": 1,
+        "ongoing": false,
+        "bib": 204,
+        "travelOut": [51],
+        "travelBack": [53],
+        "travelPaid": 48
+      },
+      {
+        "raceId": "race-sardegna",
+        "raceKey": "race-sardegna:s0",
+        "raceName": "Race Sardegna",
+        "raceClass": "1",
+        "country": "IT",
+        "startGameDay": 56,
+        "daysUntil": 6,
+        "stageCount": 5,
+        "ongoing": false,
+        "bib": 225,
+        "travelOut": [55],
+        "travelBack": [61],
+        "travelPaid": 80
+      }
+    ]
+  }
+}
