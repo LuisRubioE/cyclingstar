@@ -58,8 +58,21 @@ function buttonsOf(markup: string): { text: string; mobile: boolean; attrs: stri
   return out
 }
 
-/** El atributo `disabled` (no la clase `disabled:`). */
-const disabled = (attrs: string): boolean => / disabled=""/.test(attrs)
+/**
+ * Apagado, como todo `Button` del catálogo: `aria-disabled`, nunca `disabled`, con su porqué (§4.1); en la barra,
+ * solo para el lector (`reasonHidden`, PR 21n).
+ */
+const disabled = (attrs: string): boolean => / aria-disabled="true"/.test(attrs)
+
+/** El porqué de un mando apagado: el texto que nombra su `aria-describedby`, y si se ve. */
+function porque(markup: string, attrs: string): { texto: string; oculto: boolean } | null {
+  const id = / aria-describedby="([^"]+)"/.exec(attrs)?.[1]
+  if (id === undefined) return null
+  const m = new RegExp(`<span id="${id}" class="([^"]*)">([^<]*)</span>`).exec(markup)
+  return m === null
+    ? null
+    : { texto: m[2] ?? '', oculto: (m[1] ?? '').split(' ').includes('sr-only') }
+}
 
 const mobileRow = (markup: string): string[] =>
   buttonsOf(markup)
@@ -178,6 +191,27 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
     }
   })
 
+  it('cada mando, un Button del catálogo, ninguno a mano (ui/1; PR 21n): los que se conmutan, More y Next action', () => {
+    for (const s of [
+      controls(),
+      controls({ nextAction: true, speed: 2 }),
+      controls({ lastKm: true }),
+    ]) {
+      expect((s.match(/data-ui="Button"/g) ?? []).length).toBe((s.match(/<button\b/g) ?? []).length)
+      expect(s).toMatch(/data-ui="Button" data-variant="control"/)
+    }
+    const more = buttonsOf(controls()).find((b) => b.text === 'More')!
+    expect(more.attrs).toContain('aria-expanded="false"')
+    expect(more.attrs).toContain('aria-controls="player-sheet"')
+  })
+
+  it('Next action, apagado en el último km con su porqué solo para el lector, que la fila no parte (PR 21n)', () => {
+    const s = controls({ lastKm: true })
+    const next = buttonsOf(s).find((b) => b.text === 'Next action')!
+    expect(disabled(next.attrs)).toBe(true)
+    expect(porque(s, next.attrs)).toEqual({ texto: 'Already in the last kilometre.', oculto: true })
+  })
+
   it('el encendido no lleva el fondo ni la tinta del apagado: de dos clases del mismo estado, gana la que la hoja pone después', () => {
     // con `hover:bg-surface-2` y `hover:bg-accent-strong` a la vez, Tailwind ordena la hoja y no el atributo:
     // al pasar el ratón por un mando encendido salía la tinta del encendido sobre el fondo del apagado
@@ -228,6 +262,15 @@ describe('la hoja de ⋯ (8-p): los saltos, el modo y Show result', () => {
     expect(buttons.every((b) => b.mobile)).toBe(true)
     expect(disabled(buttons.find((b) => b.text === 'Next climb')!.attrs)).toBe(true)
     expect(disabled(buttons.find((b) => b.text === 'Final 20 km')!.attrs)).toBe(false)
+    // el apagado, con su porqué solo para el lector; ninguno a mano (ui/1; PR 21n)
+    expect(porque(markup, buttons.find((b) => b.text === 'Next climb')!.attrs)).toEqual({
+      texto: 'Nothing to skip to from here.',
+      oculto: true,
+    })
+    expect(porque(markup, buttons.find((b) => b.text === 'Final 20 km')!.attrs)).toBeNull()
+    expect((markup.match(/data-ui="Button"/g) ?? []).length).toBe(
+      (markup.match(/<button\b/g) ?? []).length,
+    )
     expect(buttons.find((b) => b.text === 'Highlights')!.attrs).toContain('aria-pressed="true"')
     expect(buttons.find((b) => b.text === 'Watch')!.attrs).toContain('aria-pressed="false"')
   })
