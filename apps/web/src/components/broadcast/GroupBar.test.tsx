@@ -222,7 +222,11 @@ describe('GroupBar · quién va y con qué maillot (§6.2; [DUEÑO 3]; E3, §14.
   it('cada fila es un botón con aria-expanded y aria-controls, y su lista, cerrada, no se pinta (Ruso-036)', () => {
     const rows = rowsOf(html(<GroupBar instant={sixPointOne()} cast={CAST} clock="exact" />))
     for (const row of rows) {
-      const boton = /<button type="button" aria-expanded="false" aria-controls="([^"]+)"/.exec(row)
+      // la fila, un `Expander` del catálogo (PR 21n): el mismo botón, con su `data-ui`
+      const boton =
+        /<button type="button" data-ui="Expander"[^>]*aria-expanded="false" aria-controls="([^"]+)"/.exec(
+          row,
+        )
       expect(boton).not.toBeNull()
       expect(row).toContain(`<ul id="${boton?.[1]}"`)
       expect(row).toMatch(/<ul id="[^"]+" data-group-list="\d+" hidden="">/)
@@ -325,8 +329,13 @@ describe('GroupBar · los que van en tránsito (6-e)', () => {
     const rows = rowsOf(html(<GroupBar instant={inst} cast={CAST} clock="exact" />)).map((r) =>
       textOf(`<x ${r}`),
     )
-    expect(rows[3]).toContain('↓ 3 dropping back')
-    expect(rows[2]).toContain('↑ 2 bridging across')
+    // la flecha, el icono `trend` girado y no un glifo (ui/10; PR 21n): las palabras lo dicen
+    expect(rows[3]).toContain('3 dropping back')
+    expect(rows[2]).toContain('2 bridging across')
+    expect(rows.join('')).not.toMatch(/[↓↑]/)
+    const filas = rowsOf(html(<GroupBar instant={inst} cast={CAST} clock="exact" />))
+    expect(filas[3]).toMatch(/data-variant="trend"[^>]*>(?:(?!<\/svg>)[\s\S])*rotate\(90 12 12\)/)
+    expect(filas[2]).toMatch(/data-variant="trend"[^>]*>(?:(?!<\/svg>)[\s\S])*rotate\(-90 12 12\)/)
     expect(rows[0]).not.toMatch(/dropping|bridging/)
   })
 })

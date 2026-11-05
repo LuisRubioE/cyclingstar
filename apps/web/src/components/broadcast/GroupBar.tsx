@@ -14,6 +14,8 @@ import { Fragment, memo, useId, useLayoutEffect, useRef, useState } from 'react'
 import { isQuietFinal, mobileRowsOf, transitOf, yourRiderText } from '../../domain/broadcast/screen'
 import { type LineChip, fitTeamChips, teamLineOf } from '../../domain/broadcast/teamChips'
 import { Button } from '../ui/Button'
+import { Expander } from '../ui/Expander'
+import { Icon } from '../ui/Icon'
 import { Flag } from '../ui/Flag'
 import { LeaderJersey } from '../ui/LeaderJersey'
 import { RiderLabel } from '../ui/RiderLabel'
@@ -204,13 +206,8 @@ export function GroupRow({
       data-mobile={folded ? 'folded' : undefined}
       className={folded ? 'hidden sm:block' : 'block'}
     >
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={listId}
-        onClick={onToggle}
-        className="flex min-h-11 w-full items-center gap-2 text-left text-meta"
-      >
+      {/* la fila entera se pulsa (Ruso-036), un `Expander` del catálogo (PR 21n), que lleva lo suyo dentro */}
+      <Expander expanded={open} controls={listId} onToggle={onToggle}>
         <span className="w-4 shrink-0 text-right text-caption font-semibold tabular-nums text-ink-3">
           {g.number}
         </span>
@@ -225,7 +222,6 @@ export function GroupRow({
               className="h-2 w-2 shrink-0 rounded-full bg-accent"
               role="img"
               aria-label="Your rider"
-              title="Your rider"
             />
           )}
         </span>
@@ -240,15 +236,26 @@ export function GroupRow({
             {mainGapText(g.gap.toHeadS)}
           </span>
         )}
-      </button>
+      </Expander>
       {g.label.k !== 'names' && g.size <= BROADCAST.nameWholeGroupUpTo && (
         <TeamLine group={g} cast={cast} mobile={g.number === 1 || g.own} onMore={onToggle} />
       )}
       {t !== undefined && (t.back > 0 || t.across > 0) && (
         <p className="pl-6 text-caption text-ink-2">
-          {t.back > 0 && <span>↓ {t.back} dropping back</span>}
+          {/* la flecha, el icono `trend` girado y para el ojo: las palabras ya lo dicen (ui/10; PR 21n) */}
+          {t.back > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Icon name="trend" size={16} turn={90} />
+              {t.back} dropping back
+            </span>
+          )}
           {t.back > 0 && t.across > 0 && ' · '}
-          {t.across > 0 && <span>↑ {t.across} bridging across</span>}
+          {t.across > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Icon name="trend" size={16} turn={-90} />
+              {t.across} bridging across
+            </span>
+          )}
         </p>
       )}
       <PullingRow group={g} cast={cast} mobile={g.kind === 'peloton' || g.own} />
@@ -412,14 +419,12 @@ function TeamLine({
       ))}
       {/* solo si algo no cabe; hasta que se pinta, `fitTeamChips` estima su ancho */}
       {hidden > 0 && (
-        <button
-          type="button"
-          data-chip-more=""
-          onClick={onMore}
-          className="inline-flex min-h-11 items-center text-caption font-semibold text-accent"
-        >
-          +{hidden} {hidden === 1 ? 'team' : 'teams'}
-        </button>
+        // su ancho lo mide `fitTeamChips` en el `span`, que lleva la marca; el botón, el del catálogo (PR 21n)
+        <span data-chip-more="" className="inline-flex">
+          <Button variant="quiet" size="sm" onClick={onMore}>
+            {`+${hidden} ${hidden === 1 ? 'team' : 'teams'}`}
+          </Button>
+        </span>
       )}
     </div>
   )
