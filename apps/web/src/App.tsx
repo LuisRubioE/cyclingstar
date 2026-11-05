@@ -200,7 +200,7 @@ export function App() {
       <Header />
       {/* Sin red, la franja que lo dice, con la hora de lo que se ve (§12.1; PR 4). */}
       <OfflineBanner />
-      <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4">
+      <main className="mx-auto max-w-page px-3 py-4 sm:px-4">
         <RouteBoundary resetKey={pathname}>
           <Suspense fallback={<LoadingState label="the page" />}>
             <Routes>
@@ -387,7 +387,7 @@ export function App() {
           </Suspense>
         </RouteBoundary>
       </main>
-      <footer className="mx-auto max-w-6xl px-4 py-8 text-caption text-ink-2">
+      <footer className="mx-auto max-w-page px-4 py-8 text-caption text-ink-2">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-4">
           {/* los dos enlaces, de 44 × 44 (WCAG 2.5.8; E3, PR 12a): medían 16 de alto en todas las pantallas */}
           <div className="flex items-center gap-x-4">

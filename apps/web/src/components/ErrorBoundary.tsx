@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // Con el sistema (E3, docs/visual.md §17.21; PR 21m): los tokens y los `Button` del catálogo, donde iban
     // la paleta y dos botones a mano; los textos, los de siempre.
     return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-center">
+      <div className="mx-auto max-w-form px-4 py-16 text-center">
         <h1 className="text-page text-ink">Something went wrong</h1>
         <p className="mt-2 text-body text-ink-2">
           The page hit an unexpected error. Your saved data is safe — try again, and reload if it
