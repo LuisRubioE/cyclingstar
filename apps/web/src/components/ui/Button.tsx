@@ -17,7 +17,7 @@ import type { IconName, Layout } from './types'
  * - Con `to`, un enlace con aspecto de botón.
  */
 
-export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger' | 'control'
 
 interface ButtonBase {
   /** por defecto, `secondary` */
@@ -29,6 +29,16 @@ interface ButtonBase {
   readonly busyLabel?: string
   /** si está, el botón está deshabilitado y lo dice debajo; no hay otra forma de deshabilitarlo */
   readonly disabledReason?: string
+  /**
+   * el porqué, solo para el lector: en una barra de mandos cuya disposición fija E2 (los de `Watch`), donde
+   * escrito debajo partiría la fila; el ojo ve el mando apagado y el lector oye por qué (PR 21n)
+   */
+  readonly reasonHidden?: boolean
+  /** un mando que se conmuta: `aria-pressed`, y encendido con el relleno de `accent` en `control` (PR 21n) */
+  readonly pressed?: boolean
+  /** lo que despliega otra cosa: `aria-expanded`, con `controls`, su `aria-controls` (PR 21n) */
+  readonly expanded?: boolean
+  readonly controls?: string
   readonly type?: 'button' | 'submit'
   readonly onClick?: () => void
   /** enlace con aspecto de botón */
@@ -58,7 +68,15 @@ const VARIANTES: Readonly<Record<ButtonVariant, string>> = {
   secondary: 'border border-line-strong bg-surface text-ink hover:bg-surface-2 active:bg-surface-2',
   quiet: 'text-accent hover:bg-surface-2 active:bg-surface-2',
   danger: 'bg-bad text-on-bad hover:brightness-90 active:brightness-90',
+  // el mando de una barra (PR 21n): apagado, la tinta del ámbito y su fondo al pasar
+  control: 'text-ink hover:bg-surface-2 active:bg-surface-2',
 }
+
+/**
+ * El mando encendido, el de la opción activa de un `Segmented` (§4.3), nunca junto al apagado: de dos clases del
+ * mismo estado gana la que Tailwind pone después en la hoja, no la de después en el atributo (PR 20).
+ */
+const ENCENDIDO = 'bg-accent text-on-accent hover:bg-accent-strong'
 
 /** El aspecto de un botón del catálogo; `tall` es el de la `ActionBar`, de 48 (§4.3). */
 export function buttonClass(o: {
@@ -67,17 +85,31 @@ export function buttonClass(o: {
   readonly iconOnly: boolean
   readonly disabled: boolean
   readonly tall?: boolean
+  readonly pressed?: boolean
 }): string {
   const alto = o.tall
     ? 'min-h-12'
     : o.size === 'sm'
       ? `min-h-11 fine:min-h-8${o.iconOnly ? ' fine:min-w-8' : ''}`
       : 'min-h-11'
-  const ancho = o.iconOnly ? 'min-w-11' : o.size === 'sm' ? 'px-4 fine:px-3' : 'px-4'
+  // el mando de una barra, más estrecho y en `meta`, para que la fila parta lo menos posible (PR 21n)
+  const control = o.variant === 'control'
+  const ancho = control
+    ? 'min-w-11 px-2 sm:px-3'
+    : o.iconOnly
+      ? 'min-w-11'
+      : o.size === 'sm'
+        ? 'px-4 fine:px-3'
+        : 'px-4'
   const color = o.disabled
-    ? `bg-disabled-bg text-disabled-ink${o.variant === 'secondary' ? ' border border-line' : ''}`
-    : VARIANTES[o.variant]
-  return `relative inline-flex shrink-0 items-center justify-center rounded-ui text-body font-semibold ${alto} ${ancho} ${color} ${FOCUS}`
+    ? control
+      ? 'text-disabled-ink'
+      : `bg-disabled-bg text-disabled-ink${o.variant === 'secondary' ? ' border border-line' : ''}`
+    : control && o.pressed === true
+      ? ENCENDIDO
+      : VARIANTES[o.variant]
+  const letra = control ? 'text-meta' : 'text-body'
+  return `relative inline-flex shrink-0 items-center justify-center rounded-ui ${letra} font-semibold ${alto} ${ancho} ${color} ${FOCUS}`
 }
 
 /** El indicador de ocupado, de 16 px. */
@@ -135,7 +167,19 @@ export function Button(props: ButtonProps) {
   const reasonId = useId()
   const iconOnly = props.children === undefined
   const disabled = disabledReason !== undefined
-  const clases = buttonClass({ variant, size, iconOnly, disabled })
+  const clases = buttonClass({
+    variant,
+    size,
+    iconOnly,
+    disabled,
+    ...(props.pressed !== undefined ? { pressed: props.pressed } : {}),
+  })
+  // lo que dice el botón de sí mismo: si se conmuta y si despliega algo (PR 21n)
+  const aria = {
+    ...(props.pressed !== undefined ? { 'aria-pressed': props.pressed } : {}),
+    ...(props.expanded !== undefined ? { 'aria-expanded': props.expanded } : {}),
+    ...(props.controls !== undefined ? { 'aria-controls': props.controls } : {}),
+  }
   const nombre =
     props.ariaLabel === undefined
       ? {}
@@ -148,7 +192,7 @@ export function Button(props: ButtonProps) {
       busyLabel={props.busyLabel}
     />
   )
-  const estado = disabled ? 'disabled' : busy ? 'busy' : 'ready'
+  const estado = disabled ? 'disabled' : busy ? 'busy' : props.pressed === true ? 'active' : 'ready'
 
   if (disabled)
     return (
@@ -164,10 +208,14 @@ export function Button(props: ButtonProps) {
           aria-describedby={reasonId}
           className={clases}
           {...nombre}
+          {...aria}
         >
           {contenido}
         </button>
-        <span id={reasonId} className="text-meta text-ink-2">
+        <span
+          id={reasonId}
+          className={props.reasonHidden === true ? 'sr-only' : 'text-meta text-ink-2'}
+        >
           {disabledReason}
         </span>
       </span>
@@ -179,6 +227,7 @@ export function Button(props: ButtonProps) {
     'data-state': estado,
     ...(busy ? { 'aria-busy': true as const } : {}),
     ...nombre,
+    ...aria,
     className: withLayout(clases, layout),
   }
   if (props.to !== undefined && !busy)

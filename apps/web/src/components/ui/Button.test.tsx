@@ -101,4 +101,52 @@ describe('Button', () => {
     expect(porId(b, id)).toContain('Nothing to save yet. Change a day first.')
     expect(b).not.toContain('title=')
   })
+
+  // LOS MANDOS DE UNA BARRA (E3, docs/visual.md §17.21; PR 21n): los de `Watch`, que E2 fija en un renglón.
+  it('un mando que se conmuta: variante control, con aria-pressed y su estado, encendido o apagado', () => {
+    const on = html(
+      <Button variant="control" pressed onClick={() => {}}>
+        Commentary
+      </Button>,
+    )
+    expect(on).toMatch(/^<button[^>]*data-ui="Button" data-variant="control" data-state="active"/)
+    expect(on).toContain('aria-pressed="true"')
+    const off = html(
+      <Button variant="control" pressed={false} onClick={() => {}}>
+        Commentary
+      </Button>,
+    )
+    expect(off).toMatch(/data-state="ready"/)
+    expect(off).toContain('aria-pressed="false"')
+    // sin `pressed`, no es un conmutador
+    expect(html(<Button variant="control">Next</Button>)).not.toContain('aria-pressed')
+  })
+
+  it('lo que despliega: aria-expanded y aria-controls', () => {
+    const b = html(
+      <Button variant="control" icon="more" ariaLabel="More" expanded controls="hoja" />,
+    )
+    expect(b).toContain('aria-expanded="true"')
+    expect(b).toContain('aria-controls="hoja"')
+    expect(html(<Button ariaLabel="More" icon="more" expanded={false} />)).toContain(
+      'aria-expanded="false"',
+    )
+  })
+
+  it('deshabilitado en una barra: el porqué, solo para el lector, y el mismo aria-disabled', () => {
+    const b = html(
+      <Button variant="control" disabledReason="Already at the last kilometre." reasonHidden>
+        Next action
+      </Button>,
+    )
+    expect(b).toMatch(/^<span data-ui="Button" data-variant="control" data-state="disabled"/)
+    expect(b).toContain('aria-disabled="true"')
+    const id = /aria-describedby="([^"]+)"/.exec(b)?.[1] ?? ''
+    expect(porId(b, id)).toContain('Already at the last kilometre.')
+    expect(b).toMatch(new RegExp(`<span id="${id.replace(/[:]/g, '\\:')}" class="sr-only"`))
+    // sin `reasonHidden`, a la vista, como siempre
+    expect(html(<Button disabledReason="Nothing to save yet.">Save</Button>)).not.toContain(
+      'class="sr-only"',
+    )
+  })
 })
