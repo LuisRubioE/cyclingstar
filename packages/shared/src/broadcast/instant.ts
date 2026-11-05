@@ -342,7 +342,8 @@ export function mainGapOf(
     }
   }
   const k = behind.gap.atKm // el último km de foto que ha cruzado el de detrás (§3.5)
-  const gapS = Math.max(0, (markAt(behind, k) - markAt(head, k)) / 10)
+  // nunca menos que lo que su fila enseña en la barra: la coherencia entre filas (W1, paso 8b)
+  const gapS = Math.max(0, (markAt(behind, k) - markAt(head, k)) / 10, behind.gap.toHeadS)
   return { ahead: head.g, behind: behind.g, gapS, trend: behind.gap.trend, ref }
 }
 
@@ -1597,6 +1598,23 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
       own: true,
     })
   })
+
+  // 8b. LA COHERENCIA ENTRE FILAS (la revisión de `Watch` del dueño, W1, su punto 5): un grupo que va detrás
+  //     en la carretera no lleva menos tiempo que el de delante, y la barra no puede decirlo. Cada fila lee en
+  //     su último km de foto (D-01, punto 4), y dos lecturas de distinta edad se cruzaban: el de delante ya
+  //     había pasado una foto en que perdía tiempo y el de detrás aún enseñaba la de antes; el que adelanta
+  //     a otro después de una foto; o el recién nacido que no tiene lectura propia ni de su origen y caía al
+  //     `s.t.` de la salida. En la etapa 1 de Race Alps, 16 episodios y 890 s. Ninguna fila con alguien dentro
+  //     enseña menos que la de delante: la que da menos toma la de delante, que es lo menos que lleva. La
+  //     tendencia sigue en su lectura propia, y la capa fija toma esta (`mainGapOf`).
+  let floor = Number.NEGATIVE_INFINITY
+  for (const x of seen.order) {
+    if (x.members.length === 0) continue
+    const e = gapOf.get(x.g)!
+    if (e.reading.toHeadS < floor)
+      gapOf.set(x.g, { ...e, reading: { ...e.reading, toHeadS: floor } })
+    else floor = e.reading.toHeadS
+  }
 
   // 9. El papel, con la histéresis de 4-q (`frameOf`): sobre el km de foto propio de cada grupo, el
   //    de su hueco del paso 8.
