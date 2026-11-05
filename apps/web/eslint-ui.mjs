@@ -144,17 +144,10 @@ export const UI_IGNORES = [
  * los limpia (paso 21 y los de cada componente). La lista solo encoge (`heredados.test.ts`).
  */
 export const UI_HEREDADOS = [
-  'apps/web/src/App.tsx',
-  'apps/web/src/components/ErrorBoundary.tsx',
   'apps/web/src/components/Flag.tsx',
-  'apps/web/src/components/Logo.tsx',
   'apps/web/src/components/PaintedRaceRadio.tsx',
   'apps/web/src/components/RaceRadioPanel.tsx',
-  'apps/web/src/components/RiderName.tsx',
-  'apps/web/src/components/ShowAll.tsx',
-  'apps/web/src/components/StageGate.tsx',
   'apps/web/src/components/StageStory.tsx',
-  'apps/web/src/components/Tabs.tsx',
   'apps/web/src/components/WatchBlocks.tsx',
   'apps/web/src/components/broadcast/FixedOverlay.tsx',
   'apps/web/src/components/broadcast/GroupBar.tsx',
@@ -163,5 +156,4 @@ export const UI_HEREDADOS = [
   'apps/web/src/components/broadcast/WornJerseyIcon.tsx',
   'apps/web/src/domain/broadcast/montage.ts',
   'apps/web/src/domain/broadcast/screen.ts',
-  'apps/web/src/pages/AdminPanel.tsx',
 ]
