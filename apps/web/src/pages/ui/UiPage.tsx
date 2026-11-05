@@ -210,6 +210,30 @@ function Botones() {
           </Button>
         </div>
       </Estado>
+      {/* el mando de una barra (PR 21n), donde vive, en el ámbito oscuro de `Watch`: encendido, apagado, uno
+          que despliega y uno deshabilitado con su porqué solo para el lector */}
+      <Estado name="control · on, off, expands, disabled (Watch, dark scope)">
+        <Oscuro>
+          <div className="flex flex-wrap items-center gap-1">
+            <Button variant="control" icon="pause" ariaLabel="Pause" />
+            <Button variant="control" pressed>
+              ×1
+            </Button>
+            <Button variant="control" pressed={false}>
+              ×2
+            </Button>
+            <Button
+              variant="control"
+              pressed={false}
+              disabledReason="Already in the last kilometre."
+              reasonHidden
+            >
+              Next action
+            </Button>
+            <Button variant="control" icon="more" ariaLabel="More" expanded={false} />
+          </div>
+        </Oscuro>
+      </Estado>
     </Demo>
   )
 }
