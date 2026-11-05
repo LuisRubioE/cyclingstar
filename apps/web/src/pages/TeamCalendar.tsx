@@ -23,6 +23,7 @@ import { formatGameDay } from '../domain/words'
 import { ActionRow } from '../components/ui/ActionRow'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { InfoButton } from '../components/ui/InfoButton'
 import { QueryView } from '../components/ui/QueryView'
 import { ShowAllRows } from '../components/ui/ShowAllRows'
 import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient'
@@ -143,6 +144,15 @@ function ManagerPlanner({ data }: { data: TeamCalendarData }) {
       ) : (
         // las filas con su acción (E3, PR 12a): `Add` y `Drop` vuelven a verse y a tocarse, y las 20 primeras
         <Panel title="Race plan" bodyClassName="px-3 pb-3">
+          {/* el porqué del viaje caro, en un `InfoButton` y no en un `title` (E3, §11.6; PR 15) */}
+          {data.races.some((r) => r.travelTier === 'intercontinental') && (
+            <p className="flex flex-wrap items-center gap-x-1 text-meta text-ink-2">
+              Overseas races cost more.
+              <InfoButton label="About overseas trips">
+                {`Overseas trip: it costs more, and ${TRANSPORT_COST.intercontinental.days} travel days each way with no training.`}
+              </InfoButton>
+            </p>
+          )}
           <ul className="divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0">
             {vista.map((race) => {
               const verbo = race.drafted ? 'Drop' : 'Add'
@@ -208,7 +218,7 @@ function MemberRow({
         }`}
       >
         <span className="w-14 shrink-0 text-xs tabular-nums text-slate-400">
-          GD {race.startDay}
+          Day {race.startDay}
         </span>
         {race.country ? (
           <Flag code={race.country} size={16} />

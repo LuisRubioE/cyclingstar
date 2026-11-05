@@ -6,8 +6,10 @@ import {
   type CoachNote,
   type CoachView,
   type PlanPreview,
+  type PlanPreviewRequest,
   type TrainingMode,
   type TrainingPlanInput,
+  type putTrainingPlanSchema,
   blockReportResponseSchema,
   coachViewResponseSchema,
   okResponseSchema,
@@ -15,7 +17,11 @@ import {
   trainingPlanResponseSchema,
   trendResponseSchema,
 } from '@cyclingstar/shared'
+import type { z } from 'zod'
 import { request } from './request'
+
+/** Lo que manda la pantalla (PR 14): el modo, los bloques, el énfasis y la intensidad, y empezar de cero. */
+export type PutTrainingPlanRequest = z.input<typeof putTrainingPlanSchema>
 
 export type {
   AttrLogSource,
@@ -72,10 +78,8 @@ export async function fetchTrainingPlan(): Promise<TrainingPlanResponse> {
   })
 }
 
-export async function saveTrainingPlan(body: {
-  mode: TrainingMode
-  plan: TrainingPlanInput
-}): Promise<void> {
+/** Guarda sobre el plan vivo, o desde mañana sin él o con `startFresh` (§11.5; PR 13a). */
+export async function saveTrainingPlan(body: PutTrainingPlanRequest): Promise<void> {
   await request('/api/riders/me/plan', okResponseSchema, {
     method: 'PUT',
     json: body,
@@ -83,10 +87,7 @@ export async function saveTrainingPlan(body: {
   })
 }
 
-export async function previewTrainingPlan(body: {
-  mode: TrainingMode
-  plan: TrainingPlanInput
-}): Promise<PlanPreview> {
+export async function previewTrainingPlan(body: PlanPreviewRequest): Promise<PlanPreview> {
   return request('/api/riders/me/plan/preview', planPreviewResponseSchema, {
     method: 'POST',
     json: body,

@@ -6,10 +6,13 @@ import {
   GROUP_TRAINING_BONUS_CAP,
   coachBlock,
   coachPlan,
+  LOAD_STEPS_TSS,
+  type LoadLevel,
   SESSIONS,
   SESSION_CATALOG,
   type Session,
   defaultCoachPlan,
+  loadLevelOf,
   groupTrainingMultiplier,
   sessionTss,
   sessionsForAttribute,
@@ -180,5 +183,43 @@ describe('shared: el entrenador bot v2 (v59)', () => {
     const vuelta = { ...base, lastBlockDays: 7, daysSinceBlockEnd: 2 }
     expect(coachBlock(vuelta).block).toBe('recuperacion')
     expect(coachBlock(vuelta).reason).toBe('post_vuelta')
+  })
+})
+
+/**
+ * LA CARGA EN PALABRAS (E3, docs/visual.md §10.7; D-41, D-00o; PR 13b): cinco niveles, de `Rest` a
+ * `Very hard`, con los topes de `LOAD_STEPS_TSS` incluidos, y nunca un TSS en pantalla. La tabla es la
+ * de §10.7, sesión a sesión y por intensidad, sobre el catálogo de hoy.
+ */
+describe('shared: el nivel de carga de un día (§10.7)', () => {
+  const NIVEL: Readonly<Record<Session, readonly [LoadLevel, LoadLevel, LoadLevel]>> = {
+    descanso_total: [0, 0, 0],
+    video_tactica: [1, 1, 1],
+    descanso_activo: [1, 1, 1],
+    gimnasio: [2, 2, 2],
+    bajada_paves: [2, 2, 3],
+    sprint: [2, 2, 3],
+    crono: [2, 2, 3],
+    fondo: [2, 3, 3],
+    muros: [2, 3, 4],
+    umbral: [3, 3, 4],
+    puertos: [3, 4, 4],
+    viaje: [1, 1, 1],
+  }
+
+  it('Rest con 0, Easy hasta 25, Steady hasta 80, Hard hasta 110 y Very hard por encima', () => {
+    expect(LOAD_STEPS_TSS).toEqual([0, 25, 80, 110])
+    expect([0, 1, 25, 26, 80, 81, 110, 111, 252.8].map(loadLevelOf)).toEqual([
+      0, 1, 1, 2, 2, 3, 3, 4, 4,
+    ])
+  })
+
+  it('cada sesión del catálogo, por intensidad, en la palabra de la tabla de §10.7', () => {
+    for (const session of SESSIONS) {
+      const niveles = (['suave', 'normal', 'fuerte'] as const).map((intensity) =>
+        loadLevelOf(sessionTss({ session, intensity })),
+      )
+      expect(niveles, session).toEqual(NIVEL[session])
+    }
   })
 })

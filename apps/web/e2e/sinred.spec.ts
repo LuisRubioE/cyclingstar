@@ -313,8 +313,43 @@ test('y la sesión que dice que no hay sesión sí lleva a /login y quita la mar
   }
 })
 
-test.fixme('una mutación en pausa sigue en la ActionBar (nace en el 14, con el plan)', async () => {
-  // `You're offline. Your changes stay here until you reconnect.` (§12.1): la `ActionBar` guarda en
-  // memoria la mutación que React Query deja en pausa sin red y la manda al volver. La barra es del 9a;
-  // la primera página que guarda con ella, la del plan, del 14.
+test('una mutación en pausa sigue en la ActionBar: sin red, el plan tocado espera en memoria (PR 14)', async ({
+  browser,
+  baseURL,
+}) => {
+  // `You're offline. Your changes stay here until you reconnect.` (§12.1, §10.9): sin red, la barra lo
+  // dice y su botón no guarda; los cambios esperan en memoria y no se mandan solos al volver, y la barra
+  // vuelve con ellos. La barra es del 9a; la primera página que guarda con ella, la del plan, del 14.
+  const context = await telefono(browser, baseURL!)
+  try {
+    const page = await context.newPage()
+    await page.goto('/me/training', { waitUntil: 'domcontentloaded' })
+    await asienta(page, 'sinred')
+    const leeBloque = async () =>
+      (
+        (await (await page.request.get('/api/riders/me/plan')).json()) as {
+          plan: { blocks: readonly (string | null)[] } | null
+        }
+      ).plan?.blocks[0] ?? null
+    const guardado = await leeBloque()
+    const bloque = page.getByRole('combobox', { name: /^Week 1 · / })
+    await bloque.selectOption((await bloque.inputValue()) === 'base' ? 'afinado' : 'base')
+    const barra = page.locator('[data-ui="ActionBar"]')
+    await expect(barra).toHaveAttribute('data-state', 'dirty')
+
+    await context.setOffline(true)
+    await expect(barra).toHaveAttribute('data-state', 'offline')
+    await expect(barra).toContainText("You're offline. Your changes stay here until you reconnect.")
+    const boton = page.locator('[data-primary-action]')
+    await expect(boton).toHaveAttribute('aria-disabled', 'true')
+    // Pulsarlo no guarda: sin red no tiene acción (Playwright no pulsa lo que está `aria-disabled`).
+    await boton.dispatchEvent('click')
+
+    await context.setOffline(false)
+    await expect(barra).toHaveAttribute('data-state', 'dirty')
+    await expect(barra).toContainText('1 change')
+    expect(await leeBloque()).toBe(guardado)
+  } finally {
+    await context.close()
+  }
 })

@@ -22,8 +22,7 @@ import {
   getAttrTrend,
   getPlanForDay,
   getTrainingMode,
-  setTrainingMode,
-  setTrainingPlan,
+  saveLiveTrainingPlan,
   getBlockReport,
   getCoachView,
   getRiderHealth,
@@ -46,26 +45,21 @@ import {
   stageGameDay,
   withdrawRace,
   worldHorizon,
+  type ProjectedTrainingDay,
+  projectTraining,
 } from '@cyclingstar/db'
+import { formStars, freshnessBar, generateRiderGenome, stageCities } from '@cyclingstar/engine'
 import {
-  BANISTER,
-  arrivalLabel,
-  formStars,
-  freshnessBar,
-  generateRiderGenome,
-  planTss,
-  projectLoad,
-  stageCities,
-} from '@cyclingstar/engine'
-import {
+  type OrdersDay,
   PLAYER_START_AGE,
   type PreStageInfo,
   SESSIONS,
-  type TrainingChoice,
   birthSeasonForAge,
-  blockWeek,
   currentSeason,
   isKnownCountry,
+  loadLevelOf,
+  planPreviewRequestSchema,
+  planPreviewResponseSchema,
   putTrainingPlanSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
@@ -88,6 +82,18 @@ function ciudadesDelDia(activity: string, gameDay: number): { from?: string; to?
 
 /** Horizonte del planificador de entrenamiento (SPEC 5.2: cola de 7 a 28 días). */
 export const TRAINING_HORIZON_DAYS = 28
+
+/** Un día de la proyección, como lo dice `GET /orders` (`ordersDaySchema`): sin su clase ni su carga. */
+function diaDeOrdenes({ gameDay, day }: ProjectedTrainingDay): OrdersDay {
+  return {
+    gameDay,
+    session: day.session,
+    intensity: day.intensity,
+    source: day.source,
+    block: day.block,
+    raceKey: day.raceKey,
+  }
+}
 
 const genderSchema = z.enum(['M', 'F'])
 const vocationSchema = z.enum(['escalada', 'velocidad', 'clasicas', 'crono', 'fondo'])
@@ -304,7 +310,18 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
   // --- Planificador de entrenamiento (Paso 18) ---------------------------------------------
   app.get(
     '/api/riders/me/orders',
-    { config: { spoiler: 'horizon', veil: { by: ['M'] } } },
+    {
+      config: {
+        spoiler: 'horizon',
+        // Los 28 días (E3, PR 13b): lo que el entrenador hará cada uno mira la carga y la tensión del
+        // corredor, que cambian al correrse una etapa velada; la salud y los días de carrera, con el
+        // horizonte (M). Su lista blanca en B1b: `days.[].session` y `days.[].intensity` (§11.18).
+        veil: {
+          by: ['M', 'L'],
+          why: 'DD-08: lo que el entrenador hará cada día mira la condición propia, que se enseña',
+        },
+      },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
@@ -317,7 +334,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
           orders: [],
           raceDays: [],
           travelDays: [],
+          days: [],
         }
+      const h = await request.horizon()
       const orders = await getTrainingOrders(
         db,
         rider.id,
@@ -327,25 +346,34 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       // Días con carrera: no se entrenan (la carrera es su carga). Y días de VIAJE, de ida y de vuelta:
       // tampoco se entrenan, y el plan tiene que enseñarlos ANTES de que lleguen —el jugador planifica
       // su semana contando con ellos, igual que cuenta con las etapas—.
-      const raceDays = await getRiderRaceDays(
-        db,
-        await request.horizon(),
-        rider.id,
-        world.currentDay + 1,
-        world.currentDay + TRAINING_HORIZON_DAYS,
-      )
+      const raceDays = (
+        await getRiderRaceDays(
+          db,
+          h,
+          rider.id,
+          world.currentDay + 1,
+          world.currentDay + TRAINING_HORIZON_DAYS,
+        )
+      ).map((d) => d.gameDay)
       const travelDays = await getRiderTravelDays(
         db,
         rider.id,
         world.currentDay + 1,
         world.currentDay + TRAINING_HORIZON_DAYS,
       )
+      // Los 28 días con lo guardado: los mismos que da la vista previa con lo de la pantalla (11-a).
+      const { days } = await projectTraining(db, h, {
+        riderId: rider.id,
+        currentDay: world.currentDay,
+        horizonDays: TRAINING_HORIZON_DAYS,
+      })
       return {
         currentDay: world.currentDay,
         horizonDays: TRAINING_HORIZON_DAYS,
         orders,
         raceDays,
         travelDays,
+        days: days.map(diaDeOrdenes),
       }
     },
   )
@@ -407,75 +435,58 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     const rider = await getRiderForUser(db, userId)
     const world = await getCurrentWorld(db)
     if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
-    await setTrainingMode(db, rider.id, parsed.data.mode)
-    // El plan siempre arranca MAÑANA: hoy ya se entrenó (o se está entrenando) y reescribirlo sería
-    // prometer un cambio que el tick no va a aplicar.
-    await setTrainingPlan(db, rider.id, { ...parsed.data.plan, startDay: world.currentDay + 1 })
+    // UN SOLO PLAN VIVO (E3, docs/visual.md §11.5; PR 13a): sobre el `startDay` del plan vivo, o desde
+    // mañana si no hay o si el jugador empieza de cero; nunca hoy, que ya se entrenó (o se está
+    // entrenando) y reescribirlo sería prometer un cambio que el tick no va a aplicar. El modo, el plan y
+    // el borrado de los planes que pisa, en una transacción.
+    await saveLiveTrainingPlan(db, rider.id, {
+      currentDay: world.currentDay,
+      mode: parsed.data.mode,
+      plan: parsed.data.plan,
+      startFresh: parsed.data.startFresh === true,
+    })
     return { ok: true }
   })
 
   /**
-   * «¿CÓMO VOY A LLEGAR?» — la proyección, ANTES de guardar (docs/entrenamiento.md §5.3).
-   *
-   * Corre `projectLoad`, que es el MISMO Banister del tick: la promesa de la pantalla es la única
-   * que el motor puede cumplir. Si esto viviera en el cliente habría dos implementaciones del
-   * modelo, dirían cosas distintas, y el jugador tendría razón al no fiarse de ninguna.
+   * «¿CÓMO VOY A LLEGAR?» — la proyección, ANTES de guardar (docs/entrenamiento.md §5.3; E3,
+   * docs/visual.md §11.2 y §11.3, PR 13b). Proyecta lo que hará el tick con lo de la pantalla: el modo, el
+   * plan con las semanas del plan vivo (o desde mañana con `startFresh`) y la ventana de órdenes, con la
+   * misma precedencia (`resolveTrainingDay`) y la curva que escribe el tick (`applyDailyLoad`), desde el
+   * último diario. Una tarjeta por carrera, con la llegada a su salida, y los 28 días con quién decide cada
+   * uno y su carga en palabras: ningún número interno (D-41), y su esquema de respuesta lo garantiza.
    */
   app.post(
     '/api/riders/me/plan/preview',
-    { config: { spoiler: 'horizon', veil: { by: ['M'] } } },
+    {
+      config: { spoiler: 'horizon', veil: { by: ['M'] } },
+      schema: { response: { 200: planPreviewResponseSchema } },
+    },
     async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return unauthorized(reply)
-      const parsed = putTrainingPlanSchema.safeParse(request.body)
+      const parsed = planPreviewRequestSchema.safeParse(request.body)
       if (!parsed.success) return badRequest(reply)
       const rider = await getRiderForUser(db, userId)
       const world = await getCurrentWorld(db)
       if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
-
-      const h = await request.horizon()
-      const log = await getDailyLog(db, h, rider.id, 1)
-      const ultimo = log[log.length - 1]
-      const desde = world.currentDay + 1
-      const hasta = world.currentDay + TRAINING_HORIZON_DAYS
-      const raceDays = new Set(await getRiderRaceDays(db, h, rider.id, desde, hasta))
-
-      const { blocks, focusAttr, intensity } = parsed.data.plan
-      const plan: TrainingChoice[] = []
-      for (let i = 0; i < TRAINING_HORIZON_DAYS; i++) {
-        const gameDay = desde + i
-        // Un día de carrera no se entrena: la carrera es su carga, y fingir una sesión encima daría
-        // una proyección que el tick no va a reproducir.
-        if (raceDays.has(gameDay)) {
-          plan.push({ session: 'descanso_activo', intensity: 'normal' })
-          continue
-        }
-        const bloque = blocks[Math.floor(i / 7)] ?? 'base'
-        plan.push(blockWeek(bloque, rider.archetype, gameDay, focusAttr, intensity ?? 'normal'))
-      }
-
-      const curva = projectLoad(
-        { ctl: ultimo?.ctl ?? BANISTER.initialCtl, atl: ultimo?.atl ?? BANISTER.initialAtl },
+      const { mode, plan, edits, startFresh } = parsed.data
+      const p = await projectTraining(db, await request.horizon(), {
+        riderId: rider.id,
+        currentDay: world.currentDay,
+        horizonDays: TRAINING_HORIZON_DAYS,
+        mode,
         plan,
-        rider.attributes.REC,
-      )
+        startFresh,
+        orders: edits,
+      })
       return {
-        days: curva.map((d) => ({
-          ...d,
-          gameDay: desde + d.day,
-          session: plan[d.day]!.session,
-          intensity: plan[d.day]!.intensity,
+        races: p.races.map((r) => ({
+          ...r,
+          travelOut: [...r.travelOut],
+          travelBack: [...r.travelBack],
         })),
-        totalTss: planTss(plan),
-        arrivals: [...raceDays]
-          .filter((d) => d >= desde && d <= hasta)
-          .sort((a, b) => a - b)
-          .map((d) => {
-            // El TSB con el que AMANECE el día de carrera: el de la víspera ya aplicada.
-            const anterior = curva[d - desde - 1]
-            const tsb = anterior?.tsb ?? 0
-            return { gameDay: d, raceId: null, tsb, label: arrivalLabel(tsb) }
-          }),
+        days: p.days.map((d) => ({ ...diaDeOrdenes(d), kind: d.kind, load: loadLevelOf(d.tss) })),
       }
     },
   )

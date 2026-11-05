@@ -132,7 +132,13 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'POST /api/riders': ['safe', N], // l. 188
   'GET /api/riders/me/last-race': ['horizon', { by: ['P', 'G'] }], // l. 255-256
   'PUT /api/riders/me/archetype': ['safe', N], // l. 272
-  'GET /api/riders/me/orders': ['horizon', { by: ['M'] }], // l. 284-285
+  'GET /api/riders/me/orders': [
+    'horizon',
+    {
+      by: ['M', 'L'],
+      why: 'DD-08: lo que el entrenador hará cada día mira la condición propia, que se enseña',
+    },
+  ], // l. 284-285; desde el 13b de E3, con L (los 28 días)
   'PUT /api/riders/me/orders': ['safe', N], // l. 332
   'GET /api/riders/me/plan': ['safe', N], // l. 367
   'PUT /api/riders/me/plan': ['safe', N], // l. 381

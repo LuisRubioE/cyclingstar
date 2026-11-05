@@ -2164,6 +2164,19 @@ export const RACE_DAY_TSS: Record<string, number> = {
 /** Lo que cuesta un día de carrera en un terreno que la tabla todavía no nombra. */
 export const RACE_DAY_TSS_DEFAULT = 130
 
+// Las tres que siguen las lee la vista previa de la API (E3, PR 13b); NI el motor NI el tick.
+/**
+ * LA CARGA DE UN DÍA DE CARRERA EN LA VISTA PREVIA DEL PLAN (docs/visual.md §11.3; D-36 y D-37). La
+ * vista previa no corre la etapa: le pone la mediana de los últimos `PREVIEW_RACE_DAY_SAMPLE` días de
+ * carrera del corredor; sin ellos, la de los días de carrera del mundo en los últimos
+ * `PREVIEW_WORLD_WINDOW_DAYS`; sin nada, esta cifra, estimada (una etapa medida cargó 252,8; mapa 02
+ * §3). Cambiarla no cambia ninguna carrera ni ningún entrenamiento: solo la llegada pronosticada, y por
+ * eso no sube `ENGINE_VERSION`.
+ */
+export const PREVIEW_RACE_DAY_TSS = 150
+export const PREVIEW_RACE_DAY_SAMPLE = 10
+export const PREVIEW_WORLD_WINDOW_DAYS = 28
+
 /** Progresión por entrenamiento y decaimientos (SPEC 5.2, 5.5). */
 export const TRAINING = {
   // K_talento = base + talento/100, en [0.6, 1.6].

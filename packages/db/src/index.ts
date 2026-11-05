@@ -336,14 +336,25 @@ export {
   getTrainingMode,
   getTrainingOrders,
   getTrainingPlan,
+  saveLiveTrainingPlan,
   setTeamTrainingPlan,
   setTrainingMode,
   setTrainingOrders,
   setTrainingPlan,
+  type LiveTrainingPlanInput,
   type TrainingMode,
   type TrainingOrderRow,
   type TrainingPlanRow,
 } from './training.js'
+export {
+  clearRaceDayTssCache,
+  projectTraining,
+  raceDayTss,
+  type ProjectedRace,
+  type ProjectedTrainingDay,
+  type TrainingProjection,
+  type TrainingProjectionRequest,
+} from './trainingProjection.js'
 export {
   getRiderRaceDays,
   getRiderTravelDays,
@@ -355,6 +366,7 @@ export {
   ridersTravellingBack,
   ridersTravellingOutbound,
   type RetireOutcome,
+  type RiderRaceDay,
   type RiderTravelDay,
   type TravelDirection,
   type RiderUpcomingRace,

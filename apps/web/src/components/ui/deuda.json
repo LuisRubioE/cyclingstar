@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2190,
+    "tema": 2040,
     "arbitrarios": 34,
-    "espaciado": 33,
+    "espaciado": 31,
     "layout": 0
   },
   "ficheros": {
@@ -69,12 +69,6 @@
     },
     "apps/web/src/components/Panel.tsx": {
       "tema": 18,
-      "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/PlanLadder.tsx": {
-      "tema": 72,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0
@@ -449,12 +443,6 @@
       "tema": 18,
       "arbitrarios": 0,
       "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/pages/Training.tsx": {
-      "tema": 78,
-      "arbitrarios": 0,
-      "espaciado": 2,
       "layout": 0
     },
     "apps/web/src/pages/VerifyEmail.tsx": {

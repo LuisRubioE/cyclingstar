@@ -239,6 +239,22 @@ export function sessionTss(choice: TrainingChoice): number {
   return SESSION_CATALOG[choice.session].tss[choice.intensity]
 }
 
+/**
+ * LA CARGA DE UN DÍA EN PALABRAS (E3, docs/visual.md §10.7; D-41, D-00o; PR 13b): `Rest`, `Easy`,
+ * `Steady`, `Hard` y `Very hard`, de 0 a 4. El TSS no sale a la pantalla ni a la API, «eso no aporta, ni
+ * se entiende»: la vista previa manda el nivel. Vive junto al catálogo, porque es la escala con que se
+ * dice la carga de sus sesiones (§15.3).
+ */
+export type LoadLevel = 0 | 1 | 2 | 3 | 4
+
+/** Los topes de los cuatro primeros niveles, incluidos: `Rest` con 0, `Easy` hasta 25, `Steady` hasta 80 y `Hard` hasta 110. */
+export const LOAD_STEPS_TSS = [0, 25, 80, 110] as const
+
+/** El nivel de una carga: cuántos topes deja por debajo (110 es `Hard`, 111 ya `Very hard`). */
+export function loadLevelOf(tss: number): LoadLevel {
+  return LOAD_STEPS_TSS.filter((tope) => tss > tope).length as LoadLevel
+}
+
 /** Sesiones que entrenan un atributo, de mayor a menor ganancia (ayuda del perfil, #8). */
 export function sessionsForAttribute(attr: Attribute): Session[] {
   return SESSIONS.filter((s) => (SESSION_CATALOG[s].gains[attr] ?? 0) > 0).sort(
