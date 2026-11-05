@@ -22,6 +22,7 @@ import {
 import {
   type Attribute,
   type Continent,
+  type KitCode,
   continentForCountry,
   countriesInContinent,
   raceAttendanceCost,
@@ -31,8 +32,9 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
-import type { Horizon } from './horizon.js'
+import { type Horizon, stageGameDay } from './horizon.js'
 import { teamDrawSeed, teamDrawSeedOrNull } from './jerseyClone.js'
+import { kitsOn } from './kitsOn.js'
 import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
   gameState,
@@ -51,6 +53,7 @@ import { freezeRaceRoute, raceStagesForWorld } from './raceRoutes.js'
 import { runOneStage } from './stageRun.js'
 import { ownedTeamAttendance } from './teamPlan.js'
 import type { TimelineTickLog } from './timelines.js'
+import type { Queryable } from './titles.js'
 import { worldNeedsRepair } from './worldRepair.js'
 
 /**
@@ -382,35 +385,31 @@ interface FieldTeamRow {
   jerseySeed: string
 }
 
+/** Lo mínimo de un equipo para elegirlo para un pelotón: su nivel, su país y si tiene dueño. */
+export interface FieldTeamCandidate {
+  id: string
+  division: Division
+  country: string | null
+  ownerUserId: string | null
+}
+
 /**
- * Resuelve QUÉ equipos forman el pelotón de una carrera (sin elegir aún los corredores): los admitidos
- * por nivel/región (selectFieldTeams) más los overrides de los equipos con dueño (forcedIn/forcedOut).
- * Determinista. Lo comparten la convocatoria real del tick (convokeField) y la previsión de inscritos
- * (predictStartlist), para que la lista provisional coincida con lo que el día de salida ocurrirá.
+ * QUÉ equipos forman el pelotón de una carrera, sin leer nada (E3, docs/visual.md §8.4; PR 16a): los
+ * admitidos por nivel/región (selectFieldTeams) más los overrides de los equipos con dueño
+ * (forcedIn/forcedOut). `eligible` son los equipos del mundo abiertos a la carrera, por presupuesto de
+ * mayor a menor, y `overrides`, las excepciones de `team_race_plan` de esa temporada para esa carrera.
+ * Pura y determinista: la usan el tick (`resolveFieldTeams`) y los rivales de temporada
+ * (`seasonRivals.ts`), que construyen así los mismos pelotones.
  */
-async function resolveFieldTeams(
-  tx: Tx,
-  worldId: string,
+export function fieldTeamsFor<T extends FieldTeamCandidate>(
+  eligible: T[],
   race: CalendarRace,
   raceKey: string,
-  season: number,
-): Promise<{ teamRows: FieldTeamRow[]; forcedOut: Set<string> }> {
+  overrides: ReadonlyMap<string, boolean>,
+): { teamRows: T[]; forcedOut: Set<string> } {
   const { size } = squadFor(race)
   const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
   const cap = Math.max(1, Math.floor(fieldCap / size))
-  const eligible = await tx
-    .select({
-      id: teams.id,
-      name: teams.name,
-      philosophy: teams.philosophy,
-      division: teams.division,
-      country: teams.country,
-      ownerUserId: teams.ownerUserId,
-      jerseySeed: teamDrawSeed,
-    })
-    .from(teams)
-    .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
-    .orderBy(desc(teams.budget))
   // Cupo de wildcards (equipos invitados fuera del núcleo), acotado y variable por carrera de forma
   // determinista. Global (.WT/.Pro): los del núcleo entran garantizados (los 18 WorldTour en una .WT) y
   // solo se invitan unas pocas wildcards —2-4 en una .WT (Down Under ~2), 3-5 en una .Pro—, no medio
@@ -440,12 +439,7 @@ async function resolveFieldTeams(
   // carreras de casa) salvo las excepciones que guarde el manager —saltar una natural o añadir una de
   // fuera—. Se le fuerza dentro de las que le tocan y fuera de las que no. Sin equipos humanos (mundo
   // bot puro) no hay overrides ni dueños, así que esto no cambia nada.
-  const overrideRows = await tx
-    .select({ teamId: teamRacePlan.teamId, attend: teamRacePlan.attend })
-    .from(teamRacePlan)
-    .where(and(eq(teamRacePlan.season, season), eq(teamRacePlan.raceId, race.id)))
-  const overrideByTeam = new Map(overrideRows.map((o) => [o.teamId, o.attend]))
-  const { forcedIn, forcedOut } = ownedTeamAttendance(eligible, race, overrideByTeam)
+  const { forcedIn, forcedOut } = ownedTeamAttendance(eligible, race, new Map(overrides))
   let teamRows = auto
   if (forcedIn.size > 0 || forcedOut.size > 0) {
     teamRows = auto.filter((t) => !forcedOut.has(t.id))
@@ -455,6 +449,40 @@ async function resolveFieldTeams(
     }
   }
   return { teamRows, forcedOut }
+}
+
+/**
+ * Resuelve QUÉ equipos forman el pelotón de una carrera (sin elegir aún los corredores): lee los
+ * admitidos y las excepciones del plan de los equipos con dueño, y elige con `fieldTeamsFor`.
+ * Determinista. Lo comparten la convocatoria real del tick (convokeField) y la previsión de inscritos
+ * (predictStartlist), para que la lista provisional coincida con lo que el día de salida ocurrirá.
+ */
+async function resolveFieldTeams(
+  tx: Tx,
+  worldId: string,
+  race: CalendarRace,
+  raceKey: string,
+  season: number,
+): Promise<{ teamRows: FieldTeamRow[]; forcedOut: Set<string> }> {
+  const eligible = await tx
+    .select({
+      id: teams.id,
+      name: teams.name,
+      philosophy: teams.philosophy,
+      division: teams.division,
+      country: teams.country,
+      ownerUserId: teams.ownerUserId,
+      jerseySeed: teamDrawSeed,
+    })
+    .from(teams)
+    .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
+    .orderBy(desc(teams.budget))
+  const overrideRows = await tx
+    .select({ teamId: teamRacePlan.teamId, attend: teamRacePlan.attend })
+    .from(teamRacePlan)
+    .where(and(eq(teamRacePlan.season, season), eq(teamRacePlan.raceId, race.id)))
+  const overrideByTeam = new Map(overrideRows.map((o) => [o.teamId, o.attend]))
+  return fieldTeamsFor(eligible, race, raceKey, overrideByTeam)
 }
 
 /**
@@ -762,6 +790,11 @@ export interface StartlistTeam {
   division: Division
   /** Semilla del maillot del equipo (para pintar su kit). */
   jerseySeed: string
+  /**
+   * Su maillot el día de la salida (E3, docs/visual.md §8.5; paso 16b), o null si ese día aún no tenía
+   * ninguno guardado y se dibuja con `jerseySeed`.
+   */
+  kit: KitCode | null
   riders: StartlistRider[]
 }
 /** Lista de inscritos de una carrera: la prevista antes del cierre y la congelada desde él. */
@@ -785,7 +818,7 @@ export interface RaceStartlist {
  * con su dorsal. Solo lectura.
  */
 export async function readFrozenStartlist(
-  q: Db | Tx,
+  q: Queryable,
   // L (E2, §10.6): la escuadra se congela antes de la salida y lo corrido no la cambia; quien llama pasa
   // worldHorizon y no se usa.
   _h: Horizon,
@@ -811,7 +844,7 @@ export async function readFrozenStartlist(
     .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(eq(raceRosters.raceId, raceKey))
   if (rows.length === 0) return null
-  const byTeam = new Map<string, StartlistTeam & { minBib: number }>()
+  const byTeam = new Map<string, Omit<StartlistTeam, 'kit'> & { minBib: number }>()
   const freeAgents: StartlistRider[] = []
   for (const r of rows) {
     const rider: StartlistRider = {
@@ -852,6 +885,7 @@ export async function readFrozenStartlist(
   )
   for (const t of teamsList) t.riders.sort(byBib)
   freeAgents.sort(byBib)
+  const kits = await startKits(q, raceKey, [...byTeam.keys()])
   return {
     frozen: true,
     teams: teamsList.map((t) => ({
@@ -860,10 +894,23 @@ export async function readFrozenStartlist(
       country: t.country,
       division: t.division,
       jerseySeed: t.jerseySeed,
+      kit: kits.get(t.id) ?? null,
       riders: t.riders,
     })),
     freeAgents,
   }
+}
+
+/**
+ * El maillot de cada equipo el día de la salida (E3, docs/visual.md §8.5; paso 16b): el de su primera
+ * etapa, el mismo antes del cierre que después, y el de aquel día en una carrera ya corrida.
+ */
+function startKits(
+  q: Queryable,
+  raceKey: string,
+  teamIds: readonly string[],
+): Promise<ReadonlyMap<string, KitCode>> {
+  return kitsOn(q, teamIds, stageGameDay(raceKey, 1))
 }
 
 /**
@@ -889,6 +936,11 @@ export async function predictStartlist(
     if (frozen !== null) return frozen
     // Aún no congelada: previsión de equipos + agentes libres apuntados (sin nombrar corredores).
     const { teamRows } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
+    const kits = await startKits(
+      tx,
+      raceKey,
+      teamRows.map((t) => t.id),
+    )
     const fa = await tx
       .select({ id: riders.id, name: riders.name, country: riders.country })
       .from(raceEntries)
@@ -911,6 +963,7 @@ export async function predictStartlist(
         country: t.country,
         division: t.division,
         jerseySeed: t.jerseySeed,
+        kit: kits.get(t.id) ?? null,
         riders: [],
       })),
       freeAgents: fa.map((r) => ({

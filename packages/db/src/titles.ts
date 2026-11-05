@@ -2,6 +2,7 @@ import { type ChampionTitle, DAYS_PER_SEASON } from '@cyclingstar/shared'
 import { and, desc, eq, gte, lt, sql } from 'drizzle-orm'
 import type { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
+import { type Horizon, veilTitles } from './horizon.js'
 import { palmares } from './schema.js'
 
 /**
@@ -9,6 +10,7 @@ import { palmares } from './schema.js'
  * que las lecturas de clasificación de `results.ts` y las noticias usan desde entonces (§12.8, 17-z);
  * el paso 5 lo completa con `ChampionTitleSource`, la interfaz que E2 deja a E12 (§7.9), y
  * `palmaresTitleSource`, el proveedor provisional que deriva los campeones nacionales de `palmares`.
+ * El 17a de E3 añade `titlesSeenOn`, la lectura con horizonte de las tablas y de la ficha.
  */
 
 type Db = ReturnType<typeof drizzle>
@@ -94,4 +96,19 @@ export const palmaresTitleSource: ChampionTitleSource = {
     }
     return out
   },
+}
+
+/**
+ * LOS TÍTULOS QUE VE QUIEN MIRA (E3, docs/visual.md §8.5; 4-l, PR 17a): los vigentes el día de juego
+ * `gameDay`, de `palmaresTitleSource`, sin los de un campeonato de su velo (`veilTitles`, B13). Es la
+ * lectura con horizonte (§10.6, 10-c) de las tablas de la ficha de carrera y de la etapa y de la ficha
+ * del corredor; el tick pide los suyos sin él, porque graba su procedencia y el velo la degrada al servir.
+ */
+export async function titlesSeenOn(
+  q: Queryable,
+  h: Horizon,
+  worldId: string,
+  gameDay: number,
+): Promise<ReadonlyMap<string, readonly ChampionTitle[]>> {
+  return veilTitles(await palmaresTitleSource.titlesOn(q, worldId, gameDay), h)
 }

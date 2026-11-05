@@ -237,6 +237,7 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     run: true,
     race,
     altimetry: '<svg/>',
+    champions: {},
     watch: { known: false, reachedS: null, gate: { k: 'not_seen' }, seen: false },
   }
   const seen: StageReplayData = {

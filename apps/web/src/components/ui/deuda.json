@@ -1,9 +1,9 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 2040,
-    "arbitrarios": 34,
-    "espaciado": 31,
+    "tema": 1976,
+    "arbitrarios": 32,
+    "espaciado": 28,
     "layout": 0
   },
   "ficheros": {
@@ -81,7 +81,7 @@
     },
     "apps/web/src/components/RaceRadioPanel.tsx": {
       "tema": 58,
-      "arbitrarios": 7,
+      "arbitrarios": 6,
       "espaciado": 0,
       "layout": 0
     },
@@ -157,12 +157,6 @@
       "espaciado": 0,
       "layout": 0
     },
-    "apps/web/src/components/TeamManager.tsx": {
-      "tema": 39,
-      "arbitrarios": 0,
-      "espaciado": 1,
-      "layout": 0
-    },
     "apps/web/src/components/TextField.tsx": {
       "tema": 11,
       "arbitrarios": 0,
@@ -195,7 +189,7 @@
     },
     "apps/web/src/components/broadcast/CueCard.tsx": {
       "tema": 15,
-      "arbitrarios": 2,
+      "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
     },
@@ -206,9 +200,9 @@
       "layout": 0
     },
     "apps/web/src/components/broadcast/GroupBar.tsx": {
-      "tema": 29,
+      "tema": 18,
       "arbitrarios": 0,
-      "espaciado": 6,
+      "espaciado": 4,
       "layout": 0
     },
     "apps/web/src/components/broadcast/PlayerControls.tsx": {
@@ -416,7 +410,7 @@
       "layout": 0
     },
     "apps/web/src/pages/Team.tsx": {
-      "tema": 23,
+      "tema": 15,
       "arbitrarios": 0,
       "espaciado": 1,
       "layout": 0
@@ -428,7 +422,7 @@
       "layout": 0
     },
     "apps/web/src/pages/TeamIdentity.tsx": {
-      "tema": 11,
+      "tema": 5,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0

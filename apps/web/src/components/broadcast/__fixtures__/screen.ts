@@ -30,7 +30,7 @@ export function card(ix: RiderIx, over: Partial<RiderCard> = {}): RiderCard {
     bib: ix + 1,
     country: 'ES',
     gender: 'M',
-    team: { id: `team-${t}`, name: `Team ${t}`, jerseySeed: `seed-${t}` },
+    team: { id: `team-${t}`, name: `Team ${t}`, jerseySeed: `seed-${t}`, kit: null },
     worn: { kind: 'team' },
     lines: [],
     notoriety: 8,

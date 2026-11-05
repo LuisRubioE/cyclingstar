@@ -10,13 +10,14 @@ import {
   listBlocked,
   listUsersForAdmin,
   removeBlocked,
+  revertTeamKit,
   setUserPremium,
   teamsOfTheDay,
   updateUserAsAdmin,
   worldHorizon,
 } from '@cyclingstar/db'
 import { type StageInput, checkReplay } from '@cyclingstar/engine'
-import { currentSeason } from '@cyclingstar/shared'
+import { currentSeason, kitRevertBodySchema, kitRevertResponseSchema } from '@cyclingstar/shared'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { badRequest, notFound, sendError } from '../http.js'
@@ -186,6 +187,31 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       if (!id.success) return badRequest(reply)
       await removeBlocked(db, id.data)
       return { ok: true }
+    },
+  )
+
+  // LA REVERSIÓN DEL MAILLOT PARA E9 (E3, docs/visual.md §8.8; PR 18a): para mañana, una fila
+  // `moderator` con el último maillot `system` del equipo, o uno nuevo si ese no vale, y su noticia en
+  // el diario. El motivo va al registro de la API hasta que E9 tenga el suyo.
+  app.post<{ Params: { id: string } }>(
+    '/api/admin/teams/:id/kit/revert',
+    {
+      config: { spoiler: 'horizon', veil: ADMIN_VEIL },
+      schema: { response: { 200: kitRevertResponseSchema } },
+    },
+    async (request, reply) => {
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
+      const id = z.string().uuid().safeParse(request.params.id)
+      const body = kitRevertBodySchema.safeParse(request.body)
+      if (!id.success || !body.success) return badRequest(reply)
+      const result = await revertTeamKit(db, id.data, body.data.reason)
+      if (!result) return notFound(reply)
+      request.log.info(
+        { teamId: id.data, kit: result.kit, reason: body.data.reason, via: actor.via },
+        'maillot revertido por un moderador',
+      )
+      return { ok: true as const, ...result }
     },
   )
 

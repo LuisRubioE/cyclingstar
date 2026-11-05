@@ -14,6 +14,7 @@ import {
   riders,
   runOneStage,
   stageTimelines,
+  teamKits,
   teams,
   timelineTickLog,
   tombstoneRow,
@@ -29,6 +30,7 @@ import {
   BROADCAST,
   type BroadcastChunk,
   type ChronicleRider,
+  type KitCode,
   type RaceRadio,
   type SwitchMode,
   apiErrorBodySchema,
@@ -775,6 +777,35 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         })
         expect(bad.statusCode).toBe(400)
       })
+    })
+
+    it('el reparto servido: el maillot de cada equipo el día de la etapa, null sin fila (E3, §8.5; 16b)', async () => {
+      /** El `kit` de las cartas de cada equipo en la cabecera de una etapa: uno por equipo, o falla. */
+      const kitsOf = async (day: number): Promise<(KitCode | null)[]> => {
+        const res = await call(app, 'GET', `${STAGE_URL}/${day}/broadcast`, ADMIN)
+        expect(res.statusCode, res.body.slice(0, 300)).toBe(200)
+        const cast = broadcastHeadSchema.parse(res.json()).cast
+        return TEAM_IDS.map((id) => {
+          const kits = new Set(cast.filter((c) => c.team?.id === id).map((c) => c.team!.kit))
+          expect(kits.size, id).toBe(1)
+          return [...kits][0]!
+        })
+      }
+      // Sin ninguna fila en `team_kits` (hasta el 17b, todos): nulo, en la grabada y en la del adaptador.
+      for (const day of [1, 2, ADAPTED]) expect(await kitsOf(day)).toEqual([null, null])
+      const [kit0, kit1]: [KitCode, KitCode] = ['plain.navy', 'band.black.sky']
+      await t.db.insert(teamKits).values([
+        { teamId: TEAM_IDS[0]!, validFromDay: dayOf(2), kit: kit0, setBy: 'system' },
+        { teamId: TEAM_IDS[1]!, validFromDay: dayOf(2) + 1, kit: kit1, setBy: 'manager' },
+      ])
+      try {
+        // Cada etapa con el de su día, que no se reescribe: la 1 no lo ve, y la del equipo 1 vale tras la 2.
+        expect(await kitsOf(1)).toEqual([null, null])
+        expect(await kitsOf(2)).toEqual([kit0, null])
+        expect(await kitsOf(ADAPTED)).toEqual([kit0, kit1])
+      } finally {
+        await t.db.delete(teamKits)
+      }
     })
 
     it('una etapa sin correr: no_encontrado', async () => {

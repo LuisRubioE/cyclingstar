@@ -36,7 +36,7 @@ import {
 
 /** N: ningún dato de juego (lo de toda `safe` que no dice otra cosa). */
 const N: VeilSpec = { by: ['N'] }
-/** Las trece de administración: `horizon` con L y el mismo motivo (§11.3, primera nota; §14.5). */
+/** Las catorce de administración: `horizon` con L y el mismo motivo (§11.3, primera nota; §14.5). */
 const ADMIN: VeilSpec = {
   by: ['L'],
   why: 'solo administradores (requireAdmin): ven el mundo con worldHorizon',
@@ -62,18 +62,19 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'POST /api/auth/change-email': ['safe', N],
   'POST /api/auth/delete-user': ['safe', N],
   // routes/admin.ts
-  'GET /api/admin/whoami': ['horizon', ADMIN], // l. 62-63
-  'GET /api/admin/users': ['horizon', ADMIN], // l. 73-74
-  'PATCH /api/admin/users/:id': ['horizon', ADMIN], // l. 84-85
-  'DELETE /api/admin/users/:id': ['horizon', ADMIN], // l. 102-103
-  'POST /admin/tick': ['horizon', ADMIN], // l. 126-127
-  'POST /admin/advance': ['horizon', ADMIN], // l. 141-142
-  'GET /api/admin/blocklist': ['horizon', ADMIN], // l. 155-156
-  'POST /api/admin/blocklist': ['horizon', ADMIN], // l. 166-167
-  'DELETE /api/admin/blocklist/:id': ['horizon', ADMIN], // l. 179-180
-  'GET /api/admin/health': ['horizon', ADMIN], // l. 192-193
-  'POST /api/admin/premium': ['horizon', ADMIN], // l. 202-203
-  'GET /api/admin/stage-snapshot/:raceId/:day': ['horizon', ADMIN], // l. 232-233
+  'GET /api/admin/whoami': ['horizon', ADMIN], // l. 64-65
+  'GET /api/admin/users': ['horizon', ADMIN], // l. 75-76
+  'PATCH /api/admin/users/:id': ['horizon', ADMIN], // l. 86-87
+  'DELETE /api/admin/users/:id': ['horizon', ADMIN], // l. 104-105
+  'POST /admin/tick': ['horizon', ADMIN], // l. 128-129
+  'POST /admin/advance': ['horizon', ADMIN], // l. 143-144
+  'GET /api/admin/blocklist': ['horizon', ADMIN], // l. 157-158
+  'POST /api/admin/blocklist': ['horizon', ADMIN], // l. 168-169
+  'DELETE /api/admin/blocklist/:id': ['horizon', ADMIN], // l. 181-182
+  'POST /api/admin/teams/:id/kit/revert': ['horizon', ADMIN], // l. 196-197; desde el 18a de E3
+  'GET /api/admin/health': ['horizon', ADMIN], // l. 219-220
+  'POST /api/admin/premium': ['horizon', ADMIN], // l. 229-230
+  'GET /api/admin/stage-snapshot/:raceId/:day': ['horizon', ADMIN], // l. 259-260
   // routes/world.ts
   'POST /api/world/advance': ['horizon', ADMIN], // l. 22-23
   // routes/calendar.ts
@@ -95,14 +96,14 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // routes/races.ts
   'GET /api/my-orders': ['safe', { by: ['N', 'L'], why: 'rivales por fama, que no se escribe' }], // l. 84-85
   'PUT /api/my-orders': ['safe', N], // l. 176
-  'GET /api/races/:raceId/stages/:day': ['horizon', { by: ['G', 'P'] }], // l. 207-208
+  'GET /api/races/:raceId/stages/:day': ['horizon', { by: ['G', 'P', 'F'] }], // l. 209-210; F desde el 17a de E3
   // routes/broadcast.ts (E2, paso 3a): la retransmisión y el acta (§14.2)
   'GET /api/races/:raceId/stages/:day/broadcast': ['watch', { by: ['B', 'G'] }], // l. 246-247
   'GET /api/races/:raceId/stages/:day/broadcast/chunk': ['watch', { by: ['B'] }], // l. 335-336
-  'POST /api/races/:raceId/stages/:day/broadcast/finish': ['watch', { by: ['G'] }], // l. 362-363
+  'POST /api/races/:raceId/stages/:day/broadcast/finish': ['watch', { by: ['G', 'F'] }], // l. 409-410; F desde el 17a de E3
   // el salto en el servidor (8-t, §14.2; 10b, los arreglos): como la meta, `watch` · G
   'POST /api/races/:raceId/stages/:day/broadcast/seek': ['watch', { by: ['G'] }],
-  'GET /api/races/:raceId/stages/:day/report': ['watch', { by: ['G'] }], // l. 403-404
+  'GET /api/races/:raceId/stages/:day/report': ['watch', { by: ['G', 'F'] }], // l. 551-552; F desde el 17a de E3
   // routes/me.ts (E2, paso 7a): lo visto, el revelado, la guardia y el horizonte de cada uno (§14.2)
   'POST /api/me/watch/:raceKey/:day': ['watch', { by: ['B'] }], // l. 99-100
   'POST /api/me/reveal/:raceKey/:day': ['watch', { by: ['G'] }], // l. 148-149
@@ -188,20 +189,24 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'GET /api/riders/:id': [
     'horizon',
     {
-      by: ['R', 'M', 'L'],
+      by: ['R', 'M', 'F', 'L'],
       why: 'DD-08: los atributos se enseñan aunque los mueva lo aprendido en carrera, también los de un rival',
     },
-  ], // l. 856-857
+  ], // l. 889-890; F desde el 17a de E3 (`champion`)
   // routes/teams.ts
-  'POST /api/teams/take-over': ['safe', N], // l. 37
-  'PUT /api/teams/me': ['safe', N], // l. 49
-  'GET /api/teams/me/calendar': ['horizon', { by: ['R'] }], // l. 64-65
-  'GET /api/teams/me/race-plan': ['safe', N], // l. 84
-  'POST /api/teams/me/calendar/:raceId': ['safe', N], // l. 92-93
-  'DELETE /api/teams/me/calendar/:raceId': ['safe', N], // l. 108-109
-  'GET /api/teams': ['horizon', { by: ['R'] }], // l. 125-126
-  'GET /api/teams/:id': ['horizon', { by: ['R', 'M'] }], // l. 135-136
-  'GET /api/teams/:id/news': ['horizon', { by: ['F'] }], // l. 151-152
+  'POST /api/teams/take-over': ['safe', N], // l. 63
+  'PUT /api/teams/me': ['safe', N], // l. 75
+  // el editor del maillot, desde el 18a de E3 (docs/visual.md §8.7): el del propio equipo, sin dato de juego
+  'GET /api/teams/me/kit': ['safe', N], // l. 91-92
+  'POST /api/teams/me/kit/check': ['safe', N], // l. 104-105
+  'PUT /api/teams/me/kit': ['safe', N], // l. 118-119
+  'GET /api/teams/me/calendar': ['horizon', { by: ['R'] }], // l. 143-144
+  'GET /api/teams/me/race-plan': ['safe', N], // l. 163
+  'POST /api/teams/me/calendar/:raceId': ['safe', N], // l. 171-172
+  'DELETE /api/teams/me/calendar/:raceId': ['safe', N], // l. 187-188
+  'GET /api/teams': ['horizon', { by: ['R'] }], // l. 204-205
+  'GET /api/teams/:id': ['horizon', { by: ['R', 'M'] }], // l. 214-215
+  'GET /api/teams/:id/news': ['horizon', { by: ['F'] }], // l. 230-231
 }
 
 /** Lo que añade `@fastify/static` cuando sirve la web compilada: se clasifica sola (`STATIC_ROUTES`). */

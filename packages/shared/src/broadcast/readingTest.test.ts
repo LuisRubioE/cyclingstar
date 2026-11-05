@@ -249,7 +249,10 @@ function card(ix: RiderIx, team: number | null, worn: WornJersey = { kind: 'team
     bib: ix + 1,
     country: 'ES',
     gender: 'M',
-    team: team === null ? null : { id: `t${team}`, name: `Team ${team}`, jerseySeed: `j${team}` },
+    team:
+      team === null
+        ? null
+        : { id: `t${team}`, name: `Team ${team}`, jerseySeed: `j${team}`, kit: null },
     worn,
     lines: [],
     notoriety: 8,
@@ -481,7 +484,7 @@ describe('readingTruthsOf · la verdad de un punto es lo que pintan la capa fija
       const truths = readingTruthsOf(tl, screen, kms)
       // la cabecera como la arma la ruta: las cartas servidas (riderCardsOf, sin velo ni corredores
       // propios) y el contexto con que pinta la web (StageWatch.tsx)
-      const cards = riderCardsOf(tl.cast, names, new Set(), 'elite')
+      const cards = riderCardsOf(tl.cast, names, new Set(), 'elite', new Map())
       const nameOf = (r: RiderIx): string => cards[r]!.name
       const ctx = screenCtxOf(tl)
       kms.forEach((km, i) => {

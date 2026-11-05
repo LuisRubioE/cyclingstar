@@ -203,11 +203,12 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
    * `SPOILER_MODE` aplicado a quien pide (§10.13): sin él, la ficha de hoy, entera y sin `watch`. Con
    * `?diag=1`, un administrador con sesión recibe la ficha entera, sin `watch` ni horizonte y sin
    * escribir nada (§11.15); para cualquier otro, el parámetro no existe. `?season=` abre una etapa de
-   * otra temporada (§14.2); sin él, la de hoy, como siempre.
+   * otra temporada (§14.2); sin él, la de hoy, como siempre. Desde el 17a de E3 filtra también (F) los
+   * títulos de `champions`: sin los de un campeonato que quien pide no ha visto (docs/visual.md §8.5).
    */
   app.get<{ Params: { raceId: string; day: string } }>(
     '/api/races/:raceId/stages/:day',
-    { config: { spoiler: 'horizon', veil: { by: ['G', 'P'] } } },
+    { config: { spoiler: 'horizon', veil: { by: ['G', 'P', 'F'] } } },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       if (!q.success) return badRequest(reply)
@@ -246,8 +247,9 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         day: ctx.day,
         run: snapshot !== null,
       })
+      // Con el horizonte de quien pide también para los títulos de campeón de sus tablas (E3, 17a).
       const body = access.serveResult
-        ? await stageReplayOf(db, ctx, { snapshot, radio: { h, userId } })
+        ? await stageReplayOf(db, ctx, { snapshot, radio: { h, userId }, h })
         : stageShellOf(ctx, snapshot)
       return {
         ...body,

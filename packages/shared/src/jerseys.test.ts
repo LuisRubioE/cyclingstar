@@ -9,6 +9,7 @@ import {
   type WornJersey,
   assignLeaderJerseys,
   distinctions,
+  highestTitle,
   isJerseyKind,
   jerseyOf,
   leadingTeam,
@@ -434,6 +435,44 @@ describe('el maillot llevado y las distinciones (§7.2, los 18 casos)', () => {
       { kind: 'champion', title: RUTA_IT_SUB23 },
       { kind: 'champion', title: SUB23_CRONO },
     ])
+  })
+})
+
+/**
+ * EL TÍTULO DE LA FICHA (E3, docs/visual.md §8.5; 4-l, 17a): `highestTitle`, el de `RiderHeader`. No
+ * es de ningún día de carrera, así que no filtra por disciplina ni categoría: las ordena.
+ */
+describe('el título de la ficha del corredor (§8.5; 4-l)', () => {
+  const CRONO_IT_SUB23 = titulo({ discipline: 'itt', category: 'u23' })
+  const CONTINENTAL_CRONO = titulo({
+    scope: 'continental',
+    country: null,
+    discipline: 'itt',
+    category: 'elite',
+    provisional: false,
+    source: { raceKey: 'euro-itt:s0', stageDay: 1 },
+  })
+
+  it('sin títulos, null', () => {
+    expect(highestTitle([])).toBeNull()
+  })
+
+  it('el de mayor alcance primero, sea de la disciplina y la categoría que sea', () => {
+    expect(highestTitle([RUTA_IT, CONTINENTAL_CRONO])).toBe(CONTINENTAL_CRONO)
+    expect(highestTitle([CONTINENTAL_CRONO, RUTA_IT_SUB23, MUNDO_RUTA])).toBe(MUNDO_RUTA)
+  })
+
+  it('a igual alcance, el de ruta antes que el de crono y luego el de élite antes que el sub-23', () => {
+    expect(highestTitle([CRONO_IT, RUTA_IT])).toBe(RUTA_IT)
+    expect(highestTitle([CRONO_IT, RUTA_IT_SUB23])).toBe(RUTA_IT_SUB23)
+    expect(highestTitle([RUTA_IT_SUB23, RUTA_IT])).toBe(RUTA_IT)
+    expect(highestTitle([CRONO_IT_SUB23, CRONO_IT])).toBe(CRONO_IT)
+  })
+
+  it('no reordena la lista que recibe', () => {
+    const list = [CRONO_IT, RUTA_IT]
+    highestTitle(list)
+    expect(list).toEqual([CRONO_IT, RUTA_IT])
   })
 })
 

@@ -63,6 +63,7 @@ import {
   putTrainingPlanSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
+import { riderChampion } from '../champions.js'
 import type { ChronicleEntry } from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import { preStageInfoOf, riderMomentsOf, stageContextOf } from '../stageReplay.js'
@@ -890,8 +891,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     {
       config: {
         spoiler: 'horizon',
+        // F desde el 17a de E3: `champion`, sin los títulos de un campeonato velado (docs/visual.md §8.5)
         veil: {
-          by: ['R', 'M', 'L'],
+          by: ['R', 'M', 'F', 'L'],
           why: 'DD-08: los atributos se enseñan aunque los mueva lo aprendido en carrera, también los de un rival',
         },
       },
@@ -901,9 +903,13 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       if (!riderId) return notFound(reply)
       const world = await getCurrentWorld(db)
       const season = world ? currentSeason(world.currentDay) : 0
-      const rider = await getPublicRider(db, await request.horizon(), riderId, season)
+      const h = await request.horizon()
+      const rider = await getPublicRider(db, h, riderId, season)
       if (!rider) return notFound(reply)
-      return { rider }
+      // El maillot de `RiderHeader` (E3, docs/visual.md §8.5; 4-l, 17a): su título vigente de mayor
+      // alcance, sin los de un campeonato que quien mira no ha visto.
+      const champion = world === null ? null : await riderChampion(db, h, world, riderId)
+      return { rider: { ...rider, champion } }
     },
   )
 }

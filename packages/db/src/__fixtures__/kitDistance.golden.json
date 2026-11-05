@@ -1,0 +1,696 @@
+{
+ "script": "docs/diseno/e3-visual/mapas/03-maillots-medida.py --golden",
+ "scriptSha256": "754ab4f1426086430d6f7e2d98c0ef553d5299d141ee8352f2dbacbd0c7ed46f",
+ "colourScience": "0.4.7",
+ "numpy": "2.5.4",
+ "flagCellsSha256": "a386a6e63318bdd38f7c5fdc77d76a471ca32638ac172d3a0359d1d12343e585",
+ "geometry": {
+  "size": 28,
+  "supersample": 8,
+  "torso": "M16 8 L10 12 L7 20 L12 23 L14 18 L14 40 Q24 43 34 40 L34 18 L36 23 L41 20 L38 12 L32 8 Q24 12 16 8 Z",
+  "collar": "M20 8 Q24 12 28 8 L26 6 Q24 8 22 6 Z",
+  "colors": {
+   "black": "#1b1d21",
+   "navy": "#172a5b",
+   "blue": "#0f6de9",
+   "sky": "#4cc3ff",
+   "teal": "#0f9e8f",
+   "green": "#236102",
+   "orange": "#f48d32",
+   "red": "#c62639",
+   "pink": "#f7418a",
+   "purple": "#4e2cae",
+   "taupe": "#876969",
+   "brown": "#4b1e0f",
+   "plum": "#5a4b5a",
+   "yellow": "#ffd60a",
+   "white": "#ffffff"
+  },
+  "figures": {
+   "plain": null,
+   "band": "M0 23H48V33H0Z",
+   "hoops": "M0 17H48V24H0Z M0 30H48V37H0Z",
+   "halves": "M24 0H48V48H24Z",
+   "yoke": "M0 0H48V19H0Z M16 8 L14 18 L12 23 L7 20 L10 12 Z M32 8 L38 12 L41 20 L36 23 L34 18 Z",
+   "sides": "M0 0H21V48H0Z M27 0H48V48H27Z",
+   "sash": "M13.76 6.71 L41.76 38.71 L34.24 45.29 L6.24 13.29 Z"
+  },
+  "logoStar": "M36 2 L39.2 9.2 L47 10 L41.2 15.3 L42.9 23 L36 19.1 L29.1 23 L30.8 15.3 L25 10 L32.8 9.2 Z",
+  "worldStar": {
+   "widthU": 18,
+   "cx": 24,
+   "cy": 28.5,
+   "edgeU": 1.5
+  },
+  "rainbow": [
+   "#e53935",
+   "#fb8c00",
+   "#fdd835",
+   "#43a047",
+   "#1e88e5",
+   "#5e35b1"
+  ],
+  "starEdge": "#0b2740",
+  "silver": "#c0c7d2",
+  "leaders": {
+   "gc": {
+    "base": "#facc15",
+    "mark": null
+   },
+   "points": {
+    "base": "#16a34a",
+    "mark": "band"
+   },
+   "kom": {
+    "base": "#2563eb",
+    "mark": "dots"
+   }
+  },
+  "leaderDotRadius": 4.0,
+  "leaderDots": [
+   [
+    19,
+    22
+   ],
+   [
+    29,
+    22
+   ],
+   [
+    24,
+    29
+   ],
+   [
+    19,
+    36
+   ],
+   [
+    29,
+    36
+   ]
+  ],
+  "flagBox": [
+   1.3333333333333333,
+   8.0,
+   45.333333333333336,
+   34.0
+  ],
+  "kitEdge": [
+   "#000000",
+   0.3,
+   1.0
+  ],
+  "leaderEdge": [
+   "#000000",
+   0.35,
+   1.5
+  ],
+  "legacyEdge": [
+   "#000000",
+   0.18,
+   1.0
+  ],
+  "collarPaint": [
+   "#ffffff",
+   0.85
+  ],
+  "legacy": {
+   "solid": [],
+   "band": [
+    "M14 24 H34 V30 H14 Z"
+   ],
+   "stripes": [
+    "M14 18 H34 V21 H14 Z",
+    "M14 26 H34 V29 H14 Z",
+    "M14 34 H34 V37 H14 Z"
+   ],
+   "panels": [
+    "M14 18 L20 18 L20 40 Q17 39.5 14 40 Z",
+    "M34 18 L28 18 L28 40 Q31 39.5 34 40 Z"
+   ],
+   "shoulders": [
+    "M16 8 L10 12 L7 20 L12 23 L14 18 Z",
+    "M32 8 L38 12 L41 20 L36 23 L34 18 Z"
+   ]
+  }
+ },
+ "views": {
+  "normal": "normal",
+  "protan": "protan",
+  "deutan": "deutan",
+  "tritan": "tritan",
+  "gris": "gray"
+ },
+ "pairs": [
+  {
+   "a": "kit:plain.red",
+   "b": "kit:plain.blue",
+   "d": {
+    "normal": 40.8855,
+    "protan": 41.1619,
+    "deutan": 50.8534,
+    "tritan": 63.5678,
+    "gris": 3.9732
+   }
+  },
+  {
+   "a": "kit:plain.navy",
+   "b": "kit:plain.black",
+   "d": {
+    "normal": 15.9621,
+    "protan": 15.6247,
+    "deutan": 15.8781,
+    "tritan": 12.5603,
+    "gris": 4.4644
+   }
+  },
+  {
+   "a": "kit:band.navy.yellow",
+   "b": "kit:band.navy.white",
+   "d": {
+    "normal": 9.2317,
+    "protan": 9.3349,
+    "deutan": 9.0461,
+    "tritan": 6.3449,
+    "gris": 2.277
+   }
+  },
+  {
+   "a": "kit:hoops.navy.yellow",
+   "b": "kit:hoops.blue.yellow",
+   "d": {
+    "normal": 13.7823,
+    "protan": 14.5401,
+    "deutan": 12.7325,
+    "tritan": 15.3559,
+    "gris": 11.4905
+   }
+  },
+  {
+   "a": "kit:halves.red.blue",
+   "b": "kit:halves.blue.red",
+   "d": {
+    "normal": 40.8855,
+    "protan": 41.1619,
+    "deutan": 50.8534,
+    "tritan": 63.5678,
+    "gris": 3.9732
+   }
+  },
+  {
+   "a": "kit:yoke.green.white",
+   "b": "kit:yoke.teal.white",
+   "d": {
+    "normal": 16.8425,
+    "protan": 17.1639,
+    "deutan": 18.3376,
+    "tritan": 13.4543,
+    "gris": 11.7749
+   }
+  },
+  {
+   "a": "kit:sides.black.orange",
+   "b": "kit:sides.brown.orange",
+   "d": {
+    "normal": 4.4422,
+    "protan": 3.0221,
+    "deutan": 3.8026,
+    "tritan": 4.4303,
+    "gris": 1.1524
+   }
+  },
+  {
+   "a": "kit:sash.purple.yellow",
+   "b": "kit:sash.plum.yellow",
+   "d": {
+    "normal": 13.0763,
+    "protan": 10.8122,
+    "deutan": 11.387,
+    "tritan": 10.4954,
+    "gris": 1.6347
+   }
+  },
+  {
+   "a": "kit:plain.taupe",
+   "b": "kit:plain.plum",
+   "d": {
+    "normal": 13.2934,
+    "protan": 13.0158,
+    "deutan": 14.9026,
+    "tritan": 13.0767,
+    "gris": 10.7468
+   }
+  },
+  {
+   "a": "kit:band.red.white",
+   "b": "kit:hoops.red.white",
+   "d": {
+    "normal": 24.4154,
+    "protan": 24.8109,
+    "deutan": 20.1587,
+    "tritan": 24.402,
+    "gris": 19.9576
+   }
+  },
+  {
+   "a": "kit:halves.sky.navy",
+   "b": "kit:sides.sky.navy",
+   "d": {
+    "normal": 25.9154,
+    "protan": 25.6283,
+    "deutan": 22.9813,
+    "tritan": 25.7256,
+    "gris": 24.0478
+   }
+  },
+  {
+   "a": "kit:yoke.orange.black",
+   "b": "kit:band.orange.black",
+   "d": {
+    "normal": 36.2232,
+    "protan": 32.5806,
+    "deutan": 38.2441,
+    "tritan": 33.0229,
+    "gris": 30.999
+   }
+  },
+  {
+   "a": "kit:sash.pink.white",
+   "b": "kit:plain.pink",
+   "d": {
+    "normal": 16.8081,
+    "protan": 16.3892,
+    "deutan": 11.3142,
+    "tritan": 17.7626,
+    "gris": 12.3879
+   }
+  },
+  {
+   "a": "kit:hoops.green.yellow",
+   "b": "kit:hoops.green.white",
+   "d": {
+    "normal": 13.1953,
+    "protan": 13.1094,
+    "deutan": 12.775,
+    "tritan": 9.7753,
+    "gris": 3.6053
+   }
+  },
+  {
+   "a": "kit:plain.sky",
+   "b": "kit:plain.teal",
+   "d": {
+    "normal": 25.4064,
+    "protan": 24.4728,
+    "deutan": 20.403,
+    "tritan": 13.2002,
+    "gris": 11.9563
+   }
+  },
+  {
+   "a": "kit:sides.navy.sky",
+   "b": "kit:sides.navy.white",
+   "d": {
+    "normal": 19.3187,
+    "protan": 16.4642,
+    "deutan": 19.8435,
+    "tritan": 20.098,
+    "gris": 11.4593
+   }
+  },
+  {
+   "a": "kit:band.brown.orange",
+   "b": "kit:band.red.orange",
+   "d": {
+    "normal": 17.3319,
+    "protan": 9.3722,
+    "deutan": 15.7373,
+    "tritan": 17.5186,
+    "gris": 13.0596
+   }
+  },
+  {
+   "a": "kit:halves.black.white",
+   "b": "kit:halves.navy.white",
+   "d": {
+    "normal": 7.9811,
+    "protan": 7.8123,
+    "deutan": 7.9391,
+    "tritan": 6.2801,
+    "gris": 2.2322
+   }
+  },
+  {
+   "a": "kit:yoke.purple.yellow",
+   "b": "kit:yoke.blue.yellow",
+   "d": {
+    "normal": 12.5496,
+    "protan": 9.7452,
+    "deutan": 7.3745,
+    "tritan": 13.1723,
+    "gris": 8.1873
+   }
+  },
+  {
+   "a": "kit:sash.green.white",
+   "b": "kit:sash.teal.white",
+   "d": {
+    "normal": 15.9005,
+    "protan": 16.151,
+    "deutan": 17.4158,
+    "tritan": 12.8265,
+    "gris": 10.5899
+   }
+  },
+  {
+   "a": "kit:plain.green",
+   "b": "kit:band.green.white",
+   "d": {
+    "normal": 14.5948,
+    "protan": 14.0086,
+    "deutan": 14.3814,
+    "tritan": 14.1578,
+    "gris": 13.2023
+   }
+  },
+  {
+   "a": "kit:hoops.black.red",
+   "b": "kit:sides.black.red",
+   "d": {
+    "normal": 18.6767,
+    "protan": 10.5069,
+    "deutan": 17.6392,
+    "tritan": 18.8464,
+    "gris": 11.5315
+   }
+  },
+  {
+   "a": "kit:halves.orange.navy",
+   "b": "kit:halves.navy.orange",
+   "d": {
+    "normal": 58.4895,
+    "protan": 56.7023,
+    "deutan": 65.7925,
+    "tritan": 57.7193,
+    "gris": 41.4992
+   }
+  },
+  {
+   "a": "kit:plain.brown",
+   "b": "kit:plain.black",
+   "d": {
+    "normal": 19.9694,
+    "protan": 13.8177,
+    "deutan": 17.3117,
+    "tritan": 20.5125,
+    "gris": 4.0624
+   }
+  },
+  {
+   "a": "kit:band.sky.navy",
+   "b": "kit:yoke.sky.navy",
+   "d": {
+    "normal": 35.5529,
+    "protan": 35.1451,
+    "deutan": 31.6527,
+    "tritan": 35.3115,
+    "gris": 33.081
+   }
+  },
+  {
+   "a": "kit:sash.red.yellow",
+   "b": "kit:sash.orange.yellow",
+   "d": {
+    "normal": 17.7197,
+    "protan": 16.3187,
+    "deutan": 11.3959,
+    "tritan": 10.9017,
+    "gris": 11.6709
+   }
+  },
+  {
+   "a": "kit:sides.teal.black",
+   "b": "kit:halves.teal.black",
+   "d": {
+    "normal": 21.0462,
+    "protan": 19.0742,
+    "deutan": 16.7138,
+    "tritan": 21.0426,
+    "gris": 17.5854
+   }
+  },
+  {
+   "a": "kit:hoops.plum.white",
+   "b": "kit:hoops.taupe.white",
+   "d": {
+    "normal": 7.2182,
+    "protan": 7.0437,
+    "deutan": 8.0475,
+    "tritan": 7.1575,
+    "gris": 5.8009
+   }
+  },
+  {
+   "a": "kit:yoke.red.white",
+   "b": "kit:plain.red",
+   "d": {
+    "normal": 19.2673,
+    "protan": 20.0,
+    "deutan": 16.1678,
+    "tritan": 19.1449,
+    "gris": 16.0198
+   }
+  },
+  {
+   "a": "kit:band.blue.white",
+   "b": "kit:band.blue.yellow",
+   "d": {
+    "normal": 8.9346,
+    "protan": 9.0126,
+    "deutan": 8.732,
+    "tritan": 5.9756,
+    "gris": 2.3181
+   }
+  },
+  {
+   "a": "kit:plain.orange",
+   "b": "leader:gc",
+   "d": {
+    "normal": 21.7017,
+    "protan": 12.8255,
+    "deutan": 8.9616,
+    "tritan": 13.7554,
+    "gris": 9.292
+   }
+  },
+  {
+   "a": "kit:plain.sky",
+   "b": "leader:gc",
+   "d": {
+    "normal": 53.2052,
+    "protan": 49.151,
+    "deutan": 53.1273,
+    "tritan": 43.2824,
+    "gris": 5.1661
+   }
+  },
+  {
+   "a": "kit:band.green.white",
+   "b": "leader:points",
+   "d": {
+    "normal": 14.7973,
+    "protan": 14.5267,
+    "deutan": 13.1112,
+    "tritan": 15.151,
+    "gris": 13.468
+   }
+  },
+  {
+   "a": "kit:band.teal.white",
+   "b": "leader:points",
+   "d": {
+    "normal": 12.6531,
+    "protan": 13.9046,
+    "deutan": 16.7982,
+    "tritan": 3.2626,
+    "gris": 1.369
+   }
+  },
+  {
+   "a": "kit:plain.blue",
+   "b": "leader:kom",
+   "d": {
+    "normal": 17.0393,
+    "protan": 15.0189,
+    "deutan": 16.3295,
+    "tritan": 13.9076,
+    "gris": 13.8696
+   }
+  },
+  {
+   "a": "kit:hoops.blue.white",
+   "b": "leader:kom",
+   "d": {
+    "normal": 17.5854,
+    "protan": 15.8122,
+    "deutan": 17.1891,
+    "tritan": 15.3071,
+    "gris": 13.9036
+   }
+  },
+  {
+   "a": "kit:plain.red",
+   "b": "world",
+   "d": {
+    "normal": 45.1552,
+    "protan": 40.5617,
+    "deutan": 33.9655,
+    "tritan": 44.3825,
+    "gris": 30.541
+   }
+  },
+  {
+   "a": "kit:halves.red.white",
+   "b": "world",
+   "d": {
+    "normal": 28.6954,
+    "protan": 26.2529,
+    "deutan": 22.9822,
+    "tritan": 27.8343,
+    "gris": 21.0713
+   }
+  },
+  {
+   "a": "kit:plain.navy",
+   "b": "continental",
+   "d": {
+    "normal": 56.8336,
+    "protan": 55.0542,
+    "deutan": 57.6116,
+    "tritan": 54.2783,
+    "gris": 54.4463
+   }
+  },
+  {
+   "a": "kit:yoke.navy.white",
+   "b": "continental",
+   "d": {
+    "normal": 30.3669,
+    "protan": 29.5077,
+    "deutan": 30.678,
+    "tritan": 28.9771,
+    "gris": 29.0024
+   }
+  },
+  {
+   "a": "kit:plain.red",
+   "b": "national:MA",
+   "d": {
+    "normal": 5.1316,
+    "protan": 3.7442,
+    "deutan": 3.6697,
+    "tritan": 3.5461,
+    "gris": 2.4773
+   }
+  },
+  {
+   "a": "kit:plain.green",
+   "b": "national:SA",
+   "d": {
+    "normal": 15.1288,
+    "protan": 14.716,
+    "deutan": 15.324,
+    "tritan": 9.7081,
+    "gris": 8.9354
+   }
+  },
+  {
+   "a": "kit:band.red.black",
+   "b": "national:DE",
+   "d": {
+    "normal": 39.9339,
+    "protan": 30.1113,
+    "deutan": 34.9822,
+    "tritan": 35.416,
+    "gris": 27.5867
+   }
+  },
+  {
+   "a": "kit:halves.red.white",
+   "b": "national:PL",
+   "d": {
+    "normal": 24.0944,
+    "protan": 24.6318,
+    "deutan": 20.096,
+    "tritan": 24.0676,
+    "gris": 19.695
+   }
+  },
+  {
+   "a": "kit:sides.orange.green",
+   "b": "national:IE",
+   "d": {
+    "normal": 39.5324,
+    "protan": 33.4076,
+    "deutan": 34.7099,
+    "tritan": 39.9232,
+    "gris": 29.5509
+   }
+  },
+  {
+   "a": "kit:halves.green.white",
+   "b": "national:IT",
+   "d": {
+    "normal": 28.1822,
+    "protan": 27.129,
+    "deutan": 26.0551,
+    "tritan": 27.6124,
+    "gris": 24.3035
+   }
+  },
+  {
+   "a": "kit:yoke.red.yellow",
+   "b": "national:ES",
+   "d": {
+    "normal": 34.7334,
+    "protan": 29.2911,
+    "deutan": 21.2595,
+    "tritan": 22.4812,
+    "gris": 21.7499
+   }
+  },
+  {
+   "a": "kit:plain.red",
+   "b": "legacy:solid:#dc2626:#2563eb",
+   "d": {
+    "normal": 7.6082,
+    "protan": 7.8255,
+    "deutan": 7.1281,
+    "tritan": 6.0826,
+    "gris": 4.1972
+   }
+  },
+  {
+   "a": "kit:hoops.navy.yellow",
+   "b": "legacy:stripes:#4f46e5:#f59e0b",
+   "d": {
+    "normal": 40.4992,
+    "protan": 37.9144,
+    "deutan": 38.0427,
+    "tritan": 29.3512,
+    "gris": 21.1848
+   }
+  },
+  {
+   "a": "kit:band.green.white",
+   "b": "legacy:band:#16a34a:#ffffff",
+   "d": {
+    "normal": 19.4268,
+    "protan": 18.5764,
+    "deutan": 16.8807,
+    "tritan": 19.6078,
+    "gris": 16.937
+   }
+  }
+ ]
+}

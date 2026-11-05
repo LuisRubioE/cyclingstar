@@ -1,3 +1,13 @@
+import {
+  type BibStyle,
+  type ChampionTitle,
+  KIT_COLORS,
+  KIT_PX,
+  type KitBlockedWhy,
+  type KitCode,
+  type KitVerdict,
+  parseKit,
+} from '@cyclingstar/shared'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { type ReactNode, useId, useState } from 'react'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
@@ -5,6 +15,7 @@ import { ActionRow } from '../../components/ui/ActionRow'
 import { AppHeader } from '../../components/ui/AppHeader'
 import { BottomNav, type BottomNavItem } from '../../components/ui/BottomNav'
 import { Button } from '../../components/ui/Button'
+import { ChampionJersey } from '../../components/ui/ChampionJersey'
 import { Chip } from '../../components/ui/Chip'
 import { Disclosure } from '../../components/ui/Disclosure'
 import { ErrorState } from '../../components/ui/ErrorState'
@@ -14,6 +25,11 @@ import { Flag } from '../../components/ui/Flag'
 import { Icon } from '../../components/ui/Icon'
 import { ICONS } from '../../components/ui/icons'
 import { InfoButton } from '../../components/ui/InfoButton'
+import { Kit } from '../../components/ui/Kit'
+import { KitPicker, KitVerdictLine } from '../../components/ui/KitPicker'
+import { KitShowcase } from '../../components/ui/KitShowcase'
+import type { KitSponsors } from '../../components/ui/kitText'
+import { LeaderJersey } from '../../components/ui/LeaderJersey'
 import { LegacyJersey } from '../../components/ui/LegacyJersey'
 import { Meter } from '../../components/ui/Meter'
 import { Notice } from '../../components/ui/Notice'
@@ -24,13 +40,15 @@ import { Panel } from '../../components/ui/Panel'
 import { QueryView } from '../../components/ui/QueryView'
 import { RankTable, type RankTableColumn } from '../../components/ui/RankTable'
 import { RiderHeader } from '../../components/ui/RiderHeader'
-import { type LegacyTeam, RiderLabel } from '../../components/ui/RiderLabel'
+import { RiderLabel } from '../../components/ui/RiderLabel'
 import { Scale5 } from '../../components/ui/Scale5'
 import { Segmented } from '../../components/ui/Segmented'
+import { Sheet } from '../../components/ui/Sheet'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { StarRating } from '../../components/ui/StarRating'
 import { Stat } from '../../components/ui/Stat'
 import { Tabs } from '../../components/ui/Tabs'
+import { TeamJersey, type WornTeam } from '../../components/ui/TeamJersey'
 import { TextLink, gluedLastWord } from '../../components/ui/TextLink'
 import { TripRow } from '../../components/ui/TripRow'
 import type { IconName, Tone } from '../../components/ui/types'
@@ -45,6 +63,17 @@ import {
   WORLD,
 } from '../../domain/nav'
 import { worldClock } from '../../domain/words'
+import {
+  type CheckState,
+  type KitDraft,
+  type PickerState,
+  bibFor,
+  draftCode,
+  draftKit,
+  draftOf,
+  lockedText,
+  scheduledText,
+} from '../../domain/kitPicker'
 import { NO_TEAM_LABEL } from '../../domain/labels'
 import {
   GC_ROWS,
@@ -492,7 +521,7 @@ const GANDIA = { from: 'Gandia', to: 'Alcoi' } as const
 const PROPIA = GC_ROWS.find((r) => r.id === OWN_RIDER_ID) as UiGcRow
 const LARGO = GC_ROWS[2] as UiGcRow
 const PRIMERO = GC_ROWS[0] as UiGcRow
-const MISTRAL = UI_TEAMS[1] as LegacyTeam
+const MISTRAL = UI_TEAMS[1] as WornTeam
 
 /** Una semilla de la génesis por patrón, para enseñar los cinco dibujos de hoy. */
 const POR_PATRON = (() => {
@@ -644,6 +673,9 @@ function Cabeceras() {
           role="Sprinter"
         />
       </Estado>
+      <Estado name="ready · racing today: its kit opens the front and the back with its number">
+        <RiderHeader rider={PROPIA.rider} team={NOORD} player role="Climber" bib={214} />
+      </Estado>
       <Estado name="ready · the longest name, a free agent">
         <RiderHeader rider={LARGO.rider} team={null} player={false} role="All-rounder" />
       </Estado>
@@ -677,6 +709,360 @@ function Maillots() {
   )
 }
 
+/* ── El 17a: los maillots ────────────────────────────────────────────────────────────────────────── */
+
+/** Una por figura, para enseñar las siete (§8.1). */
+const UNA_POR_FIGURA: readonly KitCode[] = [
+  'plain.navy',
+  'band.red.white',
+  'hoops.blue.yellow',
+  'halves.red.blue',
+  'yoke.black.orange',
+  'sides.green.white',
+  'sash.teal.white',
+]
+
+/** Los campeones del 17a: el mundial y el continental, con su estrella, y dos nacionales. */
+const CAMPEONES: readonly ChampionTitle[] = [
+  { ...ITALY_TITLE, scope: 'world', country: null },
+  { ...ITALY_TITLE, scope: 'continental', country: null },
+  { ...ITALY_TITLE, country: 'ES' },
+  { ...ITALY_TITLE, country: 'MA' },
+]
+
+/** Un equipo con su maillot, para las vistas grandes (§8.10). */
+const NOORD = { name: 'Noord Cycling', kit: 'hoops.navy.yellow' } as const satisfies WornTeam
+
+/** Un equipo aún sin traducir: la semilla de su dibujo de antes (§8.6). */
+const SIN_TRADUCIR = {
+  name: 'Mistral Racing',
+  legacySeed: 'cyclingstar-2:team:WT:1:jersey',
+} as const satisfies WornTeam
+
+/** Un patrocinador de prueba en cada zona: la interfaz para E8, que hoy nadie llena (§9.9). */
+const VOLTRA = { name: 'Voltra Energy', mark: 'VE', color: KIT_COLORS.blue }
+const PATROCINADO: KitSponsors = { chest: VOLTRA, back: VOLTRA, sleeves: VOLTRA, bibSides: VOLTRA }
+
+/** La hoja a pantalla completa, que se abre con su botón. */
+function HojaDeEjemplo() {
+  const [abierta, setAbierta] = useState(false)
+  return (
+    <>
+      <Button onClick={() => setAbierta(true)}>Open a sheet</Button>
+      <Sheet open={abierta} title="Noord Cycling kit" onClose={() => setAbierta(false)}>
+        <div className="flex justify-center">
+          <Kit code={NOORD.kit} teamName={NOORD.name} size={KIT_PX.poster} />
+        </div>
+      </Sheet>
+    </>
+  )
+}
+
+function Equipaciones() {
+  return (
+    <>
+      <Demo name="Kit">
+        <Estado name="the seven figures, at 28">
+          <div className="flex flex-wrap items-center gap-3">
+            {UNA_POR_FIGURA.map((code) => (
+              <Kit key={code} code={code} teamName={code} size={KIT_PX.row} />
+            ))}
+          </div>
+        </Estado>
+        <Estado name="one kit at each size, up to 96">
+          <div className="flex flex-wrap items-end gap-3">
+            {Object.values(KIT_PX)
+              .filter((size) => size <= KIT_PX.hero)
+              .map((size) => (
+                <Kit key={size} code="sash.teal.white" teamName="Mistral Racing" size={size} />
+              ))}
+          </div>
+        </Estado>
+        <Estado name="at 160: the front, the back with its number, and the shorts">
+          <div className="flex flex-wrap items-end gap-3">
+            <Kit code={NOORD.kit} teamName={NOORD.name} size={KIT_PX.showcase} />
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              view="back"
+              size={KIT_PX.showcase}
+              number={214}
+            />
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              view="bib"
+              size={KIT_PX.showcase}
+              bib="black.panel"
+            />
+          </div>
+        </Estado>
+        <Estado name="a sponsor in each zone, at 160">
+          <div className="flex flex-wrap items-end gap-3">
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              size={KIT_PX.showcase}
+              sponsors={PATROCINADO}
+            />
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              view="back"
+              size={KIT_PX.showcase}
+              sponsors={PATROCINADO}
+            />
+            <Kit
+              code={NOORD.kit}
+              teamName={NOORD.name}
+              view="bib"
+              size={KIT_PX.showcase}
+              bib="base.panel"
+              sponsors={PATROCINADO}
+            />
+          </div>
+        </Estado>
+        <Estado name="hidden · a code that doesn't match">
+          <Kit code={'zigzag.red.blue' as KitCode} teamName="Mistral Racing" size={KIT_PX.row} />
+        </Estado>
+      </Demo>
+      <DemoAncho
+        name="Kit at 320"
+        estados={[
+          [
+            'the poster, edge to edge below 640, with a sponsor in each zone',
+            <div key="poster" className="flex justify-center">
+              <Kit
+                code={NOORD.kit}
+                teamName={NOORD.name}
+                size={KIT_PX.poster}
+                sponsors={PATROCINADO}
+              />
+            </div>,
+          ],
+        ]}
+      />
+      <Demo name="KitShowcase">
+        <Estado name="ready · tap the kit for the full screen">
+          <Panel ariaLabel="Noord Cycling kit">
+            <KitShowcase team={NOORD} bib="black.panel">
+              <p>1,207 season points</p>
+              <p>Budget 6,236,433</p>
+              <p>Hoops · Navy · Yellow</p>
+              <p>Black shorts with yellow panels</p>
+            </KitShowcase>
+          </Panel>
+        </Estado>
+        <Estado name="compact · the team page: the front, and its tabs in the sheet (8-x)">
+          <Panel ariaLabel="Noord Cycling kit">
+            <KitShowcase team={NOORD} bib="black" variant="compact">
+              <p>1,207 season points</p>
+              <p>Budget 6,236,433</p>
+            </KitShowcase>
+          </Panel>
+        </Estado>
+        <Estado name="hidden · a team not yet translated, the drawing of before">
+          <KitShowcase team={SIN_TRADUCIR} bib="black" />
+        </Estado>
+      </Demo>
+      <Demo name="Sheet">
+        <Estado name="closed · it opens with its button">
+          <HojaDeEjemplo />
+        </Estado>
+      </Demo>
+      <Demo name="LeaderJersey">
+        <Estado name="the three, at 28 and 40">
+          <div className="flex flex-wrap items-center gap-3">
+            {(['gc', 'points', 'kom'] as const).map((kind) => (
+              <span key={kind} className="flex items-center gap-1">
+                <LeaderJersey kind={kind} size={KIT_PX.row} />
+                <LeaderJersey kind={kind} size={KIT_PX.card} />
+              </span>
+            ))}
+          </div>
+        </Estado>
+      </Demo>
+      <Demo name="ChampionJersey">
+        <Estado name="world, continental and two nationals, at 28">
+          <div className="flex flex-wrap items-center gap-3">
+            {CAMPEONES.map((t) => (
+              <ChampionJersey key={`${t.scope}-${t.country}`} title={t} size={KIT_PX.row} />
+            ))}
+          </div>
+        </Estado>
+        <Estado name="from 72, the flag's SVG and its two letters">
+          <div className="flex flex-wrap items-center gap-3">
+            {CAMPEONES.map((t) => (
+              <ChampionJersey key={`${t.scope}-${t.country}`} title={t} size={KIT_PX.page} />
+            ))}
+          </div>
+        </Estado>
+        <Estado name="the back, at 160: white, or the flag unmirrored and without letters">
+          <div className="flex flex-wrap items-center gap-3">
+            {CAMPEONES.map((t) => (
+              <ChampionJersey
+                key={`${t.scope}-${t.country}`}
+                title={t}
+                view="back"
+                size={KIT_PX.showcase}
+              />
+            ))}
+          </div>
+        </Estado>
+      </Demo>
+    </>
+  )
+}
+
+/** El borrador del editor de `/_ui`: el maillot de Noord. */
+const NOORD_DRAFT: KitDraft = draftOf(parseKit(NOORD.kit) ?? { figure: 'plain', base: 'navy' })
+
+/** Lo que no se puede elegir en el editor de `/_ui` (inventado): una de cada porqué. */
+const TACHADAS = new Map<KitCode, KitBlockedWhy>([
+  ['hoops.navy.black', 'contraste'],
+  ['hoops.navy.red', 'ocupado'],
+  ['hoops.blue.yellow', 'rival'],
+  ['hoops.green.yellow', 'reservado'],
+])
+
+/** Un veredicto de mentira para `/_ui`. */
+const veredicto = (over: Partial<KitVerdict>): CheckState => ({
+  status: 'done',
+  verdict: {
+    ok: false,
+    code: null,
+    conflict: null,
+    reserved: null,
+    takenBy: null,
+    nextChangeDay: null,
+    ...over,
+  },
+})
+
+/** Cada línea del veredicto de la tabla de §8.7, con su `data-state`. */
+const VEREDICTOS: readonly {
+  readonly name: string
+  readonly state: PickerState
+  readonly check: CheckState
+}[] = [
+  { name: 'busy · checking', state: 'busy', check: { status: 'busy' } },
+  { name: 'dirty · free', state: 'dirty', check: veredicto({ ok: true }) },
+  {
+    name: 'dirty · already worn',
+    state: 'dirty',
+    check: veredicto({
+      code: 'kit_ocupado',
+      takenBy: { teamId: 'mistral', teamName: 'Mistral Racing' },
+    }),
+  },
+  {
+    name: 'dirty · too close to a rival, for colour-blind viewers',
+    state: 'dirty',
+    check: veredicto({
+      code: 'kit_se_confunde',
+      conflict: { teamId: 'mistral', teamName: 'Mistral Racing', vision: 'deutan' },
+    }),
+  },
+  {
+    name: 'dirty · reserved',
+    state: 'dirty',
+    check: veredicto({ code: 'kit_reservado', reserved: 'leader:gc' }),
+  },
+  {
+    name: 'dirty · a national champion (D-00h)',
+    state: 'dirty',
+    check: veredicto({ code: 'kit_reservado', reserved: 'champion:MA' }),
+  },
+  {
+    name: 'disabled · no contrast',
+    state: 'disabled',
+    check: veredicto({ code: 'kit_contraste' }),
+  },
+  { name: 'error · the verdict failed', state: 'error', check: { status: 'error' } },
+]
+
+/** El editor que se toca en `/_ui`: el veredicto, inventado (libre si cambia algo). */
+function EditorDeEjemplo() {
+  const [draft, setDraft] = useState<KitDraft>(NOORD_DRAFT)
+  const [bib, setBib] = useState<BibStyle>('black')
+  const cambiado = draftCode(draft) !== draftCode(NOORD_DRAFT)
+  return (
+    <Panel title="Your kit">
+      <KitPicker
+        mode="edit"
+        teamName={NOORD.name}
+        draft={draft}
+        onDraft={setDraft}
+        bib={bibFor(draftKit(draft), bib)}
+        onBib={setBib}
+        blocked={TACHADAS}
+        scheduled={null}
+        state={cambiado ? 'dirty' : 'ready'}
+        check={cambiado ? veredicto({ ok: true }) : { status: 'idle' }}
+        onRetry={nada}
+        lockedReason={null}
+      />
+    </Panel>
+  )
+}
+
+function EditorDelMaillot() {
+  const comun = {
+    mode: 'edit',
+    teamName: NOORD.name,
+    draft: NOORD_DRAFT,
+    onDraft: nada,
+    bib: 'black',
+    onBib: nada,
+    blocked: TACHADAS,
+    onRetry: nada,
+  } as const
+  return (
+    <Demo name="KitPicker">
+      <Estado name="ready · try it: the struck swatches say why when tapped">
+        <EditorDeEjemplo />
+      </Estado>
+      <Estado name="the verdict line, in each state of the table">
+        <div className="flex flex-col gap-3">
+          {VEREDICTOS.map((v) => (
+            <div key={v.name} className="flex flex-col gap-1">
+              <p className="text-caption text-ink-3">{v.name}</p>
+              <KitVerdictLine state={v.state} check={v.check} lockedReason={null} onRetry={nada} />
+            </div>
+          ))}
+        </div>
+      </Estado>
+      <Estado name="ready · scheduled">
+        <Panel title="Your kit">
+          <KitPicker
+            {...comun}
+            scheduled={scheduledText(51, 50)}
+            state="ready"
+            check={{ status: 'idle' }}
+            lockedReason={null}
+          />
+        </Panel>
+      </Estado>
+      <Estado name="disabled · changed this season (D-00k)">
+        <Panel title="Your kit">
+          <KitPicker
+            {...comun}
+            scheduled={null}
+            state="disabled"
+            check={{ status: 'idle' }}
+            lockedReason={lockedText(364)}
+          />
+        </Panel>
+      </Estado>
+      <Estado name="readonly · a rider of the team">
+        <Panel title="Team kit">
+          <KitPicker mode="readonly" team={NOORD} bib="base.panel" />
+        </Panel>
+      </Estado>
+    </Demo>
+  )
+}
+
 function Clasificaciones() {
   return (
     <Demo name="RankTable">
@@ -702,7 +1088,7 @@ function Clasificaciones() {
               <span className="text-row whitespace-nowrap text-ink">
                 {gluedLastWord(r.team.name)}
                 <span className="ml-1 inline-flex align-middle">
-                  <LegacyJersey seed={r.team.legacySeed} size={28} team={r.team.name} />
+                  <TeamJersey team={r.team} size={28} />
                 </span>
               </span>
             )}
@@ -1088,6 +1474,8 @@ export function UiPage() {
       <Etiquetas />
       <Cabeceras />
       <Maillots />
+      <Equipaciones />
+      <EditorDelMaillot />
       <Clasificaciones />
       <Filas />
       <Escalas />

@@ -10,9 +10,11 @@ import {
   getStageNews,
   getStageNonFinishers,
   getStageResults,
+  kitsOn,
   readStageTemplateRev,
   readWatch,
   recordProgress,
+  stageGameDay,
   stageGateOf,
   teamsOfTheDay,
   veilCast,
@@ -296,12 +298,15 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       // La puerta de la cabecera es solo `previous_unseen` (D-37, 10-j): ver la N sin conocer la N − 1
       // destripa la N − 1. Se sirve igual, con el reparto degradado, y la pantalla pinta la puerta.
       const gate = stageGateOf(a.h, ctx.raceKey, ctx.day)
+      const teamIds = tl.cast.teams.map((t) => t.teamId)
       const identities = await getCastIdentities(
         db,
         tl.cast.riders.map((c) => c.riderId),
-        tl.cast.teams.map((t) => t.teamId),
+        teamIds,
       )
-      // El reparto, las cartas y la salida, degradados por el velo de quien mira (§10.10; B13).
+      // El reparto, las cartas y la salida, degradados por el velo de quien mira (§10.10; B13). El
+      // maillot de cada equipo es el del día de la etapa (E3, §8.5; 16b): `team_kits` no se reescribe,
+      // así que una etapa vieja enseña el de aquel día.
       const cast = serveCast(
         tl.cast,
         a.h,
@@ -309,7 +314,11 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           rider: (id) => identities.riders.get(id)?.name ?? id,
           team: (id) => identities.teams.get(id)?.name ?? id,
         },
-        { own: await ownOf(request, tl), dayCategory: ctx.race.championshipCategory ?? 'elite' },
+        {
+          own: await ownOf(request, tl),
+          dayCategory: ctx.race.championshipCategory ?? 'elite',
+          kits: await kitsOn(db, teamIds, stageGameDay(ctx.raceKey, ctx.day)),
+        },
       )
       const startState = startStateOf(veilCast(tl.cast, a.h), tl.riderIds.length)
       // El nombre, la etiqueta y el tipo, como la ruta de etapa para una etapa corrida (stageHead).
@@ -399,7 +408,8 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.post<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/broadcast/finish',
-    { config: { spoiler: 'watch', veil: { by: ['G'] } } },
+    // F desde el 17a de E3: los títulos de `champions` del acta, sin los velados (docs/visual.md §8.5)
+    { config: { spoiler: 'watch', veil: { by: ['G', 'F'] } } },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       const body = finishBodySchema.safeParse(request.body)
@@ -414,10 +424,11 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       const gate = stageGateOf(a.h, a.ctx.raceKey, a.ctx.day)
       if (gate?.k === 'previous_unseen') return sendGate(reply, gate)
       // el acta con las palabras de papel: esta ruta ya exige Watch encendido (§12.6); sin la radio,
-      // que el paquete de meta no lleva (14-b)
+      // que el paquete de meta no lleva (14-b), y con los títulos de campeón que ve quien mira (17a)
       const replay = await stageReplayOf(db, a.ctx, {
         annotate: (stored) => storedWithRoles(tl, stored),
         radio: false,
+        h: a.h,
       })
       if (!replay.run) return notFound(reply)
       await finishWatch(request, a, fromDs(visibilityOf(tl).finishDs), body.data.mode)
@@ -539,7 +550,8 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
 
   app.get<{ Params: StageParams }>(
     '/api/races/:raceId/stages/:day/report',
-    { config: { spoiler: 'watch', veil: { by: ['G'] } } },
+    // F desde el 17a de E3: los títulos de `champions`, sin los velados (docs/visual.md §8.5)
+    { config: { spoiler: 'watch', veil: { by: ['G', 'F'] } } },
     async (request, reply) => {
       const q = stageQuerySchema.safeParse(request.query)
       if (!q.success) return badRequest(reply)
@@ -563,12 +575,15 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       const tl = (await request.broadcastOn())
         ? await timelineForStage(db, a.h, a.ctx.raceKey, a.ctx.day)
         : null
-      // la radio desde la línea nombra a los corredores propios de quien pide (11a, R23.7)
+      // la radio desde la línea nombra a los corredores propios de quien pide (11a, R23.7), y los
+      // títulos de campeón de las tablas son los que ve (17a)
       const radio = { h: a.h, userId: (await request.viewer())?.userId ?? null }
       const replay = await stageReplayOf(
         db,
         a.ctx,
-        tl === null ? { radio } : { annotate: (stored) => storedWithRoles(tl, stored), radio },
+        tl === null
+          ? { radio, h: a.h }
+          : { annotate: (stored) => storedWithRoles(tl, stored), radio, h: a.h },
       )
       if (!replay.run) return notFound(reply)
       // tplRev: el de la fila de la línea grabada (6a), sin construir el adaptador; sin fila o con

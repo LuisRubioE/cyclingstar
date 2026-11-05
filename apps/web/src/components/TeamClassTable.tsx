@@ -2,7 +2,7 @@ import type { TeamClassEntry } from '../api/race'
 import { formatTime } from '../domain/format'
 import { NO_TABLE_IDENTITY, type TableIdentity } from '../domain/tableIdentity'
 import { plural } from '../domain/words'
-import { LegacyJersey } from './ui/LegacyJersey'
+import { TeamJersey, type WornTeam } from './ui/TeamJersey'
 import { RaceTableWaiting } from './RaceRankTables'
 import { RankTable, type RankTableColumn } from './ui/RankTable'
 import { gluedLastWord } from './ui/TextLink'
@@ -75,13 +75,20 @@ export function TeamClassTable({
       rank={({ puesto }) => puesto}
       identityHeader="Team"
       identity={({ r }) => {
-        const seed = identity.seedOf(r.teamId)
+        // el de la fila es el del día de la etapa que enseña (§8.5); nulo, el dibujo de hoy (17-q)
+        const drawing = identity.drawingOf(r.teamId)
+        const team: WornTeam | null =
+          r.kit !== null
+            ? { name: r.teamName, kit: r.kit }
+            : drawing === null
+              ? null
+              : { name: r.teamName, legacySeed: drawing.jerseySeed }
         return (
           <span className="text-row whitespace-nowrap text-ink">
             {gluedLastWord(r.teamName)}
-            {seed !== null && (
+            {team !== null && (
               <span className="ml-1 inline-flex align-middle">
-                <LegacyJersey seed={seed} size={28} team={r.teamName} />
+                <TeamJersey team={team} size={28} />
               </span>
             )}
           </span>

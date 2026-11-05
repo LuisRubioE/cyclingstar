@@ -12,10 +12,16 @@ import {
 } from '../src/components/ui/constants'
 import { type Umbrales, medirPagina } from './medidas'
 import { type Sesiones, abrePantalla, mundoDe, sesionesDe } from './navega'
-import { type MundoDePrueba, TELEFONO_PANTALLAS } from './pantallas'
-import { COMPROBACIONES, type Cifras, faltasDelTrinquete } from './trinquete'
+import { type MundoDePrueba, TELEFONO_PANTALLAS, type TelefonoPantalla } from './pantallas'
+import {
+  COMPROBACIONES,
+  COMPROBACION_DE_LA_BARRA,
+  type Cifras,
+  faltasDelTrinquete,
+} from './trinquete'
 import {
   ANSWER_MAX_TOP_PX,
+  GROUP_BAR_MAX_BOTTOM_PX,
   PHONE_FONT,
   PHONE_MIN,
   PHONE_REF,
@@ -27,7 +33,9 @@ import {
  * «SE JUEGA BIEN EN UN TELÉFONO», COMO PRUEBA (E3, docs/visual.md §7; PR 2b, D-18). Las diez
  * comprobaciones de §7.1 en `/_ui` y en las 46 pantallas de `pantallas.ts`, a 360 × 800 y a 320 × 640.
  * Cada cifra es un número de faltas; `telefono-baseline.json` guarda las de cada pantalla y ancho, y E3
- * está terminado cuando está a cero (o a `null` donde una comprobación no corre).
+ * está terminado cuando está a cero (o a `null` donde una comprobación no corre). La 09 tiene además la
+ * suya propia a 360, la barra de grupos (§7.3; desde el PR 17a), que el fichero guarda aparte, en su
+ * clave `"360-barra"`, y que el trinquete mira con las mismas reglas.
  *
  * Antes de medir, el instrumento se prueba a sí mismo (17-b): la letra con que Chromium pinta el `h1`
  * de `control.html` tiene que ser `PHONE_FONT`, leída por CDP (Ruso-021; 7-k), y `control.html`, que
@@ -73,8 +81,12 @@ if (MODO === 'trinquete' && REFERENCIA === null)
 const ANCHOS = { '360': PHONE_REF, '320': PHONE_MIN } as const
 type Ancho = keyof typeof ANCHOS
 
+/** La clave de la comprobación propia de la 09 en el fichero, junto a las de sus dos anchos (§7.3). */
+const BARRA = '360-barra' as const
+type Clave = Ancho | typeof BARRA
+
 interface LineaBase {
-  readonly pantallas: Readonly<Record<string, Partial<Record<Ancho, Cifras>>>>
+  readonly pantallas: Readonly<Record<string, Partial<Record<Clave, Cifras>>>>
 }
 
 /** Las reglas de axe-core de la comprobación 6. */
@@ -157,6 +169,19 @@ async function mideAccion(page: Page, edit: (page: Page) => Promise<void>): Prom
   return arriba && abajo ? 0 : 1
 }
 
+/**
+ * La comprobación propia de la 09 (§7.3; Rcobertura-040, 14-g): el borde de abajo de
+ * `[data-ui="GroupBar"]`, en el documento como el de la 7, a `GROUP_BAR_MAX_BOTTOM_PX` o menos. 0 o 1
+ * como la 7, y 1 si no hay barra.
+ */
+async function mideBarra(page: Page): Promise<{ cifras: Cifras; bordePx: number | null }> {
+  const bordePx = await page.evaluate(() => {
+    const el = document.querySelector('[data-ui="GroupBar"]')
+    return el === null ? null : el.getBoundingClientRect().bottom + window.scrollY
+  })
+  return { cifras: [bordePx !== null && bordePx <= GROUP_BAR_MAX_BOTTOM_PX ? 0 : 1], bordePx }
+}
+
 /** Las diez de la página abierta, en el orden de §7.1. */
 async function diez(
   page: Page,
@@ -192,9 +217,13 @@ const referencia = leeLineaBase(REFERENCIA)
 const libroBase = leeLineaBase(LIBRO_BASE)
 
 /** `compara`: lo medido, igual al fichero. */
-function diferencias(medidas: Cifras, esperadas: Cifras | undefined): string[] {
+function diferencias(
+  medidas: Cifras,
+  esperadas: Cifras | undefined,
+  nombres: readonly string[],
+): string[] {
   if (esperadas === undefined) return ['no está en telefono-baseline.json']
-  return COMPROBACIONES.flatMap((nombre, i) => {
+  return nombres.flatMap((nombre, i) => {
     const m = medidas[i] ?? null
     const e = esperadas[i] ?? null
     if (m === e) return []
@@ -208,14 +237,15 @@ function diferencias(medidas: Cifras, esperadas: Cifras | undefined): string[] {
  * empezar, y vuelve a montar el fichero entero con todos los trozos que hay: un trabajador que Playwright
  * cambia tras un fallo no pierde lo que midió el anterior.
  */
-function apunta(outputDir: string, id: string, ancho: Ancho, cifras: Cifras): void {
+function apunta(outputDir: string, id: string, clave: Clave, cifras: Cifras): void {
   const trozos = resolve(outputDir, 'linea-base')
   mkdirSync(trozos, { recursive: true })
-  writeFileSync(resolve(trozos, `${id}@${ancho}.json`), JSON.stringify(cifras))
-  const pantallas: Record<string, Partial<Record<Ancho, Cifras>>> = {}
+  writeFileSync(resolve(trozos, `${id}@${clave}.json`), JSON.stringify(cifras))
+  // `"320"` y `"360"` son claves de índice, que un objeto pone delante y en orden: `"360-barra"` sale detrás
+  const pantallas: Record<string, Partial<Record<Clave, Cifras>>> = {}
   for (const f of readdirSync(trozos).sort()) {
-    const [pid, a] = f.replace(/\.json$/, '').split('@') as [string, Ancho]
-    ;(pantallas[pid] ??= {})[a] = JSON.parse(readFileSync(resolve(trozos, f), 'utf8')) as Cifras
+    const [pid, c] = f.replace(/\.json$/, '').split('@') as [string, Clave]
+    ;(pantallas[pid] ??= {})[c] = JSON.parse(readFileSync(resolve(trozos, f), 'utf8')) as Cifras
   }
   const orden = TELEFONO_PANTALLAS.map((x) => x.id).filter((x) => pantallas[x] !== undefined)
   const json = JSON.stringify(
@@ -293,6 +323,15 @@ test('el trinquete: sus reglas, con cifras de mentira', () => {
   expect(faltasDelTrinquete(con(1, 6), diez(5), diez(2), undefined, sin)).toEqual([
     '2 · los recortes: sube de 5 a 6 sobre la base',
   ])
+  // La barra de la 09, con su nombre y las mismas reglas (§7.3).
+  const barra = { ...sin, nombres: COMPROBACION_DE_LA_BARRA }
+  expect(faltasDelTrinquete([1], [0], [0], [0], barra)).toEqual([
+    'la barra de grupos: sube de 0 a 1 sobre la base',
+  ])
+  expect(faltasDelTrinquete([0], [1], [1], [1], barra)).toEqual([
+    'la barra de grupos: baja de 1 a 0 y el fichero no lo apunta (1 en la base, 1 en el PR)',
+  ])
+  expect(faltasDelTrinquete([0], [1], [0], undefined, barra)).toEqual([])
 })
 
 test('el instrumento: control.html da exactas sus faltas', async ({ browser }) => {
@@ -304,6 +343,13 @@ test('el instrumento: control.html da exactas sus faltas', async ({ browser }) =
   await context.close()
   expect(cifras, JSON.stringify(muestras, null, 2)).toEqual(FALTAS_DE_CONTROL)
 })
+
+/** Lo que se mide de una pantalla abierta: las diez y, en la 09 a 360, su barra (§7.3). */
+async function mide(page: Page, p: TelefonoPantalla, ancho: Ancho) {
+  const { cifras, muestras } = await diez(page, ancho === '360' ? p.answer : null, p.tool, p.edit)
+  const barra = p.barra === true && ancho === '360' ? await mideBarra(page) : null
+  return { cifras, muestras, barra }
+}
 
 for (const p of TELEFONO_PANTALLAS) {
   for (const ancho of Object.keys(ANCHOS) as Ancho[]) {
@@ -317,31 +363,36 @@ for (const p of TELEFONO_PANTALLAS) {
         world,
         sesiones,
       )
-      const { cifras, muestras } = await diez(
-        page,
-        ancho === '360' ? p.answer : null,
-        p.tool,
-        p.edit,
-      ).finally(() => context.close())
+      const { cifras, muestras, barra } = await mide(page, p, ancho).finally(() => context.close())
       await info.attach('medida.json', {
-        body: JSON.stringify({ cifras, muestras }, null, 2),
+        body: JSON.stringify({ cifras, muestras, barra }, null, 2),
         contentType: 'application/json',
       })
-      if (MODO !== 'compara') apunta(info.project.outputDir, p.id, ancho, cifras)
-      const fichero = lineaBase.pantallas[p.id]?.[ancho]
-      if (MODO === 'compara')
-        expect(diferencias(cifras, fichero), `${p.id} a ${ancho}, contra el fichero`).toEqual([])
-      if (MODO === 'trinquete')
-        expect(
-          faltasDelTrinquete(
-            cifras,
-            referencia?.pantallas[p.id]?.[ancho],
-            fichero,
-            libroBase?.pantallas[p.id]?.[ancho],
-            { instrumentoCambia: INSTRUMENTO_CAMBIA },
-          ),
-          `${p.id} a ${ancho}, contra la base (las faltas de muestra, en el adjunto)`,
-        ).toEqual([])
+      const medidas: readonly { clave: Clave; cifras: Cifras; nombres: readonly string[] }[] = [
+        { clave: ancho, cifras, nombres: COMPROBACIONES },
+        ...(barra === null
+          ? []
+          : [{ clave: BARRA, cifras: barra.cifras, nombres: COMPROBACION_DE_LA_BARRA }]),
+      ]
+      for (const { clave, cifras: c, nombres } of medidas) {
+        if (MODO !== 'compara') apunta(info.project.outputDir, p.id, clave, c)
+        const fichero = lineaBase.pantallas[p.id]?.[clave]
+        if (MODO === 'compara')
+          expect(diferencias(c, fichero, nombres), `${p.id} a ${clave}, contra el fichero`).toEqual(
+            [],
+          )
+        if (MODO === 'trinquete')
+          expect(
+            faltasDelTrinquete(
+              c,
+              referencia?.pantallas[p.id]?.[clave],
+              fichero,
+              libroBase?.pantallas[p.id]?.[clave],
+              { instrumentoCambia: INSTRUMENTO_CAMBIA, nombres },
+            ),
+            `${p.id} a ${clave}, contra la base (las faltas de muestra, en el adjunto)`,
+          ).toEqual([])
+      }
     })
   }
 }

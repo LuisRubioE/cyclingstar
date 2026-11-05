@@ -15,14 +15,25 @@
 
 import { z } from 'zod'
 // Solo tipos (14-a): `import type` se borra al compilar y este fichero no carga nada de broadcast/.
+import type { StageRef } from './broadcast/timeline.js'
 import type { PreStageInfo, StageGate, SwitchMode, WatchState } from './broadcast/wire.js'
-import type { RaceLeaders } from './jerseys.js'
+import type { ChampionTitle, RaceLeaders } from './jerseys.js'
+import { BIB_STYLES, kitCodeSchema } from './kit.js'
 import { newsPayloadSchema } from './news.js'
 import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
 import { INTENSITIES, SESSIONS } from './training.js'
 import { TRAINING_DAY_SOURCES } from './trainingDay.js'
 
 // --- Piezas comunes ------------------------------------------------------------------------
+
+/**
+ * EL MAILLOT DE UN EQUIPO UN DÍA (E3, docs/visual.md §8.5; PR 16b): su código, o `null` mientras la
+ * traducción no le ha dado uno (hasta el 17b), y entonces se dibuja con su `jerseySeed`. Cada contrato
+ * dice de qué día: el de la salida en la lista de salida, el de mañana en la lista y la ficha de los
+ * equipos, y el de la etapa en las tablas por equipos y en la retransmisión. Con defecto, para una web
+ * que vaya por delante de la API.
+ */
+export const teamKitSchema = kitCodeSchema.nullable().default(null)
 
 /** Respuesta de una mutación sin cuerpo relevante. */
 export const okResponseSchema = z.object({ ok: z.boolean() })
@@ -554,6 +565,36 @@ export const raceLeadersSchema: z.ZodType<RaceLeaders> = z.object({
   team: z.string().nullable(),
 })
 
+/** Una etapa de una carrera (E2): la pieza que el formato guardado comparte con la red (4-x). */
+export const stageRefSchema = z.object({
+  raceKey: z.string(),
+  stageDay: z.number().int().min(1),
+}) satisfies z.ZodType<StageRef>
+
+/**
+ * EL TÍTULO DE CAMPEÓN (E3, docs/visual.md §8.5; 4-l, 17-w), el Zod de `ChampionTitle`. Nació en
+ * `broadcast/codec.ts` para el reparto grabado y pasa aquí en el 17a, para que lo lleven también las
+ * tablas y la ficha del corredor; el códec lo importa de aquí, así que su formato no cambia.
+ */
+export const championTitleSchema = z.object({
+  scope: z.enum(['world', 'continental', 'national']),
+  country: z.string().length(2).nullable(),
+  discipline: z.enum(['road', 'itt']),
+  category: z.enum(['elite', 'u23']),
+  season: z.number().int(),
+  validFromDay: z.number().int(),
+  validToDay: z.number().int(),
+  source: stageRefSchema,
+  provisional: z.boolean(),
+}) satisfies z.ZodType<ChampionTitle>
+
+/**
+ * LOS CAMPEONES DE UNA TABLA (E3, §8.5; 4-l): el título que lleva cada corredor el día de la tabla, por
+ * `riderId`, el de la disciplina y la categoría del día y de mayor alcance (`wearableTitles`), sin los
+ * que vienen de una etapa velada para quien mira. Una vez por respuesta, junto a sus `leaders`.
+ */
+export const championsSchema = z.record(z.string(), championTitleSchema).default({})
+
 // --- /api/calendar/:raceId (ficha de carrera) ----------------------------------------------
 
 export const gcRowSchema = z.object({
@@ -623,6 +664,8 @@ export const teamClassEntrySchema = z.object({
   teamName: z.string(),
   /** País del equipo (ISO alpha-2); null si no lo tiene asignado. */
   country: z.string().nullable(),
+  /** su maillot del día de la etapa que se enseña (la última que entra en la tabla) */
+  kit: teamKitSchema,
   /** Suma de tiempos: la de la etapa, o la acumulada de la carrera. */
   tiempoS: z.number(),
   /** Suma de los puestos de los corredores que puntúan (primer desempate). */
@@ -721,6 +764,8 @@ export const raceViewSchema = z.object({
    * día y mientras no se haya corrido nada.
    */
   leaders: raceLeadersSchema,
+  /** los títulos que se llevan el día de esas tablas, el de tras la última etapa que quien mira conoce */
+  champions: championsSchema,
   stageWinners: z.array(stageWinnerSchema),
   history: z.array(raceHonourSchema),
 })
@@ -743,6 +788,8 @@ export const startlistTeamSchema = z.object({
   division: z.string(),
   /** Semilla del maillot del equipo (para pintar su kit). */
   jerseySeed: z.string(),
+  /** su maillot del día de la salida */
+  kit: teamKitSchema,
   /** Corredores de la escuadra; lleno solo cuando ya está congelada (`frozen`). */
   riders: z.array(startlistRiderSchema),
 })
@@ -776,6 +823,8 @@ export const teamListItemSchema = z.object({
   budget: z.number(),
   pointsSeason: z.number(),
   jerseySeed: z.string(),
+  /** su maillot de mañana, el de su próxima carrera */
+  kit: teamKitSchema,
   riderCount: z.number().int(),
 })
 export type TeamListItem = z.infer<typeof teamListItemSchema>
@@ -802,6 +851,10 @@ export const teamDetailSchema = z.object({
   budget: z.number(),
   pointsSeason: z.number(),
   jerseySeed: z.string(),
+  /** su maillot de mañana, el de su próxima carrera */
+  kit: teamKitSchema,
+  /** su culote (§8.10), que no se ve en carrera */
+  bib: z.enum(BIB_STYLES).default('black'),
   human: z.boolean(),
   roster: z.array(teamRiderSchema),
 })
@@ -880,6 +933,11 @@ export const publicRiderDetailSchema = z.object({
    * solo sale en modo propietario.
    */
   health: riderHealthSchema,
+  /**
+   * Su título vigente de mayor alcance, el de ruta antes que el de crono, para `RiderHeader` (E3, §8.5;
+   * 4-l); null sin título o si viene de una etapa velada para quien mira.
+   */
+  champion: championTitleSchema.nullable().default(null),
 })
 export type PublicRiderDetail = z.infer<typeof publicRiderDetailSchema>
 export const publicRiderDetailResponseSchema = z.object({ rider: publicRiderDetailSchema })
@@ -929,6 +987,97 @@ export const freeAgentSchema = z.object({
 })
 export type FreeAgent = z.infer<typeof freeAgentSchema>
 export const freeAgentsResponseSchema = z.object({ riders: z.array(freeAgentSchema) })
+
+// --- El veredicto de un maillot (E3, docs/visual.md §8.1 y §8.7; PR 16a) ------------------------
+// Lo da `checkKit` (`packages/db/src/kits.ts`); las rutas del editor lo sirven desde el 18a.
+
+/** Los porqués de un maillot que no vale, en el orden en que se comprueban. */
+export const kitCheckCodeSchema = z.enum([
+  'kit_reciente',
+  'kit_igual',
+  'kit_contraste',
+  'kit_reservado',
+  'kit_ocupado',
+  'kit_se_confunde',
+])
+export type KitCheckCode = z.infer<typeof kitCheckCodeSchema>
+// Respuestas: z.object, nunca strict (una clave de más daría un 500 en el serializador, §13.3)
+const kitTeamRefSchema = z.object({ teamId: z.string(), teamName: z.string() })
+const kitConflictSchema = kitTeamRefSchema.extend({
+  vision: z.enum(['normal', 'protan', 'deutan', 'tritan']),
+})
+export const kitVerdictSchema = z.object({
+  ok: z.boolean(),
+  code: kitCheckCodeSchema.nullable(),
+  /** el rival que más carreras comparte de los que chocan: el que nombra la pantalla (§8.7) */
+  conflict: kitConflictSchema.nullable(),
+  /** la señal que estorba: 'leader:gc' | 'leader:points' | 'leader:kom' | 'champion:world' | 'champion:continental' | 'champion:<ISO-2>' */
+  reserved: z.string().nullable(),
+  /** el equipo que ya lo lleva, con kit_ocupado */
+  takenBy: kitTeamRefSchema.nullable(),
+  /** con kit_reciente: el primer día en que vale otro cambio, el primero de la temporada siguiente */
+  nextChangeDay: z.number().int().nullable(),
+})
+export type KitVerdict = z.infer<typeof kitVerdictSchema>
+
+// --- Las rutas del editor del maillot (E3, docs/visual.md §8.7 y §8.8; PR 18a) -------------------
+
+/** Por qué no se puede elegir un maillot, con lo que el editor tacha su muestra. */
+export const kitBlockedWhySchema = z.enum(['contraste', 'reservado', 'ocupado', 'rival'])
+export type KitBlockedWhy = z.infer<typeof kitBlockedWhySchema>
+
+/** `GET /api/teams/me/kit`: lo que el editor necesita para pintar sin la tabla de choques (8-e). */
+export const teamKitResponseSchema = z.object({
+  /** el que lleva hoy */
+  current: kitCodeSchema.nullable(),
+  bib: z.enum(BIB_STYLES),
+  /** el programado, que vale desde mañana o después */
+  pending: z.object({ kit: kitCodeSchema, validFromDay: z.number().int() }).nullable(),
+  /** los cambios que le quedan esta temporada (D-00k) */
+  changesLeft: z.number().int().nonnegative(),
+  /** sin ninguno: el primer día en que vale otro, el primero de la temporada siguiente */
+  nextChangeDay: z.number().int().nullable(),
+  /** los que no puede elegir, cada uno con su porqué */
+  options: z.array(z.object({ kit: kitCodeSchema, why: kitBlockedWhySchema })),
+  /** los ocho rivales que más carreras comparten, con el maillot que llevan mañana */
+  rivals: z.array(
+    z.object({
+      teamId: z.string(),
+      name: z.string(),
+      kit: kitCodeSchema.nullable(),
+      races: z.number().int(),
+    }),
+  ),
+})
+export type TeamKitResponse = z.infer<typeof teamKitResponseSchema>
+
+/** `POST /api/teams/me/kit/check`: el maillot que se mira, nada más. */
+export const kitCheckBodySchema = z.strictObject({ kit: kitCodeSchema })
+
+/** `PUT /api/teams/me/kit`: el maillot (desde mañana), el culote (en el acto) o los dos. */
+export const kitSaveBodySchema = z
+  .strictObject({ kit: kitCodeSchema.optional(), bib: z.enum(BIB_STYLES).optional() })
+  .refine((b) => b.kit !== undefined || b.bib !== undefined, { message: 'nada_que_cambiar' })
+export type KitSaveBody = z.infer<typeof kitSaveBodySchema>
+/** El día desde el que vale el maillot guardado; null si solo cambió el culote. */
+export const kitSaveResponseSchema = z.object({
+  ok: z.literal(true),
+  validFromDay: z.number().int().nullable(),
+})
+/** El 429 del cambio por temporada: sin `retry-after`, que no es el límite de peticiones (8-v). */
+export const kitRecentErrorSchema = z.object({
+  ok: z.literal(false),
+  error: z.literal('kit_reciente'),
+  nextChangeDay: z.number().int(),
+})
+
+/** `POST /api/admin/teams/:id/kit/revert` (§8.8): el motivo, que va al registro de la API. */
+export const kitRevertBodySchema = z.strictObject({ reason: z.string().trim().min(3).max(200) })
+export const kitRevertResponseSchema = z.object({
+  ok: z.literal(true),
+  kit: kitCodeSchema,
+  validFromDay: z.number().int(),
+})
 
 // --- /api/news -----------------------------------------------------------------------------
 
@@ -1702,6 +1851,8 @@ export const stageReplaySchema = z.object({
    * crónica no lleva ids; se calcula una sola vez y se proyecta, así que no pueden discrepar.
    */
   leaders: z.object({ onRoad: raceLeadersSchema, afterStage: raceLeadersSchema }).optional(),
+  /** los títulos que se llevan el día de esta etapa, el de las tablas de esta ficha (E3, §8.5; 4-l) */
+  champions: championsSchema,
   /**
    * LA RADIO DE CARRERA, km a km. Ausente en las etapas corridas antes de guardarla: no se inventa
    * re-simulando, que contaría una carrera distinta de la que quedó en el marcador.

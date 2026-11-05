@@ -79,6 +79,10 @@ const POSTERIORES: readonly string[] = [
   // `users`) con borrado en cascada, así que el TRUNCATE … CASCADE de la 0044 ya la vaciaría; la
   // restauración y todo reinicio la borran además a la vista (docs/ops.md, §13.9, 17-y).
   'race_watch',
+  // 0052_equipaciones (E3, paso 16a): el maillot de cada equipo con su historia. Cuelga de `teams` con
+  // borrado en cascada, así que el TRUNCATE … CASCADE de la 0044 y de la restauración la vacía con ellos;
+  // el mundo 1 no tenía maillots, y nadie la escribe hasta el 17b.
+  'team_kits',
 ]
 
 /**

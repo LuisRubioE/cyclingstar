@@ -1,4 +1,5 @@
 import {
+  type ChampionTitle,
   type RaceLeaders,
   type StageGate,
   type StageReplay as StageReplayData,
@@ -95,6 +96,7 @@ function StageClassifications({
   teamStage,
   teamGc,
   leaders,
+  champions,
   identity,
   own,
 }: {
@@ -104,6 +106,8 @@ function StageClassifications({
   teamStage: TeamClassEntry[]
   teamGc: TeamClassEntry[]
   leaders: RaceLeaders | undefined
+  /** el título que lleva cada corredor el día de la etapa (E3, §6.1; 4-l) */
+  champions: Readonly<Record<string, ChampionTitle>>
   /** lo que las filas no traen: el dorsal y el dibujo del equipo (PR 12b) */
   identity: TableIdentity
   /** el corredor y el equipo del jugador: sus filas (§6.2) */
@@ -111,7 +115,7 @@ function StageClassifications({
 }) {
   const [active, setActive] = useTabParam(STAGE_CLASS_TAB_IDS, 'gc', 'cls')
   // la tabla a la vista contesta a la pantalla (§7.3; la 36)
-  const ctx = { leaders, identity, ownRiderId: own.riderId, answer: true } as const
+  const ctx = { leaders, champions, identity, ownRiderId: own.riderId, answer: true } as const
   return (
     <div className={card}>
       <p className="mb-3 text-xs text-slate-400">Standings after this stage.</p>
@@ -538,6 +542,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                     <ResultTable
                       rows={d.results}
                       leaders={d.leaders?.onRoad}
+                      champions={d.champions}
                       identity={identidad}
                       ownRiderId={propio.riderId}
                       layout="-mx-4"
@@ -581,6 +586,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   teamStage={d.teamStage ?? []}
                   teamGc={d.teamGc ?? []}
                   leaders={d.leaders?.afterStage}
+                  champions={d.champions}
                   identity={identidad}
                   own={propio}
                 />

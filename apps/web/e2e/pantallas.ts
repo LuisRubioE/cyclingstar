@@ -5,7 +5,8 @@ import type { Page } from '@playwright/test'
  * medidas del mapa 05 (`docs/diseno/e3-visual/capturas/README.md`, de la 01 a la 37 y de la 40 a la 47) y
  * la 38, la contrarreloj, que no tiene captura (Ruso-018; 7-i). Cada una dice su ruta, la cuenta que la
  * abre, el `data-ui` del elemento que contesta la pantalla (`data-answer`, la comprobación 7), si es una
- * herramienta (la 9) y, si la tiene, su edición (la 8).
+ * herramienta (la 9), si la tiene, su edición (la 8) y, en la 09, la comprobación propia de la barra de
+ * grupos (§7.3; desde el PR 17a).
  *
  * El `data-answer` es de §7.3: dice qué contesta cada pantalla, y lo pone la sección que la rediseña. Hoy
  * no lo lleva ninguna, así que la 7 falla en todas, y la línea base lo apunta.
@@ -38,6 +39,8 @@ export interface TelefonoPantalla {
   readonly answer: string | null
   /** corre la comprobación 9 */
   readonly tool: boolean
+  /** corre, a 360, la comprobación propia de la 09: el borde de abajo de la barra de grupos (§7.3; 14-g) */
+  readonly barra?: boolean
   /** deja cambios sin guardar; sin ella, la 8 no corre */
   readonly edit?: (page: Page) => Promise<void>
   /** los estados 40 a 42: una ruta de la API que no contesta o que contesta 500 */
@@ -100,6 +103,23 @@ async function cambiaElBloque(page: Page): Promise<void> {
   await bloque.selectOption(otro)
 }
 
+/**
+ * La 16 (PR 18b): otro color de base que se pueda elegir, sin guardar (§8.7). La web de antes del 18b no
+ * tiene el editor; en ella se cambia el nombre del equipo, el primer campo de la página, para que el CI
+ * también pueda medir con esta edición la web de la base.
+ */
+async function cambiaLaBase(page: Page): Promise<void> {
+  const libres = page.locator(
+    '[data-ui="KitPicker"] button[data-pick="base"][data-state="inactive"]:not([aria-disabled="true"])',
+  )
+  if ((await libres.count()) > 0) {
+    await libres.first().click()
+    return
+  }
+  const nombre = page.locator('input').first()
+  await nombre.fill(`${await nombre.inputValue()} X`)
+}
+
 export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
   { id: '_ui', path: '/_ui', account: 'visitante', answer: null, tool: false },
   {
@@ -147,6 +167,7 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
     account: 'visitante',
     answer: 'FixedOverlay',
     tool: false,
+    barra: true,
     prepare: saltaYPara('+5 km'),
   },
   {
@@ -191,13 +212,14 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
     answer: 'Panel',
     tool: true,
   },
-  // La 16 gana su edición (cambiar el color de base) con el editor, en el 18b.
+  // La 16, con su edición desde el 18b: otro color de base (§8.7).
   {
     id: '16-team-identity',
     path: '/team/identity',
     account: 'manager',
     answer: 'KitPicker',
     tool: true,
+    edit: cambiaLaBase,
   },
   { id: '17-home-jugador', path: '/', account: 'jugador', answer: 'Panel', tool: false },
   { id: '18-home-visitante', path: '/', account: 'visitante', answer: 'Panel', tool: false },

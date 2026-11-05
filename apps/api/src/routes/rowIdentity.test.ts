@@ -8,6 +8,7 @@ import {
   riderHidden,
   riders,
   runOneStage,
+  teamKits,
   teams,
   users,
   worldHorizon,
@@ -17,10 +18,13 @@ import { type TestDb, startTestDb } from '@cyclingstar/db/test'
 import { type CalendarRace, SEASON_CALENDAR } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
+  type KitCode,
   hallOfFameResponseSchema,
   raceStartlistSchema,
   raceViewSchema,
   stageReplaySchema,
+  teamResponseSchema,
+  teamsResponseSchema,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { AppDeps } from '../app.js'
@@ -256,11 +260,12 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
           country: 'ES',
           division: 'WT',
           jerseySeed: `j${k}`,
+          kit: null,
           riders: indices.filter((i) => teamIndexOf(i) === k).map(riderOf),
         })),
         freeAgents: [riderOf(FREE)],
       })
-      // La web la valida con el contrato de siempre: no gana ningún campo.
+      // La web la valida con el contrato de siempre: solo gana el maillot (16b), aún nulo.
       const startlist = raceStartlistSchema.parse(json)
       const listed = startlist.teams.flatMap((team) => team.riders)
       expect(listed.find((r) => r.id === idDe(ABANDONS))).toEqual(riderOf(ABANDONS))
@@ -310,6 +315,7 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
           country: 'ES',
           division: 'WT',
           jerseySeed: `j${k}`,
+          kit: null,
           riders: [],
         })),
         freeAgents: [],
@@ -386,6 +392,120 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
         expect(await teamOfStar()).toEqual({ teamId: null, teamName: null })
       } finally {
         await t.client`update riders set team_id = ${was.teamId} where id = ${star.riderId}`
+      }
+    })
+  })
+
+  /**
+   * EL MAILLOT DE CADA CONTRATO (E3, docs/visual.md §8.5; 16b): nulo mientras el equipo no tiene fila en
+   * `team_kits` (hasta el 17b, todos), y con una, el de su día: la salida en la lista de salida, la
+   * etapa que se enseña en las tablas por equipos y mañana en la lista y la ficha de los equipos. Las
+   * demás pruebas de aquí lo ven nulo; cada caso escribe sus filas y las borra al acabar.
+   */
+  describe('el maillot de cada contrato (§8.5; 16b)', () => {
+    const [kit0, kit1]: [KitCode, KitCode] = ['plain.navy', 'band.black.sky']
+    const withKits = async (
+      rows: readonly { team: 0 | 1; from: number; kit: KitCode }[],
+      check: () => Promise<void>,
+    ): Promise<void> => {
+      await t.db.insert(teamKits).values(
+        rows.map((r) => ({
+          teamId: TEAM_IDS[r.team],
+          validFromDay: r.from,
+          kit: r.kit,
+          setBy: 'system' as const,
+        })),
+      )
+      try {
+        await check()
+      } finally {
+        await t.db.delete(teamKits)
+      }
+    }
+    const byTeam = (rows: readonly { teamId: string; kit: KitCode | null }[]) =>
+      Object.fromEntries(rows.map((r) => [r.teamId, r.kit]))
+
+    it('la lista de salida, con el del día de la salida: la congelada y la prevista', async () => {
+      const kitsOf = async (raceId: string) =>
+        raceStartlistSchema
+          .parse((await get(startlistUrl(raceId))).json)
+          .teams.map((team) => [team.id, team.kit])
+      await withKits(
+        [
+          { team: 0, from: dayOf(1), kit: kit0 },
+          { team: 1, from: dayOf(1) + 1, kit: kit1 },
+        ],
+        async () => {
+          // `race-france` ya salió: el del equipo 1 vale desde el día siguiente a la salida.
+          expect(await kitsOf(RACE_ID)).toEqual([
+            [TEAM_IDS[0], kit0],
+            [TEAM_IDS[1], null],
+          ])
+          // La prevista sale después de hoy: los dos.
+          expect(await kitsOf(SOON.id)).toEqual([
+            [TEAM_IDS[0], kit0],
+            [TEAM_IDS[1], kit1],
+          ])
+        },
+      )
+    })
+
+    it('las tablas por equipos, con el del día de la etapa que enseñan', async () => {
+      const stage = async (day: number) =>
+        stageReplaySchema.parse((await get(`/api/races/${RACE_ID}/stages/${day}`)).json)
+      const none = { [TEAM_IDS[0]]: null, [TEAM_IDS[1]]: null }
+      const before = await stage(2)
+      expect(byTeam(before.teamStage ?? [])).toEqual(none)
+      expect(byTeam(before.teamGc ?? [])).toEqual(none)
+      // El del equipo 1 vale desde hoy, el día de la 3, que no se ha corrido: no lo enseña ninguna tabla.
+      const rows = [
+        { team: 0, from: dayOf(2), kit: kit0 },
+        { team: 1, from: TODAY, kit: kit1 },
+      ] as const
+      await withKits(rows, async () => {
+        const one = await stage(1)
+        const two = await stage(2)
+        const race = raceViewSchema.parse((await get(`/api/calendar/${RACE_ID}`)).json)
+        // La 1 es de un día antes: aún no lo llevaba. La de la carrera enseña la última corrida, la 2.
+        expect(byTeam(one.teamStage ?? [])).toEqual(none)
+        expect(byTeam(one.teamGc ?? [])).toEqual(none)
+        const withKit0 = { [TEAM_IDS[0]]: kit0, [TEAM_IDS[1]]: null }
+        expect(byTeam(two.teamStage ?? [])).toEqual(withKit0)
+        expect(byTeam(two.teamGc ?? [])).toEqual(withKit0)
+        expect(byTeam(race.teamGc)).toEqual(withKit0)
+      })
+    })
+
+    it('la lista y la ficha de los equipos, con el de mañana; la ficha, también con su culote', async () => {
+      const list = async () =>
+        byTeam(
+          teamsResponseSchema
+            .parse((await get('/api/teams')).json)
+            .teams.map((x) => ({ teamId: x.id, kit: x.kit })),
+        )
+      const detail = async (k: 0 | 1) =>
+        teamResponseSchema.parse((await get(`/api/teams/${TEAM_IDS[k]}`)).json).team
+      expect(await list()).toEqual({ [TEAM_IDS[0]]: null, [TEAM_IDS[1]]: null })
+      expect(await detail(0)).toMatchObject({ kit: null, bib: 'black' })
+      await withKits(
+        [
+          // el de hoy y el guardado hoy, que vale mañana: se enseña el de mañana
+          { team: 0, from: TODAY - 5, kit: kit1 },
+          { team: 0, from: TODAY + 1, kit: kit0 },
+          // una fila de pasado mañana, que hoy no escribe nadie, marca el borde: aún no
+          { team: 1, from: TODAY + 2, kit: kit1 },
+        ],
+        async () => {
+          expect(await list()).toEqual({ [TEAM_IDS[0]]: kit0, [TEAM_IDS[1]]: null })
+          expect((await detail(0)).kit).toBe(kit0)
+          expect((await detail(1)).kit).toBeNull()
+        },
+      )
+      await t.client`update teams set bib = 'base.panel' where id = ${TEAM_IDS[1]}`
+      try {
+        expect((await detail(1)).bib).toBe('base.panel')
+      } finally {
+        await t.client`update teams set bib = 'black' where id = ${TEAM_IDS[1]}`
       }
     })
   })

@@ -4,6 +4,7 @@ import postgres from 'postgres'
 import { lockCalendarDay, runCalendarDay } from './calendarRun.js'
 import { runCallups } from './callups.js'
 import { removeJerseyClones } from './jerseyClone.js'
+import { emitKitNews, ensureKits, kitsNote } from './kits.js'
 import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
 import { runPayroll, runTeamFinances } from './economy.js'
@@ -134,7 +135,14 @@ type Db = ReturnType<typeof drizzle>
 async function ensureGenesis(
   db: Db,
   opts: RunTickOptions,
-): Promise<{ worldId: string; worldCreatedAt: Date; currentDay: number; worldSeed: string }> {
+): Promise<{
+  worldId: string
+  worldCreatedAt: Date
+  currentDay: number
+  worldSeed: string
+  /** el mundo nace en esta ejecución */
+  created: boolean
+}> {
   const state = await db.select().from(gameState).limit(1)
   const existing = state[0]
   if (existing) {
@@ -148,6 +156,7 @@ async function ensureGenesis(
       worldCreatedAt: w.createdAt,
       currentDay: existing.currentDay,
       worldSeed: w.worldSeed,
+      created: false,
     }
   }
 
@@ -178,6 +187,7 @@ async function ensureGenesis(
     worldCreatedAt: world.createdAt,
     currentDay: 0,
     worldSeed: world.worldSeed,
+    created: true,
   }
 }
 
@@ -288,6 +298,17 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       await db.transaction(async (tx) => {
         await backfillRosters(tx, genesis.worldId, worldSeed, Math.floor(genesis.currentDay / 364))
       })
+      // LOS MAILLOTS (E3, docs/visual.md §8.6; PR 17b, 17-l): a cada equipo sin maillot, uno desde
+      // mañana (la primera vez, el mundo entero traducido), y al NPC que choca con un humano rival, otro
+      // (DD-08). Tras `seedWorld` y `backfillRosters`, en su propia transacción, con una noticia en el
+      // diario de cada equipo cuyo maillot cambia, el día en que se ve; en el mundo que nace en esta
+      // ejecución, ninguna, porque sus equipos nacen con el suyo.
+      const notaKits = await db.transaction(async (tx) => {
+        const started = Date.now()
+        const report = await ensureKits(tx, genesis.worldId)
+        if (!genesis.created) await emitKitNews(tx, genesis.worldId, report)
+        return kitsNote(report, Date.now() - started)
+      })
 
       let day = genesis.currentDay
       // ¿Se ha cruzado alguna temporada en esta ejecución? Solo entonces hay neopros/ascensos nuevos
@@ -384,6 +405,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           [
             notaE1,
             notaClon,
+            notaKits,
             // `timeline: 312 grabadas, 1 sin línea` y sus notas (§5.5); null si no se corrió ninguna etapa.
             timelineLog?.summary() ?? null,
             capped

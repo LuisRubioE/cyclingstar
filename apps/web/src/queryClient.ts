@@ -89,6 +89,9 @@ const PERSONAL_KEYS = [
   ['team-control'],
   ['ledger'],
   ['market'],
+  // el editor del maillot (E3, docs/visual.md §8.7; 18b)
+  ['team-kit'],
+  ['kit-check'],
 ]
 
 // --------------------------------------------- el horizonte en las claves (E2, §10.9 y §14.11; 9a)

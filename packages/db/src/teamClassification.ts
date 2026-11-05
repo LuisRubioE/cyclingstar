@@ -1,7 +1,9 @@
+import type { KitCode } from '@cyclingstar/shared'
 import { and, asc, eq, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
-import { type Horizon, throughStage } from './horizon.js'
+import { type Horizon, stageGameDay, throughStage } from './horizon.js'
+import { kitsOn } from './kitsOn.js'
 import { raceGc, raceRosters, riders, stageResults, stageTeamResults, teams } from './schema.js'
 
 /**
@@ -98,6 +100,11 @@ export interface TeamClassRow {
   teamName: string
   /** País del equipo (ISO alpha-2); null si no lo tiene asignado. */
   country: string | null
+  /**
+   * Su maillot el día de la última etapa que entra en la tabla (E3, docs/visual.md §8.5; paso 16b), o
+   * null si ese día aún no tenía ninguno guardado y se dibuja con su semilla.
+   */
+  kit: KitCode | null
   /** Suma de tiempos: de la etapa, o acumulada por etapas. */
   tiempoS: number
   /** Suma de los puestos de los corredores que puntúan (primer desempate). */
@@ -193,16 +200,21 @@ async function teamClassificationsThrough(
   }
   if (scores.length === 0) return { stage: [], overall: [] }
 
+  // Las dos tablas enseñan la misma última etapa (`ofStage`, si se pidió, es también el corte), y cada
+  // equipo lleva el maillot de ese día: una tabla vieja, el de entonces, porque `team_kits` no se reescribe.
+  const lastStage = scores.reduce((max, s) => Math.max(max, s.stageDay), 0)
+  const kits = await kitsOn(db, [...identity.keys()], stageGameDay(raceId, lastStage))
   const bestGc = await teamBestGcRank(db, raceId, throughStage)
   const stage =
     ofStage != null
       ? buildRows(
           scores.filter((s) => s.stageDay === ofStage),
           identity,
+          kits,
           stageCompare,
         )
       : []
-  const overall = buildRows(scores, identity, (a, b) => overallCompare(a, b, bestGc))
+  const overall = buildRows(scores, identity, kits, (a, b) => overallCompare(a, b, bestGc))
   return { stage, overall }
 }
 
@@ -298,6 +310,7 @@ interface WorkRow extends TeamClassRow {
 function buildRows(
   scores: readonly StageScoreRow[],
   identity: ReadonlyMap<string, TeamIdentity>,
+  kits: ReadonlyMap<string, KitCode>,
   compare: (a: WorkRow, b: WorkRow) => number,
 ): TeamClassRow[] {
   const byTeam = new Map<string, WorkRow>()
@@ -310,6 +323,7 @@ function buildRows(
         teamId: score.teamId,
         teamName: who.teamName,
         country: who.country,
+        kit: kits.get(score.teamId) ?? null,
         tiempoS: 0,
         sumaPuestos: 0,
         stagesScored: 0,
@@ -334,6 +348,7 @@ function buildRows(
     teamId: row.teamId,
     teamName: row.teamName,
     country: row.country,
+    kit: row.kit,
     tiempoS: row.tiempoS,
     sumaPuestos: row.sumaPuestos,
     stagesScored: row.stagesScored,

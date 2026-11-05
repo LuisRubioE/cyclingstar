@@ -57,10 +57,10 @@ export async function takeOverTeam(): Promise<{ teamId: string; teamName: string
   return { teamId: data.teamId, teamName: data.teamName }
 }
 
+/** El nombre y el país; el maillot va por su editor desde el 18a (E3, docs/visual.md §8.7). */
 export interface TeamEdit {
   name?: string | undefined
   country?: string | undefined
-  jerseySeed?: string | undefined
 }
 
 /** Edita el equipo que gestiona el usuario. Lanza con el código de error del servidor. */

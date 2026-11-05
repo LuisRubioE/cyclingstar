@@ -1,4 +1,4 @@
-import type { NewsPayload } from '@cyclingstar/shared'
+import type { RiderNewsPayload } from '@cyclingstar/shared'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { type Horizon, type VeiledStage, stageGameDay, worldHorizon } from './horizon.js'
@@ -53,7 +53,7 @@ describe('las noticias bajo el velo (§11.7, 11-g, 17-x)', () => {
   }
 
   /** Un titular de una etapa de la Race France, como lo escribe el tick. */
-  const deEtapa = async (stageDay: number, payload: NewsPayload, personal = false) =>
+  const deEtapa = async (stageDay: number, payload: RiderNewsPayload, personal = false) =>
     emitNews(t.db, {
       worldId: w.worldId,
       gameDay: g(stageDay),

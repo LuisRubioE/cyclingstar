@@ -1,3 +1,4 @@
+import { BIB_STYLES, KIT_COLORS, KIT_FIGURES, parseKit } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import {
   EFFORT_DESC,
@@ -10,7 +11,12 @@ import {
   STAGE_ROLE_DESC,
   STAGE_ROLE_LABEL,
   STAGE_ROLE_OPTIONS,
+  BIB_STYLE_LABEL,
+  KIT_COLOR_LABEL,
+  KIT_FIGURE_LABEL,
+  bibWords,
   editionLabel,
+  kitWords,
   ledgerKindLabel,
   mentalityLabel,
   newsLabel,
@@ -51,6 +57,12 @@ describe('web: diccionario de dominio (español interno → inglés de UI)', () 
 
   it('el marcador de una etapa velada lleva la familia Watch, igual para todos (E2, paso 9b; sup. N2)', () => {
     expect(newsLabel('stage_ready')).toBe('Watch')
+  })
+
+  it('las dos del maillot nuevo llevan la familia Kit (E3, 17b)', () => {
+    expect(newsLabel('kit_new')).toBe('Kit')
+    expect(newsLabel('kit_ceded')).toBe('Kit')
+    expect(newsLabel('kit_reset')).toBe('Kit')
   })
 
   it('traduce los tipos de apunte y de palmarés', () => {
@@ -113,5 +125,34 @@ describe('web: los días de viaje se anuncian de ida Y vuelta (docs/agenda.md §
 
   it('en casa no hay viaje y no se pinta nada', () => {
     expect(travelDaysLabel(0)).toBe('')
+  })
+})
+
+describe('web: el maillot en palabras (E3, docs/visual.md §8.1 y §8.10; 17c)', () => {
+  it('las siete figuras y los quince colores, cada uno con su nombre de pantalla', () => {
+    expect(Object.keys(KIT_FIGURE_LABEL)).toEqual([...KIT_FIGURES])
+    expect(Object.keys(KIT_COLOR_LABEL)).toEqual(Object.keys(KIT_COLORS))
+    expect(KIT_FIGURE_LABEL.band).toBe('Chest band')
+  })
+
+  it('la figura, la base y el segundo color; el liso, sin segundo', () => {
+    expect(kitWords(parseKit('hoops.navy.yellow')!)).toBe('Hoops · Navy · Yellow')
+    expect(kitWords(parseKit('plain.red')!)).toBe('Plain · Red')
+  })
+
+  it('el culote: su cuerpo y, si se ven, sus paneles', () => {
+    const hoops = parseKit('hoops.navy.yellow')!
+    expect(bibWords(hoops, 'black')).toBe('Black shorts')
+    expect(bibWords(hoops, 'black.panel')).toBe('Black shorts with yellow panels')
+    expect(bibWords(hoops, 'base')).toBe('Navy shorts')
+    expect(bibWords(hoops, 'base.panel')).toBe('Navy shorts with yellow panels')
+    // un liso con cuerpo negro lleva los paneles en su base; con el cuerpo de su color, no se ven
+    expect(bibWords(parseKit('plain.red')!, 'black.panel')).toBe('Black shorts with red panels')
+    expect(bibWords(parseKit('plain.red')!, 'base.panel')).toBe('Red shorts')
+  })
+
+  it('los cuatro culotes, en los botones del editor (§8.7; 18b)', () => {
+    expect(Object.keys(BIB_STYLE_LABEL)).toEqual([...BIB_STYLES])
+    expect(BIB_STYLE_LABEL['base.panel']).toBe('Main colour + panels')
   })
 })

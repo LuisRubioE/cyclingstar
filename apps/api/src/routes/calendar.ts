@@ -15,6 +15,7 @@ import {
   predictStartlist,
   raceStagesForWorld,
   readFrozenStartlist,
+  throughStage,
   worldHorizon,
 } from '@cyclingstar/db'
 import {
@@ -25,6 +26,7 @@ import {
   stagesForSeason,
 } from '@cyclingstar/engine'
 import { DAYS_PER_SEASON, NO_LEADERS, currentSeason, raceLeaders } from '@cyclingstar/shared'
+import { tableChampions } from '../champions.js'
 import { notFound } from '../http.js'
 import { diagHorizon } from '../spoiler.js'
 import { type RacedStage, calendarStageSpec } from '../stageHistory.js'
@@ -165,6 +167,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
           kom: [],
           teamGc: [],
           leaders: NO_LEADERS,
+          champions: {},
           stageWinners: [],
           history: [],
         }
@@ -221,19 +224,37 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       // simplemente el ganador.
       const leaders =
         race.stages.length === 1 ? NO_LEADERS : raceLeaders({ gc, points, kom, teams: teamGc })
+      const stages = planFrom(season, frozen, anterior, raced)
+      // LOS CAMPEONES DE ESAS TABLAS (E3, docs/visual.md §8.5; 4-l, 17a): el título que lleva cada uno el
+      // día de la última etapa que entra en ellas, la última que quien mira conoce (P, como los
+      // maillots), con su disciplina y la categoría de la carrera. Sin nada corrido, sin tablas.
+      const shown = throughStage(h, raceKey, runDays[runDays.length - 1] ?? 0)
+      const champions = await tableChampions(
+        db,
+        h,
+        world.worldId,
+        {
+          raceKey,
+          stageDay: shown,
+          timeTrial: stages.find((s) => s.index === shown)?.timeTrial === true,
+          category: race.championshipCategory ?? 'elite',
+        },
+        [...gc, ...points, ...kom, ...stageWinners].map((r) => r.riderId),
+      )
       return {
         race: raceInfo(frozen),
         // Día actual de la temporada (0..363): con `startDay` sitúa la carrera en el tiempo.
         dayOfSeason: world.currentDay % DAYS_PER_SEASON,
         status,
         runDays,
-        stages: planFrom(season, frozen, anterior, raced),
+        stages,
         restAfter,
         gc,
         points,
         kom,
         teamGc,
         leaders,
+        champions,
         stageWinners,
         history,
       }

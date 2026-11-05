@@ -1,4 +1,4 @@
-import { type NewsPayload, TEMPLATE_REV } from '@cyclingstar/shared'
+import { type NewsPayload, type RiderNewsPayload, TEMPLATE_REV } from '@cyclingstar/shared'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { emitNews, getGlobalNews, getRiderNews, getTeamNews, newsNames } from './news.js'
@@ -24,7 +24,7 @@ const france = { raceId: 'race-france', season: 0 } as const
 const RACE_KEY = 'race-france:s0'
 
 /** Un titular de cada uno de los trece kinds, con su semilla y la clave de quien lo escribe. */
-const TRECE: readonly { seed: string; raceKey: string | null; payload: NewsPayload }[] = [
+const TRECE: readonly { seed: string; raceKey: string | null; payload: RiderNewsPayload }[] = [
   {
     seed: `win:${RACE_KEY}:200:4`,
     raceKey: RACE_KEY,
@@ -336,7 +336,7 @@ describe('db: emitNews guarda los datos y las lecturas redactan al leer', () => 
   it('el orden del día: carrera, etapa de la última a la primera, la prioridad del kind', async () => {
     // Todo el mismo día de juego, escrito en desorden; y la general del día anterior detrás.
     const mismoDia = 500
-    const orden: { payload: NewsPayload; raceKey: string | null }[] = [
+    const orden: { payload: RiderNewsPayload; raceKey: string | null }[] = [
       {
         raceKey: null,
         payload: { kind: 'retirement', riderId: BEA, teamId: TEAM_B, age: 37 },
@@ -470,6 +470,46 @@ describe('db: emitNews guarda los datos y las lecturas redactan al leer', () => 
       kinds(await getRiderNews(t.db, worldHorizon, worldId, ANA, 40, { leaderNews: true })),
     ).toEqual(todos)
     await t.db.delete(news).where(eq(news.worldId, worldId))
+  })
+
+  it('las del maillot (E3, 17b): solo en el diario de su equipo, con el nombre de cuando se leen y sin payload', async () => {
+    await emitNews(t.db, {
+      worldId,
+      gameDay: 650,
+      seed: `kit:${TEAM_A}:650`,
+      payload: { kind: 'kit_new', teamId: TEAM_A, kit: 'plain.navy' },
+    })
+    await emitNews(t.db, {
+      worldId,
+      gameDay: 651,
+      seed: `kit:${TEAM_B}:651`,
+      payload: { kind: 'kit_ceded', teamId: TEAM_B, kit: 'halves.red.blue' },
+    })
+    const [fila] = await t.db
+      .select()
+      .from(news)
+      .where(eq(news.seed, `kit:${TEAM_A}:650`))
+    expect(fila).toMatchObject({ riderId: null, raceKey: null, stageDay: null, kind: 'kit_new' })
+    expect(fila!.text).toBe('Equipo Alfa has a new kit.')
+    try {
+      // el nombre de cuando se lee, no el de cuando se escribió (D-46)
+      await t.db.update(teams).set({ name: 'Equipo Gamma' }).where(eq(teams.id, TEAM_A))
+      const alfa = await getTeamNews(t.db, worldHorizon, TEAM_A)
+      expect(alfa.map((n) => [n.kind, n.text])).toEqual([
+        ['kit_new', 'Equipo Gamma has a new kit.'],
+      ])
+      // los datos no viajan: la web cargada antes del 17b valida `payload` con la unión de antes
+      expect(alfa[0]!.payload).toBeNull()
+      expect((await getTeamNews(t.db, worldHorizon, TEAM_B)).map((n) => n.text)).toEqual([
+        'New kit for Equipo Beta.',
+      ])
+      // ni en el feed del mundo ni en el de un corredor del equipo
+      expect(await getGlobalNews(t.db, worldHorizon, worldId)).toEqual([])
+      expect(await getRiderNews(t.db, worldHorizon, worldId, ANA)).toEqual([])
+    } finally {
+      await t.db.update(teams).set({ name: 'Equipo Alfa' }).where(eq(teams.id, TEAM_A))
+      await t.db.delete(news).where(eq(news.worldId, worldId))
+    }
   })
 
   it('news_text_or_data: una fila sin texto ni datos no entra', async () => {

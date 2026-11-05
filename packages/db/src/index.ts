@@ -100,7 +100,14 @@ export {
   type NewsItem,
   type NewsReadOptions,
 } from './news.js'
-export { palmaresTitleSource, type ChampionTitleSource, type Queryable } from './titles.js'
+// Los títulos de campeón (docs/retransmision.md §7.4) y, desde el 17a de E3, su lectura con horizonte
+// para las tablas y la ficha del corredor (docs/visual.md §8.5).
+export {
+  palmaresTitleSource,
+  titlesSeenOn,
+  type ChampionTitleSource,
+  type Queryable,
+} from './titles.js'
 // La línea temporal grabada de E2 (docs/retransmision.md §5.5 y §5.6; paso 5): el diario del tick que
 // baja a `runOneStage` por `StageRunSpec.timeline`, la escritura de las filas y la lectura con su LRU,
 // que el 6a pone delante del adaptador de la radio.
@@ -176,7 +183,8 @@ export { runOneStage, type StageRunSpec } from './stageRun.js'
 // El horizonte y el velo de E2 (docs/retransmision.md §4.10 y §10.6): los tipos y las funciones puras
 // nacen en el 3a (17-g); computeHorizon, el mapa del día, el memo, horizonSummary y touchLastSeen, en
 // el 7a, con clearHorizonCaches solo para los tests (el mundo de B1, §16.3); veilCast, en el 7b; el
-// predicado, veilSql, en el 8a; y veilDelta, lo que el velo resta y enmascara, en el 8b.
+// predicado, veilSql, en el 8a; veilDelta, lo que el velo resta y enmascara, en el 8b; y veilTitles,
+// los títulos de las tablas y de la ficha, en el 17a de E3.
 export {
   TtlMemo,
   anonHorizon,
@@ -194,6 +202,7 @@ export {
   veilCast,
   veilDelta,
   veilSql,
+  veilTitles,
   worldHorizon,
   type Horizon,
   type HorizonKind,
@@ -397,4 +406,23 @@ export {
   type StageOrderRow,
   type StageRole,
 } from './raceOrders.js'
+export {
+  KitTakenError,
+  checkKit,
+  ensureKits,
+  getTeamKitState,
+  kitChangeAllowed,
+  kitChangesCounted,
+  ownedTeamToday,
+  revertKit,
+  revertTeamKit,
+  saveTeamKit,
+  setKit,
+  type EnsureKitsReport,
+  type KitHistoryRow,
+  type KitSaveResult,
+  type KitSetBy,
+} from './kits.js'
+export { kitOn, kitsOn } from './kitsOn.js'
+export { seasonRivals, type SeasonRivals } from './seasonRivals.js'
 export { backfillArchetypes, type BackfillResult } from './scripts/backfillArchetypes.js'

@@ -14,6 +14,7 @@
  * sigue allí (con el velo del 7b delante) y llama a `riderCardsOf`.
  */
 import { type RiderCard, staticNotoriety } from '../jerseys.js'
+import type { KitCode } from '../kit.js'
 import type { NameResolver } from '../news.js'
 import { BROADCAST } from './constants.js'
 import type { RiderIx, TimelineCast } from './timeline.js'
@@ -24,12 +25,14 @@ import type { StartState } from './wire.js'
  * (`names`), el equipo CON EL QUE CORRIÓ y su equipación de ese día, el maillot que lleva, sus líneas
  * cortadas a `cardLinesMax` y su notoriedad (`staticNotoriety`, §7.5) con la categoría del día
  * (`dayCategory`: `championshipCategory` de la carrera, o élite). `cast` llega ya degradado por el velo.
+ * `kits`, el maillot de cada equipo el día de la etapa (E3, §8.5; PR 16b): sin fila, null.
  */
 export function riderCardsOf(
   cast: TimelineCast,
   names: Pick<NameResolver, 'rider' | 'team'>,
   own: ReadonlySet<RiderIx>,
   dayCategory: 'elite' | 'u23',
+  kits: ReadonlyMap<string, KitCode>,
 ): RiderCard[] {
   return cast.riders.map((c) => {
     const t = c.team === null ? undefined : cast.teams[c.team]
@@ -44,7 +47,12 @@ export function riderCardsOf(
       team:
         t === undefined
           ? null
-          : { id: t.teamId, name: names.team(t.teamId), jerseySeed: t.jerseySeed },
+          : {
+              id: t.teamId,
+              name: names.team(t.teamId),
+              jerseySeed: t.jerseySeed,
+              kit: kits.get(t.teamId) ?? null,
+            },
       worn: c.worn,
       lines,
       notoriety: staticNotoriety(c.worn, lines, c.knownWins, dayCategory, {

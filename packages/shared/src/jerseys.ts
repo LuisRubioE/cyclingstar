@@ -16,6 +16,7 @@
  */
 // Ciclo solo de tipos con la línea temporal (E2, §4.8): `import type` se borra al compilar.
 import type { GroupNow } from './broadcast/instant.js'
+import type { KitCode } from './kit.js'
 import type { RiderIx, StageRef } from './broadcast/timeline.js'
 
 /** Los tres maillots que lleva un CORREDOR, en orden de prioridad. */
@@ -247,8 +248,17 @@ export interface RiderCard {
   readonly country: string
   /** CastRider.gender: la concordancia de E10 se hace en la web, que recibe esto y no el reparto (D-62) */
   readonly gender: 'M' | 'F'
-  /** el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy (NameResolver.team al servir) */
-  readonly team: { readonly id: string; readonly name: string; readonly jerseySeed: string } | null
+  /**
+   * el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy (NameResolver.team al
+   * servir); `kit`, su maillot del día de la etapa (E3, §8.5; PR 16b), o null hasta la traducción, y
+   * entonces se dibuja con `jerseySeed`
+   */
+  readonly team: {
+    readonly id: string
+    readonly name: string
+    readonly jerseySeed: string
+    readonly kit: KitCode | null
+  } | null
   /** degradado: un `leader` cuyo `from` está velado pasa a { kind: 'team' } */
   readonly worn: WornJersey
   /** como mucho cardLinesMax; sin las de `from` velado */
@@ -267,11 +277,32 @@ const SCOPE_RANK = { world: 0, continental: 1, national: 2 } as const satisfies 
   number
 >
 
-/** Los títulos que un corredor puede LLEVAR hoy: de la disciplina y la categoría del día (1.3.063, 1.3.068), el de mayor alcance primero. */
-function wearableTitles(input: WornInput, riderId: string): readonly ChampionTitle[] {
+/**
+ * Los títulos que un corredor puede LLEVAR hoy: de la disciplina y la categoría del día (1.3.063,
+ * 1.3.068), el de mayor alcance primero. La usan también las tablas y la ficha (E3, §8.5; 4-l, 17a).
+ */
+export function wearableTitles(
+  input: Pick<WornInput, 'titles' | 'discipline' | 'category'>,
+  riderId: string,
+): readonly ChampionTitle[] {
   return (input.titles.get(riderId) ?? [])
     .filter((t) => t.discipline === input.discipline && t.category === input.category)
     .sort((a, b) => SCOPE_RANK[a.scope] - SCOPE_RANK[b.scope])
+}
+
+/**
+ * EL TÍTULO DE LA FICHA del corredor (E3, docs/visual.md §8.5; 4-l, 17a), que no es de ningún día de
+ * carrera: de sus vigentes, el de mayor alcance y, a igual alcance, el de ruta antes que el de crono y
+ * el de élite antes que el sub-23; null sin ninguno.
+ */
+export function highestTitle(titles: readonly ChampionTitle[]): ChampionTitle | null {
+  const ranked = [...titles].sort(
+    (a, b) =>
+      SCOPE_RANK[a.scope] - SCOPE_RANK[b.scope] ||
+      Number(a.discipline !== 'road') - Number(b.discipline !== 'road') ||
+      Number(a.category !== 'elite') - Number(b.category !== 'elite'),
+  )
+  return ranked[0] ?? null
 }
 
 /** Las tablas de salida por maillot, sin los no clasificados (la general es la única que sabe quién abandonó). */

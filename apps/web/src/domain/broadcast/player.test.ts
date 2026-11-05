@@ -2051,7 +2051,13 @@ describe('la cola de la crono sobre la e16 congelada (§9.5, §9.8; 9-d)', () =>
   const tl = recorded('race-france-e16')
   const tt = tl.tt!
   const n = tl.riderIds.length
-  const cast = riderCardsOf(tl.cast, { rider: (id) => id, team: (id) => id }, new Set(), 'elite')
+  const cast = riderCardsOf(
+    tl.cast,
+    { rider: (id) => id, team: (id) => id },
+    new Set(),
+    'elite',
+    new Map(),
+  )
   const start = startStateOf(tl.cast, n)
   const ictx: InstantContext = {
     own: new Set(),

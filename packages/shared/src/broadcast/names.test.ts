@@ -57,7 +57,12 @@ function card(ix: RiderIx, name: string, over: Partial<RiderCard> = {}): RiderCa
     bib: ix,
     country: 'FR',
     gender: 'M',
-    team: { id: `t-${name}`, name: `Team ${name.split(' ')[0]}`, jerseySeed: `s-${name}` },
+    team: {
+      id: `t-${name}`,
+      name: `Team ${name.split(' ')[0]}`,
+      jerseySeed: `s-${name}`,
+      kit: null,
+    },
     worn: { kind: 'team' },
     lines: [],
     notoriety: 8,
@@ -65,7 +70,7 @@ function card(ix: RiderIx, name: string, over: Partial<RiderCard> = {}): RiderCa
     ...over,
   }
 }
-const team = (name: string) => ({ id: `t-${name}`, name, jerseySeed: `s-${name}` })
+const team = (name: string) => ({ id: `t-${name}`, name, jerseySeed: `s-${name}`, kit: null })
 const lvl = (n: NotorietyLevel) => n
 
 // Los cinco de la etapa 7 de Race France (§7.6), por su dorsal: el campeón de Italia, el líder de la

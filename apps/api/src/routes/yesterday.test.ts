@@ -61,8 +61,9 @@ const NEWS_DATA = {
 
 const YESTERDAY = {
   // `tplRev`, del 3a (12-c): la sirven el acta y el paquete de meta; la ruta de etapa, todavía no. Y
-  // `watch`, del 7b (§14.1): lo visto de la etapa, que la ruta de etapa sirve con SPOILER_MODE.
-  stageReplay: stageReplaySchema.omit({ tplRev: true, watch: true }),
+  // `watch`, del 7b (§14.1): lo visto de la etapa, que la ruta de etapa sirve con SPOILER_MODE. Y
+  // `champions`, del 17a de E3 (docs/visual.md §8.5, 4-l): los títulos que se llevan el día de sus tablas.
+  stageReplay: stageReplaySchema.omit({ tplRev: true, watch: true, champions: true }),
   // `teamId` y `teamName`, del 12b de E3 (docs/visual.md §6.1, 17-q): el equipo de cada fila de puntos y
   // de montaña, que va anidada en `kom` y `points` de la etapa.
   pointsEntry: pointsEntrySchema.omit({ teamId: true, teamName: true }),

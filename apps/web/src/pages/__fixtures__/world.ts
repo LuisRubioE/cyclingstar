@@ -87,6 +87,7 @@ export function raceViewWith(stageCount: number, over: Partial<RaceView> = {}): 
     kom: [],
     teamGc: [],
     leaders: { gc: null, points: null, kom: null, team: null },
+    champions: {},
     stageWinners: [],
     history: [],
     ...over,

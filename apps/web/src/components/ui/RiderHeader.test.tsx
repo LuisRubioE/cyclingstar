@@ -2,7 +2,8 @@ import type { ChampionTitle } from '@cyclingstar/shared'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
-import { RiderHeader, type RiderHeaderProps } from './RiderHeader'
+import { RiderHeader, type RiderHeaderProps, RiderJerseySheet } from './RiderHeader'
+import type { RiderJerseyChoice } from './RiderLabel'
 
 /**
  * `RiderHeader` (E3, docs/visual.md §4.6; PR 9b): la bandera a 24, el nombre como `h1` y el maillot a 40,
@@ -64,7 +65,8 @@ describe('RiderHeader', () => {
       provisional: true,
     }
     const s = pinta({ ...LISTA, champion: titulo })
-    expect(s).toContain('data-kit="champion"')
+    // desde el 17a, ChampionJersey, con su alcance en data-kit (E3, §9.1)
+    expect(s).toContain('data-kit="champion-national"')
     expect(s.match(/data-ui="Flag"/g)).toHaveLength(1)
   })
 
@@ -94,5 +96,57 @@ describe('RiderHeader', () => {
     const s = pinta({ state: 'error', onRetry: () => undefined })
     expect(s).toContain('data-kind="server"')
     expect(texto(s)).toContain('Try again')
+  })
+})
+
+describe('RiderHeader: el maillot abre su hoja (§8.10; PR 17c)', () => {
+  const NOORD = { name: 'Noord Cycling', kit: 'hoops.navy.yellow' } as const
+
+  it('el maillot de 40 va en un botón de 44 × 44; un agente libre no tiene nada que abrir', () => {
+    const s = pinta({ ...LISTA, team: NOORD })
+    expect(s).toMatch(
+      /<button type="button" aria-label="Show the kit full screen"[^>]*><svg data-ui="Kit"[^>]*width="40" height="40"/,
+    )
+    expect(s).not.toContain('<dialog')
+    expect(pinta({ ...LISTA, team: null })).not.toContain('<button')
+  })
+
+  const hoja = (choice: RiderJerseyChoice, view: 'front' | 'back', bib: number | null = 214) =>
+    renderToStaticMarkup(
+      <RiderJerseySheet
+        choice={choice}
+        bib={bib}
+        title="José Quintáns"
+        view={view}
+        onView={() => undefined}
+        open
+        onClose={() => undefined}
+      />,
+    )
+
+  it('con el maillot de su equipo: Front y Back, y la espalda con su dorsal si corre', () => {
+    const delante = hoja({ kind: 'team', team: NOORD }, 'front')
+    expect(delante).toMatch(/<h2 [^>]*>José Quintáns<\/h2>/)
+    expect([...delante.matchAll(/role="tab"[^>]*>([^<]+)</g)].map((m) => m[1])).toEqual([
+      'Front',
+      'Back',
+    ])
+    expect(delante).toMatch(/data-view="front" width="320" height="320"/)
+    const detras = hoja({ kind: 'team', team: NOORD }, 'back')
+    expect(detras).toMatch(/data-view="back" width="320" height="320"/)
+    expect(detras).toContain('>214</text>')
+    expect(hoja({ kind: 'team', team: NOORD }, 'back', null)).not.toContain('data-back="number"')
+  })
+
+  it('un líder, un campeón o el dibujo de antes: solo por delante, sin pestañas', () => {
+    for (const choice of [
+      { kind: 'leader', jersey: 'gc' },
+      { kind: 'team', team: LISTA.team },
+    ] as const satisfies readonly RiderJerseyChoice[]) {
+      const s = hoja(choice, 'back')
+      expect(s).not.toContain('role="tab"')
+      expect(s).toContain('width="320" height="320"')
+      expect(s).not.toContain('data-view="back"')
+    }
   })
 })

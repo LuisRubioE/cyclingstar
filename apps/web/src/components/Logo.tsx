@@ -1,6 +1,10 @@
+import { LOGO_STAR } from '@cyclingstar/shared'
+
 /**
  * Emblema de Cycling Star (#1): una bicicleta estilizada con una estrella. SVG puro, escalable. Con
- * `decorative`, no se lee: va dentro de un enlace que ya lleva el nombre (la cabecera; E3, PR 11).
+ * `decorative`, no se lee: va dentro de un enlace que ya lleva el nombre (la cabecera; E3, PR 11). La
+ * estrella es `LOGO_STAR` de `kit.ts`, la misma que lleva en el pecho el maillot del campeón del mundo
+ * (E3, docs/visual.md §9.1; PR 17a).
  */
 export function Logo({
   size = 40,
@@ -39,13 +43,7 @@ export function Logo({
       <path d="M44 24 L50 22" stroke="#4f46e5" strokeWidth="3" strokeLinecap="round" />
       <path d="M25 23 L31 23" stroke="#4f46e5" strokeWidth="3" strokeLinecap="round" />
       {/* Estrella */}
-      <path
-        d="M36 2 L39.2 9.2 L47 10 L41.2 15.3 L42.9 23 L36 19.1 L29.1 23 L30.8 15.3 L25 10 L32.8 9.2 Z"
-        fill="#f59e0b"
-        stroke="#f59e0b"
-        strokeWidth="1"
-        strokeLinejoin="round"
-      />
+      <path d={LOGO_STAR} fill="#f59e0b" stroke="#f59e0b" strokeWidth="1" strokeLinejoin="round" />
     </svg>
   )
 }

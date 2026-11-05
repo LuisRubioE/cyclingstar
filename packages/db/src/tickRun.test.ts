@@ -85,7 +85,9 @@ describe('db: runTick registra fallos y respeta el tope de días', () => {
     expect(w[0]?.v).toBe(WORLD_REPAIR_VERSION)
     const [log] = await lastTicks(1)
     expect(log?.ok).toBe(true)
-    expect(log?.notes).toBe('sin días pendientes')
+    // Ninguna nota de reparación; desde el 17b de E3, delante, la traducción de los maillots de la
+    // génesis (docs/visual.md §8.6), que en un mundo nuevo es la primera vez de `ensureKits`.
+    expect(log?.notes).toMatch(/^maillots: \d+ traducidos \([\d,]+ s\) · sin días pendientes$/)
   }, 180_000)
 
   it('registra el fallo con el día que reventó y cuenta los intentos seguidos (poison pill)', async () => {

@@ -112,6 +112,19 @@ const GOLDENS: readonly { readonly payload: NewsPayload; readonly text: string }
   },
 ]
 
+/**
+ * LOS DOS DEL MAILLOT (E3, docs/visual.md §8.6; PR 17b): van al diario del equipo y no tienen corredor.
+ * Aparte de los trece, porque B5 sella las noticias que ya estaban escritas cuando se selló.
+ */
+const KIT_GOLDENS: readonly { readonly payload: NewsPayload; readonly text: string }[] = [
+  { payload: { kind: 'kit_new', teamId: 't2', kit: 'plain.navy' }, text: 'T has a new kit.' },
+  { payload: { kind: 'kit_ceded', teamId: 't2', kit: 'halves.red.blue' }, text: 'New kit for T.' },
+  {
+    payload: { kind: 'kit_reset', teamId: 't2', kit: 'hoops.navy.yellow' },
+    text: "T's kit was reset by a moderator.",
+  },
+]
+
 const KINDS: readonly NewsKind[] = [
   'stage_win',
   'tt_win',
@@ -126,24 +139,40 @@ const KINDS: readonly NewsKind[] = [
   'injury',
   'abandon',
   'retirement',
+  'kit_new',
+  'kit_ceded',
+  'kit_reset',
 ]
 
 const render = (p: NewsPayload, n: NameResolver = SHORT): string =>
   renderNews('en', p, 'semilla', TEMPLATE_REV, n)
 
 describe('shared: el titular se redacta al leer desde sus datos (B4)', () => {
-  it('hay un golden por kind, los trece', () => {
-    expect(GOLDENS.map((g) => g.payload.kind).sort()).toEqual([...KINDS].sort())
+  it('hay un golden por kind, los trece y los dos del maillot', () => {
+    expect([...GOLDENS, ...KIT_GOLDENS].map((g) => g.payload.kind).sort()).toEqual(
+      [...KINDS].sort(),
+    )
     expect(Object.keys(NEWS_VARIANTS).sort()).toEqual([...KINDS].sort())
   })
 
-  it.each(GOLDENS)('$payload.kind: «$text»', ({ payload, text }) => {
+  it.each([...GOLDENS, ...KIT_GOLDENS])('$payload.kind: «$text»', ({ payload, text }) => {
     expect(render(payload)).toBe(text)
   })
 
   it('cada titular cabe en una línea: menos de 70 caracteres con nombres cortos', () => {
     // La regla del test del motor que este absorbe (`world/news.test.ts`): un hecho por línea, sin florituras.
-    for (const { payload } of GOLDENS) expect(render(payload).length).toBeLessThan(70)
+    for (const { payload } of [...GOLDENS, ...KIT_GOLDENS])
+      expect(render(payload).length).toBeLessThan(70)
+  })
+
+  it('los del maillot nombran al equipo con el nombre de cuando se leen', () => {
+    const otro: NameResolver = { ...SHORT, team: () => 'Mistral Racing' }
+    expect(render(KIT_GOLDENS[0]!.payload, otro)).toBe('Mistral Racing has a new kit.')
+    expect(render(KIT_GOLDENS[1]!.payload, otro)).toBe('New kit for Mistral Racing.')
+    // la reversión de E9 (§8.8; 18a), en tercera persona: el diario del equipo lo lee cualquiera
+    expect(render(KIT_GOLDENS[2]!.payload, otro)).toBe(
+      "Mistral Racing's kit was reset by a moderator.",
+    )
   })
 
   it('la etapa se cita con su salida y su llegada, una ciudad si coinciden, y sin nada fuera del calendario', () => {
@@ -264,8 +293,18 @@ describe('B5 · las noticias ya escritas se leen igual (§12.7, §16.4)', () => 
 })
 
 describe('shared: newsPayloadSchema, lo que la API acepta de news.data', () => {
-  it('acepta los trece payloads de los goldens tal cual', () => {
-    for (const { payload } of GOLDENS) expect(newsPayloadSchema.parse(payload)).toEqual(payload)
+  it('acepta los trece payloads de los goldens tal cual, y los tres del maillot', () => {
+    for (const { payload } of [...GOLDENS, ...KIT_GOLDENS])
+      expect(newsPayloadSchema.parse(payload)).toEqual(payload)
+  })
+
+  it('el del maillot lleva un código del vocabulario y su equipo', () => {
+    const kit = { kind: 'kit_new', teamId: 't2', kit: 'plain.navy' }
+    expect(newsPayloadSchema.safeParse({ ...kit, kit: 'plain.magenta' }).success).toBe(false)
+    expect(newsPayloadSchema.safeParse({ ...kit, teamId: '' }).success).toBe(false)
+    expect(newsPayloadSchema.safeParse({ kind: 'kit_ceded', kit: 'plain.navy' }).success).toBe(
+      false,
+    )
   })
 
   it('rechaza una lesión sin la salud de antes (la máscara de la ficha la necesita)', () => {

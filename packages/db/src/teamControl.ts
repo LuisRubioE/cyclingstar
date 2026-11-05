@@ -3,7 +3,7 @@ import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import { isNameBlocked } from './blocklist.js'
 import type { Database } from './client.js'
 import { isBlockedName } from './names.js'
-import { riders, teams, users } from './schema.js'
+import { gameState, riders, teams, users } from './schema.js'
 
 /**
  * Control de equipos por jugadores (SPEC 7). Un jugador con cuenta premium que corre en un equipo
@@ -94,10 +94,13 @@ export async function takeOverBotTeam(db: Database, userId: string): Promise<Tak
     if (!rider) return { ok: false, reason: 'sin_ciclista' as const }
     if (!rider.teamId) return { ok: false, reason: 'sin_equipo' as const }
 
-    // Solo reclama si sigue siendo bot (owner nulo): UPDATE condicional para cerrar la carrera.
+    // Solo reclama si sigue siendo bot (owner nulo): UPDATE condicional para cerrar la carrera. Apunta el
+    // día en que el equipo pasa a tener dueño, para el primer cambio de maillot libre (E3, docs/visual.md
+    // §8.7; D-00k, 8-g); tomarlo ya no escribe nada en `team_kits`.
+    const [clock] = await tx.select({ currentDay: gameState.currentDay }).from(gameState).limit(1)
     const claimed = await tx
       .update(teams)
-      .set({ ownerUserId: userId })
+      .set({ ownerUserId: userId, managedSinceDay: clock?.currentDay ?? null })
       .where(and(eq(teams.id, rider.teamId), isNull(teams.ownerUserId)))
       .returning({ id: teams.id, name: teams.name })
     const team = claimed[0]
@@ -106,10 +109,10 @@ export async function takeOverBotTeam(db: Database, userId: string): Promise<Tak
   })
 }
 
+/** El nombre y el país; el maillot va por `PUT /api/teams/me/kit` desde el 18a (§8.7). */
 export interface TeamEdit {
   name?: string | undefined
   country?: string | undefined
-  jerseySeed?: string | undefined
 }
 export type TeamEditResult =
   | { ok: true }
@@ -162,7 +165,7 @@ export async function updateOwnedTeam(
   const team = owned[0]
   if (!team) return { ok: false, reason: 'sin_equipo' }
 
-  const patch: { name?: string; country?: string; jerseyStyleSeed?: string } = {}
+  const patch: { name?: string; country?: string } = {}
 
   if (edit.name !== undefined) {
     const name = edit.name.trim()
@@ -177,15 +180,6 @@ export async function updateOwnedTeam(
   if (edit.country !== undefined) {
     if (!isKnownCountry(edit.country)) return { ok: false, reason: 'pais_desconocido' }
     patch.country = edit.country.toUpperCase()
-  }
-
-  // EL MAILLOT VA A LA SEMILLA DEL DIBUJO (E3, docs/visual.md §8.9; la 0050), nunca a `jersey_seed`,
-  // que es la identidad con que `seedWorld` reconoce el equipo: escribirla ahí hacía que el tick
-  // siguiente creara un clon del equipo con la semilla vieja.
-  if (edit.jerseySeed !== undefined) {
-    const seed = edit.jerseySeed.trim()
-    if (seed.length < 1 || seed.length > 120) return { ok: false, reason: 'nombre_invalido' }
-    patch.jerseyStyleSeed = seed
   }
 
   if (Object.keys(patch).length > 0) {
@@ -206,6 +200,9 @@ export async function updateOwnedTeam(
 export async function releaseUserToWorld(db: Database, userId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.update(riders).set({ userId: null }).where(eq(riders.userId, userId))
-    await tx.update(teams).set({ ownerUserId: null }).where(eq(teams.ownerUserId, userId))
+    await tx
+      .update(teams)
+      .set({ ownerUserId: null, managedSinceDay: null })
+      .where(eq(teams.ownerUserId, userId))
   })
 }

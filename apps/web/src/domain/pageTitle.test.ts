@@ -36,6 +36,7 @@ const full: StageReplay = {
   race: { id: 'race-france', name: 'Race France', country: 'FR', stageCount: 21 },
   kind: 'reina',
   altimetry: '<svg/>',
+  champions: {},
   results: [
     {
       riderId: 'r1',
@@ -74,6 +75,7 @@ const veiled: StageReplay = {
   run: true,
   race: { id: 'race-france', name: 'Race France', country: 'FR', stageCount: 21 },
   altimetry: '<svg/>',
+  champions: {},
   watch: { known: false, reachedS: null, gate: { k: 'not_seen' }, seen: false },
 }
 

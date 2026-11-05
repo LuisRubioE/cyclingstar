@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ChampionTitle, Distinction } from '../jerseys.js'
+import type { KitCode } from '../kit.js'
 import { riderCardsOf, startStateOf } from './cards.js'
 import { BROADCAST } from './constants.js'
 import type { CastRider, StageRef, TimelineCast } from './timeline.js'
@@ -80,9 +81,11 @@ const CAST: TimelineCast = {
 const NAMES = { rider: (id: string) => `Name ${id}`, team: (id: string) => `Team ${id}` }
 
 describe('riderCardsOf · el reparto servido (§7.8)', () => {
-  const cards = riderCardsOf(CAST, NAMES, new Set([4]), 'elite')
+  // el maillot del día de la etapa, que resuelve la ruta (E3, §8.5; 16b): `beta` aún no tiene fila
+  const KITS = new Map<string, KitCode>([['alpha', 'plain.navy']])
+  const cards = riderCardsOf(CAST, NAMES, new Set([4]), 'elite', KITS)
 
-  it('por RiderIx, con los nombres de hoy y el equipo y la equipación del día', () => {
+  it('por RiderIx, con los nombres de hoy, el equipo y la equipación del día, y su maillot o null', () => {
     expect(cards.map((c) => [c.ix, c.id, c.name, c.bib, c.own])).toEqual([
       [0, 'id-0', 'Name id-0', 1, false],
       [1, 'id-1', 'Name id-1', 2, false],
@@ -91,8 +94,18 @@ describe('riderCardsOf · el reparto servido (§7.8)', () => {
       [4, 'id-4', 'Name id-4', 5, true],
       [5, 'id-5', 'Name id-5', 6, false],
     ])
-    expect(cards[0]!.team).toEqual({ id: 'alpha', name: 'Team alpha', jerseySeed: 'j-alpha' })
-    expect(cards[1]!.team).toEqual({ id: 'beta', name: 'Team beta', jerseySeed: 'j-beta' })
+    expect(cards[0]!.team).toEqual({
+      id: 'alpha',
+      name: 'Team alpha',
+      jerseySeed: 'j-alpha',
+      kit: 'plain.navy',
+    })
+    expect(cards[1]!.team).toEqual({
+      id: 'beta',
+      name: 'Team beta',
+      jerseySeed: 'j-beta',
+      kit: null,
+    })
     expect(cards[3]!.team).toBeNull()
     expect(cards[2]!.worn).toEqual({ kind: 'champion', title: title() })
   })
@@ -121,8 +134,8 @@ describe('riderCardsOf · el reparto servido (§7.8)', () => {
       ],
     }
     // la línea de la etapa ganada (nivel 6) es la cuarta: el corte la deja fuera y no cuenta
-    expect(riderCardsOf(onlyU23, NAMES, new Set(), 'elite')[0]!.notoriety).toBe(8)
-    expect(riderCardsOf(onlyU23, NAMES, new Set(), 'u23')[0]!.notoriety).toBe(4)
+    expect(riderCardsOf(onlyU23, NAMES, new Set(), 'elite', KITS)[0]!.notoriety).toBe(8)
+    expect(riderCardsOf(onlyU23, NAMES, new Set(), 'u23', KITS)[0]!.notoriety).toBe(4)
   })
 })
 

@@ -10,13 +10,15 @@
  * mapa del día (`lastRunStages`), `horizonSummary`, `touchLastSeen`, `TtlMemo` y, solo para los tests,
  * `clearHorizonCaches`; el 7b, `veilCast` (el reparto bajo el velo, §10.10); el 8a, `veilSql` (el
  * predicado, §10.6, punto 3), y el 8b, `veilDelta` (lo que el velo resta y enmascara, punto 4), su
- * memo y `DayShared`, la cuenta del día que comparten las peticiones (11-s). Qué horizonte recibe cada
- * petición lo decide `SPOILER_MODE` alrededor de `computeHorizon`, no dentro: `request.horizon()`, en
- * la API (§10.13, §14.5).
+ * memo y `DayShared`, la cuenta del día que comparten las peticiones (11-s). El 17a de E3 añade
+ * `veilTitles`, los títulos de campeón de las tablas y de la ficha (docs/visual.md §8.5). Qué
+ * horizonte recibe cada petición lo decide `SPOILER_MODE` alrededor de `computeHorizon`, no dentro:
+ * `request.horizon()`, en la API (§10.13, §14.5).
  */
 import { SEASON_CALENDAR, stageDayOfSeason } from '@cyclingstar/engine'
 import {
   type CastRider,
+  type ChampionTitle,
   DAYS_PER_SEASON,
   type Distinction,
   type GuardReason,
@@ -922,4 +924,23 @@ export function veilCast(cast: TimelineCast, h: Horizon): TimelineCast {
     start: seen(c.start.from) ? c.start : { gcRank: null, gcDeficitS: null, from: null },
   }))
   return { riders, teams: cast.teams, favourites: cast.favourites }
+}
+
+/**
+ * LOS TÍTULOS QUE PUEDE VER `h` (E3, docs/visual.md §8.5; 4-l, PR 17a): los de la fuente de títulos sin
+ * los de un campeonato de su velo, el corte que `veilCast` hace a la `source` de un título (B13). Va
+ * ANTES de elegir el título que se lleva en una tabla o el de la ficha, para que la elección no dependa
+ * de quién ganó lo velado. Pura; con el velo vacío devuelve el mismo mapa.
+ */
+export function veilTitles(
+  titles: ReadonlyMap<string, readonly ChampionTitle[]>,
+  h: Horizon,
+): ReadonlyMap<string, readonly ChampionTitle[]> {
+  if (h.veil.length === 0) return titles
+  const out = new Map<string, readonly ChampionTitle[]>()
+  for (const [riderId, list] of titles) {
+    const seen = list.filter((t) => !isVeiled(h, t.source.raceKey, t.source.stageDay))
+    if (seen.length > 0) out.set(riderId, seen)
+  }
+  return out
 }

@@ -27,6 +27,7 @@ const veiledStage: StageReplayData = {
   run: true,
   race: { id: SANREMO, name: 'Race Sanremo', country: 'IT', stageCount: 1 },
   altimetry: '<svg/>',
+  champions: {},
   watch: { known: false, reachedS: null, gate: { k: 'not_seen' }, seen: false },
 }
 const seenStage: StageReplayData = {

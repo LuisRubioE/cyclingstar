@@ -119,6 +119,7 @@ export function StageReportView({
           <StageResultRankTable
             rows={results}
             leaders={data.leaders?.onRoad}
+            champions={data.champions}
             {...(identity === undefined ? {} : { identity })}
             ownRiderId={ownRiderId}
             answer={answer}

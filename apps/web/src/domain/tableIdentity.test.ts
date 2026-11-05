@@ -24,6 +24,7 @@ const LISTA: RaceStartlist = {
       country: 'FR',
       division: 'WT',
       jerseySeed: 'seed-t1',
+      kit: null,
       riders: [
         { id: 'r1', name: 'Luc Martin', country: 'FR', isBot: true, bib: 11 },
         { id: 'r2', name: 'Paul Roux', country: 'FR', isBot: true, bib: null },
@@ -41,6 +42,7 @@ const EQUIPO = (id: string, jerseySeed: string): TeamListItem => ({
   budget: 0,
   pointsSeason: 0,
   jerseySeed,
+  kit: null,
   riderCount: 12,
 })
 
@@ -53,22 +55,28 @@ describe('identityFromStartlist', () => {
     expect(id.bibOf('nadie')).toBeNull()
   })
 
-  it('la semilla por equipo', () => {
+  it('el maillot por equipo: el código del día de la salida, nulo hasta el 17b, y la semilla de hoy', () => {
     const id = identityFromStartlist(LISTA)
-    expect(id.seedOf('t1')).toBe('seed-t1')
-    expect(id.seedOf('t2')).toBeNull()
+    expect(id.drawingOf('t1')).toEqual({ kit: null, jerseySeed: 'seed-t1' })
+    expect(id.drawingOf('t2')).toBeNull()
+    const conKit = identityFromStartlist({
+      ...LISTA,
+      teams: LISTA.teams.map((t) => ({ ...t, kit: 'halves.red.blue' as const })),
+    })
+    expect(conKit.drawingOf('t1')).toEqual({ kit: 'halves.red.blue', jerseySeed: 'seed-t1' })
   })
 
-  it('sin lista, ni dorsal ni semilla', () => {
+  it('sin lista, ni dorsal ni maillot', () => {
     expect(identityFromStartlist(undefined)).toBe(NO_TABLE_IDENTITY)
   })
 })
 
 describe('identityFromTeams', () => {
-  it('fuera de una carrera: la semilla de GET /api/teams, y nunca dorsal', () => {
-    const id = identityFromTeams([EQUIPO('t1', 'a'), EQUIPO('t2', 'b')])
-    expect(id.seedOf('t2')).toBe('b')
-    expect(id.seedOf('t3')).toBeNull()
+  it('fuera de una carrera: el maillot de GET /api/teams, y nunca dorsal', () => {
+    const id = identityFromTeams([EQUIPO('t1', 'a'), { ...EQUIPO('t2', 'b'), kit: 'plain.navy' }])
+    expect(id.drawingOf('t1')).toEqual({ kit: null, jerseySeed: 'a' })
+    expect(id.drawingOf('t2')).toEqual({ kit: 'plain.navy', jerseySeed: 'b' })
+    expect(id.drawingOf('t3')).toBeNull()
     expect(id.bibOf('r1')).toBeNull()
   })
 })
@@ -76,10 +84,15 @@ describe('identityFromTeams', () => {
 describe('rowTeam', () => {
   const id = identityFromStartlist(LISTA)
 
-  it('con su equipo y su semilla, el dibujo de hoy', () => {
+  it('con su equipo y su kit, el maillot nuevo; con el kit nulo (hasta el 17b), el dibujo de hoy', () => {
     expect(rowTeam('t1', 'Mistral Racing', id)).toEqual({
       name: 'Mistral Racing',
       legacySeed: 'seed-t1',
+    })
+    const conKit = identityFromTeams([{ ...EQUIPO('t1', 'a'), kit: 'sash.teal.white' }])
+    expect(rowTeam('t1', 'Mistral Racing', conKit)).toEqual({
+      name: 'Mistral Racing',
+      kit: 'sash.teal.white',
     })
   })
 
@@ -88,7 +101,7 @@ describe('rowTeam', () => {
     expect(rowTeam(undefined, null, id)).toBeNull()
   })
 
-  it('sin la semilla de su equipo, undefined: ni maillot ni hueco', () => {
+  it('sin el maillot de su equipo, undefined: ni maillot ni hueco', () => {
     expect(rowTeam('t2', 'Otro', id)).toBeUndefined()
     expect(rowTeam(undefined, 'Sin id', id)).toBeUndefined()
   })

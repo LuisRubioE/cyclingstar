@@ -1,10 +1,11 @@
-import { HEALTH_STATES, type HealthState } from '@cyclingstar/shared'
+import { HEALTH_STATES, type HealthState, type KitCode } from '@cyclingstar/shared'
 import type { TeamRider } from '../api/browse'
 import { HEALTH_LOOK, isOut } from '../domain/health'
 import { archetypeLabel } from '../domain/labels'
 import { Chip } from './ui/Chip'
 import { RankTable, type RankTableColumn } from './ui/RankTable'
 import { RiderLabel } from './ui/RiderLabel'
+import { wornTeam } from './ui/TeamJersey'
 
 /** El estado de salud de la respuesta, si es uno de los cuatro. */
 const esEstado = (s: string): s is HealthState => (HEALTH_STATES as readonly string[]).includes(s)
@@ -48,12 +49,16 @@ export function SquadTable({
   answer = false,
 }: {
   readonly rows: readonly TeamRider[]
-  /** el equipo de la ficha: su nombre y la semilla de su dibujo */
-  readonly team: { readonly name: string; readonly jerseySeed: string }
+  /** el equipo de la ficha: su nombre, su maillot de mañana (nulo hasta el 17b) y la semilla de hoy */
+  readonly team: {
+    readonly name: string
+    readonly kit: KitCode | null
+    readonly jerseySeed: string
+  }
   /** la tabla que contesta a la pantalla (§7.3) */
   readonly answer?: boolean
 }) {
-  const kit = { name: team.name, legacySeed: team.jerseySeed }
+  const kit = wornTeam(team.name, team.kit, team.jerseySeed)
   return (
     <RankTable
       caption={`${team.name} roster: rider, role, season points and health`}

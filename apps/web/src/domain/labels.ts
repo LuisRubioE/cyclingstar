@@ -7,9 +7,13 @@
  * página tradujera y otra mostrara la clave interna en crudo.
  */
 
-import { ARCHETYPE_LABELS } from '@cyclingstar/shared'
+import { ARCHETYPE_LABELS, bibColors } from '@cyclingstar/shared'
 import type {
+  BibStyle,
   Effort,
+  Kit,
+  KitColorName,
+  KitFigure,
   Mentality,
   RaceClass,
   RaceFormat,
@@ -198,10 +202,68 @@ const NEWS_KIND_LABEL: Record<string, string> = {
   // El marcador de una etapa velada (§11.7, sup. N2; 9b): la familia `Watch`, igual para todos, venga de
   // la carrera que venga y pase lo que pase en ella.
   stage_ready: 'Watch',
+  // El maillot nuevo de un equipo, en su diario (E3, docs/visual.md §8.6; 17b): el de la traducción y
+  // el del NPC que cede.
+  kit_new: 'Kit',
+  kit_ceded: 'Kit',
+  // y el que pone un moderador (§8.8; 18a)
+  kit_reset: 'Kit',
 }
 
 export function newsLabel(kind: string): string {
   return NEWS_KIND_LABEL[kind] ?? 'News'
+}
+
+/** Las siete figuras del maillot, por su nombre (E3, docs/visual.md §8.1; 17c). */
+export const KIT_FIGURE_LABEL: Record<KitFigure, string> = {
+  plain: 'Plain',
+  band: 'Chest band',
+  hoops: 'Hoops',
+  halves: 'Halves',
+  yoke: 'Yoke',
+  sides: 'Sides',
+  sash: 'Sash',
+}
+
+/** Los quince colores del maillot, por su nombre (§8.1). */
+export const KIT_COLOR_LABEL: Record<KitColorName, string> = {
+  black: 'Black',
+  navy: 'Navy',
+  blue: 'Blue',
+  sky: 'Sky',
+  teal: 'Teal',
+  green: 'Green',
+  orange: 'Orange',
+  red: 'Red',
+  pink: 'Pink',
+  purple: 'Purple',
+  taupe: 'Taupe',
+  brown: 'Brown',
+  plum: 'Plum',
+  yellow: 'Yellow',
+  white: 'White',
+}
+
+/** El maillot en palabras (§8.10): `Hoops · Navy · Yellow`; un liso, `Plain · Red`. */
+export function kitWords(kit: Kit): string {
+  const partes = [KIT_FIGURE_LABEL[kit.figure], KIT_COLOR_LABEL[kit.base]]
+  if (kit.figure !== 'plain') partes.push(KIT_COLOR_LABEL[kit.secondary])
+  return partes.join(' · ')
+}
+
+/** Los cuatro culotes, por su nombre, en los botones del editor (§8.7; 18b). */
+export const BIB_STYLE_LABEL: Record<BibStyle, string> = {
+  black: 'Black',
+  'black.panel': 'Black + panels',
+  base: 'Main colour',
+  'base.panel': 'Main colour + panels',
+}
+
+/** El culote en palabras (§8.10): `Black shorts`; `Navy shorts with yellow panels`. */
+export function bibWords(kit: Kit, style: BibStyle): string {
+  const { body, panels } = bibColors(kit, style)
+  const cuerpo = `${KIT_COLOR_LABEL[body]} shorts`
+  return panels === null ? cuerpo : `${cuerpo} with ${KIT_COLOR_LABEL[panels].toLowerCase()} panels`
 }
 
 /** Clase de la carrera tal como se escribe en el ciclismo real (.WT, .Pro, .1…). */

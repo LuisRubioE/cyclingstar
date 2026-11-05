@@ -15,7 +15,8 @@ describe('CueCard · el rótulo del momento, uno a la vez (§6.5)', () => {
   it('sin rótulo, la región viva está y está vacía', () => {
     const html = renderToStaticMarkup(<CueCard cue={null} />)
     expect(html).toContain('aria-live="polite"')
-    expect(html).toContain('min-h-[72px]')
+    // re-sellado en el 17a (E3, §14.5; 14-b): de 72 a 88 px, el título y dos renglones de 28 con maillot
+    expect(html).toContain('min-h-22')
     expect(html).not.toContain('data-cue-class')
   })
 
@@ -110,13 +111,28 @@ describe('CueCard · la carta del corredor, la lista de la fuga y el cuadro de d
     return renderToStaticMarkup(<CueCard cue={{ text, cls: 2, seq: 1, body }} />)
   }
 
-  it('el rótulo de corredor: el maillot de campeón, dorsal, nombre, bandera, equipo y titular', () => {
+  // Re-sellado en el 17a (E3, docs/visual.md §14.1; D-00c): hasta entonces el rótulo abría con el
+  // maillot y ponía la bandera tras el nombre; ahora el dorsal, la bandera, el nombre y el maillot, y el
+  // equipo en el segundo renglón, con su maillot porque el corredor lleva el de campeón.
+  it('el rótulo de corredor: el dorsal, la bandera, el nombre y el maillot de campeón; debajo, el equipo y el titular', () => {
     const html = card({ kind: 'rider', t: 100, rider: 1, context: 'break_round' })
     expect(html).toContain('data-rider-card="1"')
-    expect(html).toContain('data-champion-mark')
+    const [bib, flag, name, jersey] = [
+      html.indexOf('>#2<'),
+      html.indexOf('data-ui="Flag"'),
+      html.indexOf(cast[1]!.name),
+      html.indexOf('data-ui="ChampionJersey"'),
+    ]
+    expect(bib).toBeGreaterThan(0)
+    expect(bib < flag && flag < name && name < jersey).toBe(true)
     expect(html).toContain('aria-label="Champion of Italy"')
-    expect(html).toContain('Team 1')
-    expect(html).toContain('>Champion of Italy<')
+    // a 28 px y con el filete claro: el rótulo va sobre oscuro
+    expect(html).toMatch(/data-ui="ChampionJersey"[^>]*width="28"/)
+    expect(html).toContain('stroke="rgb(255 255 255 / 0.6)"')
+    const team = html.slice(html.indexOf('data-rider-team'))
+    expect(team).toContain('aria-label="Team 1 kit"')
+    expect(team).toContain('Team 1')
+    expect(html).toContain('Champion of Italy</span>')
     // el corredor propio, con su marca y su línea de la general
     const own = card({ kind: 'rider', t: 100, rider: 3, context: 'own' })
     expect(own).toContain('Your rider')

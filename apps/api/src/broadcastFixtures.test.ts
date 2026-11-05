@@ -33,6 +33,7 @@ import {
   type ChronicleRider,
   type InstantContext,
   JERSEY_PRIORITY,
+  type KitCode,
   type RaceRadio,
   type RadioGroup,
   type RadioNames,
@@ -814,7 +815,11 @@ function refsOfRider(c: CastRider): StageRef[] {
 describe('B13 · la procedencia: nada del reparto con procedencia velada viaja (§16.4; 17-t)', () => {
   const casts = FIXTURES.map((name) => [name, loadTimeline(name).cast] as const)
   const names = { rider: (id: string) => `rider ${id}`, team: (id: string) => `team ${id}` }
-  const ctx = { own: new Set<number>(), dayCategory: 'elite' as const }
+  const ctx = {
+    own: new Set<number>(),
+    dayCategory: 'elite' as const,
+    kits: new Map<string, KitCode>(),
+  }
 
   it('con el velo vacío, la cabecera que sirve la ruta es la de serveCast y startStateOf sobre el reparto congelado', () => {
     for (const [name, cast] of casts) {

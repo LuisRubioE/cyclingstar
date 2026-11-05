@@ -36,6 +36,7 @@ import type {
   StageResultEntry,
 } from '../contracts.js'
 import type { JerseyKind, RiderCard } from '../jerseys.js'
+import { kitCodeSchema } from '../kit.js'
 import {
   type SchemaMatches,
   type StoredTimelineV1,
@@ -351,7 +352,14 @@ const riderCardSchema = z.object({
   bib: int.nullable(),
   country: z.string().length(2),
   gender: genderSchema,
-  team: z.object({ id: z.string(), name: z.string(), jerseySeed: z.string() }).nullable(),
+  team: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      jerseySeed: z.string(),
+      kit: kitCodeSchema.nullable().default(null),
+    })
+    .nullable(),
   worn: wornJerseySchema,
   lines: z.array(distinctionSchema).max(BROADCAST.cardLinesMax),
   notoriety: z.literal([0, 1, 2, 3, 4, 5, 6, 7, 8]),

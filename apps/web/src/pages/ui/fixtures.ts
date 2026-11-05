@@ -1,7 +1,7 @@
-import type { ChampionTitle, JerseyKind } from '@cyclingstar/shared'
+import type { ChampionTitle, JerseyKind, KitCode } from '@cyclingstar/shared'
 import { ApiError } from '../../api/request'
 import type { QueryViewProps } from '../../components/ui/QueryView'
-import type { LegacyTeam } from '../../components/ui/RiderLabel'
+import type { WornTeam } from '../../components/ui/TeamJersey'
 
 /**
  * LOS DATOS FIJOS DE `/_ui` (E3, docs/visual.md §5.4; PR 9a, D-10): los casos difíciles, medidos, para
@@ -64,8 +64,23 @@ export const ITALY_TITLE: ChampionTitle = {
   category: 'elite',
 }
 
-/** Los equipos de las filas, con la semilla de su dibujo de hoy (las de la génesis). */
-export const UI_TEAMS: readonly LegacyTeam[] = [
+/**
+ * Los maillots de los ocho primeros equipos de las filas (17a): uno de cada figura y uno más. Los otros
+ * cuatro siguen con la semilla de su dibujo de hoy, como un equipo que la traducción aún no ha vestido.
+ */
+const UI_KITS: readonly KitCode[] = [
+  'halves.red.blue',
+  'band.navy.orange',
+  'plain.green',
+  'hoops.black.yellow',
+  'yoke.blue.white',
+  'sides.teal.navy',
+  'sash.purple.yellow',
+  'band.red.white',
+]
+
+/** Los equipos de las filas: los ocho primeros con su maillot; los demás, con la semilla de la génesis. */
+export const UI_TEAMS: readonly WornTeam[] = [
   'Valencia Pro Team',
   'Mistral Racing',
   'Noord Cycling',
@@ -78,10 +93,12 @@ export const UI_TEAMS: readonly LegacyTeam[] = [
   'Sierra Morena Ciclismo',
   'Rhône Valley Racing',
   'Fjord Riders',
-].map((name, i) => ({
-  name,
-  legacySeed: `cyclingstar-2:team:${i < 6 ? 'WT' : 'PRS'}:${i % 6}:jersey`,
-}))
+].map((name, i): WornTeam => {
+  const kit = UI_KITS[i]
+  return kit === undefined
+    ? { name, legacySeed: `cyclingstar-2:team:${i < 6 ? 'WT' : 'PRS'}:${i % 6}:jersey` }
+    : { name, kit }
+})
 
 const NOMBRES = [
   'Sander',
@@ -146,7 +163,7 @@ export interface UiGcRow {
     readonly country: string | null
   }
   readonly bib: number
-  readonly team: LegacyTeam | null
+  readonly team: WornTeam | null
   readonly leader: JerseyKind | null
   readonly rank: number | null
   /** el tiempo del primero, en segundos */
@@ -198,7 +215,7 @@ export const GC_WITH_DNF: readonly UiGcRow[] = [
 ]
 
 export interface UiTeamRow {
-  readonly team: LegacyTeam
+  readonly team: WornTeam
   readonly rank: number
   readonly gap: number
 }

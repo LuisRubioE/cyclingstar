@@ -210,7 +210,8 @@ export function readingScreenOf(
 ): ReadingScreen {
   const none: ReadonlySet<RiderIx> = new Set()
   return {
-    cards: riderCardsOf(tl.cast, names, none, dayCategory),
+    // sin maillots: la prueba lee las cartas, y hasta el 17b todos salen nulos (E3, §8.5; 16b)
+    cards: riderCardsOf(tl.cast, names, none, dayCategory, new Map()),
     ctx: {
       own: none,
       start: startStateOf(tl.cast, tl.riderIds.length),

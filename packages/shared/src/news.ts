@@ -11,6 +11,7 @@
  * importa para el `newsItemSchema`, nunca al revés.
  */
 import { z } from 'zod'
+import { type KitCode, kitCodeSchema } from './kit.js'
 import { pickVariant, type Variant } from './render/variants.js'
 import { HEALTH_STATES, type HealthState } from './rider.js'
 
@@ -78,7 +79,33 @@ export type NewsPayload =
       readonly teamId: string | null
       readonly age: number
     }
-export type NewsKind = NewsPayload['kind'] // los once que redactaba el motor hasta el 4a (world/news.ts) más gc_lead_taken y jersey_taken
+  | {
+      readonly kind: 'kit_new' | 'kit_ceded' | 'kit_reset'
+      readonly teamId: string
+      readonly kit: KitCode
+    } // E3, 17b: el maillot de la traducción y el del NPC que cede (docs/visual.md §8.6); 18a: el que pone un moderador (§8.8); sin corredor
+export type NewsKind = NewsPayload['kind'] // los once que redactaba el motor hasta el 4a (world/news.ts), gc_lead_taken y jersey_taken, y los dos del maillot
+
+/**
+ * LAS DEL DIARIO DEL EQUIPO (E3, docs/visual.md §8.6 y §8.8; PR 17b y 18a): las tres del maillot, que no
+ * tienen corredor y solo salen en `GET /api/teams/:id/news`; en el feed del mundo serían 219 titulares el
+ * día de la traducción.
+ */
+export const TEAM_NEWS_KINDS = [
+  'kit_new',
+  'kit_ceded',
+  'kit_reset',
+] as const satisfies readonly NewsKind[]
+/** Las del diario del equipo, sin corredor. */
+export type TeamNewsPayload = Extract<
+  NewsPayload,
+  { readonly kind: (typeof TEAM_NEWS_KINDS)[number] }
+>
+/** Las de siempre, las que tienen un corredor de protagonista. */
+export type RiderNewsPayload = Exclude<NewsPayload, TeamNewsPayload>
+/** Si una noticia es del diario del equipo: las del maillot, sin corredor. */
+export const isTeamNewsPayload = (p: NewsPayload): p is TeamNewsPayload =>
+  (TEAM_NEWS_KINDS as readonly string[]).includes(p.kind)
 
 /** Lo que una lista enseña en lugar de las noticias de una etapa velada: UNO por etapa, se escribiera una noticia o cinco (D-45, I-39). Solo en lectura. */
 export interface StageReadyItem {
@@ -164,6 +191,7 @@ export const newsPayloadSchema = z.discriminatedUnion('kind', [
     housingCovered: z.boolean(),
   }),
   z.object({ kind: z.literal('retirement'), ...who, age: z.number().int().min(0) }),
+  z.object({ kind: z.enum(TEAM_NEWS_KINDS), teamId: z.string().min(1), kit: kitCodeSchema }),
 ]) satisfies z.ZodType<NewsPayload>
 
 /** Lo que decía ABANDON_DETAIL (stageRun.ts), que se retira: el motivo es un código y la frase se pone al leer. */
@@ -264,6 +292,12 @@ export const NEWS_VARIANTS: { readonly [K in NewsKind]: readonly Variant<Of<K>>[
     },
   ],
   retirement: [{ since: 0, render: (d, n) => `${n.rider(d.riderId)} retires at ${d.age}.` }],
+  kit_new: [{ since: 0, render: (d, n) => `${n.team(d.teamId)} has a new kit.` }],
+  kit_ceded: [{ since: 0, render: (d, n) => `New kit for ${n.team(d.teamId)}.` }],
+  // en tercera persona: el diario del equipo es público (§8.8 decía `Your kit was …`, para el mánager)
+  kit_reset: [
+    { since: 0, render: (d, n) => `${n.team(d.teamId)}'s kit was reset by a moderator.` },
+  ],
 }
 
 /** EL TITULAR AL LEER (D-45). Semilla y revisión, las de la fila. `_locale`: el literal 'en' hasta E10, que ensancha el tipo y lo renombra

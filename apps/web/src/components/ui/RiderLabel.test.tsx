@@ -106,7 +106,8 @@ describe('RiderLabel', () => {
 
   it('el de campeón, sin la bandera de al lado (D-00c): una sola bandera, la del corredor', () => {
     const s = pinta({ champion: ITALIA })
-    expect(s).toContain('data-kit="champion"')
+    // desde el 17a, ChampionJersey, con su alcance en data-kit (E3, §9.1)
+    expect(s).toContain('data-kit="champion-national"')
     expect(s).toContain('aria-label="Champion of Italy"')
     expect(s.match(/data-ui="Flag"/g)).toHaveLength(1)
   })

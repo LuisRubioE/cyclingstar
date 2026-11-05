@@ -23,3 +23,11 @@ docs/inventario-recorridos.md
 # Las etapas congeladas de la retransmisión (E2): su manifiesto lo escribe
 # `scripts/broadcast-fixtures.mjs`, con un corredor por línea. Mismo criterio.
 apps/api/src/__fixtures__/broadcast/manifest.json
+
+# Los maillots (E3, PR 16a): las celdas de las banderas para medir, que escribe
+# `apps/web/scripts/flag-sprite.mjs`; la tabla de choques, que escribe `buildKitConflicts`
+# (`KIT_CONFLICTS_WRITE=1`), y el dorado de la distancia dibujada, que escribe el script del mapa 03
+# (`--golden`). Mismo criterio: lo generado manda sobre el formateador.
+packages/db/src/flagCells.generated.ts
+packages/db/src/kitConflicts.generated.ts
+packages/db/src/__fixtures__/kitDistance.golden.json

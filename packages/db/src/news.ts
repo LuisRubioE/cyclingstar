@@ -3,7 +3,9 @@ import {
   COUNTRIES,
   type NameResolver,
   type NewsPayload,
+  TEAM_NEWS_KINDS,
   TEMPLATE_REV,
+  isTeamNewsPayload,
   newsPayloadSchema,
   parseRaceKey,
   renderNews,
@@ -103,8 +105,10 @@ export async function newsNames(
   const riderIds = new Set<string>()
   const teamIds = new Set<string>()
   for (const p of payloads) {
-    if (UUID.test(p.riderId)) riderIds.add(p.riderId)
+    if ('riderId' in p && UUID.test(p.riderId)) riderIds.add(p.riderId)
     if (p.kind === 'contract' && UUID.test(p.toTeamId)) teamIds.add(p.toTeamId)
+    // las del maillot (E3, 17b y 18a) nombran a su equipo, que no tiene corredor
+    if (isTeamNewsPayload(p) && UUID.test(p.teamId)) teamIds.add(p.teamId)
   }
   const riderRows =
     riderIds.size === 0
@@ -216,6 +220,17 @@ const NEWS_ORDER: SQL[] = [
 function leaderFilter(opts: NewsReadOptions): SQL | undefined {
   return opts.leaderNews ? undefined : notInArray(news.kind, [...LEADER_KINDS])
 }
+
+/**
+ * LAS DEL DIARIO DEL EQUIPO (E3, docs/visual.md §8.6; PR 17b): las del maillot no tienen corredor y
+ * llevan su equipo en los datos. Solo las lee `getTeamNews`; en el feed del mundo serían 219 titulares
+ * el día de la traducción.
+ */
+const ofTeamOnly = (teamId: string): SQL | undefined =>
+  and(inArray(news.kind, [...TEAM_NEWS_KINDS]), sql`${news.data} ->> 'teamId' = ${teamId}`)
+const notTeamOnly: SQL = notInArray(news.kind, [...TEAM_NEWS_KINDS])
+/** Los kinds cuyos datos no viajan (abajo, en `redacta`). */
+const TEAM_ONLY: ReadonlySet<string> = new Set(TEAM_NEWS_KINDS)
 
 /** El filtro F (§11.7): fuera las noticias de las etapas del velo de `h`; con el velo vacío, nada. */
 function veilFilter(h: Horizon): SQL | undefined {
@@ -346,7 +361,9 @@ async function redacta(q: Queryable, rows: readonly NewsRow[]): Promise<NewsItem
       country: r.country,
       teamId: r.teamId,
       teamName: r.teamName,
-      payload,
+      // Los datos de las del maillot no viajan: la web cargada antes del 17b valida `payload` con la
+      // unión de antes y rechazaría la respuesta entera, y ninguna web lo lee; el texto sí, redactado.
+      payload: TEAM_ONLY.has(r.kind) ? null : payload,
       seed: r.seed,
       tplRev: r.tplRev,
       raceId: r.raceKey === null ? null : parseRaceKey(r.raceKey).raceId,
@@ -373,7 +390,7 @@ export async function getGlobalNews(
     .from(news)
     .leftJoin(riders, eq(riders.id, news.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
-    .where(and(eq(news.worldId, worldId), leaderFilter(opts), veilFilter(h)))
+    .where(and(eq(news.worldId, worldId), notTeamOnly, leaderFilter(opts), veilFilter(h)))
     .orderBy(...NEWS_ORDER)
     .limit(limit)
   const items = await redacta(
@@ -421,7 +438,8 @@ export async function getStageNews(
 
 /**
  * Noticias de un equipo (#16): titulares cuyo protagonista corre hoy en el equipo (victorias de
- * etapa, generales, fugas de sus corredores…). Sin columna nueva: se deriva del enlace corredor.
+ * etapa, generales, fugas de sus corredores…). Sin columna nueva: se deriva del enlace corredor. Y,
+ * desde el 17b de E3, las del maillot del equipo, que no tienen corredor (`ofTeamOnly`).
  *
  * F (§11.7, decisión 11-g): sin las noticias de las etapas del velo de `h`, y un marcador por cada
  * etapa velada de cada carrera en cuya lista de salida está el equipo (un corredor suyo de hoy en
@@ -438,9 +456,11 @@ export async function getTeamNews(
   const rows = await db
     .select(NEWS_COLUMNS)
     .from(news)
-    .innerJoin(riders, eq(riders.id, news.riderId))
+    .leftJoin(riders, eq(riders.id, news.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
-    .where(and(eq(riders.teamId, teamId), leaderFilter(opts), veilFilter(h)))
+    .where(
+      and(or(eq(riders.teamId, teamId), ofTeamOnly(teamId)), leaderFilter(opts), veilFilter(h)),
+    )
     .orderBy(...NEWS_ORDER)
     .limit(limit)
   const items = await redacta(
@@ -487,6 +507,7 @@ export async function getRiderNews(
       and(
         eq(news.worldId, worldId),
         or(eq(news.riderId, riderId), eq(news.scope, 'global')),
+        notTeamOnly,
         leaderFilter(opts),
         veilFilter(h),
       ),
