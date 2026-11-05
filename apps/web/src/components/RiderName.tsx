@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom'
  * maneras según dónde salga.
  */
 export const RIDER_LINK_CLASS =
-  'underline decoration-dotted decoration-slate-300 underline-offset-2 hover:text-indigo-600 hover:decoration-indigo-400'
+  'underline decoration-dotted decoration-line-strong underline-offset-2 hover:text-accent hover:decoration-accent'
 
 /**
  * Nombre de un corredor, enlazable a su ficha (#14). Los NPC (bots) van en cursiva y los humanos

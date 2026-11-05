@@ -1,6 +1,7 @@
 import type { StageGate } from '@cyclingstar/shared'
 import { useState } from 'react'
 import { type GatePlace, alsoRevealsText, revealPlan, revealQuestion } from '../domain/stageGate'
+import { Checkbox } from './ui/Checkbox'
 import { Button } from './ui/Button'
 import { Notice } from './ui/Notice'
 import { TextLink } from './ui/TextLink'
@@ -60,10 +61,7 @@ export function RevealConfirm({
     <div role="dialog" aria-label="Show the result" className="mt-3">
       <Notice tone="info" title={question ?? revealQuestion(stageDay)}>
         {alsoText !== null && <p>{alsoText}</p>}
-        <label className="mt-1 flex min-h-11 items-center gap-2 text-ink">
-          <input type="checkbox" checked={dontAsk} onChange={(e) => setDontAsk(e.target.checked)} />
-          Don&apos;t ask again
-        </label>
+        <Checkbox label="Don't ask again" checked={dontAsk} onChange={setDontAsk} layout="mt-1" />
         <div className="mt-1 flex flex-wrap gap-2">
           <Button variant="primary" busy={busy} onClick={() => onConfirm(dontAsk)}>
             Show result

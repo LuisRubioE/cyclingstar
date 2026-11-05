@@ -194,7 +194,7 @@ export function App() {
       medidos, con el área segura de los móviles con muesca (`--fixed-bottom`, que escriben ellas al
       montarse). Va aquí y no en `main` para que tampoco tapen el pie. En escritorio no hay barra inferior.
     */
-    <div className="min-h-screen pb-[var(--fixed-bottom)] text-slate-900">
+    <div className="min-h-screen pb-[var(--fixed-bottom)] text-ink">
       <SessionExpiryWatcher />
       <RouteTitle />
       <Header />
@@ -387,24 +387,24 @@ export function App() {
           </Suspense>
         </RouteBoundary>
       </main>
-      <footer className="mx-auto max-w-6xl px-4 py-8 text-xs text-slate-400">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 pt-4">
+      <footer className="mx-auto max-w-6xl px-4 py-8 text-caption text-ink-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-4">
           {/* los dos enlaces, de 44 × 44 (WCAG 2.5.8; E3, PR 12a): medían 16 de alto en todas las pantallas */}
           <div className="flex items-center gap-x-4">
             <Link
               to="/how-to-play"
-              className="inline-flex min-h-11 min-w-11 items-center hover:text-slate-600"
+              className="inline-flex min-h-11 min-w-11 items-center hover:text-ink"
             >
               How to play
             </Link>
             <Link
               to="/privacy"
-              className="inline-flex min-h-11 min-w-11 items-center hover:text-slate-600"
+              className="inline-flex min-h-11 min-w-11 items-center hover:text-ink"
             >
               Privacy
             </Link>
           </div>
-          <p className="w-full leading-relaxed text-slate-400">
+          <p className="w-full text-ink-2">
             Cycling Star is a fictional cycling-manager simulation game. All teams, riders, races
             and results shown here are computer-generated and made up — they are{' '}
             <strong>not</strong> real people, real teams or real results, and the game is not
