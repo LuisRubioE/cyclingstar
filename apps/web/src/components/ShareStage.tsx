@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button } from './ui/Button'
 
 /**
  * COMPARTIR UNA ETAPA (E2, docs/retransmision.md §11.10; D-36, DD-12; paso 9a). Dos botones que no son
@@ -10,6 +11,11 @@ import { useState } from 'react'
  *   revelar): el acta pública de `/report`. Su vista previa lleva el ganador, marcado `Spoiler` (DD-12).
  *
  * Los dos sin `diag` (§11.15). Con `navigator.share` donde lo hay (el móvil); si no, el enlace se copia.
+ *
+ * Desde el PR 20 (E3, docs/visual.md §14.2): con el catálogo. En la cabeza de la etapa, `Share to watch` es
+ * el icono `share` de 44 junto al `h1` (`ShareStageIcon`); `Share the report` pasa a la pestaña `Report`,
+ * que es donde está lo que comparte. Donde no hay cabeza (el acta y la carrera de un día), los dos con su
+ * texto (`ShareStage`).
  */
 
 type Shared = 'idle' | 'copied' | 'failed'
@@ -31,43 +37,66 @@ async function shareUrl(url: string, title: string): Promise<Shared> {
   return 'failed'
 }
 
+/** Compartir los enlaces de una etapa, y lo que pasó la última vez. */
+function useShare(raceId: string, day: number) {
+  const [state, setState] = useState<Shared>('idle')
+  const link = (path: string): string =>
+    `${typeof window === 'undefined' ? '' : window.location.origin}/world/races/${raceId}/stages/${day}${path}`
+  return {
+    state,
+    watch: () => void shareUrl(link(''), `Stage ${day}`).then(setState),
+    report: () => void shareUrl(link('/report'), `Stage ${day} report`).then(setState),
+  }
+}
+
+/** `Link copied` o `Could not copy the link`, que se anuncia; nada si se compartió. */
+function SharedNote({ state }: { state: Shared }) {
+  if (state === 'idle') return null
+  return (
+    <span role="status" className="text-caption text-ink-2">
+      {state === 'copied' ? 'Link copied' : 'Could not copy the link'}
+    </span>
+  )
+}
+
+/** `Share to watch` en la cabeza de la etapa: el icono `share`, de 44, con su texto en `ariaLabel`. */
+export function ShareStageIcon({ raceId, day }: { raceId: string; day: number }) {
+  const share = useShare(raceId, day)
+  return (
+    <span className="inline-flex shrink-0 flex-col items-end">
+      <Button variant="quiet" icon="share" ariaLabel="Share to watch" onClick={share.watch} />
+      <SharedNote state={share.state} />
+    </span>
+  )
+}
+
 export function ShareStage({
   raceId,
   day,
   report,
+  watch = true,
 }: {
   raceId: string
   day: number
   /** quien mira conoce la etapa: puede compartir el acta */
   report: boolean
+  /** `Share to watch`; sin él, solo el acta (la pestaña `Report`, cuya cabeza ya lo lleva) */
+  watch?: boolean
 }) {
-  const [state, setState] = useState<Shared>('idle')
-  const link = (path: string): string =>
-    `${typeof window === 'undefined' ? '' : window.location.origin}/world/races/${raceId}/stages/${day}${path}`
-  const button =
-    'rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200'
+  const share = useShare(raceId, day)
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        className={button}
-        onClick={() => void shareUrl(link(''), `Stage ${day}`).then(setState)}
-      >
-        Share to watch
-      </button>
+      {watch && (
+        <Button variant="quiet" icon="share" onClick={share.watch}>
+          Share to watch
+        </Button>
+      )}
       {report && (
-        <button
-          type="button"
-          className={button}
-          onClick={() => void shareUrl(link('/report'), `Stage ${day} report`).then(setState)}
-        >
+        <Button variant="quiet" icon="share" onClick={share.report}>
           Share the report
-        </button>
+        </Button>
       )}
-      {state === 'copied' && <span className="text-xs text-slate-500">Link copied</span>}
-      {state === 'failed' && (
-        <span className="text-xs text-slate-500">Could not copy the link</span>
-      )}
+      <SharedNote state={share.state} />
     </div>
   )
 }

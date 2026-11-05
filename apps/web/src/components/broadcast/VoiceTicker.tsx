@@ -14,6 +14,10 @@ import { LeaderJersey } from '../ui/LeaderJersey'
  * línea de `breakaway_formed`, la tendencia del hueco y los nombres de una caída en un segundo tiempo.
  *
  * No es una región viva: el anuncio es por rótulo, no por línea (§18.8).
+ *
+ * Desde el PR 20 (E3, docs/visual.md §14.5; Ruso-040, 14-i): con tokens, y la línea dicha en un renglón
+ * de 28 (el de sus maillots), que es lo único de `Watch` que puede cortarse, porque la frase entera queda
+ * en el historial: lleva `data-clip-ok`.
  */
 export function VoiceTicker({
   lines,
@@ -42,17 +46,15 @@ export function VoiceTicker({
   const before = last === undefined ? said : said.slice(0, -1)
   return (
     <div className="space-y-2">
-      <p className="min-h-[1.25rem] truncate text-sm text-slate-700" aria-live="off">
+      <p data-clip-ok="" className="min-h-7 truncate text-meta text-ink" aria-live="off">
         {last !== undefined && <Item item={last} rev={rev} />}
       </p>
       {open && (
-        <ol className="max-h-72 space-y-1.5 overflow-y-auto border-t border-slate-100 pt-2">
+        <ol className="max-h-72 space-y-1.5 overflow-y-auto border-t border-line pt-2">
           {[...before].reverse().map((l, i) => (
-            <li key={`${l.revealS}-${i}`} className="flex gap-2 text-sm">
-              <span className="w-14 shrink-0 text-right tabular-nums text-slate-400">
-                km {l.km}
-              </span>
-              <span className="text-slate-700">
+            <li key={`${l.revealS}-${i}`} className="flex gap-2 text-meta">
+              <span className="w-14 shrink-0 text-right tabular-nums text-ink-3">km {l.km}</span>
+              <span className="text-ink">
                 <Item item={l} rev={rev} />
               </span>
             </li>

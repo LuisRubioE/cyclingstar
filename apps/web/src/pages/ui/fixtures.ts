@@ -1,4 +1,10 @@
-import type { ChampionTitle, JerseyKind, KitCode } from '@cyclingstar/shared'
+import {
+  COUNTRY_NAMES,
+  type ChampionTitle,
+  type JerseyKind,
+  type KitCode,
+  championTitleText,
+} from '@cyclingstar/shared'
 import { ApiError } from '../../api/request'
 import type { QueryViewProps } from '../../components/ui/QueryView'
 import type { WornTeam } from '../../components/ui/TeamJersey'
@@ -268,3 +274,26 @@ export const UI_QUERIES: readonly (readonly [string, UiQuery])[] = [
     consulta({ status: 'success', fetchStatus: 'idle', data: ['Race Var', 'Race Sardegna'] }),
   ],
 ]
+
+/**
+ * LOS RÓTULOS DE `Watch` (E3, docs/visual.md §14.5; H-07; PR 20): uno de cada clase y el título más largo
+ * que puede salir ([DOC 40]), de 59 caracteres, que va en dos renglones a 320 y a 360 px sin cortarse:
+ * la prueba del teléfono lo mira aquí cada día, y de noche con la letra al doble (§16.5).
+ */
+export const UI_CUES: readonly (readonly [string, 1 | 2 | 3, string, string | null])[] = [
+  ['class 3 · the finish, the chase, the split', 3, 'CAUGHT', 'The bunch is back together'],
+  ['class 2', 2, 'ATTACK', '107 Andrea Rossi goes clear on the Côte de Monteynard'],
+  ['class 1', 1, 'KOM', 'Côte de Monteynard · Cat. 2 · 12.0 km at 5.0%'],
+  ['the longest title', 2, championTitleText('en', LONGEST_TITLE, COUNTRY_NAMES), null],
+]
+
+/**
+ * Noventa días de fondo y frescura para `FormChart` (§4.8; PR 21h), enteros de 0 a 100: el fondo sube con las
+ * semanas y la frescura sube y baja con ellas.
+ */
+export const NINETY_DAYS: readonly { gameDay: number; fitness: number; freshness: number }[] =
+  Array.from({ length: 90 }, (_, i) => ({
+    gameDay: i + 1,
+    fitness: Math.round(40 + (25 * i) / 89),
+    freshness: Math.round(55 + 30 * Math.sin(i / 6)),
+  }))

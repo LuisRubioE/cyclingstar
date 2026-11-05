@@ -6,41 +6,31 @@
  * forma—, que solo se pinta en modo propietario.
  *
  * Aquí viven las etiquetas para que la insignia de la ficha, la del bloque de condición y las de la
- * plantilla digan exactamente lo mismo (antes había dos mapas copiados).
+ * plantilla digan exactamente lo mismo (antes había dos mapas copiados). Desde el 21h de E3, sin las clases
+ * de color de la ficha de antes: el aspecto es el tono de su `Chip` (`healthTone`, §3.2).
  */
 
 import { type HealthState, type RiderHealth, seasonPosition } from '@cyclingstar/shared'
+import type { Tone } from '../components/ui/types'
 
 export interface HealthLook {
   /** Texto visible de la insignia (inglés, como toda la interfaz). */
   label: string
-  /** Clases del distintivo (fondo, texto y anillo). */
-  cls: string
   /** Explicación de una línea: qué significa para el corredor. */
   note: string
 }
 
 export const HEALTH_LOOK: Record<HealthState, HealthLook> = {
-  sano: {
-    label: 'Healthy',
-    cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    note: 'Fit to race and train.',
-  },
-  molestias: {
-    label: 'Niggle',
-    cls: 'bg-amber-50 text-amber-700 ring-amber-200',
-    note: 'Can race, but at a slight disadvantage until it clears.',
-  },
-  enfermo: {
-    label: 'Ill',
-    cls: 'bg-orange-50 text-orange-700 ring-orange-200',
-    note: "Resting to recover — won't be called up until fit again.",
-  },
-  lesionado: {
-    label: 'Injured',
-    cls: 'bg-red-50 text-red-700 ring-red-200',
-    note: "Out with an injury — can't race until recovered.",
-  },
+  sano: { label: 'Healthy', note: 'Fit to race and train.' },
+  molestias: { label: 'Niggle', note: 'Can race, but at a slight disadvantage until it clears.' },
+  enfermo: { label: 'Ill', note: "Resting to recover — won't be called up until fit again." },
+  lesionado: { label: 'Injured', note: "Out with an injury — can't race until recovered." },
+}
+
+/** El tono de su `Chip` (E3, §3.2; PR 21h): sano, `good`; con molestias, `warn`; fuera de combate, `bad`. */
+export function healthTone(state: HealthState): Extract<Tone, 'good' | 'warn' | 'bad'> {
+  if (state === 'sano') return 'good'
+  return isOut(state) ? 'bad' : 'warn'
 }
 
 /**
@@ -83,9 +73,9 @@ export function healthDaysLeft(health: RiderHealth | null, gameDay: number | nul
 }
 
 /**
- * Hasta cuándo dura la baja, en el mismo lenguaje que el reloj del mundo ("GD 143", día de la
- * temporada). Devuelve `null` cuando no hay nada que decir: sano, molestias, sin fecha, o una fecha
- * ya pasada (el corredor vuelve en el próximo tick).
+ * Hasta cuándo dura la baja, en el mismo lenguaje que el reloj del mundo: el día de la temporada, `Day 143`,
+ * y nunca `GD 143` (E3, §4.10; PR 21h). Devuelve `null` cuando no hay nada que decir: sano, molestias, sin
+ * fecha, o una fecha ya pasada (el corredor vuelve en el próximo tick).
  */
 export function healthUntilLabel(
   health: RiderHealth | null,
@@ -94,6 +84,20 @@ export function healthUntilLabel(
   if (!health || !isOut(health.state) || health.untilDay == null) return null
   const gd = seasonPosition(health.untilDay).dayOfSeason
   const left = healthDaysLeft(health, gameDay)
-  if (left == null) return gameDay == null ? `out until GD ${gd}` : null
-  return `out until GD ${gd} · ~${left} ${left === 1 ? 'day' : 'days'}`
+  if (left == null) return gameDay == null ? `out until Day ${gd}` : null
+  return `out until Day ${gd} · ~${left} ${left === 1 ? 'day' : 'days'}`
+}
+
+/**
+ * La chapa de salud de `RiderHeader` (E3, §4.6; PR 21h): solo si no está sano, con su estado, hasta cuándo si
+ * está fuera (`Injured · out until Day 143 · ~6 days`) y su tono. Es pública, como el estado.
+ */
+export function healthChip(
+  health: RiderHealth,
+  gameDay: number | null,
+): { readonly text: string; readonly tone: Tone } | null {
+  if (health.state === 'sano') return null
+  const until = healthUntilLabel(health, gameDay)
+  const label = HEALTH_LOOK[health.state].label
+  return { text: until === null ? label : `${label} · ${until}`, tone: healthTone(health.state) }
 }

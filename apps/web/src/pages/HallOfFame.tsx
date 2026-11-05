@@ -1,26 +1,37 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import {
+  type AllTimeRecords,
   type HallOfFameRow,
   type RecordEntry,
   fetchHallOfFame,
   fetchRecords,
 } from '../api/rankings'
-import { Flag } from '../components/Flag'
-import { Panel, SectionBar } from '../components/Panel'
-import { RiderName } from '../components/RiderName'
 import { useOwnIds, useTeamsIdentity } from '../components/useTableIdentity'
 import { type TableIdentity, rowTeam } from '../domain/tableIdentity'
 import { plural } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 import { EmptyState } from '../components/ui/EmptyState'
-import { Panel as UiPanel } from '../components/ui/Panel'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { RankTable, type RankTableColumn } from '../components/ui/RankTable'
 import { RiderLabel } from '../components/ui/RiderLabel'
+import { Stat } from '../components/ui/Stat'
 
-function RecordCard({
+/** Los tres récords, en el orden de siempre, con la unidad de su cifra. */
+const RECORDS: readonly { key: keyof AllTimeRecords; title: string; unit: string }[] = [
+  { key: 'mostWins', title: 'Most wins', unit: 'wins' },
+  { key: 'mostGcWins', title: 'Most overall wins', unit: 'GC' },
+  { key: 'youngestWinner', title: 'Youngest overall winner', unit: 'yrs' },
+]
+
+/**
+ * UN RÉCORD (E3, PR 21k): su cifra en un `Stat`, y debajo quién lo tiene, en su `RiderLabel`, que enlaza a su
+ * ficha, y su nota en `meta`. Iban en un `Panel` cada uno, con la nota a 11 px en `slate-400`, y un `—` si no
+ * había: ahora lo dice, `None yet`.
+ */
+function RecordStat({
   title,
   entry,
   unit,
@@ -30,25 +41,23 @@ function RecordCard({
   unit: string
 }) {
   return (
-    <Panel title={title}>
-      {entry ? (
+    <div className="grid content-start gap-2">
+      <Stat label={title} value={entry ? `${entry.value} ${unit}` : 'None yet'} />
+      {entry && (
         <>
-          <p className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold tabular-nums text-slate-800">{entry.value}</span>
-            <span className="text-xs text-slate-400">{unit}</span>
-          </p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-600">
-            <Flag code={entry.country} size={14} />
-            <Link to={`/world/riders/${entry.riderId}`} className="hover:underline">
-              <RiderName riderId={entry.riderId} name={entry.name} isBot={entry.isBot} />
-            </Link>
-          </p>
-          <p className="mt-0.5 text-[11px] text-slate-400">{entry.note}</p>
+          <RiderLabel
+            rider={{
+              id: entry.riderId,
+              name: entry.name,
+              human: !entry.isBot,
+              country: entry.country || null,
+            }}
+            teamLine={false}
+          />
+          <p className="text-meta text-ink-2">{entry.note}</p>
         </>
-      ) : (
-        <p className="text-sm text-slate-400">—</p>
       )}
-    </Panel>
+    </div>
   )
 }
 
@@ -171,32 +180,29 @@ export function HallOfFame() {
 
   return (
     <section className="space-y-4">
-      <SectionBar>Hall of Fame</SectionBar>
+      <PageHeader
+        title="Hall of Fame"
+        status="The most decorated riders of the world, by all-time wins across every season."
+      />
       <VeilNotice kind="results" />
-      <p className="text-sm text-slate-500">
-        The most decorated riders of the world, by all-time wins across every season.
-      </p>
 
       {/* La respuesta, arriba (§2.2): los récords, que no lo son, van debajo. */}
       {data.length === 0 ? (
         <EmptyState text="No honours yet — win a race and you'll be the first name here." />
       ) : (
-        <UiPanel title="All-time honours" variant="bleed">
+        <Panel title="All-time honours" variant="bleed">
           <HallOfFameTable rows={data} identity={identity} ownRiderId={own.riderId} />
-        </UiPanel>
+        </Panel>
       )}
 
       {hasRecords && (
-        <div>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            All-time records
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <RecordCard title="Most wins" entry={rec.mostWins} unit="wins" />
-            <RecordCard title="Most overall wins" entry={rec.mostGcWins} unit="GC" />
-            <RecordCard title="Youngest overall winner" entry={rec.youngestWinner} unit="yrs" />
+        <Panel title="All-time records">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {RECORDS.map((r) => (
+              <RecordStat key={r.key} title={r.title} unit={r.unit} entry={rec[r.key]} />
+            ))}
           </div>
-        </div>
+        </Panel>
       )}
     </section>
   )

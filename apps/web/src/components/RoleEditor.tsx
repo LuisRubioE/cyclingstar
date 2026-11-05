@@ -1,15 +1,39 @@
 import { VOCATIONS, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
-import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { type QueryClient, useQueryClient } from '@tanstack/react-query'
+import { useId, useState } from 'react'
 import { setArchetype } from '../api/rider'
+import { Button } from './ui/Button'
+import { Field } from './ui/Field'
+
+/**
+ * Lo que se vuelve a pedir tras guardar el papel: el corredor propio y su ficha pública, de donde salen el papel
+ * de la cabecera y el del editor (la revisión del 21h: solo se pedía el primero, y los dos seguían en el viejo).
+ */
+export async function afterRoleChange(qc: QueryClient): Promise<void> {
+  await Promise.all([
+    qc.invalidateQueries({ queryKey: ['rider', 'me'] }),
+    qc.invalidateQueries({ queryKey: ['public-rider'] }),
+  ])
+}
 
 /**
  * Cambiar la vocación declarada (la etiqueta) del corredor (#50). Solo cambia el tipo: alinear el
  * entrenamiento hacia él queda en manos del jugador. También influye en las convocatorias por tipo.
+ *
+ * Con el sistema desde el 21h de E3 (docs/visual.md §4.6): `Change role`, un `Button` `quiet` de 44, en lugar
+ * del texto de 12 px; abierto, el `Field` `select` con su rótulo, `Save`, ocupado mientras guarda, y `Cancel`;
+ * el fallo, en su `alert`. `defaultOpen`, para su test, que no puede pulsar.
  */
-export function RoleEditor({ current }: { current: Vocation }) {
+export function RoleEditor({
+  current,
+  defaultOpen = false,
+}: {
+  current: Vocation
+  defaultOpen?: boolean
+}) {
   const qc = useQueryClient()
-  const [open, setOpen] = useState(false)
+  const id = useId()
+  const [open, setOpen] = useState(defaultOpen)
   const [value, setValue] = useState<Vocation>(current)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,7 +47,7 @@ export function RoleEditor({ current }: { current: Vocation }) {
     setError(null)
     try {
       await setArchetype(value)
-      await qc.invalidateQueries({ queryKey: ['rider', 'me'] })
+      await afterRoleChange(qc)
       setOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -34,57 +58,51 @@ export function RoleEditor({ current }: { current: Vocation }) {
 
   if (!open) {
     return (
-      <span className="flex items-center gap-2">
-        <span className="text-slate-700">{VOCATION_LABELS[current]}</span>
-        <button
-          type="button"
+      <span className="flex flex-wrap items-center gap-x-2">
+        <span className="text-ink">{VOCATION_LABELS[current]}</span>
+        <Button
+          variant="quiet"
           onClick={() => {
             setValue(current)
             setOpen(true)
           }}
-          className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
         >
           Change role
-        </button>
+        </Button>
       </span>
     )
   }
 
   return (
-    <div className="mt-1 rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs text-slate-500">
+    <div className="grid gap-3 rounded-ui bg-surface-2 p-3">
+      <p className="text-meta text-ink-2">
         Pick a new role. This only changes your declared specialty (and which races you get called
         to) — it's up to you to steer your training toward it.
       </p>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <select
-          value={value}
-          onChange={(e) => setValue(e.target.value as Vocation)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-        >
-          {VOCATIONS.map((v) => (
-            <option key={v} value={v}>
-              {VOCATION_LABELS[v]}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-white"
-        >
+      <Field
+        kind="select"
+        id={id}
+        label="Role"
+        value={value}
+        onChange={(v) => {
+          const vocation = VOCATIONS.find((x) => x === v)
+          if (vocation !== undefined) setValue(vocation)
+        }}
+        options={VOCATIONS.map((v) => ({ value: v, label: VOCATION_LABELS[v] }))}
+      />
+      <div className="flex flex-wrap gap-2">
+        <Button variant="primary" onClick={() => void save()} busy={saving} busyLabel="Saving…">
+          Save
+        </Button>
+        <Button variant="quiet" onClick={() => setOpen(false)}>
           Cancel
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="text-meta text-bad">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

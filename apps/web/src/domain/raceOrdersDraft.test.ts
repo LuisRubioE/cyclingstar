@@ -3,7 +3,9 @@ import type { StageOrder } from '../api/raceOrders'
 import {
   type OrdersDraft,
   buildServerOrders,
+  changedStages,
   defaultOrder,
+  defaultRaceKey,
   resolveOrders,
   withOrderPatch,
 } from './raceOrdersDraft'
@@ -82,5 +84,136 @@ describe('el cazaetapas no sale reservón', () => {
     const d2 = withOrderPatch(d1, 'r:s0', {}, 1, { mentality: 'reservon' })
     expect(d2.orders[1]!.mentality).toBe('reservon')
     expect(d2.orders[1]!.role).toBe('cazaetapas')
+  })
+})
+
+/**
+ * LO QUE CAMBIA AL GUARDAR (E3, docs/visual.md §4.3 y §4.9; PR 21i): las etapas cuya orden en pantalla no es la
+ * guardada, que cuenta la barra de guardar. Tocar y volver a lo guardado no es un cambio: las cuatro palancas
+ * del 17a sin preferencia valen lo mismo sin llegar, a null o, los equipos, vacías; y los equipos y el disparo,
+ * sin mirar su orden.
+ */
+describe('changedStages (PR 21i)', () => {
+  const server = buildServerOrders(stages, [])
+  const cambia = (patch: Partial<StageOrder>, base = server): number[] =>
+    changedStages(base, resolveOrders(base, withOrderPatch(null, TOUR, base, 1, patch), TOUR))
+
+  it('cada campo de la orden cuenta, uno a uno', () => {
+    const patches: Partial<StageOrder>[] = [
+      { role: 'sprinter' },
+      { mentality: 'combativo' },
+      { effort: 'a_tope' },
+      { triggerKm: 30, triggerOn: { at: 'km', km: 30 } },
+      { contestSprints: true },
+      { contestClimbs: true },
+      { chasePolicy: 'siempre' },
+      { dayGoal: 'ganar' },
+      { refuseRelayTeams: ['t-a'] },
+      { role: 'gregario', targetRiderId: 'm1' },
+    ]
+    for (const patch of patches) expect(cambia(patch), JSON.stringify(patch)).toEqual([1])
+  })
+
+  it('un campo que aún no existe, también: lo que no se compara no se podría guardar (la revisión del 21i)', () => {
+    const futuro = { tempo: 'alto' } as unknown as Partial<StageOrder>
+    expect(cambia(futuro)).toEqual([1])
+  })
+
+  it('el objetivo que no se ve, con un papel que no lo pide, no es un cambio (la revisión del 21i)', () => {
+    const ida = withOrderPatch(null, TOUR, server, 1, { role: 'gregario', targetRiderId: 'm1' })
+    const vuelta = withOrderPatch(ida, TOUR, server, 1, { role: 'libre' })
+    expect(changedStages(server, resolveOrders(server, vuelta, TOUR))).toEqual([])
+    // con un papel que lo pide, cambiar el objetivo sí lo es
+    const gregario = buildServerOrders(stages, [{ ...defaultOrder(1), role: 'gregario' }])
+    expect(cambia({ targetRiderId: 'm1' }, gregario)).toEqual([1])
+  })
+
+  it('el triggerKm que no casa con el disparo, que es lo que lee el motor, sí es un cambio', () => {
+    const km = buildServerOrders(stages, [
+      { ...defaultOrder(1), triggerOn: { at: 'km', km: 40 }, triggerKm: 40 },
+    ])
+    expect(cambia({ triggerKm: null }, km)).toEqual([1])
+  })
+
+  it('una orden de antes con el kilómetro solo en triggerKm, tocada y vuelta, no es un cambio (la revisión del 21i)', () => {
+    const vieja = buildServerOrders(stages, [
+      { ...defaultOrder(1), triggerKm: 40, triggerOn: null },
+    ])
+    const ida = withOrderPatch(null, TOUR, vieja, 1, {
+      triggerOn: { at: 'km', km: 41 },
+      triggerKm: 41,
+    })
+    const vuelta = withOrderPatch(ida, TOUR, vieja, 1, {
+      triggerOn: { at: 'km', km: 40 },
+      triggerKm: 40,
+    })
+    expect(changedStages(vieja, resolveOrders(vieja, vuelta, TOUR))).toEqual([])
+  })
+
+  it('sin tocar nada, ninguna', () => {
+    expect(changedStages(server, resolveOrders(server, null, TOUR))).toEqual([])
+  })
+
+  it('las que difieren de lo guardado, por su día', () => {
+    const d1 = withOrderPatch(null, TOUR, server, 3, { role: 'gregario' })
+    const d2 = withOrderPatch(d1, TOUR, server, 1, { effort: 'a_tope' })
+    expect(changedStages(server, resolveOrders(server, d2, TOUR))).toEqual([1, 3])
+  })
+
+  it('tocar y volver a lo guardado no es un cambio, con las palancas sin preferencia a null o vacías', () => {
+    const ida = withOrderPatch(null, TOUR, server, 2, { role: 'gregario' })
+    const vuelta = withOrderPatch(ida, TOUR, server, 2, {
+      role: 'libre',
+      triggerOn: null,
+      triggerKm: null,
+      dayGoal: null,
+      chasePolicy: null,
+      refuseRelayTeams: [],
+    })
+    expect(changedStages(server, resolveOrders(server, vuelta, TOUR))).toEqual([])
+  })
+
+  it('los equipos vetados y el disparo, sin mirar su orden', () => {
+    const guardada = buildServerOrders(stages, [
+      {
+        ...defaultOrder(1),
+        refuseRelayTeams: ['t-a', 't-b'],
+        triggerOn: { at: 'climb', which: 'last', part: 'pie' },
+      },
+    ])
+    const d = withOrderPatch(null, TOUR, guardada, 1, {
+      refuseRelayTeams: ['t-b', 't-a'],
+      triggerOn: { part: 'pie', which: 'last', at: 'climb' },
+    })
+    expect(changedStages(guardada, resolveOrders(guardada, d, TOUR))).toEqual([])
+    const otra = withOrderPatch(d, TOUR, guardada, 1, { refuseRelayTeams: ['t-a'] })
+    expect(changedStages(guardada, resolveOrders(guardada, otra, TOUR))).toEqual([1])
+  })
+})
+
+/**
+ * LA CARRERA QUE SE ABRE (E3, PR 21i): la del enlace (`?race=`), si está; si no, la más próxima que aún no ha
+ * empezado; y si todas han empezado, la primera. Se calcula al pintar y no en un efecto, así que la hoja de
+ * la carrera se pide desde el primer pintado.
+ */
+describe('defaultRaceKey (PR 21i)', () => {
+  const races = [
+    { raceKey: 'a:s0', ongoing: true },
+    { raceKey: 'b:s0', ongoing: false },
+    { raceKey: 'c:s0', ongoing: false },
+  ]
+
+  it('la del enlace, si está entre las mías', () => {
+    expect(defaultRaceKey(races, 'c:s0')).toBe('c:s0')
+  })
+
+  it('si no, la más próxima que aún no ha empezado', () => {
+    expect(defaultRaceKey(races, null)).toBe('b:s0')
+    expect(defaultRaceKey(races, 'z:s0')).toBe('b:s0')
+  })
+
+  it('si todas han empezado, la primera; y sin carreras, ninguna', () => {
+    expect(defaultRaceKey([{ raceKey: 'a:s0', ongoing: true }], null)).toBe('a:s0')
+    expect(defaultRaceKey([], null)).toBeNull()
   })
 })

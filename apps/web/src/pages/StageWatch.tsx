@@ -252,12 +252,13 @@ export function StageWatch({
     if (reveal.askFirst) setConfirming(true)
     else w.dispatch({ k: 'showResult' })
   }
-  const card = 'rounded-2xl border border-slate-200 bg-white p-3 shadow-sm'
+  // E3, PR 20 (§14): las tarjetas con los tokens; lo de la tele va en el ámbito oscuro en cada pieza
+  const card = 'rounded-ui border border-line bg-surface p-3 shadow-card'
   return (
     <div className="space-y-3">
       <ClockNotice clock={head.clock} />
-      <div className="space-y-3 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-4 lg:space-y-0">
-        <div className="space-y-3">
+      <div className="space-y-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
+        <div className="space-y-3 lg:col-span-2">
           {tt !== null && w.tti !== null ? (
             <TimeTrialOverlay tti={w.tti} cast={head.cast} />
           ) : (
@@ -316,7 +317,11 @@ export function StageWatch({
           ) : phase === 'closing' ? null : phase === 'recap' && w.recap !== null ? (
             <RecapCard recap={w.recap} onDone={() => w.dispatch({ k: 'cardDone' })} />
           ) : phase === 'seeking' && w.seeking !== null ? (
-            <p className="rounded-2xl bg-slate-900 px-3 py-4 text-sm text-white" role="status">
+            <p
+              data-surface="dark"
+              className="rounded-ui bg-surface px-3 py-4 text-meta text-ink"
+              role="status"
+            >
               {w.seeking}
             </p>
           ) : (

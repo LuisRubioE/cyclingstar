@@ -12,6 +12,13 @@
     <meta name="theme-color" content="#123a5c" />
     <title>Cycling Star</title>
     <!--
+      La imagen de compartir (E3, docs/visual.md §14.7; PR 20): lo que se ve al compartir el enlace de una
+      etapa. La pinta scripts/og-image.mjs, y generados.test.ts mira que está al día.
+    -->
+    <meta property="og:image" content="/og-default.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <!--
       /health sale con el HTML (E2, paso 10b; docs/retransmision.md §18.5): toda página lo pide al montar,
       y con él los interruptores de los que cuelga el resto de la carga. El fetch de la web es same-origin,
       así que la precarga es crossorigin anónima: con otro modo de credenciales el navegador no la casa.

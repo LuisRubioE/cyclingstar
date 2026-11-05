@@ -1,15 +1,22 @@
 import { COUNTRIES, seasonPosition } from '@cyclingstar/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { fetchCalendar } from '../api/calendar'
 import { type NewsItem, fetchNews, newsKey } from '../api/news'
-import { Flag } from '../components/Flag'
-import { SectionBar } from '../components/Panel'
+import { TOP_ROWS } from '../components/ShowAll'
 import { DiagnosticStrip } from '../components/StageGate'
 import { StageReadyLine } from '../components/StageReadyLine'
+import { ActionRow } from '../components/ui/ActionRow'
+import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Field } from '../components/ui/Field'
+import { Flag } from '../components/ui/Flag'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { ShowAllRows, toggled } from '../components/ui/ShowAllRows'
+import { TextLink } from '../components/ui/TextLink'
 import { newsLabel } from '../domain/labels'
 import {
   NO_FILTER,
@@ -22,66 +29,60 @@ import {
 } from '../domain/newsFeed'
 import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 
-const selectClass =
-  'w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700 focus:border-brand-cyan focus:outline-none'
-
-/** Un desplegable de filtro, con su etiqueta asociada. `''` significa "sin filtrar". */
+/**
+ * Un desplegable de filtro, en su `Field` (E3, PR 21l): `All`, el `''`, es "sin filtrar". Sin nada servido que
+ * elegir (un marcador no aporta corredor, sup. N3), desactivado con su porqué (§4.1), como estaba.
+ */
 function FilterSelect({
   id,
   label,
   value,
   options,
+  disabledReason,
   onChange,
 }: {
-  id: string
-  label: string
-  value: string | null
-  options: { value: string; label: string }[]
-  onChange: (value: string | null) => void
+  readonly id: string
+  readonly label: string
+  readonly value: string | null
+  readonly options: readonly { readonly value: string; readonly label: string }[]
+  readonly disabledReason: string | undefined
+  readonly onChange: (value: string | null) => void
 }) {
   return (
-    <div className="min-w-0">
-      <label htmlFor={id} className="block text-xs font-medium text-slate-500">
-        {label}
-      </label>
-      <select
-        id={id}
-        className={selectClass}
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
-        disabled={options.length === 0}
-      >
-        <option value="">All</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Field
+      kind="select"
+      id={id}
+      label={label}
+      value={value ?? ''}
+      options={[{ value: '', label: 'All' }, ...options]}
+      onChange={(v) => onChange(v === '' ? null : v)}
+      {...(disabledReason !== undefined ? { disabledReason } : {})}
+    />
   )
 }
 
-/** Un titular: familia a la izquierda, hecho en el cuerpo. Sin iconos, con jerarquía tipográfica. */
+/** El porqué de un filtro vacío: no hay nada que elegir en estos titulares. */
+const vacio = (opciones: readonly unknown[], cosas: string): string | undefined =>
+  opciones.length === 0 ? `No ${cosas} in these headlines.` : undefined
+
+/**
+ * Un titular, una `ActionRow` (E3, docs/visual.md §6.1; PR 21l): el hecho, con la bandera de su país delante,
+ * que no dice su nombre; su familia y si es mío, en `meta`; y su enlace, si lo tiene. Iba en una fila a mano,
+ * con la familia a 11 px en `slate-400`.
+ */
 function Headline({ item, raceId }: { item: NewsItem; raceId: string | null }) {
   const target = headlineTarget(item, raceId)
   return (
-    <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2.5">
-      <span className="w-20 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        {newsLabel(item.kind)}
-      </span>
-      <p className="min-w-0 flex-1 text-sm leading-relaxed text-slate-700">
-        {item.country && <Flag code={item.country} size={13} className="mr-1.5" />}
-        {target ? (
-          <Link to={target} className="hover:text-brand-cyan hover:underline">
-            {item.text}
-          </Link>
-        ) : (
-          item.text
-        )}
-        {item.personal && <span className="ml-2 text-xs text-slate-400">· you</span>}
-      </p>
-    </li>
+    <ActionRow
+      {...(target ? { href: target } : {})}
+      title={
+        <>
+          {item.country && <Flag country={item.country} layout="mr-2" />}
+          {item.text}
+        </>
+      }
+      meta={item.personal ? `${newsLabel(item.kind)} · you` : newsLabel(item.kind)}
+    />
   )
 }
 
@@ -97,7 +98,12 @@ function Headline({ item, raceId }: { item: NewsItem; raceId: string | null }) {
  * corredor. Y el modo diagnóstico del dueño: `?diag=1` de un administrador pide el feed con el horizonte
  * del mundo, con su franja; el botón `Diagnostic view` sale solo a un administrador con algo velado.
  */
-export function News() {
+export function News({
+  initialFilter = NO_FILTER,
+}: {
+  /** el filtro con que empieza la vista: el de la ruta es ninguno; los tests pintan uno puesto (PR 21l) */
+  readonly initialFilter?: NewsFilter
+} = {}) {
   const [params] = useSearchParams()
   const diag = diagOf(params)
   const rev = useHorizonRev()
@@ -119,7 +125,9 @@ export function News() {
   const { isAdmin } = useWatchOn(diag || veiled, false)
   const diagOn = diag && isAdmin
   // El filtro es estado de la vista: nunca se deriva de la respuesta del servidor.
-  const [filter, setFilter] = useState<NewsFilter>(NO_FILTER)
+  const [filter, setFilter] = useState<NewsFilter>(initialFilter)
+  // Los días con todos sus titulares a la vista, pasados los 20 primeros (§6.1).
+  const [abiertos, setAbiertos] = useState<ReadonlySet<number>>(() => new Set())
 
   const races = useMemo(
     () => (calendar.data?.races ?? []).map((r) => ({ id: r.id, name: r.name })),
@@ -171,61 +179,67 @@ export function News() {
   const days = groupByGameDay(feedEntries(visible))
   const filtered = Object.values(filter).some((v) => v !== null)
 
+  // Con el sistema (E3, §17.21; PR 21l): la cabecera en `PageHeader`; los filtros en su `Panel`, cada uno en
+  // su `Field`, y sin titulares no se pintan, porque no filtran nada, salvo con uno puesto, que se ha de poder
+  // limpiar; cada día en su `Panel`, por su día de
+  // la temporada (§4.10), el primero la respuesta de la 19 (§7.3), con sus 20 primeros y `Show all`; sin
+  // titulares, su vacío, que contesta. Iban la barra dorada, cajas a mano y la letra a 11 px.
   return (
     <section className="space-y-4">
-      <SectionBar>News</SectionBar>
+      <PageHeader title="News" />
       {diagOn && <DiagnosticStrip exitHref="/news" />}
       {!diag && isAdmin && veiled && (
-        <p className="text-right">
-          <Link to="/news?diag=1" className="text-xs text-slate-400 hover:text-slate-600">
-            Diagnostic view
-          </Link>
+        <p className="flex justify-end">
+          <TextLink to="/news?diag=1">Diagnostic view</TextLink>
         </p>
       )}
 
-      {/* Los filtros van en una caja neutra, sin cabecera de color: son una herramienta, no una
-          sección con contenido propio. */}
-      <div className="rounded-md bg-white p-4 shadow-sm ring-1 ring-black/5">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <FilterSelect
-            id="news-team"
-            label="Team"
-            value={filter.teamId}
-            options={options.teams}
-            onChange={(teamId) => setFilter({ ...filter, teamId })}
-          />
-          <FilterSelect
-            id="news-rider"
-            label="Rider"
-            value={filter.riderId}
-            options={options.riders}
-            onChange={(riderId) => setFilter({ ...filter, riderId })}
-          />
-          <FilterSelect
-            id="news-nation"
-            label="Nation"
-            value={filter.country}
-            options={options.nations}
-            onChange={(country) => setFilter({ ...filter, country })}
-          />
-          <FilterSelect
-            id="news-race"
-            label="Race"
-            value={filter.raceId}
-            options={options.races}
-            onChange={(raceId) => setFilter({ ...filter, raceId })}
-          />
-        </div>
-        {filtered && (
-          <button
-            type="button"
-            onClick={() => setFilter(NO_FILTER)}
-            className="mt-3 text-xs font-medium text-brand-cyan hover:underline"
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
+      {(data.length > 0 || filtered) && (
+        <Panel ariaLabel="Filters">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <FilterSelect
+              id="news-team"
+              label="Team"
+              value={filter.teamId}
+              options={options.teams}
+              disabledReason={vacio(options.teams, 'teams')}
+              onChange={(teamId) => setFilter({ ...filter, teamId })}
+            />
+            <FilterSelect
+              id="news-rider"
+              label="Rider"
+              value={filter.riderId}
+              options={options.riders}
+              disabledReason={vacio(options.riders, 'riders')}
+              onChange={(riderId) => setFilter({ ...filter, riderId })}
+            />
+            <FilterSelect
+              id="news-nation"
+              label="Nation"
+              value={filter.country}
+              options={options.nations}
+              disabledReason={vacio(options.nations, 'nations')}
+              onChange={(country) => setFilter({ ...filter, country })}
+            />
+            <FilterSelect
+              id="news-race"
+              label="Race"
+              value={filter.raceId}
+              options={options.races}
+              // las carreras salen del calendario: mientras no llega, no hay porqué que dar
+              disabledReason={
+                calendar.data === undefined ? undefined : vacio(options.races, 'races')
+              }
+              onChange={(raceId) => setFilter({ ...filter, raceId })}
+            />
+          </div>
+          {filtered && (
+            <Button variant="quiet" layout="mt-3 -ml-4" onClick={() => setFilter(NO_FILTER)}>
+              Clear filters
+            </Button>
+          )}
+        </Panel>
+      )}
 
       {days.length === 0 ? (
         <EmptyState
@@ -235,37 +249,39 @@ export function News() {
               ? 'No headlines match these filters.'
               : 'Nothing has happened yet. Advance the world and the headlines will roll in.'
           }
+          answer
         />
       ) : (
-        <div className="space-y-4">
-          {days.map((day) => {
-            const position = seasonPosition(day.gameDay)
-            return (
-              <section key={day.gameDay}>
-                <h2 className="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Game day {position.dayOfSeason}
-                  <span className="mx-1.5 text-slate-300">·</span>
-                  Season {position.season}
-                </h2>
-                <div className="overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5">
-                  <ol className="divide-y divide-slate-100">
-                    {day.items.map((entry, i) =>
-                      entry.kind === 'news' ? (
-                        <Headline
-                          key={`${day.gameDay}-${i}`}
-                          item={entry.item}
-                          raceId={raceOfItem(entry.item)}
-                        />
-                      ) : (
-                        <StageReadyLine key={`${day.gameDay}-${i}`} entry={entry} />
-                      ),
-                    )}
-                  </ol>
-                </div>
-              </section>
-            )
-          })}
-        </div>
+        days.map((day, i) => {
+          const position = seasonPosition(day.gameDay)
+          const todos = abiertos.has(day.gameDay)
+          return (
+            <Panel
+              key={day.gameDay}
+              title={`Day ${position.dayOfSeason} · Season ${position.season}`}
+              answer={i === 0}
+            >
+              <ol className="divide-y divide-line">
+                {(todos ? day.items : day.items.slice(0, TOP_ROWS)).map((entry, n) =>
+                  entry.kind === 'news' ? (
+                    <Headline
+                      key={`${day.gameDay}-${n}`}
+                      item={entry.item}
+                      raceId={raceOfItem(entry.item)}
+                    />
+                  ) : (
+                    <StageReadyLine key={`${day.gameDay}-${n}`} entry={entry} />
+                  ),
+                )}
+              </ol>
+              <ShowAllRows
+                total={day.items.length}
+                expanded={todos}
+                onToggle={() => setAbiertos((prev) => toggled(prev, day.gameDay))}
+              />
+            </Panel>
+          )
+        })
       )}
     </section>
   )

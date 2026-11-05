@@ -272,6 +272,18 @@ describe('la previa (§8.6): cuatro cuadros de previewCardS', () => {
     expect(text(markup)).toContain('Watch')
     expect(markup).not.toContain('FAVOURITES')
   })
+
+  it('en el ámbito oscuro, con un solo botón primary: Watch con el icono play, que se llama Play (E3, §14.6)', () => {
+    const markup = html(<StagePreviewCards cards={cards} index={0} onWatch={() => {}} />)
+    expect(markup).toMatch(/^<div[^>]*data-surface="dark"/)
+    const buttons = [...markup.matchAll(/<button[^>]*>/g)].map((m) => m[0])
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0]).toContain('data-ui="Button"')
+    expect(buttons[0]).toContain('data-variant="primary"')
+    expect(buttons[0]).toContain('aria-label="Play"')
+    expect(markup).toContain('data-variant="play"')
+    expect(markup).not.toContain('▶')
+  })
 })
 
 describe('la llegada (§8.7): el ganador, los grupos que llegan y el fuera de control', () => {
@@ -361,7 +373,13 @@ describe('el cierre (§8.6): seis cuadros de closingCardS', () => {
     expect(t).toContain('same time (3 km rule)')
     // el del espectador, el 14.º, tras los diez primeros
     expect(t).toContain(`14 21 Pelle Ekdal (your rider)`)
-    expect((markup.match(/<li class="flex gap-2 font-semibold"/g) ?? []).length).toBe(3)
+    // RE-SELLADO EN EL PR 20 (E3, docs/visual.md §14.6 y §16.3): contaba el podio por la clase de su fila;
+    // el cierre pasa al catálogo y al ámbito oscuro, y el podio se cuenta por `data-podium`
+    expect((markup.match(/<li[^>]*data-podium=""/g) ?? []).length).toBe(3)
+  })
+
+  it('los nombres de sus filas parten de línea: ninguno se corta (E3, §14.6; Ruso-040)', () => {
+    for (const i of [0, 1]) expect(view(i)).not.toMatch(/\btruncate\b/)
   })
 
   it('GENERAL CLASSIFICATION · after stage 18, con flechas', () => {
@@ -403,6 +421,18 @@ describe('el cierre (§8.6): seis cuadros de closingCardS', () => {
     expect(markup).toContain('href="/world/races/race-france/stages/19?tab=watch"')
   })
 
+  it('Watch, el único primary, con el icono play; Report, secondary (E3, §14.6)', () => {
+    const markup = view(5)
+    const variants = [
+      ...markup.matchAll(/data-ui="Button" data-variant="(\w+)"[^>]*>([\s\S]*?)<\/(?:a|button)>/g),
+    ]
+    expect(variants.map((m) => [m[1], text(m[2]!)])).toEqual([
+      ['primary', 'Watch'],
+      ['secondary', 'Report'],
+    ])
+    expect(variants[0]![2]).toContain('data-variant="play"')
+  })
+
   it('en una carrera de un día, sin la general, los maillots ni la siguiente', () => {
     const oneDay = closingCardsOf(head, finish, { oneDay: true })
     expect(oneDay.map((c) => c.k)).toEqual(['result', 'outFront', 'out', 'next'])
@@ -417,6 +447,14 @@ describe('el cierre (§8.6): seis cuadros de closingCardS', () => {
     expect(markup).toContain('STAGE 18 · RESULT')
     expect(markup).not.toContain('JERSEYS TOMORROW')
     expect(markup).toContain('Next card')
+  })
+
+  it('el cierre, en el ámbito oscuro, con Next card del catálogo (E3, §14.6)', () => {
+    const markup = html(
+      <StageClosingCards cards={cards} nextHref={(d) => `/s/${d}`} onReport={() => {}} />,
+    )
+    expect(markup).toMatch(/^<div[^>]*data-surface="dark"/)
+    expect(markup).toMatch(/data-ui="Button" data-variant="quiet"[^>]*>[\s\S]*?Next card/)
   })
 })
 
@@ -442,5 +480,8 @@ describe('While you skipped y Previously (8-i, 8-n)', () => {
     expect(text(markup)).toContain('WHILE YOU SKIPPED')
     expect(text(markup)).toContain('km 37 ATTACK · 15 Nicolás Moreno')
     expect(markup).toContain('aria-live="polite"')
+    // E3, §14.6: en el ámbito oscuro, y Continue es un botón del catálogo
+    expect(markup).toMatch(/^<div[^>]*data-surface="dark"/)
+    expect(markup).toMatch(/data-ui="Button" data-variant="quiet"[^>]*>[\s\S]*?Continue/)
   })
 })

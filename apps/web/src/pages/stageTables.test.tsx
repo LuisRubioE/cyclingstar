@@ -359,6 +359,39 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     expect(markup).not.toContain('>Story</button>')
   })
 
+  it('vista, las clasificaciones, en las pestañas del catálogo, de 44, como las de la carrera (E3, §17.21; PR 21a)', () => {
+    const markup = page('/world/races/race-france/stages/7?tab=classifications', 'on', seen)
+    expect(markup).toContain('Standings after this stage.')
+    const rail =
+      /role="tablist" aria-label="Stage classification"[\s\S]*?<\/div>/.exec(markup)?.[0] ?? ''
+    expect([...rail.matchAll(/role="tab"[^>]*>([^<]+)</g)].map((m) => m[1])).toEqual([
+      'General',
+      'Points',
+      'Mountains',
+      'Teams',
+    ])
+    expect(markup).toMatch(
+      /<div data-ui="Tabs" data-variant="page"[^>]*><div[^>]*role="tablist" aria-label="Stage classification"/,
+    )
+    // la pestaña gobierna su panel, y el panel dice qué pestaña lo nombra
+    expect(rail).toMatch(
+      /role="tab" aria-selected="true"[^>]*id="stage-classification-tab-gc" aria-controls="stage-classification"[^>]*>General</,
+    )
+    expect(markup).toContain(
+      'id="stage-classification" role="tabpanel" aria-labelledby="stage-classification-tab-gc"',
+    )
+    // con otra elegida (?cls=teams), su pestaña y su panel van juntos (la revisión del 21a)
+    const teams = page(
+      '/world/races/race-france/stages/7?tab=classifications&cls=teams',
+      'on',
+      seen,
+    )
+    expect(teams).toMatch(/role="tab" aria-selected="true"[^>]*id="stage-classification-tab-teams"/)
+    expect(teams).toContain(
+      'id="stage-classification" role="tabpanel" aria-labelledby="stage-classification-tab-teams"',
+    )
+  })
+
   it('no es vacío: vista, ?tab=result pinta el resultado (en Report con Watch, en Result sin él)', () => {
     for (const watch of ['on', 'off'] as const) {
       const markup = page('/world/races/race-france/stages/7?tab=result', watch, seen)

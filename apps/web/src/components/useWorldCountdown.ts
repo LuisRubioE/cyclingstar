@@ -7,8 +7,8 @@ import { useEffect, useState } from 'react'
  * servidor (anclado a la creación del mundo) es exacto; si no, la aproximación alineada al epoch. Al vencer,
  * pide `/health` una vez para el día nuevo y el objetivo siguiente, y el horizonte, cuyo `rev` lleva el día
  * (`${currentDay}.${horizon_rev}`, 10-h): con el día nuevo las páginas del mundo cambian de clave y ven las
- * etapas que acaban de correrse (9b). Lo usan el reloj de la cabecera (`Header.tsx`; E3, PR 11) y el de la
- * portada (`WorldClock.tsx`).
+ * etapas que acaban de correrse (9b). Lo usa el reloj de la cabecera (`Header.tsx`; E3, PR 11); el de la
+ * portada (`WorldClock.tsx`), que lo repetía con `GD`, se fue en el PR 21g.
  */
 export function useWorldCountdown(
   clock:

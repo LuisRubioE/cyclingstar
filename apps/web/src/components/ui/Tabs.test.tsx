@@ -43,6 +43,23 @@ describe('Tabs con options: el tablist', () => {
   it('los ids, los de components/Tabs.tsx, para su TabPanel', () => {
     expect(tabId('rider', 'orders')).toBe(tabIdDeHoy('rider', 'orders'))
   })
+
+  it('el adorno de una pestaña (PR 21a), detrás de su texto y dentro de ella: el contador de Stages', () => {
+    const html = renderToStaticMarkup(
+      <Tabs
+        label="Race"
+        options={[
+          { key: 'classifications', label: 'Classifications' },
+          { key: 'stages', label: 'Stages', badge: <span data-badge="">3</span> },
+        ]}
+        value="classifications"
+        onChange={change}
+      />,
+    )
+    const stages = /<button[^>]*role="tab"[^>]*>Stages[\s\S]*?<\/button>/.exec(html)?.[0] ?? ''
+    expect(stages).toMatch(/>Stages<span data-badge="">3<\/span><\/button>$/)
+    expect(html.match(/data-badge/g)).toHaveLength(1)
+  })
 })
 
 describe('Tabs con items: los enlaces', () => {

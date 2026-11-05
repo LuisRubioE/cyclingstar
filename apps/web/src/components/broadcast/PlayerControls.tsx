@@ -7,6 +7,9 @@ import type {
   Speed,
   ViewMode,
 } from '../../domain/broadcast/player'
+import { Button } from '../ui/Button'
+import { Icon } from '../ui/Icon'
+import { FOCUS } from '../ui/styles'
 
 /** Lo que los mandos leen del reproductor. */
 export interface ControlsState {
@@ -30,9 +33,6 @@ export interface JumpOption {
   readonly enabled: boolean
 }
 
-/** `▶` como texto y no como emoji (U+FE0E): algunas fuentes lo pintan en un recuadro de color. */
-export const PLAY_GLYPH = '▶︎'
-
 /** `×½ ×1 ×2 ×4` (pantalla). */
 const speedLabel = (x: Speed): string => `×${x === 0.5 ? '½' : x}`
 
@@ -53,9 +53,21 @@ export const CLOCK_JUMP_LABEL: Readonly<Record<ClockJump, string>> = {
   lastStarter: 'Last starter',
 }
 
-// en el teléfono, más estrechos: la fila entera cabe en una línea a 360 px (8-p)
-const button =
-  'rounded-lg px-2 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent sm:px-3'
+/**
+ * Un mando que se conmuta (`aria-pressed`) o un salto de la hoja, que el catálogo no tiene: 44 × 44 como
+ * mínimo, como un `Button` (comprobación 5), con los tokens del ámbito oscuro. En el teléfono, más
+ * estrechos que un `Button`, para que la fila parta lo menos posible.
+ */
+const control = `inline-flex min-h-11 min-w-11 items-center justify-center rounded-ui px-2 text-meta font-semibold transition disabled:text-disabled-ink sm:px-3 ${FOCUS}`
+/**
+ * El apagado y el encendido, el de la opción activa de un `Segmented` (§4.3), nunca juntos: de dos clases
+ * del mismo estado (`hover:bg-surface-2` y `hover:bg-accent-strong`) gana la que Tailwind pone después en
+ * la hoja, y no la de después en el atributo, así que un mando encendido salía con el fondo del apagado.
+ */
+const idle = 'text-ink hover:bg-surface-2 disabled:hover:bg-transparent'
+const pressed = 'bg-accent text-on-accent hover:bg-accent-strong'
+/** el apagado o el encendido de un mando que se conmuta */
+const toggle = (on: boolean): string => `${control} ${on ? pressed : idle}`
 
 /**
  * LOS MANDOS (docs/retransmision.md §8.5, 8-o, 8-p y §18.8). En el teléfono, la fila lleva `❚❚`, la
@@ -68,6 +80,11 @@ const button =
  * con opacidad, así que siguen en el árbol de accesibilidad; el foco dentro los enseña, y con la hoja
  * abierta no se esconden. Nacen en el 3c; `Next action`, los saltos, el conmutador de `Highlights` y
  * `Show result` son del 10a.
+ *
+ * Desde el PR 20 (E3, docs/visual.md §14.6; O-18): en el ámbito oscuro; los iconos `pause`, `play` y
+ * `more` en lugar de `❚❚`, `▶︎` y `⋯`, que `ui/10` marca; y cada mando de 44 × 44 como mínimo, así que a
+ * 360 px la fila parte en dos renglones. Ninguno es `primary`: el de `Watch` es el de la previa o el del
+ * cierre, uno por carrera. Dicen si están escondidos en `data-state`.
  */
 export function PlayerControls({
   state,
@@ -109,35 +126,36 @@ export function PlayerControls({
   const hidden = state.hidden && !sheetOpen
   return (
     <div
-      className={`rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition-opacity duration-300 ${
+      data-surface="dark"
+      data-state={hidden ? 'hidden' : 'shown'}
+      className={`rounded-ui bg-surface px-2 py-1.5 text-ink transition-opacity duration-300 ${
         hidden ? 'opacity-0 focus-within:opacity-100' : 'opacity-100'
       }`}
     >
       <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
-        <button
-          type="button"
-          className={`${button} w-10 text-base sm:w-12`}
-          aria-label={running ? 'Pause' : 'Play'}
+        <Button
+          variant="secondary"
+          icon={running ? 'pause' : 'play'}
+          ariaLabel={running ? 'Pause' : 'Play'}
           onClick={running ? onPause : onPlay}
-        >
-          {running ? '❚❚' : PLAY_GLYPH}
-        </button>
+        />
         {digest ? (
           canShowResult && (
-            <button type="button" className={button} onClick={onShowResult}>
+            <Button variant="quiet" onClick={onShowResult}>
               Show results
-            </button>
+            </Button>
           )
         ) : (
           <>
-            <button
-              type="button"
-              className={`${button} sm:hidden`}
-              aria-label={`Speed ${speedLabel(state.speed)}, change to ${speedLabel(next)}`}
-              onClick={() => onSpeed(next)}
-            >
-              {speedLabel(state.speed)}
-            </button>
+            <span className="sm:hidden">
+              <Button
+                variant="quiet"
+                ariaLabel={`Speed ${speedLabel(state.speed)}, change to ${speedLabel(next)}`}
+                onClick={() => onSpeed(next)}
+              >
+                {speedLabel(state.speed)}
+              </Button>
+            </span>
             <span
               className="hidden items-center gap-0.5 sm:inline-flex"
               role="group"
@@ -148,7 +166,7 @@ export function PlayerControls({
                   key={x}
                   type="button"
                   aria-pressed={x === state.speed}
-                  className={`${button} ${x === state.speed ? 'bg-slate-900 text-white hover:bg-slate-800' : ''}`}
+                  className={toggle(x === state.speed)}
                   onClick={() => onSpeed(x)}
                 >
                   {speedLabel(x)}
@@ -159,7 +177,7 @@ export function PlayerControls({
               type="button"
               aria-pressed={state.nextAction}
               disabled={state.lastKm && !state.nextAction}
-              className={`${button} ${state.nextAction ? 'bg-slate-900 text-white hover:bg-slate-800' : ''}`}
+              className={toggle(state.nextAction)}
               onClick={onNextAction}
             >
               Next action
@@ -167,7 +185,7 @@ export function PlayerControls({
             <button
               type="button"
               aria-pressed={commentaryOpen}
-              className={`${button} ${commentaryOpen ? 'bg-slate-100' : ''}`}
+              className={toggle(commentaryOpen)}
               onClick={onCommentary}
             >
               Commentary
@@ -177,25 +195,21 @@ export function PlayerControls({
               aria-label="More"
               aria-expanded={sheetOpen}
               aria-controls="player-sheet"
-              className={`${button} w-9`}
+              className={`${control} ${idle}`}
               onClick={() => setSheetOpen((o) => !o)}
             >
-              ⋯
+              <Icon name="more" />
             </button>
           </>
         )}
-        <span className="ml-auto text-xs text-slate-500" role="status">
+        <span className="ml-auto text-caption text-ink-2" role="status">
           {state.notice === 'loading' && 'Loading'}
           {state.notice === 'offline' && (
             <>
               Connection lost ·{' '}
-              <button
-                type="button"
-                className="font-semibold text-brand-cyan underline"
-                onClick={onRetry}
-              >
+              <Button variant="quiet" size="sm" onClick={onRetry}>
                 Retry
-              </button>
+              </Button>
             </>
           )}
         </span>
@@ -246,14 +260,14 @@ export function PlayerSheet({
       id="player-sheet"
       role="group"
       aria-label="More controls"
-      className="mt-1.5 space-y-2 border-t border-slate-100 pt-2"
+      className="mt-1.5 space-y-2 border-t border-line pt-2"
     >
       <div className="flex flex-wrap gap-1" role="group" aria-label="Skip">
         {jumps.map((j) => (
           <button
             key={j.id}
             type="button"
-            className={`${button} bg-slate-50`}
+            className={`${control} bg-surface-2 ${idle}`}
             disabled={!j.enabled}
             onClick={() => onJump(j.id)}
           >
@@ -268,7 +282,7 @@ export function PlayerSheet({
               key={v}
               type="button"
               aria-pressed={view === v}
-              className={`${button} ${view === v ? 'bg-slate-900 text-white hover:bg-slate-800' : ''}`}
+              className={toggle(view === v)}
               onClick={() => onView(v)}
             >
               {v === 'watch' ? 'Watch' : 'Highlights'}
@@ -276,9 +290,9 @@ export function PlayerSheet({
           ))}
         </span>
         {canShowResult && (
-          <button type="button" className={`${button} ml-auto`} onClick={onShowResult}>
+          <Button variant="quiet" layout="ml-auto" onClick={onShowResult}>
             Show result
-          </button>
+          </Button>
         )}
       </div>
     </div>

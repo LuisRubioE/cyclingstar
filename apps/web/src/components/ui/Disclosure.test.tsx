@@ -28,6 +28,38 @@ describe('Disclosure', () => {
     expect(s).toContain('Show the 28 days')
   })
 
+  it('sin región (region={false}), para muchos a la vez: el botón gobierna lo plegado y no hay punto de referencia (PR 21b)', () => {
+    const s = renderToStaticMarkup(
+      <Disclosure showLabel="3 stages" hideLabel="Hide the stages" region={false}>
+        <p>the stages</p>
+      </Disclosure>,
+    )
+    const regionId = /aria-controls="([^"]+)"/.exec(s)?.[1] ?? ''
+    expect(s).toContain(`<div id="${regionId}" hidden="">`)
+    expect(s).not.toContain('role="region"')
+  })
+
+  it('con su nombre (name), cuando hay muchos iguales: el botón dice de qué es, detrás de su texto a la vista (la revisión del 21e)', () => {
+    const con = (defaultOpen: boolean) =>
+      renderToStaticMarkup(
+        <Disclosure
+          showLabel="Show the route"
+          hideLabel="Hide the route"
+          region={false}
+          name="Race Antalya GP"
+          defaultOpen={defaultOpen}
+        >
+          <p>the route</p>
+        </Disclosure>,
+      )
+    expect(con(false)).toMatch(
+      /<button type="button" id="[^"]+" aria-expanded="false" aria-controls="[^"]+" aria-label="Show the route, Race Antalya GP"/,
+    )
+    expect(con(true)).toContain('aria-label="Hide the route, Race Antalya GP"')
+    // sin nombre, el botón se llama por su texto, sin aria-label
+    expect(html(false)).not.toContain('aria-label=')
+  })
+
   it('open: Hide, aria-expanded true y la región a la vista', () => {
     const s = html(true)
     expect(s).toContain('data-state="open"')

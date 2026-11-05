@@ -49,6 +49,37 @@ describe('Notice', () => {
     ).toMatch(/<button type="button" data-ui="Button" data-variant="quiet"/)
   })
 
+  it('la acción, ocupada mientras hace lo suyo (busy): el indicador y aria-busy, como un Button (la revisión del 21f)', () => {
+    const ocupada = html(
+      <Notice
+        tone="warn"
+        title="T"
+        action={{ label: 'Send', onClick: () => undefined, busy: true }}
+      />,
+    )
+    expect(ocupada).toMatch(
+      /<button type="button" data-ui="Button" data-variant="quiet" data-state="busy" aria-busy="true"/,
+    )
+    expect(
+      html(<Notice tone="warn" title="T" action={{ label: 'Send', onClick: () => undefined }} />),
+    ).not.toContain('aria-busy')
+    // y con lo que dice ocupada, si lo lleva (PR 21k)
+    expect(
+      html(
+        <Notice
+          tone="info"
+          title="T"
+          action={{
+            label: 'Take control',
+            onClick: () => undefined,
+            busy: true,
+            busyLabel: 'Taking over…',
+          }}
+        />,
+      ),
+    ).toContain('Taking over…')
+  })
+
   it('cerrar, solo en info y good', () => {
     expect(html(<Notice tone="good" title="T" onDismiss={() => undefined} />)).toContain(
       'aria-label="Dismiss"',

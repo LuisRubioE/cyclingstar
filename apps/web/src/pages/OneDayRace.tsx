@@ -6,7 +6,8 @@ import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { ShareStage } from '../components/ShareStage'
 import { StageGateCard, TwoDeviceNotice } from '../components/StageGate'
 import { StageStory } from '../components/StageStory'
-import { TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { TabPanel, useTabParam } from '../components/Tabs'
+import { Tabs } from '../components/ui/Tabs'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
@@ -28,8 +29,8 @@ import {
 // de un día terminada descarga el reproductor también con `Watch` apagado (unos 58 kB, 19 con gzip).
 import { StageWatch, watchViewOf } from './StageWatch'
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
-const head = 'mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400'
+const card = 'rounded-ui border border-line bg-surface p-4 shadow-card'
+const head = 'mb-3 text-caption font-semibold uppercase tracking-caps text-ink-2'
 /** El panel de la tira de pestañas de la ficha (`RACE_PANEL` de `Race.tsx`). */
 const RACE_PANEL = 'race-section'
 
@@ -56,6 +57,10 @@ const RACE_PANEL = 'race-section'
  * completa de la ficha no pide más ficheros que antes del 9b (cuentan para el límite de 300 peticiones por
  * minuto e IP). Las pestañas que son de la ficha (`Result`, `Route` y `Roll of honour`) se las pasa
  * `Race.tsx` ya hechas.
+ *
+ * Desde el PR 20 (E3, docs/visual.md §14.2), compartir va como en la página de una etapa: `Share to watch`
+ * sobre las pestañas y `Share the report` en `Report`, donde está el acta. Con los dos encima, en `Button`
+ * de 44, partían en dos renglones a 360 px y bajaban la capa fija, la respuesta de la pantalla (§7.3).
  */
 export function OneDaySections({
   raceId,
@@ -167,19 +172,13 @@ export function OneDaySections({
 
   return (
     <>
-      {watchOn && (
-        <ShareStage
-          raceId={raceId}
-          day={1}
-          report={full !== null || (f.data?.watch?.known ?? true)}
-        />
-      )}
+      {watchOn && <ShareStage raceId={raceId} day={1} report={false} />}
       <Tabs
         options={options}
         value={active}
         onChange={setActive}
         label="Race"
-        variant="underline"
+        variant="page"
         panelId={RACE_PANEL}
       />
       {otherDevice && (
@@ -219,16 +218,20 @@ export function OneDaySections({
           <>
             {/* Sin `Watch` para su etapa (§17.19): una crono sin línea, una lápida (D-12). */}
             {watchOn && f.unavailable && (
-              <p className="text-sm text-slate-500">Broadcast unavailable for this race</p>
+              <p className="text-meta text-ink-2">Broadcast unavailable for this race</p>
             )}
             {withResult((d) =>
               watchOn ? (
-                <StageReportView
-                  data={d}
-                  onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
-                  identity={identity}
-                  ownRiderId={ownRiderId}
-                />
+                <>
+                  {/* el acta se comparte desde aquí, donde está (§14.2) */}
+                  <ShareStage raceId={raceId} day={1} report watch={false} />
+                  <StageReportView
+                    data={d}
+                    onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
+                    identity={identity}
+                    ownRiderId={ownRiderId}
+                  />
+                </>
               ) : (
                 <StageStory data={d} onFullResult={() => setActive('result')} />
               ),

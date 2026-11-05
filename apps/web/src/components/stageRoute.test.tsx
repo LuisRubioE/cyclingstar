@@ -2,13 +2,14 @@ import type { RiderRaceResult } from '@cyclingstar/shared'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
-import { RaceResultRow } from './RaceResults'
+import { RaceResultsTable } from './RaceResultsTable'
 import { StageRoute } from './StageRoute'
 
 /**
  * «CADA VEZ QUE MENCIONE UNA ETAPA, QUE DIGA SIEMPRE EL ORIGEN Y DESTINO» (el dueño). Todas las
  * pantallas lo pintan con `StageRoute`; aquí, el componente y uno de sus usos, el desglose de etapas
- * de los resultados de un corredor.
+ * de los resultados de un corredor (desde el 21h de E3, el de `RaceResultsTable`, que comparten `My races` y la
+ * ficha).
  */
 describe('StageRoute', () => {
   it('salida → llegada; una sola ciudad si coinciden; nada sin ciudades', () => {
@@ -40,9 +41,7 @@ describe('StageRoute', () => {
     }
     const html = renderToStaticMarkup(
       <MemoryRouter>
-        <ul>
-          <RaceResultRow result={result} />
-        </ul>
+        <RaceResultsTable results={[result]} caption="Race France" />
       </MemoryRouter>,
     )
     expect(html).toContain('Stage 2 of 21')

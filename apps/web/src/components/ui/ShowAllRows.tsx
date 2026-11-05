@@ -29,3 +29,14 @@ export function ShowAllRows({
     </button>
   )
 }
+
+/**
+ * Los grupos con todas sus filas a la vista, con esa clave cambiada: fuera si estaba, dentro si no (los días de
+ * las noticias, las divisiones y los continentes; PR 21l). Un conjunto nuevo, para que React vuelva a pintar.
+ */
+export function toggled<K>(set: ReadonlySet<K>, key: K): ReadonlySet<K> {
+  const next = new Set(set)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  return next
+}

@@ -1,7 +1,11 @@
-import { type FormEvent, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { type FormEvent, useEffect, useState } from 'react'
 import { authClient } from '../auth/client'
-import { TextField } from '../components/TextField'
+import { Button } from '../components/ui/Button'
+import { Field } from '../components/ui/Field'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
+import { TextLink } from '../components/ui/TextLink'
+import { type FieldProblem, emailProblem } from '../domain/entryForms'
 
 /**
  * «He olvidado mi contraseña». Hasta ahora no existía: sin envío de correo no había a dónde
@@ -9,14 +13,35 @@ import { TextField } from '../components/TextField'
  *
  * La respuesta es SIEMPRE la misma, exista o no la cuenta. Un «no hay nadie con ese correo» sería
  * un oráculo para saber quién está registrado, y la API lo trata igual por el mismo motivo.
+ *
+ * Con el sistema desde el 21j (E3, docs/visual.md §17.21): la cabecera en `PageHeader`; el correo en su
+ * `Field`, dentro del `Panel` que contesta, y pedirlo en un `Button` ocupado mientras pregunta; y pedido, lo que
+ * pasa ahora, en una región de estado que está desde el principio, para que el lector la oiga.
  */
-export function ForgotPassword() {
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+
+interface ForgotState {
+  readonly email: string
+  readonly problem: FieldProblem<'email'> | null
+  readonly sent: boolean
+}
+
+export function ForgotPassword({ initial = {} }: { initial?: Partial<ForgotState> } = {}) {
+  const [email, setEmail] = useState(initial.email ?? '')
+  const [problem, setProblem] = useState(initial.problem ?? null)
+  const [sent, setSent] = useState(initial.sent ?? false)
   const [loading, setLoading] = useState(false)
+
+  // el foco, al campo que falta: su error se oye con él
+  useEffect(() => {
+    if (problem !== null) document.getElementById('forgot-email')?.focus()
+  }, [problem])
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
+    if (loading) return
+    const falta = emailProblem(email)
+    setProblem(falta)
+    if (falta !== null) return
     setLoading(true)
     // redirectTo es la página de esta misma web donde el servidor deja al usuario con el token.
     await authClient.requestPasswordReset({ email, redirectTo: '/reset-password' })
@@ -25,48 +50,53 @@ export function ForgotPassword() {
   }
 
   return (
-    <div className="mx-auto max-w-sm">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Forgot your password?</h1>
-        {sent ? (
-          <>
-            <p className="mt-3 text-sm text-slate-600">
-              If there is an account for <span className="font-medium">{email}</span>, a link to
-              choose a new password is on its way. It expires in one hour.
-            </p>
-            <p className="mt-2 text-xs text-slate-400">
-              Nothing in your inbox? Check the spam folder before asking for another one.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="mt-1 text-sm text-slate-500">
-              Give us your email and we will send you a link to set a new one.
-            </p>
-            <form onSubmit={onSubmit} className="mt-6 space-y-4">
-              <TextField
-                label="Email"
-                value={email}
-                onChange={setEmail}
+    <section className="mx-auto grid max-w-form gap-4">
+      {/* pedido, sin la instrucción: ya no hay que dar nada (la revisión del 21j) */}
+      <PageHeader
+        title="Forgot your password?"
+        {...(sent
+          ? {}
+          : { status: 'Give us your email and we will send you a link to set a new one.' })}
+      />
+      <Panel ariaLabel="Your email" answer>
+        <div className="grid gap-3">
+          <div role="status" className="grid gap-2 empty:sr-only">
+            {sent && (
+              <>
+                <p className="text-body text-ink-2">
+                  If there is an account for{' '}
+                  <strong className="font-semibold text-ink">{email}</strong>, a link to choose a
+                  new password is on its way. It expires in one hour.
+                </p>
+                <p className="text-meta text-ink-2">
+                  Nothing in your inbox? Check the spam folder before asking for another one.
+                </p>
+              </>
+            )}
+          </div>
+          {!sent && (
+            <form onSubmit={onSubmit} className="grid gap-3">
+              <Field
+                kind="input"
                 type="email"
+                id="forgot-email"
+                label="Email"
                 autoComplete="email"
+                value={email}
+                onChange={(v) => {
+                  setEmail(v)
+                  setProblem(null)
+                }}
+                {...(problem !== null ? { error: problem.msg } : {})}
               />
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
-              >
-                {loading ? 'Sending…' : 'Send me a link'}
-              </button>
+              <Button variant="primary" type="submit" busy={loading} busyLabel="Sending…">
+                Send me a link
+              </Button>
             </form>
-          </>
-        )}
-      </div>
-      <p className="mt-4 text-center text-sm text-slate-500">
-        <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-          Back to log in
-        </Link>
-      </p>
-    </div>
+          )}
+        </div>
+      </Panel>
+      <TextLink to="/login">Back to log in</TextLink>
+    </section>
   )
 }

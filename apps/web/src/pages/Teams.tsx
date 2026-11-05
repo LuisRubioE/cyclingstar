@@ -1,52 +1,56 @@
+import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { type TeamListItem, fetchTeams } from '../api/browse'
-import { Flag } from '../components/Flag'
-import { TeamJersey } from '../components/ui/TeamJersey'
-import { Panel, SectionBar } from '../components/Panel'
-import { horizonKey, useHorizonRev } from '../queryClient'
+import { TOP_ROWS } from '../components/ShowAll'
 import { VeilNotice } from '../components/VeilNotice'
+import { ActionRow } from '../components/ui/ActionRow'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { ShowAllRows, toggled } from '../components/ui/ShowAllRows'
+import { TeamJersey } from '../components/ui/TeamJersey'
+import { plural } from '../domain/words'
+import { horizonKey, useHorizonRev } from '../queryClient'
 
-const DIVISION_BADGE: Record<string, string> = {
-  WT: 'bg-indigo-100 text-indigo-700',
-  PRS: 'bg-sky-100 text-sky-700',
-  CON: 'bg-slate-100 text-slate-600',
-}
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'World Tour',
-  PRS: 'Pro Series',
-  CON: 'Continental',
-}
+/**
+ * LOS EQUIPOS, CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21k): la cabecera en `PageHeader`;
+ * cada división en su `Panel`, la primera la respuesta de la 21 (§7.3), y cada equipo, una `ActionRow` a su
+ * ficha, con su nombre seguido de su maillot de 28 y sin bandera al lado (4-i, D-00c), y debajo su país en
+ * palabras, sus puntos y sus corredores; sin equipos, su vacío, que contesta. Iban en tarjetas a
+ * mano, con la marca de su división en cada una, que ya dice su `Panel`, y las cifras en `slate-400`, que no
+ * se leía (axe, 224 faltas en la 21). Cada división, con sus 20 primeros y `Show all` (§6.1), que el 21k no
+ * aplicó (PR 21l).
+ */
 
-function DivisionBlock({ division, teams }: { division: string; teams: TeamListItem[] }) {
-  if (teams.length === 0) return null
+const DIVISIONES: readonly { readonly key: string; readonly label: string }[] = [
+  { key: 'WT', label: 'World Tour' },
+  { key: 'PRS', label: 'Pro Series' },
+  { key: 'CON', label: 'Continental' },
+]
+
+/** En dos columnas desde 1.024, como el índice de carreras (21e). */
+const LISTA = 'divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0'
+
+function TeamRow({ t }: { t: TeamListItem }) {
+  const pais =
+    t.country === null ? null : (COUNTRIES.find((c) => c.code === t.country)?.name ?? t.country)
+  const cifras = `${t.pointsSeason.toLocaleString('en-US')} pts · ${plural(t.riderCount, 'rider')}`
   return (
-    <Panel title={DIVISION_LABEL[division] ?? division}>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {teams.map((t) => (
-          <Link
-            key={t.id}
-            to={`/world/teams/${t.id}`}
-            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
-          >
-            <span className="flex items-center gap-2">
-              <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
-              <Flag code={t.country} size={16} />
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIVISION_BADGE[t.division] ?? ''}`}
-              >
-                {t.division}
-              </span>
-              <span className="text-sm font-semibold text-slate-800">{t.name}</span>
-            </span>
-            <span className="text-xs tabular-nums text-slate-400">
-              {t.pointsSeason} pts · {t.riderCount} riders
-            </span>
-          </Link>
-        ))}
-      </div>
-    </Panel>
+    <ActionRow
+      href={`/world/teams/${t.id}`}
+      title={
+        <span className="flex items-center gap-2">
+          {t.name}
+          {/* su nombre va al lado: el maillot, para el ojo, que el lector no lo diga dos veces */}
+          <span aria-hidden="true">
+            <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
+          </span>
+        </span>
+      }
+      meta={pais === null ? cifras : `${pais} · ${cifras}`}
+    />
   )
 }
 
@@ -57,19 +61,42 @@ export function Teams() {
     queryFn: fetchTeams,
     enabled: rev !== undefined,
   })
+  // Las divisiones con todos sus equipos a la vista, pasados los 20 primeros (§6.1; PR 21l).
+  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(() => new Set())
   // Los estados, con `QueryView` (E3, PR 10).
   if (query.data === undefined)
     return <QueryView query={query} label="teams" skeleton={{ kind: 'rows', rowHeight: 44 }} />
   const data = query.data
+  const divisiones = DIVISIONES.map((d) => ({
+    ...d,
+    teams: data.filter((t) => t.division === d.key),
+  })).filter((d) => d.teams.length > 0)
 
   return (
     <section className="space-y-4">
-      <SectionBar>Teams</SectionBar>
+      <PageHeader
+        title="Teams"
+        status={`${plural(data.length, 'team')} across the three divisions.`}
+      />
       <VeilNotice kind="results" />
-      <p className="text-sm text-slate-500">{data.length} teams across the three divisions.</p>
-      {['WT', 'PRS', 'CON'].map((div) => (
-        <DivisionBlock key={div} division={div} teams={data.filter((t) => t.division === div)} />
-      ))}
+      {divisiones.length === 0 && <EmptyState icon="team" text="No teams yet." answer />}
+      {divisiones.map((d, i) => {
+        const todas = abiertas.has(d.key)
+        return (
+          <Panel key={d.key} title={d.label} answer={i === 0}>
+            <ul className={LISTA}>
+              {(todas ? d.teams : d.teams.slice(0, TOP_ROWS)).map((t) => (
+                <TeamRow key={t.id} t={t} />
+              ))}
+            </ul>
+            <ShowAllRows
+              total={d.teams.length}
+              expanded={todas}
+              onToggle={() => setAbiertas((prev) => toggled(prev, d.key))}
+            />
+          </Panel>
+        )
+      })}
     </section>
   )
 }

@@ -31,7 +31,7 @@ describe('db: esquema fundacional', () => {
     expect(getTableName(raceWatch)).toBe('race_watch')
   })
 
-  it('la semilla del dibujo ya no está en el esquema, y la identidad sí (E3, §8.9; 19e): la base la guarda hasta la 0053', () => {
+  it('la semilla del dibujo ya no está en el esquema, y la identidad sí (E3, §8.9; 19e): la 0053 la borra de la base', () => {
     expect(Object.values(getTableColumns(teams)).map((c) => c.name)).not.toContain(
       'jersey_style_seed',
     )

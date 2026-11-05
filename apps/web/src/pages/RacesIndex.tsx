@@ -1,27 +1,34 @@
 import { useQuery } from '@tanstack/react-query'
 import { Fragment, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { type CalendarRaceSummary, type RaceLevel, fetchCalendar } from '../api/calendar'
-import { Flag } from '../components/Flag'
-import { Panel, SectionBar } from '../components/Panel'
-import { StageRoute } from '../components/StageRoute'
-import { Tabs } from '../components/Tabs'
+import { type CalendarRaceSummary, fetchCalendar } from '../api/calendar'
+import { TOP_ROWS } from '../components/ShowAll'
+import { RestDay, StageLine } from '../components/StageLine'
+import { ActionRow } from '../components/ui/ActionRow'
+import { Button } from '../components/ui/Button'
+import { Disclosure } from '../components/ui/Disclosure'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Field } from '../components/ui/Field'
+import { Flag } from '../components/ui/Flag'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { ShowAllRows } from '../components/ui/ShowAllRows'
+import { TextLink } from '../components/ui/TextLink'
 import { formatLabel, raceClassLabel } from '../domain/labels'
 import {
   type ClassFilter,
   type FormatFilter,
   type RaceTimelineStatus,
   RECENT_WINDOW,
+  type TimelineRow,
   buildTimeline,
   champCountryName,
   champEventLabel,
   champEventsByDay,
   championshipsByNation,
-  nationDay,
 } from '../domain/raceTimeline'
 import { finalVeiled, raceKeyOn, raceVeil } from '../domain/veil'
+import { formatGameDay, plural } from '../domain/words'
 import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient'
 
 /**
@@ -31,8 +38,8 @@ import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient
  * enseñaban casi lo mismo: los dos respondían a "¿qué viene?" y a "¿qué pasó?". De cada uno se
  * conserva lo que hacía mejor:
  *
- * - del calendario: la línea temporal cronológica con el marcador de "hoy", el pasado atenuado, el
- *   desplegable con las etapas de cada carrera y el bloque aparte de campeonatos nacionales;
+ * - del calendario: la línea temporal cronológica con el marcador de "hoy", el desplegable con las
+ *   etapas de cada carrera y el bloque aparte de campeonatos nacionales;
  * - del índice: el buscador (nombre, país, ganador) y los filtros de clase y de formato.
  *
  * Y se añade lo que faltaba en ambos: lo recién corrido y lo que viene, juntos alrededor de "hoy"
@@ -40,22 +47,14 @@ import { horizonKey, useHealth, useHorizon, useHorizonRev } from '../queryClient
  *
  * Es pública: se ve sin sesión, como el resto de `World`. La lógica —orden, marcador, filtros y
  * agrupación de campeonatos— vive en `domain/raceTimeline` y se prueba allí.
+ *
+ * CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21e): un solo `Panel` contesta a la 20
+ * (§7.3), con el buscador y los dos filtros dentro, en `Field` con su rótulo a la vista, porque encima la
+ * respuesta caería hacia los 520 px y en los campeonatos tienen que seguir a la vista para volver. Cada
+ * carrera, una `ActionRow` que enlaza a su ficha, con sus etapas plegadas debajo; hoy, `Day 50`; el ganador,
+ * tras `Winner` (3-d); y las 20 primeras de lo que viene, con `Show all N` (§6.1). Sin el gris de lo corrido:
+ * lo separa el marcador de hoy.
  */
-
-const LEVEL_BADGE: Record<RaceLevel, string> = {
-  WT: 'bg-indigo-100 text-indigo-700',
-  PRS: 'bg-sky-100 text-sky-700',
-  CON: 'bg-slate-100 text-slate-600',
-}
-
-/** Un tono por tipo de etapa, para leer el perfil de un vistazo. */
-const KIND_DOT: Record<string, string> = {
-  llana: 'bg-emerald-400',
-  media: 'bg-amber-400',
-  reina: 'bg-rose-500',
-  cri: 'bg-violet-400',
-  clasica: 'bg-orange-500',
-}
 
 const CLASS_FILTERS: { key: ClassFilter; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -72,202 +71,196 @@ const FORMAT_FILTERS: { key: FormatFilter; label: string }[] = [
   { key: 'un-dia', label: 'One-day' },
 ]
 
+/** La clave de un filtro desde el valor de su `select`, sin aserciones: lo que no es una, la primera. */
+const filterKey = <K extends string>(filters: readonly { key: K }[], value: string): K =>
+  filters.find((f) => f.key === value)?.key ?? filters[0]!.key
+
 /**
- * Una carrera de la línea temporal: cabecera plegable con su día, su clase y quién ganó, y dentro
- * el recorrido etapa a etapa (lo que el índice viejo no tenía y el calendario sí).
+ * Una carrera de la línea temporal (E3, §4.5; PR 21e): su nombre y su clase, y en el segundo renglón el día,
+ * el país, el formato y quién ganó, todo enlazado a su ficha; debajo, plegado, el recorrido etapa a etapa
+ * (lo que el índice viejo no tenía y el calendario sí). Antes, un botón que abría la fila, con el ganador
+ * cortado a 112 px, la clase y el formato escondidos en el teléfono y el enlace a la ficha dentro.
  */
-function RaceCard({
+function RaceRow({
   race,
   status,
+  today,
   finalHidden,
 }: {
   race: CalendarRaceSummary
   status: RaceTimelineStatus
+  /** el día de la temporada, para `in 3 days` */
+  today: number | null
   /** la última etapa está en el velo de quien mira (sup. I1; 9b) */
   finalHidden: boolean
 }) {
-  const [open, setOpen] = useState(false)
   const totalKm = race.stages.reduce((sum, s) => sum + s.km, 0)
   const oneDay = race.stages.length === 1
+  const meta = [formatGameDay(race.startDay, today), race.country, formatLabel(race.format)]
+    .filter((p) => p !== null)
+    .join(' · ')
+  // sin región: hay una por fila, y abiertas se llamarían todas igual (PR 21b)
+  const etapas = oneDay ? 'the route' : `the ${plural(race.stages.length, 'stage')}`
   return (
-    <article className="border-b border-slate-100 last:border-0">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50"
-      >
-        <span className="w-12 shrink-0 text-xs tabular-nums text-slate-400">
-          GD {race.startDay}
-        </span>
-        {race.country ? (
-          <Flag code={race.country} size={16} />
-        ) : (
-          <span className="inline-block w-4 shrink-0" aria-hidden />
-        )}
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
-          {race.name}
-        </span>
-        <span
-          className={`hidden shrink-0 rounded-full px-2 py-0.5 text-xs font-medium sm:inline ${LEVEL_BADGE[race.level]}`}
-        >
-          {race.level}
-        </span>
-        <span
-          className="hidden shrink-0 rounded-full bg-slate-900/5 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-500 sm:inline"
-          title="Race class"
-        >
-          {raceClassLabel(race.raceClass)}
-        </span>
-        <span className="hidden w-24 shrink-0 text-right text-xs text-slate-400 md:block">
-          {formatLabel(race.format)}
-          {!oneDay && <span className="ml-1 tabular-nums">· {race.stages.length}</span>}
-        </span>
-        <span className="w-28 shrink-0 truncate text-right text-xs sm:w-36">
-          {race.winner ? (
-            <span className="font-medium text-amber-700">🏆 {race.winner}</span>
+    <ActionRow
+      title={
+        <>
+          {race.name}{' '}
+          <span className="text-caption font-semibold text-ink-3">
+            {raceClassLabel(race.raceClass)}
+            {!oneDay && ` · ${plural(race.stages.length, 'stage')}`}
+          </span>
+        </>
+      }
+      meta={
+        <>
+          {meta}
+          {race.winner !== null ? (
+            <>
+              {' · '}
+              <span className="text-ink-3">Winner</span> {race.winner}
+            </>
           ) : finalHidden ? (
             // la API no manda el ganador de una carrera de final velado (P; 8a): se dice que está por ver
-            <span className="font-medium text-emerald-700">Finished · ready to watch</span>
-          ) : status === 'ongoing' ? (
-            <span className="font-medium text-emerald-600">Racing now</span>
+            <>
+              {' · '}
+              <span className="font-semibold text-good">Finished · ready to watch</span>
+            </>
           ) : (
-            <span className="text-slate-300">—</span>
+            status === 'ongoing' && (
+              <>
+                {' · '}
+                <span className="font-semibold text-good">Racing now</span>
+              </>
+            )
           )}
-        </span>
-      </button>
-      {open && (
-        <div className="border-t border-slate-100 px-4 py-3">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-slate-400">
+        </>
+      }
+      href={`/world/races/${race.id}`}
+      extra={
+        <Disclosure
+          showLabel={`Show ${etapas}`}
+          hideLabel={`Hide ${etapas}`}
+          region={false}
+          name={race.name}
+          layout="w-full"
+        >
+          <div className="grid gap-1 px-3 pb-1 text-meta">
+            <p className="text-caption text-ink-3">
               {Math.round(totalKm)} km total · open to {race.openTo.join(', ')}
             </p>
-            <Link
-              to={`/world/races/${race.id}`}
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              View full race →
-            </Link>
-          </div>
-          <ol className="space-y-1">
-            {race.stages.map((stage) => (
-              <Fragment key={stage.index}>
-                <li className="flex items-center gap-3 text-sm">
-                  <span
-                    className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
-                    aria-hidden
-                  />
-                  <span className="shrink-0 text-slate-700">{stage.name}</span>
-                  <StageRoute from={stage.from} to={stage.to} className="truncate text-slate-500" />
-                  <span className="ml-auto shrink-0 tabular-nums text-slate-400">
-                    {stage.km} km
-                  </span>
-                </li>
-                {/* Día de descanso tras esta etapa (grandes vueltas y alguna vuelta por etapas). */}
-                {race.restAfter.includes(stage.index) && (
-                  <li className="flex items-center gap-2 py-0.5 pl-5 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    <span className="h-px w-4 bg-slate-200" />
-                    Rest day
-                    <span className="h-px flex-1 bg-slate-200" />
+            <ol className="grid gap-1">
+              {race.stages.map((stage) => (
+                <Fragment key={stage.index}>
+                  <li className="flex flex-wrap items-center gap-x-2">
+                    <StageLine stage={stage} oneDay={oneDay} />
                   </li>
-                )}
-              </Fragment>
-            ))}
-          </ol>
-        </div>
-      )}
-    </article>
+                  {/* Día de descanso tras esta etapa (grandes vueltas y alguna vuelta por etapas). */}
+                  {race.restAfter.includes(stage.index) && <RestDay />}
+                </Fragment>
+              ))}
+            </ol>
+          </div>
+        </Disclosure>
+      }
+    />
   )
 }
 
 /**
  * Una nación con sus pruebas (Crono/Ruta × Elite/Sub-23). No todas caen el mismo día: la crono va
  * entre semana y la ruta el fin de semana, y según el país la Elite y el Sub-23 coinciden o no. Por
- * eso se agrupan por día, y así se ve de un vistazo qué pruebas comparten fecha.
+ * eso se agrupan por día, y así se ve de un vistazo qué pruebas comparten fecha. Desde el PR 21e, cada
+ * prueba es un enlace de 44 con su ganador detrás, a la vista, y no en un `title` (ui/4) tras una copa.
  */
 function NationRow({
   code,
   races,
+  today,
   hidden,
 }: {
   code: string
   races: CalendarRaceSummary[]
+  today: number | null
   /** si la prueba tiene el final en el velo de quien mira (sup. I2; 9b) */
   hidden: (race: CalendarRaceSummary) => boolean
 }) {
-  const name = champCountryName(races[0]!)
-  const days = champEventsByDay(races)
-  const first = days[0]![0]
-  const last = days[days.length - 1]![0]
-  const span = days.length === 1 ? `GD ${first}` : `GD ${first}–${last}`
   return (
-    <div className="flex items-start gap-2 rounded px-1 py-1 hover:bg-slate-50">
-      <span className="w-16 shrink-0 text-xs tabular-nums text-slate-400">{span}</span>
-      <Flag code={code} size={16} />
-      <span className="w-24 shrink-0 truncate text-sm font-medium text-slate-700">{name}</span>
-      <div className="flex flex-wrap gap-x-3 gap-y-1">
-        {days.map(([day, events]) => (
-          <div key={day} className="flex items-center gap-1">
-            <span className="text-[10px] tabular-nums text-slate-300">GD {day}</span>
+    <li className="grid gap-0.5 py-2">
+      <p className="flex items-center gap-2 text-row font-semibold text-ink">
+        {/* la bandera, para el ojo: su nombre lo dice el texto de al lado, que el lector no oiga dos veces */}
+        <span aria-hidden="true">
+          <Flag country={code} />
+        </span>
+        {champCountryName(races[0]!)}
+      </p>
+      {/* el día en su renglón y sus pruebas debajo, que parten a todo lo ancho: a su lado, en el teléfono,
+          cada prueba caía en un renglón suelto bajo el día. En un `<p>`, cada enlace es de frase: `ITT` no
+          llega a 44 de ancho, y pide su círculo de 24 libre (WCAG 2.5.8; la comprobación 5) */}
+      {champEventsByDay(races).map(([day, events]) => (
+        <div key={day}>
+          <p className="text-caption tabular-nums text-ink-3">{formatGameDay(day, today)}</p>
+          <p className="flex flex-wrap items-center gap-x-4 text-meta">
             {events.map((r) => (
-              <Link
-                key={r.id}
-                to={`/world/races/${r.id}`}
-                title={
-                  r.winner
-                    ? `Winner: ${r.winner}`
-                    : hidden(r)
-                      ? `${champEventLabel(r)} · Finished · ready to watch`
-                      : champEventLabel(r)
-                }
-                className="rounded bg-slate-900/5 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-brand-cyan/15 hover:text-brand-navy"
-              >
-                {r.winner ? '🏆 ' : ''}
-                {champEventLabel(r)}
-              </Link>
+              <span key={r.id} className="inline-flex flex-wrap items-center gap-x-1">
+                {/* de 44 × 44: `ITT` mide 20 de ancho, y un enlace que no va en una frase es un control (la
+                    revisión del 21e) */}
+                <TextLink to={`/world/races/${r.id}`} layout="min-w-11">
+                  {champEventLabel(r)}
+                </TextLink>
+                {r.winner !== null ? (
+                  <span className="text-ink-2">
+                    <span className="text-ink-3">Winner</span> {r.winner}
+                  </span>
+                ) : (
+                  hidden(r) && (
+                    <span className="font-semibold text-good">Finished · ready to watch</span>
+                  )
+                )}
+              </span>
             ))}
-          </div>
-        ))}
-      </div>
-    </div>
+          </p>
+        </div>
+      ))}
+    </li>
   )
 }
 
 /**
  * Los campeonatos nacionales, aparte: son 532 carreras de un día y en la línea temporal la
- * sepultarían. Tienen su propio filtro, y aquí se agrupan por nación.
+ * sepultarían. Tienen su propio filtro, y aquí se agrupan por nación; las 20 primeras naciones, con
+ * `Show all N` (PR 21e). Se exporta para su test, que no puede pulsar el filtro.
  */
-function NationalChampsBlock({
-  races,
+export function NationalChampionships({
+  nations,
+  today,
   hidden,
 }: {
-  races: CalendarRaceSummary[]
+  nations: readonly [string, CalendarRaceSummary[]][]
+  today: number | null
   hidden: (race: CalendarRaceSummary) => boolean
 }) {
-  const nations = championshipsByNation(races)
-  if (nations.length === 0) {
-    return (
-      <Panel title="National championships">
-        <EmptyState text="No national championships match that search." />
-      </Panel>
-    )
-  }
-  const days = nations.map(([, list]) => nationDay(list))
-  const range = `GD ${Math.min(...days)}–${Math.max(...days)}`
+  const [todas, setTodas] = useState(false)
+  if (nations.length === 0)
+    return <EmptyState text="No national championships match that search." />
+  // de la primera prueba a la última, cronos incluidas: el día de cada nación (`nationDay`), el de su ruta,
+  // dejaba fuera los de la crono que la fila de debajo enseña (la revisión del 21e)
+  const days = nations.flatMap(([, list]) => list.map((r) => r.startDay))
+  const first = Math.min(...days)
+  const last = Math.max(...days)
   return (
-    <Panel
-      title={`National championships (${nations.length} nations)`}
-      action={<span className="text-xs text-white/80">{range}</span>}
-    >
-      <p className="mb-2 text-xs text-slate-400">
-        Elite &amp; U23, road and time trial — most in late June, southern hemisphere in Jan–Feb.
+    <>
+      <p className="text-caption text-ink-3">
+        {first === last ? `Day ${first}` : `Day ${first} to Day ${last}`} · Elite &amp; U23, road
+        and time trial — most in late June, southern hemisphere in Jan–Feb.
       </p>
-      <div className="grid gap-x-4 gap-y-0.5 sm:grid-cols-2">
-        {nations.map(([code, list]) => (
-          <NationRow key={code} code={code} races={list} hidden={hidden} />
+      <ul className="divide-y divide-line lg:grid lg:grid-cols-2 lg:gap-x-6 lg:divide-y-0">
+        {(todas ? nations : nations.slice(0, TOP_ROWS)).map(([code, list]) => (
+          <NationRow key={code} code={code} races={list} today={today} hidden={hidden} />
         ))}
-      </div>
-    </Panel>
+      </ul>
+      <ShowAllRows total={nations.length} expanded={todas} onToggle={() => setTodas((t) => !t)} />
+    </>
   )
 }
 
@@ -292,6 +285,7 @@ export function RacesIndex() {
   const [classFilter, setClassFilter] = useState<ClassFilter>('all')
   const [formatFilter, setFormatFilter] = useState<FormatFilter>('all')
   const [showEarlier, setShowEarlier] = useState(false)
+  const [todas, setTodas] = useState(false)
 
   const today = data?.dayOfSeason ?? null
   const races = useMemo(() => data?.races ?? [], [data])
@@ -301,11 +295,13 @@ export function RacesIndex() {
     [races, today, query, classFilter, formatFilter, showEarlier],
   )
   // El bloque de campeonatos usa el buscador y el formato, pero no la clase (ya está elegida).
-  const champs = useMemo(
+  const nations = useMemo(
     () =>
-      buildTimeline(races, { today, query, classFilter: 'NC', formatFilter, showEarlier: true })
-        .rows.filter((row) => row.kind === 'race')
-        .map((row) => row.race),
+      championshipsByNation(
+        buildTimeline(races, { today, query, classFilter: 'NC', formatFilter, showEarlier: true })
+          .rows.filter((row) => row.kind === 'race')
+          .map((row) => row.race),
+      ),
     [races, today, query, formatFilter],
   )
   const nationals = useMemo(() => races.filter((r) => r.championshipCountry != null), [races])
@@ -314,10 +310,15 @@ export function RacesIndex() {
     [nationals],
   )
 
-  // Los estados, con `QueryView` (E3, PR 10).
+  // Los estados, con `QueryView` (E3, PR 10); la espera también contesta (§7.3).
   if (data === undefined)
     return (
-      <QueryView query={calendar} label="the races" skeleton={{ kind: 'rows', rowHeight: 64 }} />
+      <QueryView
+        query={calendar}
+        label="the races"
+        skeleton={{ kind: 'rows', rowHeight: 64 }}
+        answer
+      />
     )
 
   const baseRaces = races.length - nationals.length
@@ -326,94 +327,102 @@ export function RacesIndex() {
   const canCollapse =
     timeline.rows.filter((row) => row.kind === 'race' && row.status === 'finished').length >
     RECENT_WINDOW
+  // lo corrido, encima del marcador de hoy, y lo que viene, debajo, con sus 20 primeras (§6.1)
+  const hoy = timeline.rows.findIndex((row) => row.kind === 'today')
+  const corridas = hoy < 0 ? [] : timeline.rows.slice(0, hoy)
+  const vienen = hoy < 0 ? timeline.rows : timeline.rows.slice(hoy + 1)
+  const fila = (row: TimelineRow) =>
+    row.kind === 'race' && (
+      <RaceRow
+        key={row.race.id}
+        race={row.race}
+        status={row.status}
+        today={today}
+        finalHidden={hidden(row.race)}
+      />
+    )
+  const LISTA = 'divide-y divide-line'
 
   return (
     <section className="space-y-4">
-      <SectionBar>Races</SectionBar>
-      <p className="text-sm text-slate-500">
+      <PageHeader title="Races" />
+      <p className="text-meta text-ink-2">
         The season in order, with today marked: what has just been raced and what is coming next, in
         one timeline. {baseRaces} races plus national championships for {nationCount} nations —
         grand tours, stage races, one-day classics and every nation&apos;s Elite &amp; U23 titles.
       </p>
 
-      <div className="space-y-3">
-        <label className="block">
-          <span className="sr-only">Search races</span>
-          <input
+      <Panel
+        title={
+          showingChamps
+            ? `National championships (${plural(nations.length, 'nation')})`
+            : `Season timeline (${timeline.total})`
+        }
+        answer
+      >
+        <div className="grid gap-3 pb-3">
+          <Field
+            kind="input"
             type="search"
+            id="races-search"
+            label="Search races"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={setQuery}
             placeholder="Search by race, country code or winner…"
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
           />
-        </label>
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          <Tabs
-            label="Race class"
-            options={CLASS_FILTERS.map((f) => ({ key: f.key, label: f.label }))}
-            value={classFilter}
-            onChange={setClassFilter}
-          />
-          <Tabs
-            label="Race format"
-            options={FORMAT_FILTERS.map((f) => ({ key: f.key, label: f.label }))}
-            value={formatFilter}
-            onChange={setFormatFilter}
-          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              kind="select"
+              id="races-class"
+              label="Race class"
+              value={classFilter}
+              onChange={(v) => setClassFilter(filterKey(CLASS_FILTERS, v))}
+              options={CLASS_FILTERS.map((f) => ({ value: f.key, label: f.label }))}
+            />
+            <Field
+              kind="select"
+              id="races-format"
+              label="Race format"
+              value={formatFilter}
+              onChange={(v) => setFormatFilter(filterKey(FORMAT_FILTERS, v))}
+              options={FORMAT_FILTERS.map((f) => ({ value: f.key, label: f.label }))}
+            />
+          </div>
         </div>
-      </div>
 
-      {showingChamps ? (
-        <NationalChampsBlock races={champs} hidden={hidden} />
-      ) : timeline.total === 0 ? (
-        <EmptyState text="No race matches that search." />
-      ) : (
-        <Panel title={`Season timeline (${timeline.total})`} bodyClassName="p-0">
-          {/* El pasado lejano, plegado: así "hoy" y lo que viene entran en la primera pantalla. */}
-          {timeline.earlierCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowEarlier(true)}
-              className="w-full border-b border-slate-100 py-2 text-xs font-medium text-indigo-600 transition hover:bg-slate-50"
-            >
-              ↑ Show {timeline.earlierCount} earlier{' '}
-              {timeline.earlierCount === 1 ? 'race' : 'races'}
-            </button>
-          )}
-          {showEarlier && canCollapse && (
-            <button
-              type="button"
-              onClick={() => setShowEarlier(false)}
-              className="w-full border-b border-slate-100 py-2 text-xs font-medium text-indigo-600 transition hover:bg-slate-50"
-            >
-              ↓ Back to recent races
-            </button>
-          )}
-          {timeline.rows.map((row) =>
-            row.kind === 'today' ? (
-              <div
-                key="today"
-                className="flex items-center gap-2 border-y border-brand-cyan/40 bg-brand-cyan/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-navy"
-              >
-                <span className="inline-block h-2 w-2 rounded-full bg-brand-cyan" aria-hidden />
-                Today · GD {row.day}
-              </div>
-            ) : row.status === 'finished' ? (
-              // Lo ya corrido, atenuado: sigue ahí, pero no compite con lo que viene.
-              <div key={row.race.id} className="opacity-60">
-                <RaceCard race={row.race} status={row.status} finalHidden={hidden(row.race)} />
-              </div>
-            ) : (
-              <RaceCard
-                key={row.race.id}
-                race={row.race}
-                status={row.status}
-                finalHidden={hidden(row.race)}
-              />
-            ),
-          )}
-        </Panel>
-      )}
+        {showingChamps ? (
+          <NationalChampionships nations={nations} today={today} hidden={hidden} />
+        ) : timeline.total === 0 ? (
+          <EmptyState text="No race matches that search." />
+        ) : (
+          <>
+            {/* El pasado lejano, plegado: así "hoy" y lo que viene entran en la primera pantalla. */}
+            {timeline.earlierCount > 0 && (
+              <Button variant="quiet" layout="w-full" onClick={() => setShowEarlier(true)}>
+                {`Show ${plural(timeline.earlierCount, 'earlier race')}`}
+              </Button>
+            )}
+            {showEarlier && canCollapse && (
+              <Button variant="quiet" layout="w-full" onClick={() => setShowEarlier(false)}>
+                Back to recent races
+              </Button>
+            )}
+            {corridas.length > 0 && <ul className={LISTA}>{corridas.map(fila)}</ul>}
+            {hoy >= 0 && (
+              <p className="flex items-center gap-2 border-y border-accent bg-info-bg px-3 py-1.5 text-caption font-semibold uppercase tracking-caps text-ink">
+                <span className="inline-block h-2 w-2 shrink-0 rounded-ui bg-accent" aria-hidden />
+                Today · Day {today}
+              </p>
+            )}
+            <ul className={LISTA}>{(todas ? vienen : vienen.slice(0, TOP_ROWS)).map(fila)}</ul>
+            <ShowAllRows
+              total={vienen.length}
+              expanded={todas}
+              onToggle={() => setTodas((t) => !t)}
+            />
+          </>
+        )}
+      </Panel>
     </section>
   )
 }

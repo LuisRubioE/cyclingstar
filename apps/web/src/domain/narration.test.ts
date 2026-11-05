@@ -1,6 +1,6 @@
 import type { RiderRaceReport } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { raceVerdict } from './narration'
+import { gapToWinnerText, raceVerdict } from './narration'
 
 const report = (over: Partial<RiderRaceReport> = {}): RiderRaceReport => ({
   raceName: 'Le Tour',
@@ -46,5 +46,15 @@ describe('web: el veredicto de la última carrera', () => {
     ).toContain('sprint')
     expect(raceVerdict(report({ position: 10, fieldSize: 100 }))).toContain('near the front')
     expect(raceVerdict(report({ position: 90, fieldSize: 100 }))).toContain('quiet day')
+  })
+})
+
+describe('web: el hueco con el ganador (E3, docs/visual.md §4.10; la revisión del 21g)', () => {
+  it('winner al primero; al resto, `+0:40` con formatTime, o s.t. si llegó con él', () => {
+    expect(gapToWinnerText(report({ position: 1, timeGapToWinnerS: 0 }))).toBe('winner')
+    expect(gapToWinnerText(report({ timeGapToWinnerS: 40 }))).toBe('+0:40')
+    expect(gapToWinnerText(report({ timeGapToWinnerS: 725 }))).toBe('+12:05')
+    expect(gapToWinnerText(report({ timeGapToWinnerS: 3730 }))).toBe('+1:02:10')
+    expect(gapToWinnerText(report({ timeGapToWinnerS: 0 }))).toBe('s.t.')
   })
 })

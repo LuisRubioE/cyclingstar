@@ -12,8 +12,8 @@ import {
   currentSeason,
 } from '@cyclingstar/shared'
 import { type UseQueryResult, keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import {
   broadcastHeadKey,
   fetchBroadcastHead,
@@ -26,12 +26,14 @@ import { readLocalProgress } from '../api/watch'
 import { authClient } from '../auth/client'
 import { StageResultRankTable } from '../components/RaceRankTables'
 import { StageStory } from '../components/StageStory'
+import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { TextLink } from '../components/ui/TextLink'
 import type { TableIdentity } from '../domain/tableIdentity'
 import { diagOf, useHealth, useHorizonRev, useWatchOn } from '../queryClient'
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
-const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
+const card = 'rounded-ui border border-line bg-surface p-4 shadow-card'
+const head = 'text-caption font-semibold uppercase tracking-caps text-ink-2'
 
 /**
  * Resultado de la etapa: top 20 y "Show all" (antes se truncaba a 15 sin forma de ver el resto). En
@@ -88,6 +90,7 @@ export function StageReportView({
   identity,
   ownRiderId = null,
   answer = false,
+  classificationsHref,
 }: {
   data: StageReplayData
   onWatchAnyway?: (() => void) | undefined
@@ -97,23 +100,30 @@ export function StageReportView({
   ownRiderId?: string | null
   /** la llegada contesta a la pantalla: el acta pública (§7.3) */
   answer?: boolean
+  /** la pestaña `Classifications` de la etapa, a la que salta la fila; sin ella, ese salto no sale */
+  classificationsHref?: string | undefined
 }) {
   const results = data.results ?? []
+  // LA FILA DE SALTOS (E3, docs/visual.md §14.6; 14-c; PR 20): a sus partes, sin perder la pestaña ni la
+  // búsqueda de la página; el router no lleva a la vista lo que nombra el ancla, así que se lleva aquí. Con
+  // la `key` de la navegación, y no solo con el ancla: el segundo toque al mismo salto deja el ancla igual
+  // (el router lo cambia por un `replace`, con otra `key`) y también tiene que llevar a la vista.
+  const { pathname, search, hash, key } = useLocation()
+  useEffect(() => {
+    if (hash !== '') document.getElementById(hash.slice(1))?.scrollIntoView()
+  }, [hash, key])
+  const here = (id: string): string => `${pathname}${search}#${id}`
   return (
     <>
       {onWatchAnyway !== undefined && (
         <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onWatchAnyway}
-            className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700"
-          >
+          <Button variant="primary" onClick={onWatchAnyway}>
             Watch anyway
-          </button>
+          </Button>
         </div>
       )}
       {results.length > 0 ? (
-        <div className={card}>
+        <div id="stage-result" className={card}>
           <h2 className={head}>Stage result</h2>
           {/* `onRoad`, no `afterStage`: ver la cabecera de `ResultTable`. */}
           <StageResultRankTable
@@ -127,11 +137,20 @@ export function StageReportView({
           />
         </div>
       ) : (
-        <div className={card}>
+        <div id="stage-result" className={card}>
           <EmptyState text="No result for this stage." />
         </div>
       )}
-      <StageStory data={data} podium={false} />
+      <nav aria-label="Report sections" className="flex flex-wrap items-center gap-x-4">
+        <TextLink to={here('stage-result')}>Result</TextLink>
+        {classificationsHref !== undefined && (
+          <TextLink to={classificationsHref}>Classifications</TextLink>
+        )}
+        <TextLink to={here('stage-chronicle')}>Chronicle</TextLink>
+      </nav>
+      <div id="stage-chronicle" className="space-y-4">
+        <StageStory data={data} podium={false} />
+      </div>
     </>
   )
 }

@@ -2,6 +2,7 @@ import { BROADCAST } from '@cyclingstar/shared'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { overlaySummaryText } from '../../domain/broadcast/screen'
 import { FixedOverlay } from './FixedOverlay'
 import { castOf, headOf, instantOf, leaderWorn, range } from './__fixtures__/screen'
 
@@ -88,17 +89,42 @@ describe('FixedOverlay · los km a meta (§6.2)', () => {
   })
 })
 
+/**
+ * RE-SELLADO EN EL PR 20 (E3, docs/visual.md §14.3; §16.3): la flecha de la tendencia era el glifo `▲` o
+ * `▼` en dos colores, y pasa al icono `trend` de 16 en `gold`, girado y `aria-hidden`, porque `ui/10` no
+ * deja un glifo en la interfaz. El texto que se lee pierde la flecha; dónde está y hacia dónde apunta lo
+ * mira `trendOf`.
+ */
+function trendOf(node: ReactElement): string | null {
+  const html = renderToStaticMarkup(node)
+  const m =
+    /data-trend="(up|down)"[^>]*>\s*<svg[^>]*aria-hidden="true"[^>]*>\s*<g transform="rotate\((-?\d+) 12 12\)">/.exec(
+      html,
+    )
+  return m === null ? null : `${m[1]} ${m[2]}`
+}
+
 describe('FixedOverlay · la diferencia principal y contra quién (§6.2, 6-b)', () => {
   it('+3:46 con su flecha y su referencia: on the bunch', () => {
-    const text = textOf(<FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />)
-    expect(text).toContain('+3:46 ▲ on the bunch')
+    const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
+    expect(textOf(node)).toContain('+3:46 on the bunch')
+    expect(trendOf(node)).toBe('up -90')
   })
 
   it('por debajo de sameTimeS, s.t.; en sameTimeS, ya la cifra', () => {
     const below = breakAndBunch(86.54, BROADCAST.sameTimeS - 1)
-    expect(textOf(<FixedOverlay instant={below} head={HEAD} />)).toContain('s.t. ▲ on the bunch')
+    expect(textOf(<FixedOverlay instant={below} head={HEAD} />)).toContain('s.t. on the bunch')
     const at = breakAndBunch(86.54, BROADCAST.sameTimeS)
-    expect(textOf(<FixedOverlay instant={at} head={HEAD} />)).toContain('+0:05 ▲ on the bunch')
+    expect(textOf(<FixedOverlay instant={at} head={HEAD} />)).toContain('+0:05 on the bunch')
+  })
+
+  it('la tendencia que baja gira el icono hacia abajo', () => {
+    const up = breakAndBunch(86.54, 226)
+    const down = {
+      ...up,
+      mainGap: { ...up.mainGap!, trend: { deltaS: -24, windowKm: 5, arrow: 'down' as const } },
+    }
+    expect(trendOf(<FixedOverlay instant={down} head={HEAD} />)).toBe('down 90')
   })
 
   it('desde la hora, con las horas: +1:02:10', () => {
@@ -113,9 +139,10 @@ describe('FixedOverlay · la diferencia principal y contra quién (§6.2, 6-b)',
       ...flat,
       mainGap: { ...flat.mainGap!, trend: { deltaS: 2, windowKm: 5, arrow: 'flat' as const } },
     }
-    const text = textOf(<FixedOverlay instant={quiet} head={HEAD} />)
-    expect(text).toContain('+3:46 on the bunch')
-    expect(text).not.toMatch(/[▲▼]/)
+    const node = <FixedOverlay instant={quiet} head={HEAD} />
+    expect(textOf(node)).toContain('+3:46 on the bunch')
+    expect(trendOf(node)).toBeNull()
+    expect(renderToStaticMarkup(node)).not.toContain('data-trend')
   })
 
   it('un solo grupo en carrera: Bunch together', () => {
@@ -197,6 +224,51 @@ describe('FixedOverlay · la segunda línea, al tocarla (6-f)', () => {
   it('el líder de la carrera en la cabeza no cambia la capa: los maillots son de la barra', () => {
     const cast = castOf(176, { 0: { worn: leaderWorn('gc') } })
     const text = textOf(<FixedOverlay instant={breakAndBunch(86.54, 226)} head={headOf(cast)} />)
-    expect(text).toBe('98.5 km to go +3:46 ▲ on the bunch')
+    expect(text).toBe('98.5 km to go +3:46 on the bunch')
+  })
+})
+
+/**
+ * EL ÁMBITO OSCURO Y EL RESUMEN ACCESIBLE (E3, docs/visual.md §3.3 y §14.3; H-05, X-15; PR 20): la capa es
+ * del ámbito oscuro (`data-surface="dark"`), igual en los dos modos, y su nombre accesible ya no es su
+ * texto visible: es `overlaySummaryText`, las dos frases, que se leen al enfocarla o tocarla, porque sigue
+ * sin ser una región viva.
+ */
+describe('FixedOverlay · el ámbito oscuro y el resumen accesible (§14.3)', () => {
+  /** Un atributo del botón, con las entidades de React deshechas. */
+  const attrOf = (node: ReactElement, name: string): string | null => {
+    const m = new RegExp(`^<button[^>]*\\s${name}="([^"]*)"`).exec(renderToStaticMarkup(node))
+    return m === null ? null : m[1]!.replace(/&#x27;/g, "'").replace(/&amp;/g, '&')
+  }
+
+  it('en el ámbito oscuro, y sigue sin ser una región viva', () => {
+    const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
+    expect(attrOf(node, 'data-surface')).toBe('dark')
+    expect(attrOf(node, 'aria-live')).toBe('off')
+  })
+
+  it('su nombre es el resumen, con las dos frases, abierta o cerrada', () => {
+    const instant = breakAndBunch(86.54, 226)
+    const summary = overlaySummaryText(instant, HEAD)
+    expect(summary).toMatch(
+      /^98\.5 km to go, lead group 3 riders, bunch at 3 minutes 46\. Race time 2 hours 9 minutes, /,
+    )
+    expect(attrOf(<FixedOverlay instant={instant} head={HEAD} />, 'aria-label')).toBe(summary)
+    expect(attrOf(<FixedOverlay instant={instant} head={HEAD} expanded />, 'aria-label')).toBe(
+      summary,
+    )
+  })
+
+  it('en los últimos quietFinalM, el nombre también es solo la distancia', () => {
+    const node = <FixedOverlay instant={breakAndBunch(LENGTH - 0.45, 12)} head={HEAD} />
+    expect(attrOf(node, 'aria-label')).toBe('450 m to go.')
+  })
+
+  it('es la respuesta de Watch (§7.3): data-ui FixedOverlay y data-answer, que mira la comprobación 7', () => {
+    const node = <FixedOverlay instant={breakAndBunch(86.54, 226)} head={HEAD} />
+    expect(attrOf(node, 'data-ui')).toBe('FixedOverlay')
+    expect(attrOf(node, 'data-answer')).toBe('')
+    // la página está lista cuando su respuesta está en ready (§7.5): lo espera la prueba de noche
+    expect(attrOf(node, 'data-state')).toBe('ready')
   })
 })

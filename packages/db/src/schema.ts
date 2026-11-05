@@ -268,9 +268,9 @@ export const teams = pgTable(
     /**
      * La IDENTIDAD del equipo: `seedWorld` reconoce por ella los equipos de la génesis, y cambiarla hacía que
      * el tick siguiente creara un clon del equipo con la semilla vieja (E3, docs/visual.md §8.9). LA SEMILLA
-     * DEL DIBUJO, la columna de la 0050 que guardaba la que eligió un dueño antes de los maillots, sale de
-     * este esquema en el 19e y sigue en la base, nula y sin lector, hasta que la borra la 0053 del 19f: así,
-     * en ese despliegue, ninguna consulta del código que sigue sirviendo la nombra (drizzle nombra todas las
+     * DEL DIBUJO, la columna de la 0050 que guardaba la que eligió un dueño antes de los maillots, salió de
+     * este esquema en el 19e, un despliegue antes de que la borrara la 0053 del 19f: así, en la ventana del
+     * borrado, ninguna consulta del código que seguía sirviendo la nombraba (drizzle nombra todas las
      * columnas del esquema en un `insert` y en un `select()` sin campos).
      */
     jerseySeed: text('jersey_seed').notNull(),

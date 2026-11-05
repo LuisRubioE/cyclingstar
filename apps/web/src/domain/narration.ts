@@ -10,6 +10,7 @@
  */
 
 import type { RiderRaceReport } from '@cyclingstar/shared'
+import { formatTime } from './format'
 
 /** Veredicto corto comparando lo ordenado con lo sucedido. */
 export function raceVerdict(r: RiderRaceReport): string {
@@ -24,4 +25,14 @@ export function raceVerdict(r: RiderRaceReport): string {
   if (top <= 0.15) return 'A strong ride near the front.'
   if (top <= 0.4) return 'A solid day in the bunch.'
   return 'A quiet day — the race got away from you.'
+}
+
+/**
+ * El hueco con el ganador, como toda diferencia (E3, docs/visual.md §4.10; la revisión del 21g): `winner` al
+ * primero; al resto, `+0:40` con `formatTime`; y `s.t.` a quien llegó con él, lo normal en un esprint, que no es
+ * haber ganado. Lo pintan la portada y la ficha, que lo escribían cada una a su manera (`+1'12"`, `+0:00`).
+ */
+export function gapToWinnerText(r: Pick<RiderRaceReport, 'position' | 'timeGapToWinnerS'>): string {
+  if (r.position === 1) return 'winner'
+  return r.timeGapToWinnerS > 0 ? `+${formatTime(r.timeGapToWinnerS)}` : 's.t.'
 }

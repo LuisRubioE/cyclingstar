@@ -22,6 +22,7 @@ import type { IconName } from './types'
  *   node apps/web/scripts/flag-ink.mjs       el color de las letras del campeón nacional (PR 17a)
  *   node apps/web/scripts/tokens-json.mjs    packages/shared/tokens.json (PR 7)
  *   node apps/web/scripts/ui-icons.mjs       los iconos de la interfaz (PR 9a)
+ *   node apps/web/scripts/og-image.mjs       la imagen de compartir, public/og-default.png (PR 20)
  *
  * El del sprite pinta con el Chromium de Playwright y no corre en el CI: aquí se mira que lo que está en
  * el repositorio es lo que escribió y que se hizo con lo de hoy, `flag-icons` y `COUNTRIES`.
@@ -182,5 +183,45 @@ describe('los iconos (generados)', () => {
   it('ICONS tiene los 26 de §3.7, ni uno más', () => {
     expect(Object.keys(ICONS).sort()).toEqual(Object.keys(ICON_NAMES).sort())
     expect(Object.keys(ICONS)).toHaveLength(26)
+  })
+})
+
+/**
+ * LA IMAGEN DE COMPARTIR (E3, docs/visual.md §14.7; D-56, I-23, D-08; PR 20): `public/og-default.png`, de
+ * 1.200 × 630, la pinta `og-image.mjs` con el Chromium de Playwright y no corre en el CI, como el sprite:
+ * aquí se mira que la imagen es la que escribió, que se hizo con el logotipo y los colores de hoy, y que la
+ * página la declara para quien comparte el enlace de una etapa.
+ */
+describe('la imagen de compartir (generada, PR 20)', () => {
+  const PNG = join(WEB, 'public', 'og-default.png')
+
+  it('og-default.png es la que escribió el generador', () => {
+    expect(sha256(readFileSync(PNG)), 'node apps/web/scripts/og-image.mjs').toBe(
+      HUELLAS['public/og-default.png'],
+    )
+  })
+
+  it('se hizo con el Logo de hoy, su estrella y sus colores: la huella de sus fuentes', () => {
+    // sale con 1, y lanza, si no está al día
+    expect(() =>
+      execFileSync(process.execPath, [join(WEB, 'scripts', 'og-image.mjs'), '--check'], {
+        stdio: 'pipe',
+      }),
+    ).not.toThrow()
+  })
+
+  it('mide 1.200 × 630, lo que piden las vistas previas', () => {
+    const png = readFileSync(PNG)
+    // la firma de un PNG y su primera parte, IHDR, con el ancho y el alto
+    expect(png.subarray(1, 4).toString('ascii')).toBe('PNG')
+    expect(png.subarray(12, 16).toString('ascii')).toBe('IHDR')
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630])
+  })
+
+  it('index.html la declara, con su ancho y su alto', () => {
+    const html = readFileSync(join(WEB, 'index.html'), 'utf8')
+    expect(html).toContain('<meta property="og:image" content="/og-default.png" />')
+    expect(html).toContain('<meta property="og:image:width" content="1200" />')
+    expect(html).toContain('<meta property="og:image:height" content="630" />')
   })
 })
