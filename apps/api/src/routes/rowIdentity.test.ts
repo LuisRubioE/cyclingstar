@@ -2,6 +2,7 @@ import {
   ENROLL_LOCK_DAYS,
   type StageRunSpec,
   gameState,
+  kitsBySeed,
   predictStartlist,
   raceRosters,
   riderAttrs,
@@ -234,6 +235,8 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
     return { json: res.json(), body: res.body }
   }
   const startlistUrl = (raceId: string): string => `/api/calendar/${raceId}/startlist`
+  /** El maillot de un equipo sin ninguna fila en `team_kits`: el primero del orden de su semilla (19e). */
+  const seedKit = (k: number): KitCode => kitsBySeed(`j${k}`)[0]!
 
   describe('la lista de salida tras la salida (17-q)', () => {
     const riderOf = (i: number) => ({
@@ -259,13 +262,13 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
           name: `Team ${k}`,
           country: 'ES',
           division: 'WT',
-          jerseySeed: `j${k}`,
-          kit: null,
+          kit: seedKit(k),
           riders: indices.filter((i) => teamIndexOf(i) === k).map(riderOf),
         })),
         freeAgents: [riderOf(FREE)],
       })
-      // La web la valida con el contrato de siempre: solo gana el maillot (16b), aún nulo.
+      // La web la valida con el contrato de siempre: solo gana el maillot (16b), que sin fila es el de su
+      // semilla (19e).
       const startlist = raceStartlistSchema.parse(json)
       const listed = startlist.teams.flatMap((team) => team.riders)
       expect(listed.find((r) => r.id === idDe(ABANDONS))).toEqual(riderOf(ABANDONS))
@@ -314,8 +317,7 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
           name: `Team ${k}`,
           country: 'ES',
           division: 'WT',
-          jerseySeed: `j${k}`,
-          kit: null,
+          kit: seedKit(k),
           riders: [],
         })),
         freeAgents: [],
@@ -397,12 +399,13 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
   })
 
   /**
-   * EL MAILLOT DE CADA CONTRATO (E3, docs/visual.md §8.5; 16b): nulo mientras el equipo no tiene fila en
-   * `team_kits` (hasta el 17b, todos), y con una, el de su día: la salida en la lista de salida, la
-   * etapa que se enseña en las tablas por equipos y mañana en la lista y la ficha de los equipos. Las
-   * demás pruebas de aquí lo ven nulo; cada caso escribe sus filas y las borra al acabar.
+   * EL MAILLOT DE CADA CONTRATO (E3, docs/visual.md §8.5; 16b y 19e): el de su día, la salida en la lista de
+   * salida, la etapa que se enseña en las tablas por equipos y mañana en la lista y la ficha de los equipos;
+   * un día anterior a la primera fila del equipo, la primera; y sin ninguna (hasta el 17b, todos), el primero
+   * del orden de su semilla (`stateKitsOn`). Nunca nulo. Las demás pruebas de aquí no tienen filas; cada caso
+   * escribe las suyas y las borra al acabar.
    */
-  describe('el maillot de cada contrato (§8.5; 16b)', () => {
+  describe('el maillot de cada contrato (§8.5; 16b y 19e)', () => {
     const [kit0, kit1]: [KitCode, KitCode] = ['plain.navy', 'band.black.sky']
     const withKits = async (
       rows: readonly { team: 0 | 1; from: number; kit: KitCode }[],
@@ -422,7 +425,7 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
         await t.db.delete(teamKits)
       }
     }
-    const byTeam = (rows: readonly { teamId: string; kit: KitCode | null }[]) =>
+    const byTeam = (rows: readonly { teamId: string; kit: KitCode }[]) =>
       Object.fromEntries(rows.map((r) => [r.teamId, r.kit]))
 
     it('la lista de salida, con el del día de la salida: la congelada y la prevista', async () => {
@@ -436,10 +439,11 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
           { team: 1, from: dayOf(1) + 1, kit: kit1 },
         ],
         async () => {
-          // `race-france` ya salió: el del equipo 1 vale desde el día siguiente a la salida.
+          // `race-france` ya salió: el del equipo 1 vale desde el día siguiente a la salida, y la salida
+          // lleva el primero que tuvo (19e).
           expect(await kitsOf(RACE_ID)).toEqual([
             [TEAM_IDS[0], kit0],
-            [TEAM_IDS[1], null],
+            [TEAM_IDS[1], kit1],
           ])
           // La prevista sale después de hoy: los dos.
           expect(await kitsOf(SOON.id)).toEqual([
@@ -453,12 +457,14 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
     it('las tablas por equipos, con el del día de la etapa que enseñan', async () => {
       const stage = async (day: number) =>
         stageReplaySchema.parse((await get(`/api/races/${RACE_ID}/stages/${day}`)).json)
-      const none = { [TEAM_IDS[0]]: null, [TEAM_IDS[1]]: null }
+      const none = { [TEAM_IDS[0]]: seedKit(0), [TEAM_IDS[1]]: seedKit(1) }
       const before = await stage(2)
       expect(byTeam(before.teamStage ?? [])).toEqual(none)
       expect(byTeam(before.teamGc ?? [])).toEqual(none)
-      // El del equipo 1 vale desde hoy, el día de la 3, que no se ha corrido: no lo enseña ninguna tabla.
+      // El equipo 0 cambia el día de la 2; el del equipo 1 vale desde hoy, el día de la 3, que no se ha
+      // corrido: ninguna tabla lo enseña como de su día, y las dos llevan el primero que tuvo (19e).
       const rows = [
+        { team: 0, from: dayOf(1), kit: kit1 },
         { team: 0, from: dayOf(2), kit: kit0 },
         { team: 1, from: TODAY, kit: kit1 },
       ] as const
@@ -466,13 +472,15 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
         const one = await stage(1)
         const two = await stage(2)
         const race = raceViewSchema.parse((await get(`/api/calendar/${RACE_ID}`)).json)
-        // La 1 es de un día antes: aún no lo llevaba. La de la carrera enseña la última corrida, la 2.
-        expect(byTeam(one.teamStage ?? [])).toEqual(none)
-        expect(byTeam(one.teamGc ?? [])).toEqual(none)
-        const withKit0 = { [TEAM_IDS[0]]: kit0, [TEAM_IDS[1]]: null }
-        expect(byTeam(two.teamStage ?? [])).toEqual(withKit0)
-        expect(byTeam(two.teamGc ?? [])).toEqual(withKit0)
-        expect(byTeam(race.teamGc)).toEqual(withKit0)
+        // La 1 es de un día antes: el equipo 0 llevaba el de entonces. La de la carrera enseña la última
+        // corrida, la 2.
+        const inOne = { [TEAM_IDS[0]]: kit1, [TEAM_IDS[1]]: kit1 }
+        expect(byTeam(one.teamStage ?? [])).toEqual(inOne)
+        expect(byTeam(one.teamGc ?? [])).toEqual(inOne)
+        const inTwo = { [TEAM_IDS[0]]: kit0, [TEAM_IDS[1]]: kit1 }
+        expect(byTeam(two.teamStage ?? [])).toEqual(inTwo)
+        expect(byTeam(two.teamGc ?? [])).toEqual(inTwo)
+        expect(byTeam(race.teamGc)).toEqual(inTwo)
       })
     })
 
@@ -485,20 +493,21 @@ describe('la identidad de cada fila de clasificación (docs/visual.md §6.1, 17-
         )
       const detail = async (k: 0 | 1) =>
         teamResponseSchema.parse((await get(`/api/teams/${TEAM_IDS[k]}`)).json).team
-      expect(await list()).toEqual({ [TEAM_IDS[0]]: null, [TEAM_IDS[1]]: null })
-      expect(await detail(0)).toMatchObject({ kit: null, bib: 'black' })
+      expect(await list()).toEqual({ [TEAM_IDS[0]]: seedKit(0), [TEAM_IDS[1]]: seedKit(1) })
+      expect(await detail(0)).toMatchObject({ kit: seedKit(0), bib: 'black' })
       await withKits(
         [
           // el de hoy y el guardado hoy, que vale mañana: se enseña el de mañana
           { team: 0, from: TODAY - 5, kit: kit1 },
           { team: 0, from: TODAY + 1, kit: kit0 },
-          // una fila de pasado mañana, que hoy no escribe nadie, marca el borde: aún no
+          // una fila de pasado mañana, que hoy no escribe nadie, marca el borde: aún no es la suya, y como es
+          // la primera que tiene, la lleva (19e)
           { team: 1, from: TODAY + 2, kit: kit1 },
         ],
         async () => {
-          expect(await list()).toEqual({ [TEAM_IDS[0]]: kit0, [TEAM_IDS[1]]: null })
+          expect(await list()).toEqual({ [TEAM_IDS[0]]: kit0, [TEAM_IDS[1]]: kit1 })
           expect((await detail(0)).kit).toBe(kit0)
-          expect((await detail(1)).kit).toBeNull()
+          expect((await detail(1)).kit).toBe(kit1)
         },
       )
       await t.client`update teams set bib = 'base.panel' where id = ${TEAM_IDS[1]}`

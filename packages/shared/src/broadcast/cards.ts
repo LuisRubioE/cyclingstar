@@ -13,11 +13,17 @@
  * No estaba en §17.20, que ponía todo `serveCast` en `apps/api/src/broadcastSource.ts`: `serveCast`
  * sigue allí (con el velo del 7b delante) y llama a `riderCardsOf`.
  */
-import { type RiderCard, distinctionView, staticNotoriety, wornJerseyView } from '../jerseys.js'
+import {
+  type RiderCard,
+  type RiderCardTeam,
+  distinctionView,
+  staticNotoriety,
+  wornJerseyView,
+} from '../jerseys.js'
 import type { KitCode } from '../kit.js'
 import type { NameResolver } from '../news.js'
 import { BROADCAST } from './constants.js'
-import type { RiderIx, TimelineCast } from './timeline.js'
+import type { CastTeam, RiderIx, TimelineCast } from './timeline.js'
 import type { StartState } from './wire.js'
 
 /**
@@ -27,7 +33,8 @@ import type { StartState } from './wire.js'
  * (`dayCategory`: `championshipCategory` de la carrera, o élite). `cast` llega ya degradado por el velo. El
  * título de campeón, en el maillot y en las líneas, va en su forma de pantalla (E3, §13.5; 19d), aquí y no
  * en el serializador, para que la cabecera que se prueba sea la que se sirve.
- * `kits`, el maillot de cada equipo el día de la etapa (E3, §8.5; PR 16b): sin fila, null.
+ * `kits`, el maillot de cada equipo el día de la etapa (E3, §8.5; PR 16b): sin fila, que es una etapa grabada
+ * antes de la traducción, el rótulo lleva la semilla con que se dibuja lo grabado (`legacySeed`, D-23, 8-f; 19e).
  */
 export function riderCardsOf(
   cast: TimelineCast,
@@ -47,15 +54,7 @@ export function riderCardsOf(
       bib: c.bib,
       country: c.country,
       gender: c.gender,
-      team:
-        t === undefined
-          ? null
-          : {
-              id: t.teamId,
-              name: names.team(t.teamId),
-              jerseySeed: t.jerseySeed,
-              kit: kits.get(t.teamId) ?? null,
-            },
+      team: t === undefined ? null : cardTeamOf(t, names.team(t.teamId), kits.get(t.teamId)),
       worn,
       lines,
       notoriety: staticNotoriety(worn, lines, c.knownWins, dayCategory, {
@@ -65,6 +64,13 @@ export function riderCardsOf(
       own: own.has(c.rider),
     }
   })
+}
+
+/** El equipo del rótulo: su maillot de ese día, o la semilla del reparto si no lo tenía (8-f). */
+function cardTeamOf(t: CastTeam, name: string, kit: KitCode | undefined): RiderCardTeam {
+  return kit === undefined
+    ? { id: t.teamId, name, kit: null, legacySeed: t.jerseySeed }
+    : { id: t.teamId, name, kit, legacySeed: null }
 }
 
 /**

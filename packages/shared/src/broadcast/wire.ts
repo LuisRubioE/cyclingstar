@@ -35,7 +35,7 @@ import type {
   StageReplay,
   StageResultEntry,
 } from '../contracts.js'
-import type { JerseyKind, RiderCard } from '../jerseys.js'
+import type { JerseyKind, RiderCard, RiderCardTeam } from '../jerseys.js'
 import { kitCodeSchema } from '../kit.js'
 import {
   type SchemaMatches,
@@ -352,6 +352,21 @@ const int = z.number().int()
 const ints = z.array(int)
 const ix = int.min(0)
 
+/**
+ * El equipo del rótulo (E3, docs/visual.md §8.5, 8-f; PR 19e): su maillot del día de la etapa, o, en lo grabado
+ * antes de la traducción, la semilla con que se dibuja; nunca los dos ni ninguno. Un objeto con un `refine`, y no
+ * una unión, para validar cada carta una sola vez (B8).
+ */
+export const riderCardTeamSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    kit: kitCodeSchema.nullable(),
+    legacySeed: z.string().nullable(),
+  })
+  .refine((t) => (t.kit === null) !== (t.legacySeed === null), {
+    message: 'el maillot del día o la semilla de lo grabado: uno de los dos',
+  }) satisfies z.ZodType<RiderCardTeam>
 const riderCardSchema = z.object({
   ix,
   id: z.string(),
@@ -359,14 +374,7 @@ const riderCardSchema = z.object({
   bib: int.nullable(),
   country: z.string().length(2),
   gender: genderSchema,
-  team: z
-    .object({
-      id: z.string(),
-      name: z.string(),
-      jerseySeed: z.string(),
-      kit: kitCodeSchema.nullable().default(null),
-    })
-    .nullable(),
+  team: riderCardTeamSchema.nullable(),
   worn: wornJerseyViewSchema,
   lines: z.array(distinctionViewSchema).max(BROADCAST.cardLinesMax),
   notoriety: z.literal([0, 1, 2, 3, 4, 5, 6, 7, 8]),

@@ -1,5 +1,5 @@
 import type { SpoilerScope } from '@cyclingstar/shared'
-import { getTableName } from 'drizzle-orm'
+import { getTableColumns, getTableName } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { BIB_STYLES } from '@cyclingstar/shared'
 import {
@@ -31,9 +31,10 @@ describe('db: esquema fundacional', () => {
     expect(getTableName(raceWatch)).toBe('race_watch')
   })
 
-  it('la semilla del dibujo vive en teams.jersey_style_seed, aparte de la identidad (E3, §8.9; la 0050)', () => {
-    expect(teams.jerseyStyleSeed.name).toBe('jersey_style_seed')
-    expect(teams.jerseyStyleSeed.notNull).toBe(false)
+  it('la semilla del dibujo ya no está en el esquema, y la identidad sí (E3, §8.9; 19e): la base la guarda hasta la 0053', () => {
+    expect(Object.values(getTableColumns(teams)).map((c) => c.name)).not.toContain(
+      'jersey_style_seed',
+    )
     expect(teams.jerseySeed.notNull).toBe(true)
   })
 

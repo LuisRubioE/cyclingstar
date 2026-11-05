@@ -165,12 +165,7 @@ function StageClassifications({
               {teamStage.length > 0 && (
                 <div>
                   <h3 className={`${head} px-4`}>Stage</h3>
-                  <TeamClassTable
-                    rows={teamStage}
-                    identity={identity}
-                    ownTeamId={own.teamId}
-                    answer
-                  />
+                  <TeamClassTable rows={teamStage} ownTeamId={own.teamId} answer />
                 </div>
               )}
               {teamGc.length > 0 && (
@@ -178,7 +173,6 @@ function StageClassifications({
                   <h3 className={`${head} px-4`}>Overall after this stage</h3>
                   <TeamClassTable
                     rows={teamGc}
-                    identity={identity}
                     ownTeamId={own.teamId}
                     cumulative
                     {...(teamStage.length > 0 ? {} : { answer: true })}

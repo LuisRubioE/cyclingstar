@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
 import { DiagnosticStrip } from '../components/StageGate'
-import { wornTeam } from '../components/ui/TeamJersey'
 import { Panel } from '../components/Panel'
 import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
@@ -78,11 +77,7 @@ export function Team() {
       <PageHeader title={data.name} back={{ to: '/world/teams', label: 'Teams' }} status={status} />
       <VeilNotice kind="results" />
       <UiPanel ariaLabel={`${data.name} kit`}>
-        <KitShowcase
-          team={wornTeam(data.name, data.kit, data.jerseySeed)}
-          bib={data.bib}
-          variant="compact"
-        >
+        <KitShowcase team={{ name: data.name, kit: data.kit }} bib={data.bib} variant="compact">
           <p>{data.pointsSeason.toLocaleString('en-US')} season points</p>
           <p>Budget {data.budget.toLocaleString('en-US')}</p>
           {kit !== null && <p>{kitWords(kit)}</p>}

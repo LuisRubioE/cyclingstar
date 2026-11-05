@@ -3,7 +3,7 @@ import { memo } from 'react'
 import { ChampionJersey } from '../ui/ChampionJersey'
 import type { KitSurface } from '../ui/Kit'
 import { LeaderJersey } from '../ui/LeaderJersey'
-import { TeamJersey, type WornTeam, wornTeam } from '../ui/TeamJersey'
+import { TeamJersey, type WornTeam } from '../ui/TeamJersey'
 
 /**
  * EL MAILLOT QUE LLEVA UN CORREDOR (docs/retransmision.md §6.2, §7.1 y §7.4; E3, docs/visual.md §9.10,
@@ -23,9 +23,13 @@ export interface WornJerseyIconProps {
   readonly surface?: KitSurface
 }
 
-/** El equipo de la carta servida (§8.5): su maillot del día de la etapa, o su semilla hasta el 17b. */
+/** El equipo de la carta servida (§8.5): su maillot del día de la etapa, o la semilla de lo grabado antes (8-f). */
 export function wornTeamOf(card: RiderCard): WornTeam | null {
-  return card.team === null ? null : wornTeam(card.team.name, card.team.kit, card.team.jerseySeed)
+  const t = card.team
+  if (t === null) return null
+  if (t.kit !== null) return { name: t.name, kit: t.kit }
+  // el esquema exige uno de los dos: sin maillot, la semilla de lo grabado
+  return t.legacySeed === null ? null : { name: t.name, legacySeed: t.legacySeed }
 }
 
 export const WornJerseyIcon = memo(function WornJerseyIcon({

@@ -1,6 +1,5 @@
 import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { teamDrawSeed } from './jerseyClone.js'
 import { riders, teams } from './schema.js'
 
 /**
@@ -45,7 +44,7 @@ export async function getCastIdentities(
     teamIds.length === 0
       ? Promise.resolve([])
       : db
-          .select({ id: teams.id, name: teams.name, jerseySeed: teamDrawSeed })
+          .select({ id: teams.id, name: teams.name, jerseySeed: teams.jerseySeed })
           .from(teams)
           .where(inArray(teams.id, [...teamIds])),
   ])

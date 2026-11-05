@@ -16,7 +16,7 @@ const TORSO =
   'M16 8 L10 12 L7 20 L12 23 L14 18 L14 40 Q24 43 34 40 L34 18 L36 23 L41 20 L38 12 L32 8 Q24 12 16 8 Z'
 
 export interface LegacyJerseyProps {
-  /** la semilla del dibujo: `coalesce(jersey_style_seed, jersey_seed)` (§8.9) */
+  /** la semilla del dibujo de lo grabado antes de la traducción: la del reparto (`legacySeed`, 8-f; 19e) */
   readonly seed: string
   readonly size: KitSize
   /** el nombre del equipo, para el lector */
