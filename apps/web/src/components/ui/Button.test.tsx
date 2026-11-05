@@ -116,7 +116,8 @@ describe('Button', () => {
         Commentary
       </Button>,
     )
-    expect(off).toMatch(/data-state="ready"/)
+    // apagado, `inactive`, como `Segmented` y `Checkbox` (revisión del 21n)
+    expect(off).toMatch(/data-state="inactive"/)
     expect(off).toContain('aria-pressed="false"')
     // sin `pressed`, no es un conmutador
     expect(html(<Button variant="control">Next</Button>)).not.toContain('aria-pressed')
@@ -128,9 +129,33 @@ describe('Button', () => {
     )
     expect(b).toContain('aria-expanded="true"')
     expect(b).toContain('aria-controls="hoja"')
-    expect(html(<Button ariaLabel="More" icon="more" expanded={false} />)).toContain(
-      'aria-expanded="false"',
+    // abierto o cerrado, como `Disclosure`, `InfoButton` y `Expander` (revisión del 21n)
+    expect(b).toContain('data-state="open"')
+    const cerrado = html(<Button ariaLabel="More" icon="more" expanded={false} />)
+    expect(cerrado).toContain('aria-expanded="false"')
+    expect(cerrado).toContain('data-state="closed"')
+  })
+
+  it('un mando que se apaga sigue siendo el mismo button: React no lo vuelve a montar y el foco se queda', () => {
+    // la revisión del 21n: con la raíz en un `span` al apagarse, React desmontaba el botón enfocado y el
+    // foco caía al `body` (Next action al entrar en el último km); con la misma raíz, lo reutiliza
+    const encendido = html(
+      <Button variant="control" pressed={false} onClick={() => {}}>
+        Next action
+      </Button>,
     )
+    const apagado = html(
+      <Button
+        variant="control"
+        pressed={false}
+        disabledReason="Already in the last kilometre."
+        reasonHidden
+      >
+        Next action
+      </Button>,
+    )
+    for (const s of [encendido, apagado])
+      expect(s).toMatch(/^<button type="button" data-ui="Button"/)
   })
 
   it('deshabilitado, sigue diciendo si está encendido, si despliega y qué despliega', () => {
@@ -159,14 +184,16 @@ describe('Button', () => {
         Next action
       </Button>,
     )
-    expect(b).toMatch(/^<span data-ui="Button" data-variant="control" data-state="disabled"/)
+    // RE-SELLADO EN LA REVISIÓN DEL 21n: la raíz es el mismo `button` que encendido, y el porqué va detrás,
+    // con `hidden`: lo lee `aria-describedby`, y no se oye otra vez al recorrer la página
+    expect(b).toMatch(/^<button[^>]*data-ui="Button" data-variant="control" data-state="disabled"/)
     expect(b).toContain('aria-disabled="true"')
     const id = /aria-describedby="([^"]+)"/.exec(b)?.[1] ?? ''
     expect(porId(b, id)).toContain('Already at the last kilometre.')
-    expect(b).toMatch(new RegExp(`<span id="${id.replace(/[:]/g, '\\:')}" class="sr-only"`))
+    expect(b).toMatch(new RegExp(`</button><span id="${id.replace(/[:]/g, '\\:')}" hidden="">`))
     // sin `reasonHidden`, a la vista, como siempre
-    expect(html(<Button disabledReason="Nothing to save yet.">Save</Button>)).not.toContain(
-      'class="sr-only"',
-    )
+    const visible = html(<Button disabledReason="Nothing to save yet.">Save</Button>)
+    expect(visible).not.toContain('hidden=""')
+    expect(visible).toMatch(/^<span data-ui="Button"/)
   })
 })

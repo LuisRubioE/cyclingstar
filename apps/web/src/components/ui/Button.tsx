@@ -6,8 +6,9 @@ import type { IconName, Layout } from './types'
 
 /**
  * EL BOTÓN (E3, docs/visual.md §4.3 y §4.1; PR 9a). `min-h-11` (44), `rounded-ui`, `text-body` 600, con
- * un icono de 20 delante o solo el icono, de 44 × 44, con su nombre en `ariaLabel`. Cuatro variantes:
- * `primary`, `secondary` (la de por defecto), `quiet` y `danger`; `sm` baja a 32 solo con ratón (`fine:`).
+ * un icono de 20 delante o solo el icono, de 44 × 44, con su nombre en `ariaLabel`. Cinco variantes:
+ * `primary`, `secondary` (la de por defecto), `quiet`, `danger` y, desde el PR 21n, `control`, el mando de
+ * una barra (`meta`, más estrecho, encendido en `accent`); `sm` baja a 32 solo con ratón (`fine:`).
  *
  * - **Deshabilitado** solo con su porqué (`disabledReason`): `aria-disabled` y no `disabled`, para que se
  *   pueda enfocar y el lector diga el porqué, que va debajo enlazado con `aria-describedby`. Nunca en un
@@ -20,8 +21,6 @@ import type { IconName, Layout } from './types'
 export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger' | 'control'
 
 interface ButtonBase {
-  /** por defecto, `secondary` */
-  readonly variant?: ButtonVariant
   /** `sm` pinta 32 px solo con `fine:`; con el dedo sigue en 44 */
   readonly size?: 'default' | 'sm'
   readonly busy?: boolean
@@ -34,20 +33,32 @@ interface ButtonBase {
    * escrito debajo partiría la fila; el ojo ve el mando apagado y el lector oye por qué (PR 21n)
    */
   readonly reasonHidden?: boolean
-  /** un mando que se conmuta: `aria-pressed`, y encendido con el relleno de `accent` en `control` (PR 21n) */
-  readonly pressed?: boolean
   /** lo que despliega otra cosa: `aria-expanded`, con `controls`, su `aria-controls` (PR 21n) */
   readonly expanded?: boolean
   readonly controls?: string
   readonly type?: 'button' | 'submit'
   readonly onClick?: () => void
-  /** enlace con aspecto de botón */
-  readonly to?: string
   readonly layout?: Layout
 }
 
+/**
+ * La variante, y con ella si se conmuta y si es un enlace. Un mando que se conmuta (`pressed`: `aria-pressed`,
+ * y encendido con el relleno de `accent`) es un `control`, y nunca un enlace: con otra variante se anunciaría
+ * pulsado sin verse distinto, y en un enlace `aria-pressed` no vale (revisión del 21n).
+ */
+type ButtonKind =
+  | { readonly variant: 'control'; readonly pressed?: boolean; readonly to?: never }
+  | {
+      /** por defecto, `secondary` */
+      readonly variant?: Exclude<ButtonVariant, 'control'>
+      readonly pressed?: never
+      /** enlace con aspecto de botón */
+      readonly to?: string
+    }
+
 /** Con texto (y un icono opcional delante), o solo icono, de 44 × 44, con su nombre en `ariaLabel`. */
 export type ButtonProps = ButtonBase &
+  ButtonKind &
   (
     | {
         readonly children: string
@@ -76,7 +87,7 @@ const VARIANTES: Readonly<Record<ButtonVariant, string>> = {
  * El mando encendido, el de la opción activa de un `Segmented` (§4.3), nunca junto al apagado: de dos clases del
  * mismo estado gana la que Tailwind pone después en la hoja, no la de después en el atributo (PR 20).
  */
-const ENCENDIDO = 'bg-accent text-on-accent hover:bg-accent-strong'
+const ENCENDIDO = 'bg-accent text-on-accent hover:bg-accent-strong active:bg-accent-strong'
 
 /** El aspecto de un botón del catálogo; `tall` es el de la `ActionBar`, de 48 (§4.3). */
 export function buttonClass(o: {
@@ -192,7 +203,47 @@ export function Button(props: ButtonProps) {
       busyLabel={props.busyLabel}
     />
   )
-  const estado = disabled ? 'disabled' : busy ? 'busy' : props.pressed === true ? 'active' : 'ready'
+  // su estado, como el de las piezas que hacen lo mismo (revisión del 21n): el que se conmuta, `active` o
+  // `inactive`, como `Segmented` y `Checkbox`; el que despliega, `open` o `closed`, como `Disclosure`
+  const estado = disabled
+    ? 'disabled'
+    : busy
+      ? 'busy'
+      : props.pressed !== undefined
+        ? props.pressed
+          ? 'active'
+          : 'inactive'
+        : props.expanded !== undefined
+          ? props.expanded
+            ? 'open'
+            : 'closed'
+          : 'ready'
+
+  // EL PORQUÉ SOLO PARA EL LECTOR (revisión del 21n): la raíz es el mismo `button` que encendido, para que
+  // React lo reutilice y el foco no caiga al `body` cuando un mando se apaga con el foco encima (Next action
+  // al entrar en el último km); y el porqué va detrás, con `hidden`, que `aria-describedby` lee igual y que
+  // no se oye otra vez al recorrer la página
+  if (disabled && props.reasonHidden === true)
+    return (
+      <>
+        <button
+          type={props.type ?? 'button'}
+          data-ui="Button"
+          data-variant={variant}
+          data-state="disabled"
+          aria-disabled="true"
+          aria-describedby={reasonId}
+          className={withLayout(clases, layout)}
+          {...nombre}
+          {...aria}
+        >
+          {contenido}
+        </button>
+        <span id={reasonId} hidden>
+          {disabledReason}
+        </span>
+      </>
+    )
 
   if (disabled)
     return (
@@ -212,10 +263,7 @@ export function Button(props: ButtonProps) {
         >
           {contenido}
         </button>
-        <span
-          id={reasonId}
-          className={props.reasonHidden === true ? 'sr-only' : 'text-meta text-ink-2'}
-        >
+        <span id={reasonId} className="text-meta text-ink-2">
           {disabledReason}
         </span>
       </span>

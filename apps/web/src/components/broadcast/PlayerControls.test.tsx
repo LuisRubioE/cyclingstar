@@ -64,14 +64,14 @@ function buttonsOf(markup: string): { text: string; mobile: boolean; attrs: stri
  */
 const disabled = (attrs: string): boolean => / aria-disabled="true"/.test(attrs)
 
-/** El porqué de un mando apagado: el texto que nombra su `aria-describedby`, y si se ve. */
+/** El porqué de un mando apagado: el texto que nombra su `aria-describedby`, y si se ve (`hidden`, revisión del 21n). */
 function porque(markup: string, attrs: string): { texto: string; oculto: boolean } | null {
   const id = / aria-describedby="([^"]+)"/.exec(attrs)?.[1]
   if (id === undefined) return null
-  const m = new RegExp(`<span id="${id}" class="([^"]*)">([^<]*)</span>`).exec(markup)
-  return m === null
-    ? null
-    : { texto: m[2] ?? '', oculto: (m[1] ?? '').split(' ').includes('sr-only') }
+  const m = new RegExp(`<span id="${id}"( hidden="")?(?: class="[^"]*")?>([^<]*)</span>`).exec(
+    markup,
+  )
+  return m === null ? null : { texto: m[2] ?? '', oculto: m[1] !== undefined }
 }
 
 const mobileRow = (markup: string): string[] =>
@@ -187,13 +187,8 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
     expect(playing).not.toContain('data-variant="primary"')
   })
 
-  it('cada mando, de 44 como mínimo: los del catálogo y los que se conmutan (comprobación 5)', () => {
-    for (const b of buttonsOf(controls())) {
-      if (b.attrs.includes('data-ui="Button"')) continue
-      expect(b.attrs, b.text).toMatch(/min-h-11/)
-      expect(b.attrs, b.text).toMatch(/min-w-11/)
-    }
-  })
+  // los 44 de cada mando los da el `Button` del catálogo, que es lo que exige el test de abajo, y los mide la
+  // comprobación 5 de la prueba del teléfono (D-10): el test que los miraba por su clase ya no miraba nada
 
   it('cada mando, un Button del catálogo, ninguno a mano (ui/1; PR 21n): los que se conmutan, More y Next action', () => {
     for (const s of [
@@ -286,6 +281,31 @@ describe('la hoja de ⋯ (8-p): los saltos, el modo y Show result', () => {
     )
     expect(buttons.find((b) => b.text === 'Highlights')!.attrs).toContain('aria-pressed="true"')
     expect(buttons.find((b) => b.text === 'Watch')!.attrs).toContain('aria-pressed="false"')
+  })
+
+  it('los saltos son Button secondary, que se ven como botones en la hoja (revisión del 21n)', () => {
+    const buttons = buttonsOf(sheet(ROAD))
+    for (const t of ['−5 km', '+5 km', 'Next climb', 'Final 20 km', 'Last km'])
+      expect(buttons.find((b) => b.text === t)!.attrs, t).toContain('data-variant="secondary"')
+  })
+
+  it('el porqué de un salto apagado dice su causa: saltando, en la previa, en el último km o sin destino', () => {
+    const jumps: JumpOption[] = [
+      { id: 'back5', label: ROAD_JUMP_LABEL.back5, enabled: false, why: 'notYet' },
+      { id: 'fwd5', label: ROAD_JUMP_LABEL.fwd5, enabled: false, why: 'busy' },
+      { id: 'nextClimb', label: ROAD_JUMP_LABEL.nextClimb, enabled: false, why: 'none' },
+      { id: 'final20', label: ROAD_JUMP_LABEL.final20, enabled: false, why: 'lastKm' },
+      { id: 'lastKm', label: ROAD_JUMP_LABEL.lastKm, enabled: false },
+    ]
+    const markup = sheet(jumps)
+    const de = (t: string) =>
+      porque(markup, buttonsOf(markup).find((b) => b.text === t)!.attrs)?.texto
+    expect(de('−5 km')).toBe('Nothing to go back to yet.')
+    expect(de('+5 km')).toBe('Already skipping.')
+    expect(de('Next climb')).toBe('Nothing to skip to from here.')
+    expect(de('Final 20 km')).toBe('Already in the last kilometre.')
+    // sin causa, la de siempre
+    expect(de('Last km')).toBe('Nothing to skip to from here.')
   })
 
   it('en la crono, los saltos de reloj (9-g): −10 min, +10 min, Last 20 starters y Last starter', () => {

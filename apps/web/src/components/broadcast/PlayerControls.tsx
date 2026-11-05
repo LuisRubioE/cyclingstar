@@ -2,6 +2,7 @@ import { BROADCAST } from '@cyclingstar/shared'
 import { useState } from 'react'
 import type {
   ClockJump,
+  JumpWhy,
   PlayerPhase,
   RoadJump,
   Speed,
@@ -29,6 +30,8 @@ export interface JumpOption {
   readonly id: RoadJump | ClockJump
   readonly label: string
   readonly enabled: boolean
+  /** apagado, por qué (`jumpWhy`, revisión del 21n); sin él, `Nothing to skip to from here.` */
+  readonly why?: JumpWhy
 }
 
 /** `×½ ×1 ×2 ×4` (pantalla). */
@@ -58,6 +61,13 @@ export const CLOCK_JUMP_LABEL: Readonly<Record<ClockJump, string>> = {
  */
 const EN_EL_ULTIMO_KM = 'Already in the last kilometre.'
 const SIN_SALTO = 'Nothing to skip to from here.'
+/** El porqué de un salto apagado, por su causa (revisión del 21n): antes, siempre el de `none`. */
+const POR_QUE_SALTO: Readonly<Record<JumpWhy, string>> = {
+  busy: 'Already skipping.',
+  notYet: 'Nothing to go back to yet.',
+  lastKm: EN_EL_ULTIMO_KM,
+  none: SIN_SALTO,
+}
 
 /**
  * LOS MANDOS (docs/retransmision.md §8.5, 8-o, 8-p y §18.8). En el teléfono, la fila lleva `❚❚`, la
@@ -247,10 +257,13 @@ export function PlayerSheet({
     >
       <div className="flex flex-wrap gap-1" role="group" aria-label="Skip">
         {jumps.map((j) => (
+          // `secondary`: en la hoja, los saltos se ven como botones, como cuando tenían su relleno (PR 20)
           <Button
             key={j.id}
-            variant="control"
-            {...(j.enabled ? {} : { disabledReason: SIN_SALTO, reasonHidden: true })}
+            size="sm"
+            {...(j.enabled
+              ? {}
+              : { disabledReason: POR_QUE_SALTO[j.why ?? 'none'], reasonHidden: true })}
             onClick={() => onJump(j.id)}
           >
             {j.label}
