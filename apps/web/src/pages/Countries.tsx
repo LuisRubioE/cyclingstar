@@ -10,7 +10,7 @@ import { Flag } from '../components/ui/Flag'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
-import { ShowAllRows } from '../components/ui/ShowAllRows'
+import { ShowAllRows, toggled } from '../components/ui/ShowAllRows'
 import { plural } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
@@ -100,14 +100,7 @@ export function Countries() {
             <ShowAllRows
               total={paises.length}
               expanded={todos}
-              onToggle={() =>
-                setAbiertos((prev) => {
-                  const next = new Set(prev)
-                  if (next.has(cont)) next.delete(cont)
-                  else next.add(cont)
-                  return next
-                })
-              }
+              onToggle={() => setAbiertos((prev) => toggled(prev, cont))}
             />
           </Panel>
         )

@@ -15,7 +15,7 @@ import { Flag } from '../components/ui/Flag'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
-import { ShowAllRows } from '../components/ui/ShowAllRows'
+import { ShowAllRows, toggled } from '../components/ui/ShowAllRows'
 import { TextLink } from '../components/ui/TextLink'
 import { newsLabel } from '../domain/labels'
 import {
@@ -38,12 +38,14 @@ function FilterSelect({
   label,
   value,
   options,
+  disabledReason,
   onChange,
 }: {
   readonly id: string
   readonly label: string
   readonly value: string | null
   readonly options: readonly { readonly value: string; readonly label: string }[]
+  readonly disabledReason: string | undefined
   readonly onChange: (value: string | null) => void
 }) {
   return (
@@ -54,12 +56,14 @@ function FilterSelect({
       value={value ?? ''}
       options={[{ value: '', label: 'All' }, ...options]}
       onChange={(v) => onChange(v === '' ? null : v)}
-      {...(options.length === 0
-        ? { disabledReason: `No ${label.toLowerCase()}s in these headlines.` }
-        : {})}
+      {...(disabledReason !== undefined ? { disabledReason } : {})}
     />
   )
 }
+
+/** El porqué de un filtro vacío: no hay nada que elegir en estos titulares. */
+const vacio = (opciones: readonly unknown[], cosas: string): string | undefined =>
+  opciones.length === 0 ? `No ${cosas} in these headlines.` : undefined
 
 /**
  * Un titular, una `ActionRow` (E3, docs/visual.md §6.1; PR 21l): el hecho, con la bandera de su país delante,
@@ -94,7 +98,12 @@ function Headline({ item, raceId }: { item: NewsItem; raceId: string | null }) {
  * corredor. Y el modo diagnóstico del dueño: `?diag=1` de un administrador pide el feed con el horizonte
  * del mundo, con su franja; el botón `Diagnostic view` sale solo a un administrador con algo velado.
  */
-export function News() {
+export function News({
+  initialFilter = NO_FILTER,
+}: {
+  /** el filtro con que empieza la vista: el de la ruta es ninguno; los tests pintan uno puesto (PR 21l) */
+  readonly initialFilter?: NewsFilter
+} = {}) {
   const [params] = useSearchParams()
   const diag = diagOf(params)
   const rev = useHorizonRev()
@@ -116,7 +125,7 @@ export function News() {
   const { isAdmin } = useWatchOn(diag || veiled, false)
   const diagOn = diag && isAdmin
   // El filtro es estado de la vista: nunca se deriva de la respuesta del servidor.
-  const [filter, setFilter] = useState<NewsFilter>(NO_FILTER)
+  const [filter, setFilter] = useState<NewsFilter>(initialFilter)
   // Los días con todos sus titulares a la vista, pasados los 20 primeros (§6.1).
   const [abiertos, setAbiertos] = useState<ReadonlySet<number>>(() => new Set())
 
@@ -170,16 +179,9 @@ export function News() {
   const days = groupByGameDay(feedEntries(visible))
   const filtered = Object.values(filter).some((v) => v !== null)
 
-  const alternar = (gameDay: number) =>
-    setAbiertos((prev) => {
-      const next = new Set(prev)
-      if (next.has(gameDay)) next.delete(gameDay)
-      else next.add(gameDay)
-      return next
-    })
-
   // Con el sistema (E3, §17.21; PR 21l): la cabecera en `PageHeader`; los filtros en su `Panel`, cada uno en
-  // su `Field`, y sin titulares no se pintan, porque no filtran nada; cada día en su `Panel`, por su día de
+  // su `Field`, y sin titulares no se pintan, porque no filtran nada, salvo con uno puesto, que se ha de poder
+  // limpiar; cada día en su `Panel`, por su día de
   // la temporada (§4.10), el primero la respuesta de la 19 (§7.3), con sus 20 primeros y `Show all`; sin
   // titulares, su vacío, que contesta. Iban la barra dorada, cajas a mano y la letra a 11 px.
   return (
@@ -192,7 +194,7 @@ export function News() {
         </p>
       )}
 
-      {data.length > 0 && (
+      {(data.length > 0 || filtered) && (
         <Panel ariaLabel="Filters">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <FilterSelect
@@ -200,6 +202,7 @@ export function News() {
               label="Team"
               value={filter.teamId}
               options={options.teams}
+              disabledReason={vacio(options.teams, 'teams')}
               onChange={(teamId) => setFilter({ ...filter, teamId })}
             />
             <FilterSelect
@@ -207,6 +210,7 @@ export function News() {
               label="Rider"
               value={filter.riderId}
               options={options.riders}
+              disabledReason={vacio(options.riders, 'riders')}
               onChange={(riderId) => setFilter({ ...filter, riderId })}
             />
             <FilterSelect
@@ -214,6 +218,7 @@ export function News() {
               label="Nation"
               value={filter.country}
               options={options.nations}
+              disabledReason={vacio(options.nations, 'nations')}
               onChange={(country) => setFilter({ ...filter, country })}
             />
             <FilterSelect
@@ -221,6 +226,10 @@ export function News() {
               label="Race"
               value={filter.raceId}
               options={options.races}
+              // las carreras salen del calendario: mientras no llega, no hay porqué que dar
+              disabledReason={
+                calendar.data === undefined ? undefined : vacio(options.races, 'races')
+              }
               onChange={(raceId) => setFilter({ ...filter, raceId })}
             />
           </div>
@@ -268,7 +277,7 @@ export function News() {
               <ShowAllRows
                 total={day.items.length}
                 expanded={todos}
-                onToggle={() => alternar(day.gameDay)}
+                onToggle={() => setAbiertos((prev) => toggled(prev, day.gameDay))}
               />
             </Panel>
           )

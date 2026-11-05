@@ -11,7 +11,7 @@ import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { TeamJersey } from '../components/ui/TeamJersey'
 import { TextLink } from '../components/ui/TextLink'
-import { plural } from '../domain/words'
+import { divisionLabel, plural } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
 
 /**
@@ -30,12 +30,6 @@ import { horizonKey, useHorizonRev } from '../queryClient'
  * palabras, los corredores y los puntos, y la ficha pública en un `TextLink`. Iban la barra dorada, un panel
  * blanco a mano y la nota en `slate-400`.
  */
-
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'World Tour',
-  PRS: 'Pro Series',
-  CON: 'Continental',
-}
 
 export function TeamSquad() {
   const rev = useHorizonRev()
@@ -79,7 +73,7 @@ export function TeamSquad() {
 
   const roster = [...team.data.roster].sort((a, b) => b.seasonPoints - a.seasonPoints)
   const country = COUNTRIES.find((c) => c.code === team.data.country)
-  const division = DIVISION_LABEL[team.data.division] ?? team.data.division
+  const division = divisionLabel(team.data.division)
   const cifras = [
     ...(country ? [country.name] : []),
     plural(roster.length, 'rider'),

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { ShowAllRows } from './ShowAllRows'
+import { ShowAllRows, toggled } from './ShowAllRows'
 
 /**
  * `ShowAllRows` (E3, docs/visual.md §4.5; PR 12a): el `Show all 85` de las listas de más de 20 filas, a todo
@@ -26,5 +26,16 @@ describe('ShowAllRows', () => {
     expect(renderToStaticMarkup(<ShowAllRows total={20} expanded={false} onToggle={nada} />)).toBe(
       '',
     )
+  })
+
+  it('toggled: la clave entra si no estaba y sale si estaba, en un conjunto nuevo (PR 21l)', () => {
+    const vacio: ReadonlySet<string> = new Set()
+    const uno = toggled(vacio, 'WT')
+    expect([...uno]).toEqual(['WT'])
+    expect(vacio.size).toBe(0)
+    expect(uno).not.toBe(vacio)
+    const dos = toggled(uno, 'PRS')
+    expect([...dos].sort()).toEqual(['PRS', 'WT'])
+    expect([...toggled(dos, 'WT')]).toEqual(['PRS'])
   })
 })

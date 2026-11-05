@@ -1,8 +1,8 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 217,
-    "arbitrarios": 10,
+    "tema": 210,
+    "arbitrarios": 9,
     "espaciado": 3,
     "layout": 0
   },
@@ -40,12 +40,6 @@
     "apps/web/src/components/ShowAll.tsx": {
       "tema": 3,
       "arbitrarios": 0,
-      "espaciado": 0,
-      "layout": 0
-    },
-    "apps/web/src/components/StageReadyLine.tsx": {
-      "tema": 7,
-      "arbitrarios": 1,
       "espaciado": 0,
       "layout": 0
     },

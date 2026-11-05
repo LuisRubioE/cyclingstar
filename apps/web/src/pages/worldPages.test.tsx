@@ -157,6 +157,9 @@ describe('los equipos (§17.21; PR 21k)', () => {
     ])
     const panel = pieza(s, 'Panel', 'World Tour')
     expect(cuantas(panel, /<li data-ui="ActionRow"/)).toBe(20)
+    expect(filas(panel).map((f) => f.title)).toEqual(
+      Array.from({ length: 20 }, (_, i) => `World ${i}`),
+    )
     expect(panel).toMatch(/data-ui="ShowAllRows"[\s\S]*Show all 25/)
     // la que no llega a 20, entera y sin el botón
     expect(pieza(s, 'Panel', 'Pro Series')).not.toContain('ShowAllRows')
@@ -213,6 +216,9 @@ describe('los países (§17.21; PR 21k)', () => {
     ])
     const panel = pieza(s, 'Panel', 'Europe')
     expect(cuantas(panel, /<li data-ui="ActionRow"/)).toBe(20)
+    expect(filas(panel).map((f) => f.href)).toEqual(
+      europeos.slice(0, 20).map((c) => `/world/nations/${c.country}`),
+    )
     expect(panel).toMatch(/data-ui="ShowAllRows"[\s\S]*Show all 25/)
     expect(pieza(s, 'Panel', 'Asia')).not.toContain('ShowAllRows')
   })

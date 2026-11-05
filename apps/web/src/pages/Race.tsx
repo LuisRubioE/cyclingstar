@@ -58,6 +58,7 @@ import { stageRowLink, stageRowState } from '../domain/raceStages'
 import { type TableIdentity, identityFromStartlist } from '../domain/tableIdentity'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
 import { type ReadyRace, finalVeiled, raceKeyOn, raceVeil, raceVeilNotice } from '../domain/veil'
+import { divisionLabel } from '../domain/words'
 import {
   diagOf,
   useHealth,
@@ -75,11 +76,6 @@ const OneDaySections = lazy(() =>
   import('./OneDayRace').then((m) => ({ default: m.OneDaySections })),
 )
 
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'WorldTour',
-  PRS: 'ProTeams',
-  CON: 'Continental',
-}
 const DIVISION_ORDER = ['WT', 'PRS', 'CON']
 
 /**
@@ -111,7 +107,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
           {byDivision.map((g) => (
             <div key={g.div}>
               <h3 className="text-meta font-semibold text-ink-2">
-                {DIVISION_LABEL[g.div] ?? g.div}{' '}
+                {divisionLabel(g.div)}{' '}
                 <span className="font-normal text-ink-3">({g.teams.length})</span>
               </h3>
               {frozen ? (

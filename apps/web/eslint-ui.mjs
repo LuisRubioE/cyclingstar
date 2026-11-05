@@ -153,7 +153,6 @@ export const UI_HEREDADOS = [
   'apps/web/src/components/RiderName.tsx',
   'apps/web/src/components/ShowAll.tsx',
   'apps/web/src/components/StageGate.tsx',
-  'apps/web/src/components/StageReadyLine.tsx',
   'apps/web/src/components/StageStory.tsx',
   'apps/web/src/components/Tabs.tsx',
   'apps/web/src/components/WatchBlocks.tsx',

@@ -16,13 +16,22 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { newsKey } from '../api/news'
 import { newsLabel, roleLabel } from '../domain/labels'
+import { NO_FILTER } from '../domain/newsFeed'
 import { horizonKey } from '../queryClient'
 import { Finances } from './Finances'
-import { Market } from './Market'
+import { Market, OfferItem } from './Market'
 import { News } from './News'
 import { TeamIdentity } from './TeamIdentity'
 import { TeamSquad } from './TeamSquad'
-import { PALETA, campo, cuantas, pieza, respuestas, titulo } from './__fixtures__/markup'
+import {
+  PALETA,
+  campo,
+  cuantas,
+  elementoEn,
+  pieza,
+  respuestas,
+  titulo,
+} from './__fixtures__/markup'
 import { healthWith } from './__fixtures__/world'
 
 /**
@@ -45,11 +54,20 @@ function pinta(
   route: string,
   page: ReactNode,
   cache: readonly (readonly [readonly unknown[], unknown])[],
+  fallan: readonly (readonly unknown[])[] = [],
 ): string {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  // sin reintentar al montar, para que una consulta que falla se pinte con su fallo (como `Home.test.tsx`)
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, retryOnMount: false } },
+  })
   client.setQueryData(['health'], healthWith('on', 'off'))
   client.setQueryData(['admin-whoami'], null)
   for (const [k, v] of cache) client.setQueryData(k, v)
+  for (const k of fallan)
+    client
+      .getQueryCache()
+      .build(client, { queryKey: k })
+      .setState({ status: 'error', error: new Error('500'), fetchStatus: 'idle' })
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
@@ -83,9 +101,15 @@ const filas = (s: string) =>
 /** Una fila de un `dl` por su rótulo: lo que dice su `dd`, sin las etiquetas. */
 const dato = (s: string, rotulo: string): string | null => {
   const m = new RegExp(
-    `<dt[^>]*>${rotulo}(?:(?!</dt>)[\\s\\S])*</dt><dd[^>]*>((?:(?!</dd>)[\\s\\S])*)</dd>`,
+    `<dt[^>]*>(?:<[^>]+>)*${rotulo}(?:(?!</dt>)[\\s\\S])*</dt><dd[^>]*>((?:(?!</dd>)[\\s\\S])*)</dd>`,
   ).exec(s)
   return m?.[1] === undefined ? null : m[1].replace(/<[^>]+>/g, '')
+}
+
+/** El bloque de una oferta del mercado, entero, por el nombre de su equipo. */
+const oferta = (s: string, equipo: string): string => {
+  const donde = s.indexOf(`>${equipo}</h3>`)
+  return donde < 0 ? '' : elementoEn(s, s.lastIndexOf('<li', donde))
 }
 
 const RESUMEN: RiderSummary = {
@@ -211,9 +235,59 @@ describe('las noticias (§17.21; PR 21l)', () => {
     const s = html([...NOTICIAS, ...muchas])
     const panel = pieza(s, 'Panel', dia(198))
     expect(cuantas(panel, /<li data-ui="ActionRow"/)).toBe(20)
+    // las 20 primeras, y no otras 20
+    expect(filas(panel).map((f) => f.title)).toEqual(
+      Array.from({ length: 20 }, (_, i) => `Headline ${i}`),
+    )
     expect(panel).toMatch(/data-ui="ShowAllRows"[\s\S]*Show all 25/)
     // el día que no llega a 20, entero y sin el botón
     expect(pieza(s, 'Panel', dia(200))).not.toContain('ShowAllRows')
+  })
+
+  it('el marcador de una etapa por ver, una ActionRow como los titulares: su enlace a la etapa y Watch en meta, sin la paleta', () => {
+    const marcador: NewsItem = titular({
+      gameDay: 197,
+      kind: 'stage_ready',
+      text: 'Stage 3 of Race France is ready to watch',
+      riderId: null,
+      riderName: null,
+      country: null,
+      teamId: null,
+      teamName: null,
+      raceId: 'race-france',
+      stageDay: 3,
+    })
+    const s = html([...NOTICIAS, marcador])
+    const f = filas(pieza(s, 'Panel', dia(197)))
+    expect(f).toHaveLength(1)
+    expect(f[0]?.href).toBe('/world/races/race-france/stages/3')
+    expect(f[0]?.title).toBe('Stage 3 of Race France is ready to watch')
+    expect(f[0]?.meta).toBe(newsLabel('stage_ready'))
+    expect(s).not.toMatch(PALETA)
+    expect(s).not.toContain('text-[11px]')
+  })
+
+  it('el filtro de carrera, sin su porqué mientras no llega el calendario, que es de donde salen las carreras', () => {
+    const s = pinta('/news', '/news', <News />, [[newsKey(false, 'world'), NOTICIAS]])
+    const carrera = campo(s, 'news-race')
+    expect(carrera).not.toContain('aria-disabled')
+    expect(carrera).not.toContain('No races in these headlines.')
+  })
+
+  it('con un filtro puesto: su vacío, que lo dice, y los filtros con Clear filters, también si no llega nada', () => {
+    const conFiltro = (items: NewsItem[]) =>
+      pinta('/news', '/news', <News initialFilter={{ ...NO_FILTER, teamId: 'zz' }} />, [
+        [newsKey(false, 'world'), items],
+        [key('calendar'), { races: [] }],
+      ])
+    for (const items of [NOTICIAS, []]) {
+      const s = conFiltro(items)
+      expect(s).toMatch(
+        /data-ui="EmptyState"[^>]*data-answer=""[\s\S]*No headlines match these filters\./,
+      )
+      expect(pieza(s, 'Button', 'Clear filters')).toMatch(/data-variant="quiet"/)
+      expect(s).toContain('id="news-team"')
+    }
   })
 
   it('sin noticias, su vacío, que contesta, y sin filtros que no filtran nada', () => {
@@ -255,12 +329,13 @@ describe('el mercado (§17.21; PR 21l)', () => {
   const html = (offers: Offer[], contract: Contract | null) =>
     pinta('/me/contract', '/me/contract', <Market />, [[['market'], { offers, contract }]])
 
-  it('la cabecera, un PageHeader; con contrato, su Panel, que contesta (pantalla 26)', () => {
+  it('la cabecera, un PageHeader; el contrato, en su Panel, que no contesta: contesta el de las ofertas (pantalla 26)', () => {
     const s = html([OFERTA], CONTRATO)
     expect(titulo(s)).toBe('Transfer market')
     expect(respuestas(s)).toBe(1)
+    expect(pieza(s, 'Panel', '>Offers<')).toContain('data-answer=""')
     const contrato = pieza(s, 'Panel', 'Current contract')
-    expect(contrato).toContain('data-answer=""')
+    expect(contrato).not.toContain('data-answer')
     expect(contrato).toMatch(
       /<a [^>]*href="\/world\/teams\/t2"[^>]*>(?:(?!<\/a>)[\s\S])*Andes Ruta/,
     )
@@ -269,29 +344,31 @@ describe('el mercado (§17.21; PR 21l)', () => {
     )
   })
 
-  it('cada oferta en su Panel, con su equipo en el título y su ficha en un TextLink; sin contrato, la primera contesta', () => {
+  it('las ofertas, en un solo Panel que contesta (§7.3): cada una con su equipo en un h3 y su ficha en un TextLink', () => {
     const s = html([OFERTA, { ...OFERTA, id: 'o2', teamId: 't3', teamName: 'Sol Pro' }], null)
     expect(respuestas(s)).toBe(1)
-    const oferta = pieza(s, 'Panel', 'Mistral Racing')
-    expect(oferta).toContain('data-answer=""')
-    expect(oferta).toMatch(/<h2[^>]*>Mistral Racing<\/h2>/)
-    expect(oferta).toMatch(/<a [^>]*href="\/world\/teams\/t1"[^>]*>(?:(?!<\/a>)[\s\S])*Team page/)
-    expect(pieza(s, 'Panel', 'Sol Pro')).not.toContain('data-answer')
+    const panel = pieza(s, 'Panel', '>Offers<')
+    expect(panel).toContain('data-answer=""')
+    expect(cuantas(panel, /<h3[^>]*>(?:Mistral Racing|Sol Pro)<\/h3>/)).toBe(2)
+    expect(oferta(s, 'Mistral Racing')).toMatch(
+      /<a [^>]*href="\/world\/teams\/t1"[^>]*>(?:(?!<\/a>)[\s\S])*Team page/,
+    )
+    expect(oferta(s, 'Sol Pro')).toMatch(/<a [^>]*href="\/world\/teams\/t3"/)
   })
 
   it('lo que ofrece, en su dl: la división en palabras, el sueldo, los años, la cláusula y la casa, sin su 🏠', () => {
     const s = html([OFERTA, { ...OFERTA, id: 'o2', teamName: 'Sol Pro', seasons: 1 }], null)
-    const oferta = pieza(s, 'Panel', 'Mistral Racing')
-    expect(dato(oferta, 'Division')).toBe('World Tour')
-    expect(dato(oferta, 'Role')).toBe(roleLabel('gregario'))
-    expect(dato(oferta, 'Salary')).toBe('1,200/wk')
-    expect(dato(oferta, 'Length')).toBe('2 seasons')
-    expect(dato(oferta, 'Buyout')).toBe('2,000,000')
-    expect(dato(oferta, 'Relocate to')).toBe('Spain')
-    expect(dato(oferta, 'Housing')).toBe('Team pays rent')
-    expect(dato(pieza(s, 'Panel', 'Sol Pro'), 'Length')).toBe('1 season')
+    const mistral = oferta(s, 'Mistral Racing')
+    expect(dato(mistral, 'Division')).toBe('World Tour')
+    expect(dato(mistral, 'Role')).toBe(roleLabel('gregario'))
+    expect(dato(mistral, 'Salary')).toBe('1,200/wk')
+    expect(dato(mistral, 'Length')).toBe('2 seasons')
+    expect(dato(mistral, 'Buyout')).toBe('2,000,000')
+    expect(dato(mistral, 'Relocate to')).toBe('Spain')
+    expect(dato(mistral, 'Housing')).toBe('Team pays rent')
+    expect(dato(oferta(s, 'Sol Pro'), 'Length')).toBe('1 season')
     // la bandera, para el ojo: su nombre va al lado
-    expect(oferta).toMatch(/<span aria-hidden="true"><span data-ui="Flag"/)
+    expect(mistral).toMatch(/<span aria-hidden="true"><span data-ui="Flag"/)
     expect(s).not.toContain('🏠')
   })
 
@@ -311,13 +388,56 @@ describe('el mercado (§17.21; PR 21l)', () => {
     expect(cuantas(s, /<button(?![^>]*data-ui=)(?![^>]*aria-controls=)/)).toBe(0)
   })
 
-  it('sin ofertas ni contrato, su vacío, que contesta; con contrato, el vacío no', () => {
-    const s = html([], null)
-    expect(respuestas(s)).toBe(1)
-    expect(s).toMatch(/data-ui="EmptyState"[^>]*data-answer=""[\s\S]*No offers on the table/)
-    const t = html([], CONTRATO)
-    expect(respuestas(t)).toBe(1)
-    expect(t).not.toMatch(/data-ui="EmptyState"[^>]*data-answer=""/)
+  it('sin ofertas, su vacío, dentro del Panel de las ofertas, que contesta igual, con contrato o sin él', () => {
+    for (const contrato of [null, CONTRATO]) {
+      const s = html([], contrato)
+      expect(respuestas(s)).toBe(1)
+      const panel = pieza(s, 'Panel', '>Offers<')
+      expect(panel).toContain('data-answer=""')
+      expect(panel).toMatch(
+        /data-ui="EmptyState"(?![^>]*data-answer)[^>]*>[\s\S]*No offers on the table/,
+      )
+    }
+  })
+
+  it('mientras contesta: ocupado el botón pulsado, con lo que hace, y solo ese; con fallo, su alerta, solo en esa oferta', () => {
+    const una = (respuesta: Parameters<typeof OfferItem>[0]['respuesta']) =>
+      renderToStaticMarkup(
+        <MemoryRouter>
+          <ul>
+            <OfferItem offer={OFERTA} respuesta={respuesta} onRespond={() => {}} />
+          </ul>
+        </MemoryRouter>,
+      )
+    const firmando = una({ pending: { id: 'o1', action: 'accept' }, failedId: null })
+    expect(pieza(firmando, 'Button', 'Signing…')).toMatch(/aria-busy="true"/)
+    expect(pieza(firmando, 'Button', 'Decline')).not.toContain('aria-busy')
+    const otra = una({ pending: { id: 'o2', action: 'accept' }, failedId: null })
+    expect(otra).not.toContain('aria-busy')
+    expect(una({ pending: null, failedId: 'o1' })).toMatch(
+      /<p role="alert"[^>]*>Could not answer this offer\. Try again\.<\/p>/,
+    )
+    expect(una({ pending: null, failedId: 'o2' })).not.toContain('role="alert"')
+    expect(una({ pending: null, failedId: null })).not.toContain('role="alert"')
+  })
+
+  it('cada botón, con su oferta en el nombre (§4.3), que con varias se oye cuál', () => {
+    const s = html([OFERTA], null)
+    expect(pieza(s, 'Button', 'Sign')).toMatch(/aria-label="Sign with Mistral Racing"/)
+    expect(pieza(s, 'Button', 'Decline')).toMatch(
+      /aria-label="Decline the offer from Mistral Racing"/,
+    )
+  })
+
+  it('lo que lleva su porqué, a lo ancho y con el rótulo en negrita, no su porqué (§4.3)', () => {
+    const s = oferta(html([OFERTA], null), 'Mistral Racing')
+    expect(s).toMatch(
+      /<div class="grid content-start gap-1 col-span-2"><dt[^>]*><span class="font-semibold">Buyout<\/span>/,
+    )
+    expect(s).toMatch(
+      /<div class="grid content-start gap-1"><dt[^>]*><span class="font-semibold">Salary<\/span>/,
+    )
+    expect(s).not.toMatch(/<dt[^>]*font-semibold/)
   })
 
   it('sin la paleta ni la barra dorada', () => {
@@ -356,8 +476,31 @@ describe('las finanzas (§17.21; PR 21l)', () => {
     // el siguiente múltiplo de 7 tras el 200 es el 203, en 3 días
     expect(s).toContain(`Day ${seasonPosition(203).dayOfSeason} · in 3 days`)
     expect(s).not.toMatch(/\bGD/)
-    // sin contrato, nada
-    expect(html({ ...LIBRO, salary: null })).not.toContain('Next salary')
+    // sin contrato, nada, y su región se llama solo por el saldo
+    const sin = html({ ...LIBRO, salary: null })
+    expect(sin).not.toContain('Next salary')
+    expect(sin).toContain('aria-label="Balance"')
+    expect(s).toContain('aria-label="Balance and next salary"')
+  })
+
+  it('el día de pago: en singular a un día, y con su temporada si cae en la siguiente', () => {
+    // el último día de una temporada y el primero de la siguiente, por lo que dice `seasonPosition`
+    const fin = Array.from({ length: 2_000 }, (_, i) => i + 1).find(
+      (d) => seasonPosition(d + 1).season > seasonPosition(d).season,
+    )
+    expect(fin).toBeDefined()
+    // el último día de la temporada: su pago siguiente cae al otro lado del cambio
+    const hoy = fin ?? 0
+    const paga = (Math.floor(hoy / 7) + 1) * 7
+    expect(seasonPosition(paga).season).toBeGreaterThan(seasonPosition(hoy).season)
+    const p = seasonPosition(paga)
+    expect(html({ ...LIBRO, gameDay: hoy })).toContain(
+      `Day ${p.dayOfSeason} · Season ${p.season} · in ${paga - hoy} day${paga - hoy === 1 ? '' : 's'}`,
+    )
+    // a un día del pago, en singular
+    expect(html({ ...LIBRO, gameDay: 202 })).toContain(
+      `Day ${seasonPosition(203).dayOfSeason} · in 1 day.`,
+    )
   })
 
   it('la casa, en su Panel, sin su 🏠: dónde vive, con su bandera para el ojo, y lo que paga', () => {
@@ -454,10 +597,47 @@ describe('la identidad del equipo (§17.21; PR 21l)', () => {
     expect(panel).not.toContain('—')
   })
 
-  it('la historia, en su Panel sin relleno, con las noticias del equipo', () => {
+  it('el puesto, con su esqueleto mientras llega la lista de los equipos, y Unavailable si no llega', () => {
+    const sinLista = (fallan: readonly (readonly unknown[])[]) =>
+      pieza(
+        pinta(
+          '/team/identity',
+          '/team/identity',
+          <TeamIdentity />,
+          [
+            [key('rider', 'summary'), RESUMEN],
+            [key('team', 't1'), DETALLE],
+            [key('team-news', 't1'), []],
+            [['team-control'], null],
+          ],
+          fallan,
+        ),
+        'Panel',
+        'The team',
+      )
+    const cargando = sinLista([])
+    expect(cargando).toMatch(/<dt[^>]*>Rank among teams<\/dt><dd[^>]*><[a-z]+ data-ui="Skeleton"/)
+    expect(dato(cargando, 'Rank among teams')).toBe('')
+    expect(dato(sinLista([key('teams')]), 'Rank among teams')).toBe('Unavailable')
+  })
+
+  it('la historia, en su Panel sin relleno, con las noticias del equipo y su día de la temporada (§4.10)', () => {
     const historia = pieza(html(), 'Panel', 'History')
     expect(historia).toMatch(/^<section data-ui="Panel" data-variant="bleed"/)
     expect(historia).toContain('Rider 7 joins the team')
+    const tarde = pieza(
+      pinta('/team/identity', '/team/identity', <TeamIdentity />, [
+        [key('rider', 'summary'), RESUMEN],
+        [key('team', 't1'), DETALLE],
+        [key('team-news', 't1'), [{ gameDay: 400, kind: 'signing', text: 'Rider 9 joins' }]],
+        [key('teams'), [lista('t1', 900)]],
+        [['team-control'], null],
+      ]),
+      'Panel',
+      'History',
+    )
+    expect(tarde).toContain(`>Day ${seasonPosition(400).dayOfSeason}<`)
+    if (seasonPosition(400).dayOfSeason !== 400) expect(tarde).not.toContain('>Day 400<')
   })
 
   it('sin la paleta ni los paneles de antes', () => {

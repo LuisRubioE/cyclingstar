@@ -30,6 +30,7 @@ import { KitPicker } from '../components/ui/KitPicker'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
+import { SkeletonBar } from '../components/ui/Skeleton'
 import { TextLink } from '../components/ui/TextLink'
 import {
   type CheckState,
@@ -49,6 +50,7 @@ import {
 } from '../domain/kitPicker'
 import { archetypeLabel, bibWords } from '../domain/labels'
 import { useOnline } from '../net'
+import { divisionLabel } from '../domain/words'
 import { horizonKey, useHealth, useHorizonRev } from '../queryClient'
 
 /**
@@ -64,12 +66,6 @@ import { horizonKey, useHealth, useHorizonRev } from '../queryClient'
  * los demás); el nombre y el país; `The team` y `History`, como antes; y los rivales plegados. El dueño
  * guarda todo con una sola `ActionBar` (8-h): primero el nombre y el país, después el maillot.
  */
-
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'World Tour',
-  PRS: 'Pro Series',
-  CON: 'Continental',
-}
 
 const DIVISION_BLURB: Record<string, string> = {
   WT: 'Top flight: invited to every WorldTour race on the calendar.',
@@ -423,12 +419,13 @@ export function TeamIdentity() {
   // Puesto del equipo en la clasificación por puntos de la temporada, si ya hay lista de equipos.
   const ranked = [...(teams.data ?? [])].sort((a, b) => b.pointsSeason - a.pointsSeason)
   const rank = ranked.findIndex((t) => t.id === data.id)
-  const division = DIVISION_LABEL[data.division] ?? data.division
+  const division = divisionLabel(data.division)
 
   // `The team` y `History`, como antes (§8.7); la frase de la filosofía, que iba en la tarjeta de identidad
   // que se fue, abre `The team`. Con el sistema (E3, §17.21; PR 21l): los dos, `Panel` del catálogo, y los
   // datos del equipo en un `dl`, donde iban los paneles cian con sus `InfoRow`; sin país ni puesto, en
-  // palabras, donde iba una raya.
+  // palabras, donde iba una raya; y el puesto, con su esqueleto mientras llega la lista de los equipos, y
+  // `Unavailable` si no llega, porque `Not ranked yet` sería decir algo que no se sabe.
   const middle = (
     <div className="grid gap-3 sm:grid-cols-2">
       <Panel title="The team">
@@ -451,7 +448,17 @@ export function TeamIdentity() {
           <Dato label="Riders">{data.roster.length}</Dato>
           <Dato label="Season points">{data.pointsSeason.toLocaleString('en-US')}</Dato>
           <Dato label="Rank among teams">
-            {rank >= 0 ? `#${rank + 1} of ${ranked.length}` : 'Not ranked yet'}
+            {teams.data === undefined ? (
+              teams.isError ? (
+                'Unavailable'
+              ) : (
+                <SkeletonBar size="line" />
+              )
+            ) : rank >= 0 ? (
+              `#${rank + 1} of ${ranked.length}`
+            ) : (
+              'Not ranked yet'
+            )}
           </Dato>
           <Dato label="Budget">{data.budget.toLocaleString('en-US')}</Dato>
         </dl>

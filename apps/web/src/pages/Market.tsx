@@ -11,25 +11,17 @@ import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { TextLink } from '../components/ui/TextLink'
 import { roleLabel } from '../domain/labels'
-import { plural } from '../domain/words'
+import { divisionLabel, plural } from '../domain/words'
 
 /**
  * EL MERCADO, CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21l): la cabecera en `PageHeader`;
- * el contrato y cada oferta en su `Panel`, con su equipo en el título y su ficha en un `TextLink`, y lo que
- * ofrece en un `dl`, con la división en palabras; el porqué de la cláusula y de la casa, en un `InfoButton`,
- * donde iba un `title` que el dedo no abre (ui/4); y firmar y rechazar, `Button` del catálogo. Iban en los
- * paneles cian de antes, con la marca de la división en una pastilla de colores, `InfoRow` y botones a mano,
- * y la casa con su `🏠` (3-d). Responde (§7.3) el contrato, si lo hay; si no, la primera oferta; sin nada, su
- * vacío.
+ * el contrato en su `Panel`, y las ofertas en otro, `Offers`, que contesta la 26 también vacío (§7.3: «el
+ * `Panel` de las ofertas»); cada una con su equipo en un `h3` y su ficha en un `TextLink`, y lo que ofrece en
+ * un `dl`, con la división en palabras; el porqué de la cláusula y de la casa, en un `InfoButton`, donde iba
+ * un `title` que el dedo no abre (ui/4); y firmar y rechazar, `Button` del catálogo. Iban en los paneles cian
+ * de antes, uno por oferta, con la marca de la división en una pastilla de colores, `InfoRow` y botones a
+ * mano, y la casa con su `🏠` (3-d).
  */
-
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'World Tour',
-  PRS: 'Pro Series',
-  CON: 'Continental',
-}
-
-const division = (code: string): string => DIVISION_LABEL[code] ?? code
 
 function money(n: number): string {
   return `${n.toLocaleString('en-US')}/wk`
@@ -45,10 +37,11 @@ function Dato({
   readonly why?: { readonly about: string; readonly text: string }
   readonly children: ReactNode
 }) {
+  // con su porqué, a lo ancho: su botón de 44 no descuadra la fila de al lado, y su caja cabe entera
   return (
-    <div className="grid content-start gap-1">
-      <dt className="flex flex-wrap items-center gap-x-1 text-meta font-semibold text-ink">
-        {label}
+    <div className={`grid content-start gap-1${why === undefined ? '' : ' col-span-2'}`}>
+      <dt className="flex flex-wrap items-center gap-x-1 text-meta text-ink">
+        <span className="font-semibold">{label}</span>
         {why !== undefined && <InfoButton label={why.about}>{why.text}</InfoButton>}
       </dt>
       <dd className="text-body text-ink">{children}</dd>
@@ -62,27 +55,25 @@ interface Respuesta {
   readonly failedId: string | null
 }
 
-function OfferCard({
+export function OfferItem({
   offer,
-  answer,
   respuesta,
   onRespond,
 }: {
   readonly offer: Offer
-  readonly answer: boolean
   readonly respuesta: Respuesta
   readonly onRespond: (id: string, action: 'accept' | 'reject') => void
 }) {
   const ocupada = (action: 'accept' | 'reject') =>
     respuesta.pending?.id === offer.id && respuesta.pending.action === action
   return (
-    <Panel
-      title={offer.teamName}
-      answer={answer}
-      action={<TextLink to={`/world/teams/${offer.teamId}`}>Team page</TextLink>}
-    >
+    <li className="grid gap-3 py-4 first:pt-0 last:pb-0">
+      <div className="flex flex-wrap items-center justify-between gap-x-3">
+        <h3 className="text-body font-semibold text-ink">{offer.teamName}</h3>
+        <TextLink to={`/world/teams/${offer.teamId}`}>Team page</TextLink>
+      </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <Dato label="Division">{division(offer.division)}</Dato>
+        <Dato label="Division">{divisionLabel(offer.division)}</Dato>
         <Dato label="Role">{roleLabel(offer.role)}</Dato>
         <Dato label="Salary">
           <span className="tabular-nums">{money(offer.salary)}</span>
@@ -122,9 +113,10 @@ function OfferCard({
           </Dato>
         )}
       </dl>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="primary"
+          ariaLabel={`Sign with ${offer.teamName}`}
           busy={ocupada('accept')}
           busyLabel="Signing…"
           onClick={() => onRespond(offer.id, 'accept')}
@@ -133,6 +125,7 @@ function OfferCard({
         </Button>
         <Button
           variant="secondary"
+          ariaLabel={`Decline the offer from ${offer.teamName}`}
           busy={ocupada('reject')}
           busyLabel="Declining…"
           onClick={() => onRespond(offer.id, 'reject')}
@@ -141,11 +134,11 @@ function OfferCard({
         </Button>
       </div>
       {respuesta.failedId === offer.id && (
-        <p role="alert" className="mt-2 text-meta text-bad">
+        <p role="alert" className="text-meta text-bad">
           Could not answer this offer. Try again.
         </p>
       )}
-    </Panel>
+    </li>
   )
 }
 
@@ -186,34 +179,27 @@ export function Market() {
       </p>
 
       {data.contract && (
-        <Panel title="Current contract" answer>
+        <Panel title="Current contract">
           <p className="text-body text-ink">
             <TextLink to={`/world/teams/${data.contract.teamId}`} inline>
               {data.contract.teamName}
             </TextLink>
-            {` · ${division(data.contract.division)} · ${roleLabel(data.contract.role)} · ${money(data.contract.salary)} · through season ${data.contract.endSeason + 1}`}
+            {` · ${divisionLabel(data.contract.division)} · ${roleLabel(data.contract.role)} · ${money(data.contract.salary)} · through season ${data.contract.endSeason + 1}`}
           </p>
         </Panel>
       )}
 
-      {data.offers.length === 0 ? (
-        <EmptyState
-          text="No offers on the table right now. New ones arrive as the world advances."
-          answer={!data.contract}
-        />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {data.offers.map((offer, i) => (
-            <OfferCard
-              key={offer.id}
-              offer={offer}
-              answer={!data.contract && i === 0}
-              respuesta={respuesta}
-              onRespond={onRespond}
-            />
-          ))}
-        </div>
-      )}
+      <Panel title="Offers" answer>
+        {data.offers.length === 0 ? (
+          <EmptyState text="No offers on the table right now. New ones arrive as the world advances." />
+        ) : (
+          <ul className="divide-y divide-line">
+            {data.offers.map((offer) => (
+              <OfferItem key={offer.id} offer={offer} respuesta={respuesta} onRespond={onRespond} />
+            ))}
+          </ul>
+        )}
+      </Panel>
     </section>
   )
 }

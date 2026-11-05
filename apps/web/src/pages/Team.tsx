@@ -6,6 +6,7 @@ import { DiagnosticStrip } from '../components/StageGate'
 import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
 import { bibWords, kitWords } from '../domain/labels'
+import { divisionLabel } from '../domain/words'
 import { diagOf, horizonKey, useHorizonRev, useWatchOn } from '../queryClient'
 import { VeilNotice } from '../components/VeilNotice'
 import { Button } from '../components/ui/Button'
@@ -15,12 +16,6 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { Panel as UiPanel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { TextLink } from '../components/ui/TextLink'
-
-const DIVISION_LABEL: Record<string, string> = {
-  WT: 'World Tour',
-  PRS: 'Pro Series',
-  CON: 'Continental',
-}
 
 export function Team() {
   const { id = '' } = useParams()
@@ -65,7 +60,7 @@ export function Team() {
   // (D-00c). El maillot a 160, y a su derecha las cifras y el maillot en palabras; sus vistas, en la
   // `Sheet` que abre al tocarlo, porque con las pestañas la plantilla bajaba a 544 px (8-x).
   const status = [
-    DIVISION_LABEL[data.division] ?? data.division,
+    divisionLabel(data.division),
     ...(data.country === null
       ? []
       : [COUNTRIES.find((c) => c.code === data.country)?.name ?? data.country]),

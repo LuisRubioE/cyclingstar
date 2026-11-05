@@ -9,7 +9,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
-import { ShowAllRows } from '../components/ui/ShowAllRows'
+import { ShowAllRows, toggled } from '../components/ui/ShowAllRows'
 import { TeamJersey } from '../components/ui/TeamJersey'
 import { plural } from '../domain/words'
 import { horizonKey, useHorizonRev } from '../queryClient'
@@ -92,14 +92,7 @@ export function Teams() {
             <ShowAllRows
               total={d.teams.length}
               expanded={todas}
-              onToggle={() =>
-                setAbiertas((prev) => {
-                  const next = new Set(prev)
-                  if (next.has(d.key)) next.delete(d.key)
-                  else next.add(d.key)
-                  return next
-                })
-              }
+              onToggle={() => setAbiertas((prev) => toggled(prev, d.key))}
             />
           </Panel>
         )

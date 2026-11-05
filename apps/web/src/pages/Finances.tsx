@@ -153,7 +153,7 @@ export function Finances() {
       />
       <VeilNotice kind="results" />
 
-      <Panel ariaLabel="Balance and next salary">
+      <Panel ariaLabel={pago === null ? 'Balance' : 'Balance and next salary'}>
         <div className="flex flex-wrap gap-x-8 gap-y-4">
           <Stat label="Balance" value={data.balance} answer />
           {pago !== null && <Stat label="Next salary" value={pago.salary} signed />}
