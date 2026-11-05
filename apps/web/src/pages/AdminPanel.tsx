@@ -124,10 +124,22 @@ function Accounts({ me }: { me: string | null }) {
 /** Lo que hace cada botón de una cuenta, para saber cuál está ocupado. */
 type Accion = 'verify' | 'premium' | 'admin' | 'delete'
 
-function UserCard({ user, isMe }: { user: AdminUser; isMe: boolean }) {
+/**
+ * Una cuenta, con sus acciones. Se exporta para su test, con `initialError`: el fallo de una acción, que en la
+ * página solo llega tras pulsar, pintado en estático (como los `initial` de la entrada, PR 21j).
+ */
+export function UserCard({
+  user,
+  isMe,
+  initialError = null,
+}: {
+  readonly user: AdminUser
+  readonly isMe: boolean
+  readonly initialError?: string | null
+}) {
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState<Accion | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialError)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   async function run(accion: Accion, action: () => Promise<void>) {

@@ -3,8 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
-import { AdminPanel, Borrado } from './AdminPanel'
-import { PALETA, campo, cuantas, estado, pieza, titulo } from './__fixtures__/markup'
+import { AdminPanel, Borrado, UserCard } from './AdminPanel'
+import { PALETA, campo, cuantas, estado, pieza, pintaEn, titulo } from './__fixtures__/markup'
 
 /**
  * EL PANEL DE ADMINISTRACIÓN CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21m), en estático
@@ -252,5 +252,17 @@ describe('el panel de administración con el sistema (§17.21; PR 21m)', () => {
     expect(cuantas(markup, /<button\b/)).toBeGreaterThan(0)
     expect(cuantas(markup, /<button\b/)).toBe(cuantas(markup, /data-ui="Button"/))
     expect(cuantas(markup, /<input\b/)).toBe(cuantas(markup, /data-ui="Field"/))
+  })
+})
+
+describe('el fallo de una acción (PR 21m)', () => {
+  it('se dice en role="alert", en el texto de los fallos, y solo cuando lo hay', () => {
+    const una = cuenta({ id: 'u1', email: 'ana@example.com' })
+    const con = pintaEn(
+      '/admin',
+      <UserCard user={una} isMe={false} initialError="Could not save." />,
+    )
+    expect(con).toMatch(/<p role="alert" class="[^"]*text-bad[^"]*">Could not save\.<\/p>/)
+    expect(pintaEn('/admin', <UserCard user={una} isMe={false} />)).not.toContain('role="alert"')
   })
 })
