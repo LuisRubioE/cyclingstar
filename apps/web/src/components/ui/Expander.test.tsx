@@ -17,8 +17,13 @@ describe('Expander', () => {
       </Expander>,
     )
     expect(s).toMatch(
-      /^<button type="button" data-ui="Expander" data-variant="default" data-state="closed"/,
+      /^<button type="button" data-ui="Expander" data-variant="row" data-state="closed"/,
     )
+    // la fila dice que se pulsa (punto 2 del dueño): la flecha `chevron-down`, al final, que no se lee
+    expect(s).toMatch(
+      /<span>\+0:42<\/span><span[^>]*><svg data-ui="Icon" data-variant="chevron-down"[^>]*aria-hidden="true"/,
+    )
+    expect(s.match(/data-variant="chevron-down"/g)?.length).toBe(1)
     expect(s).toContain('aria-expanded="false"')
     expect(s).toContain('aria-controls="lista"')
     expect(s).toContain('<span>Lead group</span><span>+0:42</span>')
@@ -36,6 +41,16 @@ describe('Expander', () => {
     expect(s).toContain('aria-expanded="true"')
     expect(s).not.toContain('aria-controls')
     expect(s).not.toContain('aria-label')
+  })
+
+  it('surface: lo que ya es una superficie (la capa fija), sin flecha', () => {
+    const s = renderToStaticMarkup(
+      <Expander variant="surface" expanded={false} onToggle={() => {}}>
+        <span>98.5 km</span>
+      </Expander>,
+    )
+    expect(s).toMatch(/^<button type="button" data-ui="Expander" data-variant="surface"/)
+    expect(s).not.toContain('chevron-down')
   })
 
   it('con ariaLabel, su nombre es ese y no lo que lleva dentro (la capa fija de Watch, H-05)', () => {

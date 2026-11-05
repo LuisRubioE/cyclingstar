@@ -303,6 +303,9 @@ describe('FixedOverlay · el ámbito oscuro y el resumen accesible (§14.3)', ()
     expect(closed).toMatch(/^<div[^>]*data-ui="FixedOverlay"[^>]*><button[^>]*data-ui="Expander"/)
     expect(closed).toMatch(/<\/button><\/div>$/)
     expect(closed.match(/<button/g)?.length).toBe(1)
+    // la capa ya es una superficie: el Expander sin flecha
+    expect(closed).toContain('data-ui="Expander" data-variant="surface"')
+    expect(closed).not.toContain('chevron-down')
     expect(buttonAttr(<FixedOverlay instant={instant} head={HEAD} />, 'aria-expanded')).toBe(
       'false',
     )

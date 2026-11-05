@@ -390,17 +390,24 @@ function Porques() {
       </Demo>
       {/* la fila que se pulsa entera, la de un grupo de la barra de `Watch` (PR 21n) */}
       <Demo name="Expander">
-        <Estado name="closed">
+        <Estado name="row · closed">
           <Expander expanded={false} onToggle={() => {}}>
             <span className="flex-1 text-ink">Lead group · 5 riders</span>
             <span className="text-meta text-ink tabular-nums">+0:42</span>
           </Expander>
         </Estado>
-        <Estado name="open">
+        <Estado name="row · open">
           <Expander expanded onToggle={() => {}}>
             <span className="flex-1 text-ink">Lead group · 5 riders</span>
             <span className="text-meta text-ink tabular-nums">+0:42</span>
           </Expander>
+        </Estado>
+        <Estado name="surface · on the dark scope">
+          <div data-surface="dark" className="rounded-ui bg-surface text-ink">
+            <Expander variant="surface" expanded={false} onToggle={() => {}}>
+              <span className="min-w-0 flex-1 px-3 py-2 text-display tabular-nums">98.5 km</span>
+            </Expander>
+          </div>
         </Estado>
       </Demo>
     </>

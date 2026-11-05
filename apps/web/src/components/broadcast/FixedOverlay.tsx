@@ -94,7 +94,12 @@ export function FixedOverlay({
       className="select-none rounded-ui bg-surface text-ink"
       aria-live="off"
     >
-      <Expander expanded={expanded} onToggle={onToggle ?? NADA} ariaLabel={summary}>
+      <Expander
+        variant="surface"
+        expanded={expanded}
+        onToggle={onToggle ?? NADA}
+        ariaLabel={summary}
+      >
         <span className="min-w-0 flex-1 px-3 py-2">
           <span className="flex flex-wrap items-baseline justify-between gap-x-3">
             <span className="text-display tabular-nums">

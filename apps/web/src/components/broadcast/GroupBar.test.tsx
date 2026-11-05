@@ -228,6 +228,9 @@ describe('GroupBar · quién va y con qué maillot (§6.2; [DUEÑO 3]; E3, §14.
           row,
         )
       expect(boton).not.toBeNull()
+      // y dice que se pulsa: la variante de fila, con su flecha (punto 2 del dueño)
+      expect(row).toMatch(/<button type="button" data-ui="Expander" data-variant="row"/)
+      expect(row.match(/data-variant="chevron-down"/g)?.length).toBe(1)
       expect(row).toContain(`<ul id="${boton?.[1]}"`)
       expect(row).toMatch(/<ul id="[^"]+" data-group-list="\d+" hidden="">/)
       expect(row).not.toContain('data-ui="RiderLabel"')
