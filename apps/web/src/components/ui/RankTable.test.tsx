@@ -291,7 +291,6 @@ describe('RankTable: el maillot de campeÃ³n en una general (E3, docs/visual.md Â
     division: 'WT',
     budget: 0,
     pointsSeason: 0,
-    jerseySeed: `seed-${id}`,
     kit,
     riderCount: 25,
   })
@@ -310,7 +309,7 @@ describe('RankTable: el maillot de campeÃ³n en una general (E3, docs/visual.md Â
         rows={[corredor('a', 't1', 100), corredor('b', 't2', 110), corredor('c', 't1', 120)]}
         leaders={{ gc: 'a', points: null, kom: null, team: null }}
         champions={{ a: ITALY, b: ITALY }}
-        identity={identityFromTeams([equipo('t1', 'halves.red.blue'), equipo('t2', null)])}
+        identity={identityFromTeams([equipo('t1', 'halves.red.blue'), equipo('t2', 'plain.navy')])}
       />
     </MemoryRouter>,
   )

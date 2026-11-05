@@ -11,7 +11,6 @@ import {
   canonicalKit,
   currentSeason,
   parseKit,
-  seededRng,
 } from '@cyclingstar/shared'
 import { type LegacyJerseyStyle, legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
 import { and, desc, eq, gt, inArray, ne, sql } from 'drizzle-orm'
@@ -19,7 +18,7 @@ import type { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
 import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
-import { kitOn, kitsOn } from './kitsOn.js'
+import { kitOn, kitsBySeed, kitsOn } from './kitsOn.js'
 import { emitNews } from './news.js'
 import { gameState, teamKits, teams } from './schema.js'
 import { type SeasonRivals, seasonRivals } from './seasonRivals.js'
@@ -175,16 +174,7 @@ export function kitsByLook(look: LegacyJerseyStyle): readonly KitCode[] {
   return order
 }
 
-/** Los permitidos barajados con la semilla del equipo (Fisher-Yates con `seededRng`, FNV-1a). */
-export function kitsBySeed(seed: string): readonly KitCode[] {
-  const rng = seededRng(`kit:${seed}`)
-  const order = [...KIT_ALLOWED]
-  for (let i = order.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1))
-    ;[order[i], order[j]] = [order[j]!, order[i]!]
-  }
-  return order
-}
+export { kitsBySeed }
 
 /**
  * El reparto (§8.6, D-23): de más a menos rivales de temporada, cada equipo toma el primero de su orden
@@ -435,7 +425,6 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
       id: teams.id,
       ownerUserId: teams.ownerUserId,
       seed: teams.jerseySeed,
-      styleSeed: teams.jerseyStyleSeed,
     })
     .from(teams)
     .where(eq(teams.worldId, worldId))
@@ -447,10 +436,12 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
     ),
   )
   const rivals = await seasonRivals(tx, worldId, currentSeason(fromDay))
+  // su aspecto de hoy, el de su semilla: desde el 19e nadie lee la del dibujo, y la traducción ya corrió
+  // para todo equipo que la tuviera (§17.19)
   const asTeam = (r: (typeof rows)[number]): KitAssignTeam => ({
     id: r.id,
     seed: r.seed,
-    look: legacyJerseyStyle(r.styleSeed ?? r.seed),
+    look: legacyJerseyStyle(r.seed),
   })
   const translating = worn.size === 0
   const missing = rows.filter((r) => !worn.has(r.id))
@@ -563,7 +554,7 @@ export function kitsNote(report: EnsureKitsReport, ms: number): string | null {
 export async function revertKit(tx: Tx, teamId: string, reason: string): Promise<KitCode> {
   if (reason.trim().length < 3) throw new Error('revertKit: el motivo, de 3 caracteres o más')
   const [team] = await tx
-    .select({ worldId: teams.worldId, seed: teams.jerseySeed, styleSeed: teams.jerseyStyleSeed })
+    .select({ worldId: teams.worldId, seed: teams.jerseySeed })
     .from(teams)
     .where(eq(teams.id, teamId))
   if (!team) throw new Error(`revertKit: no existe el equipo ${teamId}`)
@@ -620,9 +611,7 @@ export async function revertKit(tx: Tx, teamId: string, reason: string): Promise
     kit = previous
   else {
     const { kits } = assignKits({
-      teams: [
-        { id: teamId, seed: team.seed, look: legacyJerseyStyle(team.styleSeed ?? team.seed) },
-      ],
+      teams: [{ id: teamId, seed: team.seed, look: legacyJerseyStyle(team.seed) }],
       rivals,
       worn,
       mode: 'seed',

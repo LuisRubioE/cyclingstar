@@ -12,7 +12,6 @@
         "name": "Mistral Racing",
         "country": "FR",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:8:jersey",
         "kit": "plain.black",
         "riders": [
           {
@@ -71,7 +70,6 @@
         "name": "Gipfel Racing",
         "country": "CH",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:12:jersey",
         "kit": "band.teal.plum",
         "riders": [
           {
@@ -130,7 +128,6 @@
         "name": "Cima Squadra",
         "country": "IT",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:5:jersey",
         "kit": "yoke.taupe.sky",
         "riders": [
           {
@@ -189,7 +186,6 @@
         "name": "Granite Pro Cycling",
         "country": "US",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:10:jersey",
         "kit": "sides.green.teal",
         "riders": [
           {
@@ -248,7 +244,6 @@
         "name": "Andes Ruta",
         "country": "ES",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:2:jersey",
         "kit": "hoops.red.orange",
         "riders": [
           {
@@ -307,7 +302,6 @@
         "name": "Aurore Équipe",
         "country": "FR",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:9:jersey",
         "kit": "plain.blue",
         "riders": [
           {
@@ -366,7 +360,6 @@
         "name": "Mistral Équipe",
         "country": "FR",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:7:jersey",
         "kit": "hoops.green.yellow",
         "riders": [
           {
@@ -425,7 +418,6 @@
         "name": "Falcon Velo",
         "country": "US",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:11:jersey",
         "kit": "yoke.navy.blue",
         "riders": [
           {
@@ -484,7 +476,6 @@
         "name": "Csillag Racing",
         "country": "HU",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:14:jersey",
         "kit": "band.pink.brown",
         "riders": [
           {
@@ -543,7 +534,6 @@
         "name": "Lampo Racing",
         "country": "IT",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:6:jersey",
         "kit": "sides.brown.pink",
         "riders": [
           {
@@ -602,7 +592,6 @@
         "name": "Pfeil Radteam",
         "country": "CH",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:13:jersey",
         "kit": "yoke.sky.taupe",
         "riders": [
           {
@@ -661,7 +650,6 @@
         "name": "Aurora Racing",
         "country": "ES",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:0:jersey",
         "kit": "yoke.red.black",
         "riders": [
           {
@@ -720,7 +708,6 @@
         "name": "Havik Wielrennen",
         "country": "BE",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:15:jersey",
         "kit": "band.blue.brown",
         "riders": [
           {
@@ -779,7 +766,6 @@
         "name": "Onda Pro Cycling",
         "country": "IT",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:4:jersey",
         "kit": "sides.blue.sky",
         "riders": [
           {
@@ -838,7 +824,6 @@
         "name": "Relámpago Pro Cycling",
         "country": "ES",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:3:jersey",
         "kit": "sash.pink.brown",
         "riders": [
           {
@@ -897,7 +882,6 @@
         "name": "Fénix Cycling",
         "country": "ES",
         "division": "PRS",
-        "jerseySeed": "cyclingstar-2:team:PRS:1:jersey",
         "kit": "sides.sky.red",
         "riders": [
           {
@@ -956,7 +940,6 @@
         "name": "Noord Wielrennen",
         "country": "BE",
         "division": "WT",
-        "jerseySeed": "cyclingstar-2:team:WT:0:jersey",
         "kit": "sides.blue.navy",
         "riders": [
           {
@@ -1015,7 +998,6 @@
         "name": "Vuur Racing",
         "country": "BE",
         "division": "WT",
-        "jerseySeed": "cyclingstar-2:team:WT:2:jersey",
         "kit": "yoke.brown.blue",
         "riders": [
           {
@@ -1074,7 +1056,6 @@
         "name": "Sierra Cycling",
         "country": "ES",
         "division": "WT",
-        "jerseySeed": "cyclingstar-2:team:WT:14:jersey",
         "kit": "yoke.orange.brown",
         "riders": [
           {
@@ -1133,7 +1114,6 @@
         "name": "Lince Ciclismo",
         "country": "ES",
         "division": "CON",
-        "jerseySeed": "cyclingstar-2:team:CON:159:jersey",
         "kit": "hoops.purple.sky",
         "riders": [
           {

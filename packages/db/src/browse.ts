@@ -8,8 +8,7 @@ import {
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { type Horizon, type VeilDelta, veilDelta } from './horizon.js'
-import { teamDrawSeed } from './jerseyClone.js'
-import { kitsOn } from './kitsOn.js'
+import { stateKitsOn } from './kitsOn.js'
 import { compareIds, seasonMinus, topAtHorizon } from './ranking.js'
 import { type HealthState, getSeasonRank } from './riders.js'
 import { gameState, riderAttrs, riders, teams } from './schema.js'
@@ -75,7 +74,8 @@ const divisionRank = (division: string): number =>
 
 /**
  * El maillot de cada equipo en la lista y en la ficha (E3, docs/visual.md §8.5; paso 16b): el de mañana,
- * el de su próxima carrera, porque todo maillot nuevo vale desde el día siguiente al de guardarlo.
+ * el de su próxima carrera, porque todo maillot nuevo vale desde el día siguiente al de guardarlo. Nunca
+ * nulo (`stateKitsOn`; 19e).
  */
 async function nextKits(
   db: Database,
@@ -87,7 +87,14 @@ async function nextKits(
     .from(gameState)
     .where(eq(gameState.worldId, worldId))
     .limit(1)
-  return kitsOn(db, teamIds, (state?.currentDay ?? 0) + 1)
+  return stateKitsOn(db, teamIds, (state?.currentDay ?? 0) + 1)
+}
+
+/** El maillot de un equipo que existe: `stateKitsOn` da uno a cada equipo de la base. */
+function kitOf(kits: ReadonlyMap<string, KitCode>, teamId: string): KitCode {
+  const kit = kits.get(teamId)
+  if (kit === undefined) throw new Error(`equipos: el equipo ${teamId} no existe`)
+  return kit
 }
 
 export interface TeamListRow {
@@ -97,9 +104,8 @@ export interface TeamListRow {
   division: string
   budget: number
   pointsSeason: number
-  jerseySeed: string
-  /** Su maillot de mañana (`nextKits`), o null si aún no tiene ninguno y se dibuja con su semilla. */
-  kit: KitCode | null
+  /** Su maillot de mañana (`nextKits`). */
+  kit: KitCode
   riderCount: number
 }
 
@@ -122,7 +128,6 @@ export async function getTeams(db: Database, h: Horizon, worldId: string): Promi
       division: teams.division,
       budget: teams.budget,
       pointsSeason: teamPoints,
-      jerseySeed: teamDrawSeed,
       riderCount: sql<number>`count(${riders.id})::int`,
     })
     .from(teams)
@@ -140,7 +145,7 @@ export async function getTeams(db: Database, h: Horizon, worldId: string): Promi
       ...r,
       pointsSeason: r.pointsSeason - (minus.get(r.id) ?? 0),
       budget: r.budget - (d.budget.get(r.id) ?? 0),
-      kit: kits.get(r.id) ?? null,
+      kit: kitOf(kits, r.id),
     }))
     .sort(
       (a, b) =>
@@ -171,9 +176,8 @@ export interface TeamDetail {
   division: string
   budget: number
   pointsSeason: number
-  jerseySeed: string
-  /** Su maillot de mañana (`nextKits`), o null si aún no tiene ninguno y se dibuja con su semilla. */
-  kit: KitCode | null
+  /** Su maillot de mañana (`nextKits`). */
+  kit: KitCode
   /** Su culote (E3, §8.10), que no se ve en carrera. */
   bib: BibStyle
   /** true si lo gestiona un jugador (tiene dueño); false si sigue siendo NPC. */
@@ -221,9 +225,7 @@ export async function getTeamDetail(
     division: team.division,
     budget: team.budget - (d.budget.get(team.id) ?? 0),
     pointsSeason,
-    // El maillot que se dibuja (E3, §8.9; la 0050): el elegido si lo hay, y si no el de génesis.
-    jerseySeed: team.jerseyStyleSeed ?? team.jerseySeed,
-    kit: kits.get(team.id) ?? null,
+    kit: kitOf(kits, team.id),
     bib: team.bib,
     human: team.ownerUserId !== null,
     roster: roster.map((r) => ({

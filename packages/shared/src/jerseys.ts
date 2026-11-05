@@ -279,6 +279,18 @@ export interface WornInput {
 /** El orden de la frase del comentarista, de menor a mayor (D-26, §7.5): 0 lleva el maillot de la general … 8 el resto. */
 export type NotorietyLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
+/**
+ * El equipo del rótulo servido: su maillot de ese día, o la semilla de lo grabado antes de la traducción (8-f).
+ * Uno de los dos, nunca los dos ni ninguno: lo exige `riderCardTeamSchema`. No es una unión de tipos porque su
+ * esquema, una unión de Zod, valida dos veces cada carta sin maillot, y la cabecera lleva unas 176 (B8).
+ */
+export interface RiderCardTeam {
+  readonly id: string
+  readonly name: string
+  readonly kit: KitCode | null
+  readonly legacySeed: string | null
+}
+
 /** EL RÓTULO SERVIDO, ya pasado por el velo del espectador (D-15, B13). Se deriva al servir la cabecera de CastRider y los nombres. */
 export interface RiderCard {
   readonly ix: RiderIx
@@ -293,15 +305,11 @@ export interface RiderCard {
   readonly gender: 'M' | 'F'
   /**
    * el equipo CON EL QUE CORRIÓ y su equipación de ese día; el nombre, el de hoy (NameResolver.team al
-   * servir); `kit`, su maillot del día de la etapa (E3, §8.5; PR 16b), o null hasta la traducción, y
-   * entonces se dibuja con `jerseySeed`
+   * servir); `kit`, su maillot del día de la etapa (E3, §8.5; PR 16b), o, si la etapa se grabó antes de la
+   * traducción, null y `legacySeed`, la semilla con que se dibuja lo grabado (`CastTeam.jerseySeed`, D-23):
+   * viaja solo cuando se pinta (8-f; 19e)
    */
-  readonly team: {
-    readonly id: string
-    readonly name: string
-    readonly jerseySeed: string
-    readonly kit: KitCode | null
-  } | null
+  readonly team: RiderCardTeam | null
   /** degradado: un `leader` cuyo `from` está velado pasa a { kind: 'team' }; su título, en su forma (19c) */
   readonly worn: WornJerseyView
   /** como mucho cardLinesMax; sin las de `from` velado; los títulos, en su forma (19c) */

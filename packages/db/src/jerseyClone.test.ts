@@ -53,7 +53,6 @@ describe('db: el clon del maillot (E3, §8.9; PR 1)', () => {
         name: teams.name,
         country: teams.country,
         jerseySeed: teams.jerseySeed,
-        jerseyStyleSeed: teams.jerseyStyleSeed,
       })
       .from(teams)
       .where(
@@ -75,7 +74,7 @@ describe('db: el clon del maillot (E3, §8.9; PR 1)', () => {
         .limit(1)
     )[0]?.notes
 
-  /** La semilla con que se dibuja el equipo, por uno de los lectores de verdad (el del reparto). */
+  /** La semilla que sirve el reparto, por uno de sus lectores de verdad: desde el 19e, la de su identidad. */
   const servedSeed = async (teamId: string) =>
     (await getCastIdentities(t.db, [], [teamId])).teams.get(teamId)?.jerseySeed
 
@@ -104,15 +103,10 @@ describe('db: el clon del maillot (E3, §8.9; PR 1)', () => {
 
   it('cambiar el maillot ya no clona el equipo: siguen 219 equipos y 3.900 corredores', async () => {
     expect(await counts()).toEqual({ teams: 219, riders: 3900 })
-    // La reproducción del mapa 03 §2.2: el CON 0 con dueño, la cuarta candidata y un tick.
+    // La reproducción del mapa 03 §2.2: el CON 0 con dueño y un tick. Desde el 18a de E3 el maillot va por
+    // su editor (`PUT /api/teams/me/kit`), y desde el 19e la semilla del dibujo no la lee nadie.
     const team = await genesisTeam('CON', 0)
     await t.db.update(teams).set({ ownerUserId: USER_A }).where(eq(teams.id, team.id))
-    const candidate = `${team.id}:jersey:3`
-    // Hasta el 18a de E3, `updateOwnedTeam` escribía la candidata en la semilla del dibujo; desde el 18a
-    // el maillot va por su editor (`PUT /api/teams/me/kit`), y la que eligió antes sigue ahí.
-    await t.db.update(teams).set({ jerseyStyleSeed: candidate }).where(eq(teams.id, team.id))
-    // La de génesis, la identidad, sigue en su sitio.
-    expect(await genesisTeam('CON', 0)).toMatchObject({ id: team.id, jerseyStyleSeed: candidate })
     await tick()
     expect(await counts()).toEqual({ teams: 219, riders: 3900 })
     // Y el tick no tuvo que borrar ningún clon: no nació ninguno. Desde el 17b de E3 la nota puede llevar
@@ -121,14 +115,13 @@ describe('db: el clon del maillot (E3, §8.9; PR 1)', () => {
     const note = await lastTickNote()
     expect(note).not.toContain('jersey clone removed')
     expect(note).toMatch(/^(maillots: [^·]+ · )?sin días pendientes$/)
-    // La identidad no se mueve y el dibujo servido es el elegido.
+    // La identidad no se mueve, y es la semilla que sirve el reparto.
     const after = await genesisTeam('CON', 0)
     expect(after.id).toBe(team.id)
-    expect(after.jerseyStyleSeed).toBe(candidate)
-    expect(await servedSeed(team.id)).toBe(candidate)
+    expect(await servedSeed(team.id)).toBe(`${SEED}:team:CON:0:jersey`)
   }, 180_000)
 
-  it('el clon de hoy: se borra con sus 12 corredores, el equipo conserva su dibujo y un segundo paso no hace nada', async () => {
+  it('el clon de hoy: se borra con sus 12 corredores, el equipo recupera su semilla de génesis y un segundo paso no hace nada', async () => {
     const team = await genesisTeam('CON', 1)
     const chosen = `${team.id}:jersey:5`
     // Lo que hacía `updateOwnedTeam` antes de la 0050: la semilla elegida en `jersey_seed`…
@@ -146,11 +139,10 @@ describe('db: el clon del maillot (E3, §8.9; PR 1)', () => {
     const note = await t.db.transaction((tx) => removeJerseyClones(tx, worldId))
     expect(note).toBe(`jersey clone removed: ${clone.name} (${clone.id}), 12 riders`)
     expect(await counts()).toEqual({ teams: 219, riders: 3900 })
-    // El equipo recupera su semilla de génesis y guarda la suya para el dibujo, que no cambia.
+    // El equipo recupera su semilla de génesis; su dibujo es su maillot, que no cambia (19e).
     const restored = await genesisTeam('CON', 1)
     expect(restored.id).toBe(team.id)
-    expect(restored.jerseyStyleSeed).toBe(chosen)
-    expect(await servedSeed(team.id)).toBe(chosen)
+    expect(await servedSeed(team.id)).toBe(`${SEED}:team:CON:1:jersey`)
 
     // Idempotente: ni el paso ni el tick siguiente vuelven a crear ni a borrar nada.
     expect(await t.db.transaction((tx) => removeJerseyClones(tx, worldId))).toBeNull()

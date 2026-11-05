@@ -31,7 +31,6 @@ import {
 } from '@cyclingstar/shared'
 import { and, eq, exists, inArray, lt, lte, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
-import { teamDrawSeed } from './jerseyClone.js'
 import { palmares, stageResults, teams } from './schema.js'
 import type { Queryable } from './titles.js'
 
@@ -139,12 +138,14 @@ export async function buildTimelineCast(q: Queryable, ctx: CastContext): Promise
     teamIx.set(r.teamId, teamIds.length)
     teamIds.push(r.teamId)
   }
+  // La semilla de cada equipo, la de su identidad: desde el 17b el maillot del día se resuelve al servir
+  // (`kitsOn`), y la semilla solo dibuja lo grabado antes de la traducción (D-23; 19e)
   const seeds = new Map(
     teamIds.length === 0
       ? []
       : (
           await q
-            .select({ id: teams.id, jerseySeed: teamDrawSeed })
+            .select({ id: teams.id, jerseySeed: teams.jerseySeed })
             .from(teams)
             .where(inArray(teams.id, teamIds))
         ).map((t) => [t.id, t.jerseySeed] as const),

@@ -24,7 +24,7 @@ import {
 import { putFollow } from '../api/watch'
 import { authClient } from '../auth/client'
 import { Flag } from '../components/Flag'
-import { TeamJersey, wornTeam } from '../components/ui/TeamJersey'
+import { TeamJersey } from '../components/ui/TeamJersey'
 import { RiderName } from '../components/RiderName'
 import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { DiagnosticStrip } from '../components/StageGate'
@@ -133,7 +133,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
                   {g.teams.map((t) => (
                     <div key={t.id}>
                       <div className="flex items-center gap-1.5 text-sm font-medium">
-                        <TeamJersey team={wornTeam(t.name, t.kit, t.jerseySeed)} size={28} />
+                        <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
                         {t.country && <Flag code={t.country} size={14} />}
                         <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
                       </div>
@@ -156,7 +156,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                   {g.teams.map((t) => (
                     <span key={t.id} className="flex items-center gap-1.5 text-sm">
-                      <TeamJersey team={wornTeam(t.name, t.kit, t.jerseySeed)} size={28} />
+                      <TeamJersey team={{ name: t.name, kit: t.kit }} size={28} />
                       {t.country && <Flag code={t.country} size={14} />}
                       <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
                     </span>
@@ -481,7 +481,6 @@ function ClassificationsTab({
             <>
               <TeamClassTable
                 rows={data.teamGc}
-                identity={identity}
                 ownTeamId={own.teamId}
                 cumulative={!oneDay}
                 answer

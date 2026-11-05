@@ -354,4 +354,25 @@ describe('la frontera, hoja por hoja (§13.2, punto 3; PR 19a)', () => {
       expect(hojas(route), `${route} ${field}`).not.toContain(field)
     }
   })
+
+  it('la semilla del maillot ya no cruza: los de estado llevan su maillot, y el rótulo, la de lo grabado antes de la traducción (§8.5, 8-f; 19e)', () => {
+    const hojas = (route: string): string[] => {
+      const e = entries.find((x) => `${x.method} ${x.url}` === route)
+      return Object.values(e?.response ?? {}).flatMap((s) => leavesOf(s).map((l) => l.path))
+    }
+    const FUERA_19E: readonly (readonly [string, string])[] = [
+      ['GET /api/teams', 'teams[].jerseySeed'],
+      ['GET /api/teams/:id', 'team.jerseySeed'],
+      ['GET /api/calendar/:raceId/startlist', 'teams[].jerseySeed'],
+      ['GET /api/races/:raceId/stages/:day/broadcast', 'cast[].team.jerseySeed'],
+    ]
+    for (const [route, field] of FUERA_19E) {
+      expect(hojas(route).length, route).toBeGreaterThan(0)
+      expect(hojas(route), `${route} ${field}`).not.toContain(field)
+    }
+    expect(hojas('GET /api/teams')).toContain('teams[].kit')
+    expect(hojas('GET /api/races/:raceId/stages/:day/broadcast')).toContain(
+      'cast[].team.legacySeed',
+    )
+  })
 })

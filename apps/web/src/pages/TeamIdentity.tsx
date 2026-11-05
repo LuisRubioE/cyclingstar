@@ -32,7 +32,6 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { TextLink } from '../components/ui/TextLink'
-import { wornTeam } from '../components/ui/TeamJersey'
 import {
   type CheckState,
   type KitDraft,
@@ -478,11 +477,7 @@ export function TeamIdentity() {
       ) : (
         <>
           <Panel title="Team kit">
-            <KitPicker
-              mode="readonly"
-              team={wornTeam(data.name, data.kit, data.jerseySeed)}
-              bib={data.bib}
-            />
+            <KitPicker mode="readonly" team={{ name: data.name, kit: data.kit }} bib={data.bib} />
           </Panel>
           {middle}
         </>

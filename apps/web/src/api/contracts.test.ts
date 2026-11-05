@@ -394,8 +394,7 @@ describe('contratos: calendario y carrera', () => {
           name: 'Equipo',
           country: 'ES',
           division: 'WT',
-          jerseySeed: 'seed',
-          kit: null,
+          kit: 'plain.navy',
           riders: [{ id: 'r1', name: 'Ana', country: 'ES', isBot: false, bib: 11 }],
         },
       ],
@@ -404,21 +403,20 @@ describe('contratos: calendario y carrera', () => {
     expect(raceStartlistSchema.parse(congelada)).toEqual(congelada)
   })
 
-  it('el maillot de un equipo (E3, §8.5; 16b): un código del vocabulario o null, y null si la API no lo trae', () => {
+  it('el maillot de un equipo (E3, §8.5; 16b y 19e): un código del vocabulario, nunca nulo', () => {
     const team = {
       id: 't1',
       name: 'Equipo',
       country: 'ES',
       division: 'WT',
-      jerseySeed: 's',
       riders: [],
     }
     expect(startlistTeamSchema.parse({ ...team, kit: 'halves.red.blue' }).kit).toBe(
       'halves.red.blue',
     )
-    expect(startlistTeamSchema.parse({ ...team, kit: null }).kit).toBeNull()
-    // una API que vaya por detrás de la web
-    expect(startlistTeamSchema.parse(team).kit).toBeNull()
+    // desde el 19e, sin maillot no hay lista: la semilla del dibujo ya no cruza
+    expect(startlistTeamSchema.safeParse({ ...team, kit: null }).success).toBe(false)
+    expect(startlistTeamSchema.safeParse(team).success).toBe(false)
     // el amarillo no es base, y una figura que no existe no es un maillot
     for (const kit of ['halves.yellow.blue', 'zigzag.red.blue', 'plain', 'red'])
       expect(startlistTeamSchema.safeParse({ ...team, kit }).success, kit).toBe(false)
@@ -505,7 +503,6 @@ describe('contratos: mundo, equipo y dinero', () => {
         division: 'CON',
         budget: 100,
         pointsSeason: 0,
-        jerseySeed: 'seed',
         kit: 'plain.navy',
         bib: 'black.panel',
         human: false,
@@ -524,14 +521,14 @@ describe('contratos: mundo, equipo y dinero', () => {
       },
     }
     expect(teamResponseSchema.parse(payload)).toEqual(payload)
-    // sin el maillot ni el culote (una API que vaya por detrás): null y el negro
-    const before = Object.fromEntries(
-      Object.entries(payload.team).filter(([key]) => key !== 'kit' && key !== 'bib'),
+    // sin el culote (una API que vaya por detrás), el negro; sin el maillot, desde el 19e, no pasa
+    const sinCulote = Object.fromEntries(
+      Object.entries(payload.team).filter(([key]) => key !== 'bib'),
     )
-    expect(teamResponseSchema.parse({ team: before }).team).toMatchObject({
-      kit: null,
-      bib: 'black',
-    })
+    expect(teamResponseSchema.parse({ team: sinCulote }).team).toMatchObject({ bib: 'black' })
+    expect(teamResponseSchema.safeParse({ team: { ...payload.team, kit: null } }).success).toBe(
+      false,
+    )
     expect(teamResponseSchema.safeParse({ team: { ...payload.team, bib: 'red' } }).success).toBe(
       false,
     )
@@ -547,8 +544,7 @@ describe('contratos: mundo, equipo y dinero', () => {
           division: 'WT',
           budget: 100,
           pointsSeason: 0,
-          jerseySeed: 'seed',
-          kit: null,
+          kit: 'plain.navy',
           riderCount: 12,
         },
         {
@@ -558,7 +554,6 @@ describe('contratos: mundo, equipo y dinero', () => {
           division: 'CON',
           budget: 50,
           pointsSeason: 3,
-          jerseySeed: 'seed-2',
           kit: 'sash.navy.orange',
           riderCount: 10,
         },

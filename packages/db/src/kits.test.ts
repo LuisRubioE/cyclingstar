@@ -28,7 +28,7 @@ import {
   revertKit,
   setKit,
 } from './kits.js'
-import { kitOn, kitsOn } from './kitsOn.js'
+import { kitOn, kitsOn, stateKitsOn } from './kitsOn.js'
 import { gameState, news, riders, teamKits, teams, users, worlds } from './schema.js'
 import { type SeasonRivals, rivalsOf, seasonFields } from './seasonRivals.js'
 import { releaseUserToWorld, takeOverBotTeam } from './teamControl.js'
@@ -198,11 +198,11 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
         }
     distances.sort((x, y) => x - y)
     const rows = await t.db
-      .select({ id: teams.id, seed: teams.jerseySeed, styleSeed: teams.jerseyStyleSeed })
+      .select({ id: teams.id, seed: teams.jerseySeed })
       .from(teams)
       .where(eq(teams.worldId, worldId))
     const keptBase = rows.filter((r) => {
-      const look = legacyJerseyStyle(r.styleSeed ?? r.seed)
+      const look = legacyJerseyStyle(r.seed)
       return parseKit(kits.get(r.id)!)?.base === nearestKitColor(look.base, 'base')
     }).length
     console.info(
@@ -257,13 +257,13 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
     'de noche: cuántas carreras fallarían sin cada color y sin cada figura (DD-24, 16-i)',
     async () => {
       const rows = await t.db
-        .select({ id: teams.id, seed: teams.jerseySeed, styleSeed: teams.jerseyStyleSeed })
+        .select({ id: teams.id, seed: teams.jerseySeed })
         .from(teams)
         .where(eq(teams.worldId, worldId))
       const teamsIn = rows.map((r) => ({
         id: r.id,
         seed: r.seed,
-        look: legacyJerseyStyle(r.styleSeed ?? r.seed),
+        look: legacyJerseyStyle(r.seed),
       }))
       const without: Record<string, number> = {}
       for (const color of KIT_SECONDARIES) {
@@ -324,6 +324,28 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       .update(teams)
       .set({ kitCanonical: canonicalKit(first!) })
       .where(eq(teams.id, id!))
+  })
+
+  it('stateKitsOn, el de los cuatro de estado: el de ese día; antes de la primera fila, la primera; y sin ninguna, el primero de su semilla (19e)', async () => {
+    const [id, bare] = teamIds
+    const first = (await kitsOn(t.db, [id!], 1)).get(id!)
+    expect(first).toBeDefined()
+    // la retransmisión sigue sin maillot antes de la traducción (D-23), y los de estado llevan el primero
+    expect(await kitOn(t.db, id!, 0)).toBeNull()
+    expect((await stateKitsOn(t.db, [id!], 0)).get(id!)).toBe(first)
+    expect((await stateKitsOn(t.db, [id!], 1)).get(id!)).toBe(first)
+    await rolledBack(async (tx) => {
+      // un equipo sin ninguna fila, que la traducción del 17b hace imposible: el primero de su semilla
+      await tx.delete(teamKits).where(eq(teamKits.teamId, bare!))
+      const [row] = await tx
+        .select({ seed: teams.jerseySeed })
+        .from(teams)
+        .where(eq(teams.id, bare!))
+      const kits = await stateKitsOn(tx, [id!, bare!], 5)
+      expect(kits.get(bare!)).toBe(kitsBySeed(row!.seed)[0])
+      expect(kits.get(id!)).toBe(first)
+      expect(await stateKitsOn(tx, [], 5)).toEqual(new Map())
+    })
   })
 
   it('el maillot que lleva otro equipo: KitTakenError con quien lo lleva, y la transacción sigue viva', async () => {

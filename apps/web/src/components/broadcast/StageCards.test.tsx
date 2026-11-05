@@ -61,7 +61,7 @@ const cast = castOf(40, {
   6: {
     name: 'Nicolás Moreno',
     bib: 15,
-    team: { id: 'ta', name: 'Team Alpha', jerseySeed: 's', kit: null },
+    team: { id: 'ta', name: 'Team Alpha', kit: null, legacySeed: 's' },
   },
   9: { name: 'Jules Moreau', bib: 46 },
   20: { name: 'Pelle Ekdal', own: true },

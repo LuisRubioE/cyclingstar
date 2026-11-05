@@ -3,7 +3,7 @@ import { and, asc, eq, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { type Horizon, stageGameDay, throughStage } from './horizon.js'
-import { kitsOn } from './kitsOn.js'
+import { stateKitsOn } from './kitsOn.js'
 import { raceGc, raceRosters, riders, stageResults, stageTeamResults, teams } from './schema.js'
 
 /**
@@ -101,10 +101,10 @@ export interface TeamClassRow {
   /** País del equipo (ISO alpha-2); null si no lo tiene asignado. */
   country: string | null
   /**
-   * Su maillot el día de la última etapa que entra en la tabla (E3, docs/visual.md §8.5; paso 16b), o
-   * null si ese día aún no tenía ninguno guardado y se dibuja con su semilla.
+   * Su maillot el día de la última etapa que entra en la tabla (E3, docs/visual.md §8.5; paso 16b), o, en
+   * una etapa anterior a la traducción, el primero que tuvo (`stateKitsOn`; 19e): nunca nulo.
    */
-  kit: KitCode | null
+  kit: KitCode
   /** Suma de tiempos: de la etapa, o acumulada por etapas. */
   tiempoS: number
   /** Suma de los puestos de los corredores que puntúan (primer desempate). */
@@ -203,7 +203,7 @@ async function teamClassificationsThrough(
   // Las dos tablas enseñan la misma última etapa (`ofStage`, si se pidió, es también el corte), y cada
   // equipo lleva el maillot de ese día: una tabla vieja, el de entonces, porque `team_kits` no se reescribe.
   const lastStage = scores.reduce((max, s) => Math.max(max, s.stageDay), 0)
-  const kits = await kitsOn(db, [...identity.keys()], stageGameDay(raceId, lastStage))
+  const kits = await stateKitsOn(db, [...identity.keys()], stageGameDay(raceId, lastStage))
   const bestGc = await teamBestGcRank(db, raceId, throughStage)
   const stage =
     ofStage != null
@@ -319,11 +319,15 @@ function buildRows(
     if (!who) continue // equipo borrado (poda de NPC): no hay nada que nombrar
     let row = byTeam.get(score.teamId)
     if (!row) {
+      // `stateKitsOn` da maillot a todo equipo de la base, y `who` dice que este lo es
+      const kit = kits.get(score.teamId)
+      if (kit === undefined)
+        throw new Error(`por equipos: el equipo ${score.teamId} no tiene maillot`)
       row = {
         teamId: score.teamId,
         teamName: who.teamName,
         country: who.country,
-        kit: kits.get(score.teamId) ?? null,
+        kit,
         tiempoS: 0,
         sumaPuestos: 0,
         stagesScored: 0,
