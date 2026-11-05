@@ -288,7 +288,8 @@ describe('PaintedRaceRadio con el sistema (21m)', () => {
     expect(texto(markup)).toContain(
       "Nothing to show yet: the race radio fills in as far as you've watched.",
     )
-    expect(pieza(markup, 'Button', '>Watch<')).not.toBe('')
+    // el único `primary` de la radio pintada vacía (§4.1)
+    expect(pieza(markup, 'Button', '>Watch<')).toMatch(/data-variant="primary"/)
     expect(markup).not.toContain('aria-live')
   })
 })
@@ -346,7 +347,8 @@ describe('StageStory con el sistema (21m)', () => {
   })
 
   it('Full result, un Button del catálogo con su texto de hoy', () => {
-    expect(pieza(markup, 'Button', 'Full result →')).not.toBe('')
+    // `quiet`: la acción de la tarjeta no compite con la de la página (§4.1)
+    expect(pieza(markup, 'Button', 'Full result →')).toMatch(/data-variant="quiet"/)
   })
 
   it('los maillots, de KIT_MIN_PX o más (§8.3)', () => {
@@ -357,6 +359,8 @@ describe('StageStory con el sistema (21m)', () => {
   it('el podio: la bandera, el nombre con su peso y el maillot (D-00c)', () => {
     // la fila del podio, y no la línea de `On the road today`, que también lo nombra
     const fila = markup.split('<li').find((li) => li.includes('>Corredor ayer</a>')) ?? ''
+    // el nombre enlaza a la ficha de su corredor, con su id
+    expect(fila).toMatch(/href="\/world\/riders\/[^"]+"/)
     const donde = ['aria-label="Spain"', '>Corredor ayer</a>', 'aria-label="Race leader"'].map(
       (s) => fila.indexOf(s),
     )
