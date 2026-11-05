@@ -2,44 +2,15 @@
  * La condición del corredor tal como se le enseña al jugador.
  *
  * Regla del proyecto (MVP.md Paso 20 y packages/shared/src/rider.ts): «la forma en estrellas y la
- * frescura en barra, NUNCA números internos». El diario del Banister viaja con `ctl`/`atl`/`tsb`
- * porque la web los necesita para calcular los cerillos del día con las mismas funciones del motor,
- * pero esos valores son carga acumulada en unidades arbitrarias: un ATL de 118 no significa nada
- * para el dueño del corredor y encima se sale de cualquier escala 0-100 que se le suponga.
+ * frescura en barra, NUNCA números internos». Las dos magnitudes que entiende un jugador, el FONDO (el
+ * construido, `fitnessFactor`) y la FRESCURA (lo descansado que está hoy, `freshnessBar`), llegan ya hechas
+ * de la API desde el 19b de E3, en barras enteras de 0 a 100 (`GET /api/riders/me/form`; docs/visual.md
+ * §13.5): el diario del Banister, con su `ctl`, su `atl` y su `tsb`, ya no cruza. Un ATL de 118 no
+ * significaba nada para el dueño del corredor, y encima se salía de cualquier escala de 0 a 100.
  *
- * Aquí se traducen a las dos magnitudes que sí entiende un jugador, ambas acotadas a 0-100 por el
- * propio motor: FITNESS (el fondo construido, `fitnessFactor`) y FRESHNESS (lo descansado que está
- * hoy, `freshnessBar`). La fatiga desaparece como número porque la frescura ya la cuenta: es su
- * cara legible. Lógica pura y probada; la página solo pinta.
- *
- * Las dos funciones son las del motor, copiadas en `packages/shared` (`engineCopies.ts`) y atadas por
- * `apps/api/src/engineCopies.test.ts`: la web no importa el motor, que cargaría entero (E2, 10b, §18.5).
+ * Aquí queda lo que la web pone encima: la palabra de cada barra y los segmentos del medidor. Lógica pura y
+ * probada; la página solo pinta.
  */
-
-import { fitnessFactor, freshnessBar } from '@cyclingstar/shared'
-
-/** Un punto del diario, reducido a lo que hace falta aquí. */
-export interface ConditionPoint {
-  gameDay: number
-  ctl: number
-  tsb: number
-}
-
-/** Las dos barras 0-100 de un día del diario. */
-export interface ConditionBars {
-  fitness: number
-  freshness: number
-}
-
-/** Fondo (0-100): el mismo `fitnessFactor` del motor, que ya acota, en porcentaje. */
-export function fitnessBar(ctl: number): number {
-  return Math.round(100 * fitnessFactor(ctl))
-}
-
-/** Las dos barras de un punto del diario, listas para pintar. */
-export function conditionBars(point: ConditionPoint): ConditionBars {
-  return { fitness: fitnessBar(point.ctl), freshness: Math.round(freshnessBar(point.tsb)) }
-}
 
 /**
  * Etiqueta cualitativa de una magnitud 0-100. Cinco escalones, para que el jugador lea una palabra
@@ -53,9 +24,14 @@ export function conditionLabel(value: number): string {
   return 'Very low'
 }
 
-/** La serie del gráfico: el diario traducido a las dos barras, día a día. */
-export function conditionSeries(
-  log: readonly ConditionPoint[],
-): (ConditionBars & { gameDay: number })[] {
-  return log.map((p) => ({ gameDay: p.gameDay, ...conditionBars(p) }))
+/**
+ * Los segmentos llenos del `Meter` de cuatro (§4.8; 19b), de 0 a 4: los mismos escalones que la palabra,
+ * ninguno en `Very low` y los cuatro en `Excellent`, para que el medidor y su palabra no se contradigan.
+ */
+export function conditionLevel(value: number): 0 | 1 | 2 | 3 | 4 {
+  if (value >= 80) return 4
+  if (value >= 60) return 3
+  if (value >= 40) return 2
+  if (value >= 20) return 1
+  return 0
 }

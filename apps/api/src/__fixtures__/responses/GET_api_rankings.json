@@ -1,0 +1,36 @@
+{
+  "route": "GET /api/rankings",
+  "url": "/api/rankings",
+  "status": 200,
+  "body": {
+    "ranking": [
+      {
+        "riderId": "619c359a-b57a-444d-a3bb-887b116fa2a4",
+        "name": "Oleksandr Prykhodko",
+        "country": "UA",
+        "teamId": "a654eea0-1cf6-4389-9812-7279c8e4051b",
+        "teamName": "Al Faris Velo",
+        "isBot": true,
+        "points": 410
+      },
+      {
+        "riderId": "5485dd05-8006-4799-8777-9809785754f7",
+        "name": "Peerapong Saengsuwan",
+        "country": "TH",
+        "teamId": "d1aa0a40-0d79-4312-a08d-c82db4b5b767",
+        "teamName": "Mistral Équipe",
+        "isBot": true,
+        "points": 367
+      },
+      {
+        "riderId": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+        "name": "Gilles Roelants",
+        "country": "BE",
+        "teamId": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "teamName": "Noord Wielrennen",
+        "isBot": true,
+        "points": 313
+      }
+    ]
+  }
+}

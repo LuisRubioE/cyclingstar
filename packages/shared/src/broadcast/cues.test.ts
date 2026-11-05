@@ -154,7 +154,6 @@ describe('cueClassOf · lo que sube o baja la clase (6-g)', () => {
   const start: StartState = {
     leaders: { gc: 3, points: null, kom: 9 },
     gcTop: [3, 4, 5, 6, 7, 8].map((rider, i) => ({ rider, rank: i + 1, gapS: i * 10 })),
-    racingAtStart: 20,
   }
   const of = (cue: Cue, last: RiderIx | null = null, tt = false): CueClass =>
     cueClassOf(cue, start, last, tt)
@@ -244,7 +243,7 @@ describe('cuesBetween · los rótulos entre dos instantes, sobre la etapa de jug
   const { tl, ixOf } = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 20, lastBlocks: 10 })
   const ctx: InstantContext = {
     own: new Set(),
-    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 8 },
+    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
     photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
   }
   const mov = ixOf.get('mov-1')!

@@ -95,6 +95,11 @@ export interface SpoilerWorld {
   readonly userId: string
   /** La sesión del jugador dueño de OWN_RIDER. */
   readonly cookie: string
+  /**
+   * La sesión del mánager (E3, docs/visual.md §13.4; PR 19a): `manager@example.com`, con `premium` y dueña
+   * de `Team 0`, con la que `responses.test.ts` recorre las rutas de equipo.
+   */
+  readonly managerCookie: string
   /** Otra cuenta con su sesión, sin corredor: la de B1b con dos cuentas (§11.14, 8b). */
   signUp(email: string): Promise<{ readonly userId: string; readonly cookie: string }>
   /** Corredores de más para barrer sus fichas (B1a añade al ganador; B1c no, para que las URL sean las mismas). */
@@ -248,6 +253,12 @@ export async function startSpoilerWorld(baseSeed: string): Promise<SpoilerWorld>
   }
   const { userId, cookie } = await signUp('player@example.com')
   await t.client`update riders set user_id = ${userId} where id = ${OWN_RIDER}`
+  // El mánager (19a): premium, con su corredor en Team 0 y dueño de ese equipo desde el día de la etapa
+  // velada, como lo deja tomar el equipo de su corredor (`managed_since_day`, 16a).
+  const manager = await signUp('manager@example.com')
+  await t.client`update users set premium = true where id = ${manager.userId}`
+  await t.client`update riders set user_id = ${manager.userId} where id = ${idDe(2)}`
+  await t.client`update teams set owner_user_id = ${manager.userId}, managed_since_day = ${dayOf(VEILED)} where id = ${idDe(100)}`
   await t.db
     .insert(raceWatch)
     .values({ userId, worldId, raceKey: RACE_KEY, knownThrough: 2, how: 'WW' })
@@ -258,6 +269,7 @@ export async function startSpoilerWorld(baseSeed: string): Promise<SpoilerWorld>
     worldId,
     userId,
     cookie,
+    managerCookie: manager.cookie,
     signUp,
     extraRiders: [],
     async runVeiled(stageSeed) {
@@ -327,7 +339,7 @@ export const B1B_SKIP: ReadonlyMap<string, string> = new Map([
 /** Todas las GET del registro, con cada combinación de parámetros. La clave es `${ruta} ${url}`. */
 export async function sweep(
   w: SpoilerWorld,
-  who: 'player' | 'anon',
+  who: 'player' | 'manager' | 'anon',
   skip: ReadonlyMap<string, string> = SKIP,
 ): Promise<Map<string, Swept>> {
   const out = new Map<string, Swept>()
@@ -344,13 +356,66 @@ export async function sweep(
       const res = await w.app.inject({
         method: 'GET',
         url: url + (QUERY[route] ?? ''),
-        headers: who === 'player' ? { cookie: w.cookie } : {},
+        headers:
+          who === 'player'
+            ? { cookie: w.cookie }
+            : who === 'manager'
+              ? { cookie: w.managerCookie }
+              : {},
       })
       out.set(`${route} ${url}`, { status: res.statusCode, body: res.body })
     }
   }
   return out
 }
+/**
+ * LAS POST DE LECTURA (E3, docs/visual.md §13.2, punto 4; O-05, 13-d; PR 19a): una lista cerrada, con quién
+ * la pide y su cuerpo. Nunca todas las POST, que ejecutarían mutaciones en el mundo de prueba.
+ */
+export const CANARY_POST_READS: ReadonlyMap<
+  string,
+  { readonly who: 'player' | 'manager'; readonly url: string; readonly body: unknown }
+> = new Map([
+  [
+    'POST /api/riders/me/plan/preview',
+    {
+      who: 'player',
+      url: '/api/riders/me/plan/preview',
+      body: {
+        mode: 'mixto',
+        plan: {
+          blocks: ['base', 'construccion', null, 'afinado'],
+          focusAttr: null,
+          intensity: null,
+        },
+        edits: [],
+      },
+    },
+  ],
+  [
+    'POST /api/teams/me/kit/check',
+    { who: 'manager', url: '/api/teams/me/kit/check', body: { kit: 'hoops.navy.yellow' } },
+  ],
+])
+
+/** Las POST de lectura, cada una con su sesión y su cuerpo. La clave es `${ruta} ${url}`, como en `sweep`. */
+export async function sweepPostReads(w: SpoilerWorld): Promise<Map<string, Swept>> {
+  const out = new Map<string, Swept>()
+  for (const [route, r] of CANARY_POST_READS) {
+    const res = await w.app.inject({
+      method: 'POST',
+      url: r.url,
+      headers: {
+        cookie: r.who === 'player' ? w.cookie : w.managerCookie,
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify(r.body),
+    })
+    out.set(`${route} ${r.url}`, { status: res.statusCode, body: res.body })
+  }
+  return out
+}
+
 export const routeOf = (key: string): string => key.split(' ').slice(0, 2).join(' ')
 /** Un 5xx no es una respuesta igual ni distinta: es un banco que no ha mirado. Cada B1 tiene un `it` que exige esta lista vacía. */
 export const serverErrors = (bodies: ReadonlyMap<string, Swept>): string[] =>

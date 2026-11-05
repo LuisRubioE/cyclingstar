@@ -1,0 +1,17 @@
+{
+  "route": "GET /health",
+  "url": "/health",
+  "status": 200,
+  "body": {
+    "ok": true,
+    "engineVersion": 91,
+    "gameDay": 50,
+    "migrationsApplied": true,
+    "tickIntervalMinutes": 360,
+    "nextTickAtMs": 1793316979132,
+    "features": {
+      "broadcastWatch": "on",
+      "spoilerMode": "on"
+    }
+  }
+}

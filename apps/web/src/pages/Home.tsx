@@ -1,5 +1,6 @@
 import { raceIdFromKey } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
@@ -21,7 +22,10 @@ import { WatchBlocks } from '../components/WatchBlocks'
 import { WorldClock } from '../components/WorldClock'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Meter } from '../components/ui/Meter'
 import { QueryView } from '../components/ui/QueryView'
+import { StarRating as UiStarRating } from '../components/ui/StarRating'
+import { conditionLabel, conditionLevel } from '../domain/condition'
 import { type DashboardAction, buildDashboard } from '../domain/dashboard'
 import { raceVerdict } from '../domain/narration'
 import { livePlan } from '../domain/trainingPlan'
@@ -229,7 +233,7 @@ function LastRaceCard() {
 }
 
 /** Panel del jugador: qué hago hoy, cómo estoy y qué pasó en mi última carrera. */
-function PlayerHome({ name }: { name: string }) {
+export function PlayerHome({ name }: { name: string }) {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   const rev = useHorizonRev()
   const summary = useQuery({
@@ -315,11 +319,12 @@ function PlayerHome({ name }: { name: string }) {
     bookedRaces: (upcoming.data?.length ?? 0) + pendingEntries,
   })
 
-  const stats = summary.data
+  const stats: { label: string; value: ReactNode }[] = summary.data
     ? [
         { label: 'Season points', value: summary.data.seasonPoints.toLocaleString('en-US') },
         { label: 'Money', value: summary.data.money.toLocaleString('en-US') },
-        { label: 'Morale', value: `${Math.round(summary.data.morale)}%` },
+        // en medias estrellas (E3, §13.7; DD-12, 19b): el porcentaje con decimales ya no cruza
+        { label: 'Morale', value: <UiStarRating value={summary.data.moraleStars} /> },
       ]
     : []
 
@@ -363,18 +368,12 @@ function PlayerHome({ name }: { name: string }) {
         action={form.data?.form && <StarRating value={form.data.form.stars} />}
       >
         {form.data?.form ? (
-          <div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>Freshness</span>
-              <span className="tabular-nums">{Math.round(form.data.form.freshness)} / 100</span>
-            </div>
-            <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full rounded-full bg-emerald-500"
-                style={{ width: `${form.data.form.freshness}%` }}
-              />
-            </div>
-          </div>
+          // en el medidor y con su palabra, nunca la cifra (E3, §13.7; D-44, 19b): `Freshness: low`
+          <Meter
+            label="Freshness"
+            value={conditionLevel(form.data.form.freshness)}
+            valueText={conditionLabel(form.data.form.freshness).toLowerCase()}
+          />
         ) : (
           <p className="text-sm text-slate-400">No training data yet.</p>
         )}

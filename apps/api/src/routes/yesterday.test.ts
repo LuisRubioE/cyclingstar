@@ -23,6 +23,7 @@ import {
   riderRaceResultSchema,
   riderResultsResponseSchema,
   stageReplaySchema,
+  teamClassEntrySchema,
   teamNewsItemSchema,
   teamNewsResponseSchema,
 } from '@cyclingstar/shared'
@@ -42,9 +43,12 @@ import { buildApp } from '../app.js'
  * - `YESTERDAY` son los esquemas de la web de ayer: los de hoy SIN lo que E2 y E3 les añaden. Cada PR
  *   que ensancha uno le pone aquí su `.omit` de los campos nuevos (1a, 3a, 7b y 8a). Lo anidado tiene
  *   su propia entrada, porque un `.omit` de fuera no llega dentro (regla 8 de §14.7): `report`, del 12,
- *   y las filas de `kom` y `points` de la etapa, del 12b de E3 (regla 6 de docs/visual.md §17.1).
+ *   las filas de `kom` y `points` de la etapa, del 12b de E3 (regla 6 de docs/visual.md §17.1), y las de
+ *   `teamStage` y `teamGc`, del 19c de E3. Lo que la web de ayer pide y hoy es opcional va con `.required`:
+ *   la API lo tiene que seguir mandando hasta que ninguna web lo pida.
  * - Una lista literal fija sus claves tal como están en la base de E2 (la v91, `b1be481`): con el
- *   `.omit` puesto no cambian, y cambiar o quitar una clave de hoy se ve en el diff.
+ *   `.omit` puesto no cambian, y cambiar o quitar una clave de hoy se ve en el diff. Solo salen las que un
+ *   PR quitó tras dejarlas opcionales un despliegue: `bonusS` y `sumaPuestos`, en el 19d de E3.
  * - Las respuestas de hoy de esas rutas, sobre un mundo de verdad (PGlite, con dos etapas corridas por
  *   `runOneStage`), tienen que pasar por las envolturas de abajo, armadas con `YESTERDAY`: como los
  *   objetos son strip, eso es exactamente lo que valida la web anterior.
@@ -67,11 +71,16 @@ const YESTERDAY = {
   // `teamId` y `teamName`, del 12b de E3 (docs/visual.md §6.1, 17-q): el equipo de cada fila de puntos y
   // de montaña, que va anidada en `kom` y `points` de la etapa.
   pointsEntry: pointsEntrySchema.omit({ teamId: true, teamName: true }),
+  // `kit`, del 16b de E3 (docs/visual.md §8.5): el maillot del día de cada fila de las dos por equipos, que
+  // van anidadas en `teamStage` y `teamGc` de la etapa. La suma de puestos, que pedía la web de la v91, la
+  // hizo opcional el 19c de E3 y la quitó el 19d, cuando ya ninguna web la pedía (§13.5; regla 6 de §17.1).
+  teamClassEntry: teamClassEntrySchema.omit({ kit: true }),
   newsItem: newsItemSchema.omit(NEWS_DATA),
   teamNewsItem: teamNewsItemSchema.omit(NEWS_DATA),
   // `ready`, del 8a (§12.9): la última corrida, si está velada, con lo único que se sabe de ella.
   lastRaceResponse: lastRaceResponseSchema.omit({ ready: true }),
-  // `moments`, del 12 (12-k): los momentos del corredor, las líneas del acta en que sale.
+  // `moments`, del 12 (12-k): los momentos del corredor, las líneas del acta en que sale. La bonificación,
+  // que pedía la web de la v91, la hizo opcional el 19c de E3 y la quitó el 19d (§13.5).
   riderRaceReport: riderRaceReportSchema.omit({ moments: true }),
   // `stagesToWatch`, del 8a (§11.6): las etapas por ver de una carrera, en los resultados del corredor.
   riderRaceResult: riderRaceResultSchema.omit({ stagesToWatch: true }),
@@ -83,6 +92,8 @@ const YESTERDAY = {
 const yesterdayStage = YESTERDAY.stageReplay.extend({
   kom: z.array(YESTERDAY.pointsEntry).optional(),
   points: z.array(YESTERDAY.pointsEntry).optional(),
+  teamStage: z.array(YESTERDAY.teamClassEntry).optional(),
+  teamGc: z.array(YESTERDAY.teamClassEntry).optional(),
 })
 const yesterdayNews = z.object({ news: z.array(YESTERDAY.newsItem) })
 const yesterdayTeamNews = z.object({ news: z.array(YESTERDAY.teamNewsItem) })
@@ -117,6 +128,15 @@ const KEYS: Record<keyof typeof YESTERDAY, readonly string[]> = {
     'radio',
   ],
   pointsEntry: ['riderId', 'name', 'country', 'isBot', 'puntos'],
+  teamClassEntry: [
+    'teamId',
+    'teamName',
+    'country',
+    'tiempoS',
+    // 'sumaPuestos', fuera en el 19d de E3, tras un despliegue opcional (19c)
+    'stagesScored',
+    'out',
+  ],
   newsItem: [
     'gameDay',
     'kind',
@@ -143,7 +163,7 @@ const KEYS: Record<keyof typeof YESTERDAY, readonly string[]> = {
     'timeGapToWinnerS',
     'sprintPoints',
     'komPoints',
-    'bonusS',
+    // 'bonusS', fuera en el 19d de E3, tras un despliegue opcional (19c)
     'winnerName',
     'personalEvents',
     'story',

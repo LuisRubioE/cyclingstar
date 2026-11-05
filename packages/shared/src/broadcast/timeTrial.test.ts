@@ -53,7 +53,7 @@ function startOf(tl: StageTimeline): StartState {
         : [],
     )
     .sort((a, b) => a.rank - b.rank)
-  return { leaders, gcTop, racingAtStart: tl.riderIds.length }
+  return { leaders, gcTop }
 }
 const CTX: InstantContext = {
   own: new Set(),

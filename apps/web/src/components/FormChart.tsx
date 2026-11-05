@@ -1,5 +1,5 @@
 import type { FormPoint } from '../api/form'
-import { conditionLabel, conditionSeries } from '../domain/condition'
+import { conditionLabel } from '../domain/condition'
 
 /**
  * Cómo evoluciona la condición del corredor (SPEC 4.1, Paso 20). Antes pintaba CTL y ATL en crudo,
@@ -8,7 +8,8 @@ import { conditionLabel, conditionSeries } from '../domain/condition'
  *
  * Ahora dibuja las MISMAS dos magnitudes que la ficha —fondo y frescura—, ambas 0-100 y acotadas
  * por el motor, que es lo que cuenta la historia útil: se construye fondo, se afloja antes del
- * objetivo y sube la frescura. El eje se rotula con la escala, no con unidades del modelo.
+ * objetivo y sube la frescura. El eje se rotula con la escala, no con unidades del modelo. Desde el 19b
+ * de E3 las dos llegan ya hechas de la API, enteras (docs/visual.md §13.5).
  */
 export function FormChart({ points }: { points: FormPoint[] }) {
   if (points.length < 2) {
@@ -24,7 +25,7 @@ export function FormChart({ points }: { points: FormPoint[] }) {
   const padL = 28
   const padR = 10
   const padY = 12
-  const series = conditionSeries(points)
+  const series = points
   const days = series.map((p) => p.gameDay)
   const minX = Math.min(...days)
   const maxX = Math.max(...days)

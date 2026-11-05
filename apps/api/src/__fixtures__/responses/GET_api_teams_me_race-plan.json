@@ -1,0 +1,8 @@
+{
+  "route": "GET /api/teams/me/race-plan",
+  "url": "/api/teams/me/race-plan",
+  "status": 200,
+  "body": {
+    "plan": null
+  }
+}

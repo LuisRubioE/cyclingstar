@@ -1,7 +1,7 @@
 {
   "tailwindcss": "4.3.3",
   "total": {
-    "tema": 1976,
+    "tema": 1971,
     "arbitrarios": 32,
     "espaciado": 28,
     "layout": 0
@@ -14,7 +14,7 @@
       "layout": 0
     },
     "apps/web/src/components/AttributeList.tsx": {
-      "tema": 22,
+      "tema": 21,
       "arbitrarios": 3,
       "espaciado": 0,
       "layout": 0
@@ -302,7 +302,7 @@
       "layout": 0
     },
     "apps/web/src/pages/Home.tsx": {
-      "tema": 72,
+      "tema": 68,
       "arbitrarios": 0,
       "espaciado": 0,
       "layout": 0

@@ -53,7 +53,7 @@ export function rolesContextOf(tl: StageTimeline): InstantContext {
   for (const c of tl.cast.riders) if (c.worn.kind === 'leader') leaders[c.worn.jersey] = c.rider
   return {
     own: new Set(),
-    start: { leaders, gcTop: [], racingAtStart: tl.riderIds.length },
+    start: { leaders, gcTop: [] },
     photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
   }
 }

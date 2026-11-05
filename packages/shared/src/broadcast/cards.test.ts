@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ChampionTitle, Distinction } from '../jerseys.js'
+import { type ChampionTitle, type Distinction, championTitleView } from '../jerseys.js'
 import type { KitCode } from '../kit.js'
 import { riderCardsOf, startStateOf } from './cards.js'
 import { BROADCAST } from './constants.js'
@@ -107,7 +107,16 @@ describe('riderCardsOf · el reparto servido (§7.8)', () => {
       kit: null,
     })
     expect(cards[3]!.team).toBeNull()
-    expect(cards[2]!.worn).toEqual({ kind: 'champion', title: title() })
+    expect(cards[2]!.worn).toEqual({ kind: 'champion', title: championTitleView(title()) })
+  })
+
+  it('el título de campeón, en su forma de pantalla, en el maillot y en las líneas; lo grabado, entero (19d)', () => {
+    expect(cards[3]!.lines[0]).toEqual({
+      kind: 'champion',
+      title: championTitleView(title({ category: 'u23' })),
+    })
+    expect(JSON.stringify(cards)).not.toMatch(/validToDay|provisional/)
+    expect(CAST.riders[2]!.worn).toEqual({ kind: 'champion', title: title() })
   })
 
   it(`las líneas, cortadas a cardLinesMax (${BROADCAST.cardLinesMax}) en el orden en que vienen`, () => {
@@ -140,23 +149,21 @@ describe('riderCardsOf · el reparto servido (§7.8)', () => {
 })
 
 describe('startStateOf · la salida (§4.11)', () => {
-  it('quién lleva cada maillot (delegado o no), los virtualGcTop primeros de la general y cuántos salen', () => {
-    expect(startStateOf(CAST, 176)).toEqual({
+  it('quién lleva cada maillot (delegado o no) y los virtualGcTop primeros de la general', () => {
+    expect(startStateOf(CAST)).toEqual({
       leaders: { gc: 0, points: null, kom: 1 },
       gcTop: [
         { rider: 0, rank: 1, gapS: 0 },
         { rider: 1, rank: 4, gapS: 75 },
       ],
-      racingAtStart: 176,
     })
   })
 
   it('el primer día, nadie lleva nada ni sale con general', () => {
     const first: TimelineCast = { ...CAST, riders: [rider(0), rider(1)] }
-    expect(startStateOf(first, 2)).toEqual({
+    expect(startStateOf(first)).toEqual({
       leaders: { gc: null, points: null, kom: null },
       gcTop: [],
-      racingAtStart: 2,
     })
   })
 })

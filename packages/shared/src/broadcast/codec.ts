@@ -21,12 +21,13 @@
 import { z } from 'zod'
 import {
   championTitleSchema,
+  championTitleViewSchema,
   jerseyKindSchema,
   pullMotiveSchema,
   stageRefSchema,
   type PullMotive,
 } from '../contracts.js'
-import type { Distinction, WornJersey } from '../jerseys.js'
+import type { Distinction, DistinctionView, WornJersey, WornJerseyView } from '../jerseys.js'
 import type {
   BannerResult,
   Block,
@@ -155,33 +156,62 @@ const mishapKindSchema = z.enum(['caida', 'pinchazo', 'averia']) satisfies z.Zod
  * Las piezas que el formato comparte con la red: viven aquí y `wire.ts` las importa (4-x). La etapa y
  * el título, en `contracts.ts` desde el 17a, que los sirve también en las tablas (E3, §8.5).
  */
+const wornLeader = z.object({
+  kind: z.literal('leader'),
+  jersey: jerseyKindSchema,
+  delegated: z.boolean(),
+  from: stageRefSchema,
+})
+const wornTeam = z.object({ kind: z.literal('team') })
 export const wornJerseySchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('leader'),
-    jersey: jerseyKindSchema,
-    delegated: z.boolean(),
-    from: stageRefSchema,
-  }),
+  wornLeader,
   z.object({ kind: z.literal('champion'), title: championTitleSchema }),
-  z.object({ kind: z.literal('team') }),
+  wornTeam,
 ]) satisfies z.ZodType<WornJersey>
+const distinctionLeads = z.object({
+  kind: z.literal('leads'),
+  jersey: jerseyKindSchema,
+  from: stageRefSchema,
+})
+const distinctionWearsFor = z.object({
+  kind: z.literal('wears_for'),
+  jersey: jerseyKindSchema,
+  rank: int.min(1),
+  from: stageRefSchema,
+})
+const distinctionGc = z.object({
+  kind: z.literal('gc'),
+  rank: int.min(1),
+  deficitS: z.number().min(0),
+  from: stageRefSchema,
+})
+const distinctionStageWins = z.object({
+  kind: z.literal('stage_wins'),
+  stages: z.array(stageRefSchema),
+})
 export const distinctionSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('leads'), jersey: jerseyKindSchema, from: stageRefSchema }),
-  z.object({
-    kind: z.literal('wears_for'),
-    jersey: jerseyKindSchema,
-    rank: int.min(1),
-    from: stageRefSchema,
-  }),
+  distinctionLeads,
+  distinctionWearsFor,
   z.object({ kind: z.literal('champion'), title: championTitleSchema }),
-  z.object({
-    kind: z.literal('gc'),
-    rank: int.min(1),
-    deficitS: z.number().min(0),
-    from: stageRefSchema,
-  }),
-  z.object({ kind: z.literal('stage_wins'), stages: z.array(stageRefSchema) }),
+  distinctionGc,
+  distinctionStageWins,
 ]) satisfies z.ZodType<Distinction>
+/**
+ * LOS DEL RÓTULO SERVIDO (E3, docs/visual.md §13.5; PR 19c y 19d): los mismos, con el título de campeón en
+ * su forma de pantalla, sin `validToDay` ni `provisional`. El formato guardado no cambia: lo de arriba.
+ */
+export const wornJerseyViewSchema = z.discriminatedUnion('kind', [
+  wornLeader,
+  z.object({ kind: z.literal('champion'), title: championTitleViewSchema }),
+  wornTeam,
+]) satisfies z.ZodType<WornJerseyView>
+export const distinctionViewSchema = z.discriminatedUnion('kind', [
+  distinctionLeads,
+  distinctionWearsFor,
+  z.object({ kind: z.literal('champion'), title: championTitleViewSchema }),
+  distinctionGc,
+  distinctionStageWins,
+]) satisfies z.ZodType<DistinctionView>
 export const profileStripSchema = z.object({
   altM: z.array(int),
   sprintsKm: z.array(z.number()),
@@ -197,19 +227,25 @@ export const profileStripSchema = z.object({
     }),
   ),
 }) satisfies z.ZodType<ProfileStrip>
+const weatherSpanSchema = z.object({
+  fromKm: z.number(),
+  rain: z.number(),
+  windDir: z.number(),
+  windKmh: z.number(),
+  crosswind: z.boolean(),
+})
 export const stageWeatherSchema = z.object({
   tempC: z.number(),
   rain: z.number().min(0).max(1),
-  spans: z.array(
-    z.object({
-      fromKm: z.number(),
-      rain: z.number(),
-      windDir: z.number(),
-      windKmh: z.number(),
-      crosswind: z.boolean(),
-    }),
-  ),
+  spans: z.array(weatherSpanSchema),
 }) satisfies z.ZodType<StageWeather>
+/**
+ * EL TIEMPO SERVIDO (E3, §13.5; PR 19c): sin la dirección del viento, que no se pinta (el viento se pinta con
+ * su fuerza y si es de costado). Lo guardado la lleva: la usa el motor.
+ */
+export const stageWeatherViewSchema = stageWeatherSchema.extend({
+  spans: z.array(weatherSpanSchema.omit({ windDir: true })),
+})
 
 const castRiderSchema = z.object({
   rider: ix,

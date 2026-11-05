@@ -547,17 +547,13 @@ export async function horizonSummary(
   const sinceOf = (vs: readonly VeiledStage[]): number => vs[0]?.gameDay ?? 0
   const ready = [...byRace.entries()]
     .sort(([ka, a], [kb, b]) => sinceOf(a) - sinceOf(b) || ka.localeCompare(kb))
-    .map(([raceKey, vs]) => {
-      const S = stageCountOf(raceKey) ?? Math.max(...vs.map((v) => v.stageDay))
-      return {
-        raceKey,
-        raceName:
-          SEASON_CALENDAR.find((r) => r.id === parseRaceKey(raceKey).raceId)?.name ?? raceKey,
-        stages: vs.map((v) => v.stageDay),
-        reason: vs[0]?.reason ?? 'follow',
-        expiresOnDay: stageGameDay(raceKey, S) + SPOILER.expiryGameDays,
-      }
-    })
+    // sin el día en que se levanta su velo, que no se pinta (E3, docs/visual.md §13.5; 19c)
+    .map(([raceKey, vs]) => ({
+      raceKey,
+      raceName: SEASON_CALENDAR.find((r) => r.id === parseRaceKey(raceKey).raceId)?.name ?? raceKey,
+      stages: vs.map((v) => v.stageDay),
+      reason: vs[0]?.reason ?? 'follow',
+    }))
   const watching = await Promise.all(
     [...h.watching].map(async ([raceKey, w]) => ({
       raceKey,

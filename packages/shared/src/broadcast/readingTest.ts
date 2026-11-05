@@ -214,7 +214,7 @@ export function readingScreenOf(
     cards: riderCardsOf(tl.cast, names, none, dayCategory, new Map()),
     ctx: {
       own: none,
-      start: startStateOf(tl.cast, tl.riderIds.length),
+      start: startStateOf(tl.cast),
       photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
     },
   }

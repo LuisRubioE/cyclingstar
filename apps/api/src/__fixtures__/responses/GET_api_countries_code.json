@@ -1,0 +1,37 @@
+{
+  "route": "GET /api/countries/:code",
+  "url": "/api/countries/ES",
+  "status": 200,
+  "body": {
+    "code": "ES",
+    "riders": [
+      {
+        "id": "b513aa24-8f51-4f7e-9744-d8b22dac0541",
+        "name": "José Antonio Fernández",
+        "archetype": "rodador",
+        "isBot": true,
+        "teamId": "9a192e3d-21a4-4d61-b053-911c05f3c9cf",
+        "teamName": "Andes Ruta",
+        "seasonPoints": 244
+      },
+      {
+        "id": "a7612a7a-ebe3-4424-a715-94169579561a",
+        "name": "Demetrio Cano",
+        "archetype": "fondo",
+        "isBot": true,
+        "teamId": "9a192e3d-21a4-4d61-b053-911c05f3c9cf",
+        "teamName": "Andes Ruta",
+        "seasonPoints": 176
+      },
+      {
+        "id": "51956cb5-3630-4f5a-8361-48c401f4f4b8",
+        "name": "Bruno Bethencourt",
+        "archetype": "gregario",
+        "isBot": true,
+        "teamId": "aebd7576-10f4-4f70-bec4-0e0732de5620",
+        "teamName": "Sierra Cycling",
+        "seasonPoints": 146
+      }
+    ]
+  }
+}

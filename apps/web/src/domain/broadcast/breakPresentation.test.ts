@@ -73,7 +73,7 @@ function headOf(tl: StageTimeline): { cast: RiderCard[]; ctx: InstantContext } {
     'elite',
     new Map(),
   )
-  const start = startStateOf(tl.cast, tl.riderIds.length)
+  const start = startStateOf(tl.cast)
   return {
     cast,
     ctx: { own: new Set(), start, photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx) },

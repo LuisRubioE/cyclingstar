@@ -1,5 +1,5 @@
 import {
-  type ChampionTitle,
+  type ChampionTitleView,
   type RaceLeaders,
   type StageGate,
   type StageReplay as StageReplayData,
@@ -107,7 +107,7 @@ function StageClassifications({
   teamGc: TeamClassEntry[]
   leaders: RaceLeaders | undefined
   /** el título que lleva cada corredor el día de la etapa (E3, §6.1; 4-l) */
-  champions: Readonly<Record<string, ChampionTitle>>
+  champions: Readonly<Record<string, ChampionTitleView>>
   /** lo que las filas no traen: el dorsal y el dibujo del equipo (PR 12b) */
   identity: TableIdentity
   /** el corredor y el equipo del jugador: sus filas (§6.2) */

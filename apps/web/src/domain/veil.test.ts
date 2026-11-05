@@ -89,14 +89,12 @@ describe('el número del aviso y lo velado de una carrera (11-m)', () => {
               raceName: 'Race France',
               stages: [10, 11, 12],
               reason: 'headline',
-              expiresOnDay: 263,
             },
             {
               raceKey: 'race-flanders:s0',
               raceName: 'Race Flanders',
               stages: [1],
               reason: 'follow',
-              expiresOnDay: 151,
             },
           ],
         }),
@@ -118,7 +116,6 @@ describe('el número del aviso y lo velado de una carrera (11-m)', () => {
           raceName: 'Race France',
           stages: [10],
           reason: 'own_rider',
-          expiresOnDay: 263,
         },
       ],
     })
@@ -177,7 +174,6 @@ describe('homeBlocks (§11.4)', () => {
       raceName: 'Race Italy',
       stages: Array.from({ length: 17 }, (_, i) => i + 5),
       reason: 'headline' as const,
-      expiresOnDay: 207,
     },
     // el Tour, en curso: la 10 a la 12 por ver, con su corredor en la lista de salida
     {
@@ -185,7 +181,6 @@ describe('homeBlocks (§11.4)', () => {
       raceName: 'Race France',
       stages: [10, 11, 12],
       reason: 'own_rider' as const,
-      expiresOnDay: 263,
     },
   ]
   const watching = [{ raceKey: 'race-france:s0', stageDay: 10, reachedS: 3000, toGoKm: 41.6 }]
@@ -252,7 +247,6 @@ describe('homeBlocks (§11.4)', () => {
             raceName: 'Race France',
             stages: Array.from({ length: 10 }, (_, i) => i + 1),
             reason: 'headline',
-            expiresOnDay: 263,
           },
         ],
       }),
@@ -272,7 +266,6 @@ describe('homeBlocks (§11.4)', () => {
             raceName: 'Race Flanders',
             stages: [1],
             reason: 'follow',
-            expiresOnDay: 151,
           },
         ],
       }),
@@ -336,7 +329,6 @@ describe('las órdenes de la N+1 (§11.12, DD-09)', () => {
           raceName: 'Race France',
           stages: [6, 7],
           reason: 'own_rider',
-          expiresOnDay: 263,
         },
       ],
     })
@@ -364,7 +356,6 @@ describe('la última carrera velada (§11.4; sups. H1 y H5)', () => {
           raceName: 'Race France',
           stages: [8, 9],
           reason: 'own_rider',
-          expiresOnDay: 263,
         },
       ],
     })

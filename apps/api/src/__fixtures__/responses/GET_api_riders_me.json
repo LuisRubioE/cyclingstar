@@ -1,0 +1,56 @@
+{
+  "route": "GET /api/riders/me",
+  "url": "/api/riders/me",
+  "status": 200,
+  "body": {
+    "rider": {
+      "id": "61a657ed-73d3-4b5b-b340-05bcbc71dde4",
+      "name": "José Quintáns",
+      "country": "ES",
+      "gender": "M",
+      "archetype": "escalada",
+      "attributes": {
+        "RES": {
+          "stars": 1.5,
+          "mark": 3
+        },
+        "REC": {
+          "stars": 1,
+          "mark": 1
+        },
+        "LLA": {
+          "stars": 1,
+          "mark": 0
+        },
+        "MON": {
+          "stars": 1.5,
+          "mark": 2
+        },
+        "COL": {
+          "stars": 1,
+          "mark": 1
+        },
+        "CRI": {
+          "stars": 1,
+          "mark": 0
+        },
+        "SPR": {
+          "stars": 1,
+          "mark": 1
+        },
+        "DES": {
+          "stars": 1,
+          "mark": 0
+        },
+        "PAV": {
+          "stars": 1,
+          "mark": 1
+        },
+        "TAC": {
+          "stars": 0.5,
+          "mark": 3
+        }
+      }
+    }
+  }
+}

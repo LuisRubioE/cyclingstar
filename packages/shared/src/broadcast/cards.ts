@@ -13,7 +13,7 @@
  * No estaba en §17.20, que ponía todo `serveCast` en `apps/api/src/broadcastSource.ts`: `serveCast`
  * sigue allí (con el velo del 7b delante) y llama a `riderCardsOf`.
  */
-import { type RiderCard, staticNotoriety } from '../jerseys.js'
+import { type RiderCard, distinctionView, staticNotoriety, wornJerseyView } from '../jerseys.js'
 import type { KitCode } from '../kit.js'
 import type { NameResolver } from '../news.js'
 import { BROADCAST } from './constants.js'
@@ -24,7 +24,9 @@ import type { StartState } from './wire.js'
  * EL REPARTO SERVIDO (§7.8): por `RiderIx`, cada corredor con su nombre y el de su equipo de hoy
  * (`names`), el equipo CON EL QUE CORRIÓ y su equipación de ese día, el maillot que lleva, sus líneas
  * cortadas a `cardLinesMax` y su notoriedad (`staticNotoriety`, §7.5) con la categoría del día
- * (`dayCategory`: `championshipCategory` de la carrera, o élite). `cast` llega ya degradado por el velo.
+ * (`dayCategory`: `championshipCategory` de la carrera, o élite). `cast` llega ya degradado por el velo. El
+ * título de campeón, en el maillot y en las líneas, va en su forma de pantalla (E3, §13.5; 19d), aquí y no
+ * en el serializador, para que la cabecera que se prueba sea la que se sirve.
  * `kits`, el maillot de cada equipo el día de la etapa (E3, §8.5; PR 16b): sin fila, null.
  */
 export function riderCardsOf(
@@ -36,7 +38,8 @@ export function riderCardsOf(
 ): RiderCard[] {
   return cast.riders.map((c) => {
     const t = c.team === null ? undefined : cast.teams[c.team]
-    const lines = c.distinctions.slice(0, BROADCAST.cardLinesMax)
+    const lines = c.distinctions.slice(0, BROADCAST.cardLinesMax).map(distinctionView)
+    const worn = wornJerseyView(c.worn)
     return {
       ix: c.rider,
       id: c.riderId,
@@ -53,9 +56,9 @@ export function riderCardsOf(
               jerseySeed: t.jerseySeed,
               kit: kits.get(t.teamId) ?? null,
             },
-      worn: c.worn,
+      worn,
       lines,
-      notoriety: staticNotoriety(c.worn, lines, c.knownWins, dayCategory, {
+      notoriety: staticNotoriety(worn, lines, c.knownWins, dayCategory, {
         gcThreatTop: BROADCAST.gcThreatTop,
         knownNameMinWins: BROADCAST.knownNameMinWins,
       }),
@@ -66,10 +69,11 @@ export function riderCardsOf(
 
 /**
  * LA SALIDA (§4.11): quién LLEVA cada maillot (el de líder de `worn`, delegado o no; todo null el primer
- * día), los `virtualGcTop` primeros de la general de salida con su déficit y cuántos salen. Sale del
- * reparto ya degradado, así que un maillot o un puesto que vienen de una etapa velada no están (B13).
+ * día) y los `virtualGcTop` primeros de la general de salida con su déficit; cuántos salen ya no cruza (E3,
+ * §13.5; 19c). Sale del reparto ya degradado, así que un maillot o un puesto que vienen de una etapa velada no
+ * están (B13).
  */
-export function startStateOf(cast: TimelineCast, racingAtStart: number): StartState {
+export function startStateOf(cast: TimelineCast): StartState {
   const leaders: { gc: RiderIx | null; points: RiderIx | null; kom: RiderIx | null } = {
     gc: null,
     points: null,
@@ -83,5 +87,5 @@ export function startStateOf(cast: TimelineCast, racingAtStart: number): StartSt
         : [],
     )
     .sort((x, y) => x.rank - y.rank || x.rider - y.rider)
-  return { leaders, gcTop, racingAtStart }
+  return { leaders, gcTop }
 }

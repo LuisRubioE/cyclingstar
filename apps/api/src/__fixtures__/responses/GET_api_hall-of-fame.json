@@ -1,0 +1,48 @@
+{
+  "route": "GET /api/hall-of-fame",
+  "url": "/api/hall-of-fame",
+  "status": 200,
+  "body": {
+    "riders": [
+      {
+        "riderId": "b513aa24-8f51-4f7e-9744-d8b22dac0541",
+        "name": "José Antonio Fernández",
+        "country": "ES",
+        "teamId": "9a192e3d-21a4-4d61-b053-911c05f3c9cf",
+        "teamName": "Andes Ruta",
+        "isBot": true,
+        "gc": 1,
+        "stage": 4,
+        "kom": 0,
+        "points": 0,
+        "total": 5
+      },
+      {
+        "riderId": "619c359a-b57a-444d-a3bb-887b116fa2a4",
+        "name": "Oleksandr Prykhodko",
+        "country": "UA",
+        "teamId": "a654eea0-1cf6-4389-9812-7279c8e4051b",
+        "teamName": "Al Faris Velo",
+        "isBot": true,
+        "gc": 2,
+        "stage": 2,
+        "kom": 0,
+        "points": 0,
+        "total": 4
+      },
+      {
+        "riderId": "ebfc116d-053e-44ce-8a31-c31460a0e6c2",
+        "name": "Oliver Taylor",
+        "country": "NZ",
+        "teamId": "c3f055cc-20ee-408a-b9c3-448e6d2bc86d",
+        "teamName": "Stein Velo",
+        "isBot": true,
+        "gc": 2,
+        "stage": 2,
+        "kom": 0,
+        "points": 0,
+        "total": 4
+      }
+    ]
+  }
+}

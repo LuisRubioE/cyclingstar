@@ -14,7 +14,7 @@ import Fastify, {
   type FastifyRequest,
   type FastifyServerOptions,
 } from 'fastify'
-import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
+import { validatorCompiler } from 'fastify-type-provider-zod'
 import type { Auth } from './auth.js'
 import type { GeoIpLookup } from './geoIp.js'
 import { apiError } from './http.js'
@@ -41,6 +41,7 @@ import {
   stagePagePreloads,
   viteManifestSchema,
 } from './spaShell.js'
+import { responseSerializerCompiler } from './responseSerializer.js'
 import { registerSpoilerGuard } from './spoiler.js'
 
 export interface AppDeps {
@@ -158,9 +159,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // protocolo (https), host e IP de cliente a partir de las cabeceras X-Forwarded-*.
   const app = Fastify({ logger: deps.logger ?? false, trustProxy: true })
 
-  // Zod como validador/serializador en los bordes: las rutas validan su entrada con esquemas Zod.
+  // Zod como validador/serializador en los bordes: las rutas validan su entrada con esquemas Zod, y desde
+  // el 19a de E3 su salida pasa por su esquema de respuesta, que quita lo que no declara (la frontera,
+  // docs/visual.md §13.2): `responseSerializer.ts` la lee como la web, con sus `default`.
   app.setValidatorCompiler(validatorCompiler)
-  app.setSerializerCompiler(serializerCompiler)
+  app.setSerializerCompiler(responseSerializerCompiler)
 
   // Cabeceras de seguridad (@fastify/helmet).
   //

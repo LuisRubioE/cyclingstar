@@ -37,7 +37,8 @@ export type {
 
 export type TrainingPlanResponse = {
   mode: TrainingMode
-  plan: TrainingPlanInput | null
+  /** sin `goalRaceId`, que no cruza (E3, §13.5; 19c) */
+  plan: Omit<TrainingPlanInput, 'goalRaceId'> | null
   currentDay: number
 }
 

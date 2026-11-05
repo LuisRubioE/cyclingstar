@@ -26,7 +26,6 @@ const SUMMARY = {
       raceName: 'Race France',
       stages: [3],
       reason: 'own_rider',
-      expiresOnDay: 263,
     },
   ],
   watching: [],

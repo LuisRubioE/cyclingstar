@@ -1,0 +1,373 @@
+{
+  "route": "POST /api/riders/me/plan/preview",
+  "url": "/api/riders/me/plan/preview",
+  "status": 200,
+  "body": {
+    "races": [
+      {
+        "raceKey": "race-var:s0",
+        "raceId": "race-var",
+        "name": "Race Var",
+        "country": "FR",
+        "raceClass": "1",
+        "stageCount": 1,
+        "startDay": 52,
+        "endDay": 52,
+        "ongoing": false,
+        "arrival": "cargado",
+        "travelOut": [51],
+        "travelBack": [53]
+      },
+      {
+        "raceKey": "race-sardegna:s0",
+        "raceId": "race-sardegna",
+        "name": "Race Sardegna",
+        "country": "IT",
+        "raceClass": "1",
+        "stageCount": 5,
+        "startDay": 56,
+        "endDay": 60,
+        "ongoing": false,
+        "arrival": "cargado",
+        "travelOut": [55],
+        "travelBack": [61]
+      }
+    ],
+    "days": [
+      {
+        "gameDay": 51,
+        "session": "viaje",
+        "intensity": "normal",
+        "source": "viaje",
+        "block": null,
+        "raceKey": "race-var:s0",
+        "kind": "travel",
+        "load": 1
+      },
+      {
+        "gameDay": 52,
+        "session": null,
+        "intensity": null,
+        "source": "carrera",
+        "block": null,
+        "raceKey": "race-var:s0",
+        "kind": "race",
+        "load": 4
+      },
+      {
+        "gameDay": 53,
+        "session": "viaje",
+        "intensity": "normal",
+        "source": "viaje",
+        "block": null,
+        "raceKey": "race-var:s0",
+        "kind": "travel",
+        "load": 1
+      },
+      {
+        "gameDay": 54,
+        "session": "fondo",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "construccion",
+          "week": 1
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 3
+      },
+      {
+        "gameDay": 55,
+        "session": "viaje",
+        "intensity": "normal",
+        "source": "viaje",
+        "block": null,
+        "raceKey": "race-sardegna:s0",
+        "kind": "travel",
+        "load": 1
+      },
+      {
+        "gameDay": 56,
+        "session": null,
+        "intensity": null,
+        "source": "carrera",
+        "block": null,
+        "raceKey": "race-sardegna:s0",
+        "kind": "race",
+        "load": 4
+      },
+      {
+        "gameDay": 57,
+        "session": null,
+        "intensity": null,
+        "source": "carrera",
+        "block": null,
+        "raceKey": "race-sardegna:s0",
+        "kind": "race",
+        "load": 4
+      },
+      {
+        "gameDay": 58,
+        "session": null,
+        "intensity": null,
+        "source": "carrera",
+        "block": null,
+        "raceKey": "race-sardegna:s0",
+        "kind": "race",
+        "load": 4
+      },
+      {
+        "gameDay": 59,
+        "session": null,
+        "intensity": null,
+        "source": "carrera",
+        "block": null,
+        "raceKey": "race-sardegna:s0",
+        "kind": "race",
+        "load": 4
+      },
+      {
+        "gameDay": 60,
+        "session": null,
+        "intensity": null,
+        "source": "carrera",
+        "block": null,
+        "raceKey": "race-sardegna:s0",
+        "kind": "race",
+        "load": 4
+      },
+      {
+        "gameDay": 61,
+        "session": "viaje",
+        "intensity": "normal",
+        "source": "viaje",
+        "block": null,
+        "raceKey": "race-sardegna:s0",
+        "kind": "travel",
+        "load": 1
+      },
+      {
+        "gameDay": 62,
+        "session": "descanso_total",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "especifico",
+          "week": 2
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 0
+      },
+      {
+        "gameDay": 63,
+        "session": "puertos",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "especifico",
+          "week": 2
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 4
+      },
+      {
+        "gameDay": 64,
+        "session": "fondo",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "especifico",
+          "week": 2
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 3
+      },
+      {
+        "gameDay": 65,
+        "session": "umbral",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "afinado",
+          "week": 3
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 3
+      },
+      {
+        "gameDay": 66,
+        "session": "fondo",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "afinado",
+          "week": 3
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 3
+      },
+      {
+        "gameDay": 67,
+        "session": "descanso_activo",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "afinado",
+          "week": 3
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 1
+      },
+      {
+        "gameDay": 68,
+        "session": "puertos",
+        "intensity": "suave",
+        "source": "bloque",
+        "block": {
+          "code": "afinado",
+          "week": 3
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 3
+      },
+      {
+        "gameDay": 69,
+        "session": "descanso_total",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "afinado",
+          "week": 3
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 0
+      },
+      {
+        "gameDay": 70,
+        "session": "puertos",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "afinado",
+          "week": 3
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 4
+      },
+      {
+        "gameDay": 71,
+        "session": "descanso_activo",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "afinado",
+          "week": 3
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 1
+      },
+      {
+        "gameDay": 72,
+        "session": "descanso_activo",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "recuperacion",
+          "week": 4
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 1
+      },
+      {
+        "gameDay": 73,
+        "session": "fondo",
+        "intensity": "suave",
+        "source": "bloque",
+        "block": {
+          "code": "recuperacion",
+          "week": 4
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 2
+      },
+      {
+        "gameDay": 74,
+        "session": "descanso_activo",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "recuperacion",
+          "week": 4
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 1
+      },
+      {
+        "gameDay": 75,
+        "session": "gimnasio",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "recuperacion",
+          "week": 4
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 2
+      },
+      {
+        "gameDay": 76,
+        "session": "descanso_total",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "recuperacion",
+          "week": 4
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 0
+      },
+      {
+        "gameDay": 77,
+        "session": "descanso_total",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "recuperacion",
+          "week": 4
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 0
+      },
+      {
+        "gameDay": 78,
+        "session": "descanso_activo",
+        "intensity": "normal",
+        "source": "bloque",
+        "block": {
+          "code": "recuperacion",
+          "week": 4
+        },
+        "raceKey": null,
+        "kind": "train",
+        "load": 1
+      }
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-import { type ChampionTitle, KIT_PX } from '@cyclingstar/shared'
+import { type ChampionTitleView, KIT_PX } from '@cyclingstar/shared'
 import { useId, useState } from 'react'
 import { Chip } from './Chip'
 import { ErrorState } from './ErrorState'
@@ -41,7 +41,7 @@ interface RiderHeaderReady {
   /** el equipo de hoy; null, un agente libre */
   readonly team: WornTeam | null
   /** su título vigente, si lo tiene (desde el 17a) */
-  readonly champion?: ChampionTitle | null
+  readonly champion?: ChampionTitleView | null
   /** un corredor de un jugador: el `Chip` `Player` */
   readonly player: boolean
   /** la salud, solo si no está sano: `Injured` en `bad` */

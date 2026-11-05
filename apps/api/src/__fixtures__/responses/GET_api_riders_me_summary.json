@@ -1,0 +1,19 @@
+{
+  "route": "GET /api/riders/me/summary",
+  "url": "/api/riders/me/summary",
+  "status": 200,
+  "body": {
+    "summary": {
+      "teamId": null,
+      "teamName": null,
+      "money": 272,
+      "moraleStars": 3,
+      "seasonPoints": 0,
+      "seasonRank": 467,
+      "fieldSize": 3902,
+      "nationality": "ES",
+      "residence": "ES",
+      "housingCovered": false
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "route": "GET /api/teams",
+  "url": "/api/teams",
+  "status": 200,
+  "body": {
+    "teams": [
+      {
+        "id": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "name": "Noord Wielrennen",
+        "country": "BE",
+        "division": "WT",
+        "budget": 6455231,
+        "pointsSeason": 1050,
+        "jerseySeed": "cyclingstar-2:team:WT:0:jersey",
+        "riderCount": 28,
+        "kit": "sides.blue.navy"
+      },
+      {
+        "id": "a654eea0-1cf6-4389-9812-7279c8e4051b",
+        "name": "Al Faris Velo",
+        "country": "BH",
+        "division": "WT",
+        "budget": 6214533,
+        "pointsSeason": 1048,
+        "jerseySeed": "cyclingstar-2:team:WT:12:jersey",
+        "riderCount": 28,
+        "kit": "yoke.green.teal"
+      },
+      {
+        "id": "6a651862-9350-4264-bf80-9550f7ff978a",
+        "name": "Qyran Cycling",
+        "country": "KZ",
+        "division": "WT",
+        "budget": 4514775,
+        "pointsSeason": 679,
+        "jerseySeed": "cyclingstar-2:team:WT:17:jersey",
+        "riderCount": 28,
+        "kit": "yoke.black.teal"
+      }
+    ]
+  }
+}

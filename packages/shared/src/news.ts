@@ -142,9 +142,9 @@ export const abandonReasonSchema = z.enum([
   'voluntario',
 ]) satisfies z.ZodType<AbandonReason>
 
-/** Lo que lee la API de news.data. Una fila que no valida se pinta con su `text`, o no se pinta (§14.2). */
-export const newsPayloadSchema = z.discriminatedUnion('kind', [
-  z.object({
+/** Las variantes de news.data, por separado para armar con ellas la de lo guardado y la de lo servido. */
+const newsOption = {
+  result: z.object({
     kind: z.enum([
       'stage_win',
       'tt_win',
@@ -159,21 +159,21 @@ export const newsPayloadSchema = z.discriminatedUnion('kind', [
     stageDay,
     ...who,
   }),
-  z.object({
+  jersey: z.object({
     kind: z.literal('jersey_taken'),
     ...ofRace,
     stageDay,
     ...who,
     jersey: z.enum(['points', 'kom']),
   }),
-  z.object({
+  abandon: z.object({
     kind: z.literal('abandon'),
     ...ofRace,
     stageDay: stageDay.nullable(),
     ...who,
     reason: abandonReasonSchema,
   }),
-  z.object({
+  injury: z.object({
     kind: z.literal('injury'),
     ...ofRace,
     stageDay,
@@ -182,7 +182,7 @@ export const newsPayloadSchema = z.discriminatedUnion('kind', [
     prevHealth: z.enum(HEALTH_STATES),
     prevUntilDay: z.number().int().nullable(),
   }),
-  z.object({
+  contract: z.object({
     kind: z.literal('contract'),
     riderId: z.string().min(1),
     toTeamId: z.string().min(1),
@@ -190,9 +190,68 @@ export const newsPayloadSchema = z.discriminatedUnion('kind', [
     relocateCountry: z.string().length(2).nullable(),
     housingCovered: z.boolean(),
   }),
-  z.object({ kind: z.literal('retirement'), ...who, age: z.number().int().min(0) }),
-  z.object({ kind: z.enum(TEAM_NEWS_KINDS), teamId: z.string().min(1), kit: kitCodeSchema }),
+  retirement: z.object({ kind: z.literal('retirement'), ...who, age: z.number().int().min(0) }),
+  kit: z.object({ kind: z.enum(TEAM_NEWS_KINDS), teamId: z.string().min(1), kit: kitCodeSchema }),
+}
+
+/** Lo que lee la API de news.data. Una fila que no valida se pinta con su `text`, o no se pinta (§14.2). */
+export const newsPayloadSchema = z.discriminatedUnion('kind', [
+  newsOption.result,
+  newsOption.jersey,
+  newsOption.abandon,
+  newsOption.injury,
+  newsOption.contract,
+  newsOption.retirement,
+  newsOption.kit,
 ]) satisfies z.ZodType<NewsPayload>
+
+/**
+ * LA NOTICIA SERVIDA (E3, docs/visual.md §13.5; PR 19c y 19d): sin la salud de antes de una lesión
+ * (`prevHealth` y `prevUntilDay`, que guarda el velo para la máscara de sup. P5) ni el equipo del que viene un
+ * fichaje (`fromTeamId`): el titular no los usa y la web no los lee. El 19c los dejó opcionales y servidos
+ * para la web de ayer (regla 6 de §17.1; D-50), y el 19d los quita. Lo guardado en news.data sigue entero.
+ */
+export type NewsPayloadView =
+  | Exclude<NewsPayload, { readonly kind: 'injury' } | { readonly kind: 'contract' }>
+  | Omit<Extract<NewsPayload, { readonly kind: 'injury' }>, 'prevHealth' | 'prevUntilDay'>
+  | Omit<Extract<NewsPayload, { readonly kind: 'contract' }>, 'fromTeamId'>
+
+/** La de las respuestas: la de lo guardado, sin esos tres campos. */
+export const newsPayloadViewSchema = z.discriminatedUnion('kind', [
+  newsOption.result,
+  newsOption.jersey,
+  newsOption.abandon,
+  newsOption.injury.omit({ prevHealth: true, prevUntilDay: true }),
+  newsOption.contract.omit({ fromTeamId: true }),
+  newsOption.retirement,
+  newsOption.kit,
+]) satisfies z.ZodType<NewsPayloadView>
+
+/** Una noticia guardada, en su forma de pantalla: la que sirven las rutas que no pasan por el serializador. */
+export function newsPayloadView(p: NewsPayload): NewsPayloadView {
+  switch (p.kind) {
+    case 'injury':
+      return {
+        kind: p.kind,
+        raceId: p.raceId,
+        season: p.season,
+        stageDay: p.stageDay,
+        riderId: p.riderId,
+        teamId: p.teamId,
+        days: p.days,
+      }
+    case 'contract':
+      return {
+        kind: p.kind,
+        riderId: p.riderId,
+        toTeamId: p.toTeamId,
+        relocateCountry: p.relocateCountry,
+        housingCovered: p.housingCovered,
+      }
+    default:
+      return p
+  }
+}
 
 /** Lo que decía ABANDON_DETAIL (stageRun.ts), que se retira: el motivo es un código y la frase se pone al leer. */
 const ABANDON_WORDS: Readonly<Record<AbandonReason, string>> = {

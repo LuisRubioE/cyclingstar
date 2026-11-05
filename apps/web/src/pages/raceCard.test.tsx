@@ -91,7 +91,6 @@ const sanremoVeil = horizonWith({
       raceName: 'Race Sanremo',
       stages: [1],
       reason: 'headline',
-      expiresOnDay: 135,
     },
   ],
 })
@@ -185,7 +184,6 @@ describe('una vuelta en guardia, conocida hasta la 9 con la 12 corrida (§11.5; 
         raceName: 'Race France',
         stages: [10, 11, 12],
         reason: 'own_rider',
-        expiresOnDay: 263,
       },
     ],
   })
@@ -225,7 +223,6 @@ describe('una vuelta en guardia, conocida hasta la 9 con la 12 corrida (§11.5; 
           raceName: 'Race France',
           stages: [20, 21],
           reason: 'headline',
-          expiresOnDay: 263,
         },
       ],
     })

@@ -1,0 +1,24 @@
+{
+  "route": "GET /api/riders/me/ledger",
+  "url": "/api/riders/me/ledger",
+  "status": 200,
+  "body": {
+    "balance": 272,
+    "entries": [
+      {
+        "gameDay": 42,
+        "kind": "viaje",
+        "amount": -80,
+        "note": "Race Sardegna · travel"
+      },
+      {
+        "gameDay": 38,
+        "kind": "viaje",
+        "amount": -48,
+        "note": "Race Var · travel"
+      }
+    ],
+    "gameDay": 50,
+    "salary": null
+  }
+}

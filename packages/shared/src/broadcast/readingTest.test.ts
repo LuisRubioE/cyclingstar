@@ -416,7 +416,7 @@ function namesOf(tl: StageTimeline) {
 function screenCtxOf(tl: StageTimeline): InstantContext {
   return {
     own: new Set(),
-    start: startStateOf(tl.cast, tl.riderIds.length),
+    start: startStateOf(tl.cast),
     photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
   }
 }

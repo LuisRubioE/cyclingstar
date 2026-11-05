@@ -1,0 +1,1193 @@
+{
+  "route": "GET /api/calendar/:raceId/startlist",
+  "url": "/api/calendar/race-valencia/startlist",
+  "status": 200,
+  "body": {
+    "upcoming": false,
+    "daysUntil": -15,
+    "frozen": true,
+    "teams": [
+      {
+        "id": "b8e3ca7f-4418-4afb-9f7e-204a948b36ab",
+        "name": "Mistral Racing",
+        "country": "FR",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:8:jersey",
+        "kit": "plain.black",
+        "riders": [
+          {
+            "id": "dfa2b8d8-c5a9-4fa0-972a-f6ecf6342721",
+            "name": "Thomas Salaün",
+            "country": "FR",
+            "isBot": true,
+            "bib": 11
+          },
+          {
+            "id": "20cda2a4-1980-455c-96bf-bfd447c4aa8a",
+            "name": "Bernard Michel",
+            "country": "FR",
+            "isBot": true,
+            "bib": 12
+          },
+          {
+            "id": "c6a8950e-3518-4edd-887b-3489e2db9eac",
+            "name": "Brandon Furbert",
+            "country": "BM",
+            "isBot": true,
+            "bib": 13
+          },
+          {
+            "id": "92192e54-0a50-452d-8a5f-c39d762a4e3d",
+            "name": "Hervé Lafont",
+            "country": "FR",
+            "isBot": true,
+            "bib": 14
+          },
+          {
+            "id": "31f5a105-c281-44a6-973f-765d82a0165e",
+            "name": "Koech Mutua",
+            "country": "KE",
+            "isBot": true,
+            "bib": 15
+          },
+          {
+            "id": "bbdbd5c0-989e-4e1c-874b-6a3d47201b2b",
+            "name": "Pascal Rousseau",
+            "country": "FR",
+            "isBot": true,
+            "bib": 16
+          },
+          {
+            "id": "0429acca-d013-453e-8e60-40c563bae14d",
+            "name": "Peire Mansouri",
+            "country": "FR",
+            "isBot": true,
+            "bib": 17
+          }
+        ]
+      },
+      {
+        "id": "b84a413c-f620-403d-b23e-d22ee0f4aac5",
+        "name": "Gipfel Racing",
+        "country": "CH",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:12:jersey",
+        "kit": "band.teal.plum",
+        "riders": [
+          {
+            "id": "662d5ce5-ee08-4ad9-8103-4acbbab89a96",
+            "name": "Roberts Bebris",
+            "country": "LV",
+            "isBot": true,
+            "bib": 21
+          },
+          {
+            "id": "90bd6af3-0b81-40b5-bec8-510df2a8ce90",
+            "name": "Rolf Baumann",
+            "country": "CH",
+            "isBot": true,
+            "bib": 22
+          },
+          {
+            "id": "2163abc5-4630-4f7a-8ac3-8644012c3d6c",
+            "name": "Muhammad Lee",
+            "country": "MY",
+            "isBot": true,
+            "bib": 23
+          },
+          {
+            "id": "175ffef2-d2ae-41d7-8f87-000e072628ff",
+            "name": "Curdin Widmer",
+            "country": "CH",
+            "isBot": true,
+            "bib": 24
+          },
+          {
+            "id": "73f74388-b69c-46b3-89e5-aecc5289b51f",
+            "name": "Dilshod Kholmatov",
+            "country": "UZ",
+            "isBot": true,
+            "bib": 25
+          },
+          {
+            "id": "46e91fcb-73ee-4030-bc21-4296dd5099ac",
+            "name": "Jean Bosco Mukiza",
+            "country": "RW",
+            "isBot": true,
+            "bib": 26
+          },
+          {
+            "id": "7bd1a98e-5e2f-4ca7-83ef-493a8d5769d4",
+            "name": "Noah Sutter",
+            "country": "CH",
+            "isBot": true,
+            "bib": 27
+          }
+        ]
+      },
+      {
+        "id": "6575330d-d0da-4141-9e98-465ba5c79da3",
+        "name": "Cima Squadra",
+        "country": "IT",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:5:jersey",
+        "kit": "yoke.taupe.sky",
+        "riders": [
+          {
+            "id": "da4bd9c5-3beb-4546-8a9b-c737dd8818f5",
+            "name": "Graziano Fontana",
+            "country": "IT",
+            "isBot": true,
+            "bib": 31
+          },
+          {
+            "id": "ebd79646-8c93-4bed-b7f0-6c6d57f40505",
+            "name": "Marco Zanin",
+            "country": "IT",
+            "isBot": true,
+            "bib": 32
+          },
+          {
+            "id": "2e646d9d-7e60-4aa4-87bb-25956a772c76",
+            "name": "Francesco Conte",
+            "country": "IT",
+            "isBot": true,
+            "bib": 33
+          },
+          {
+            "id": "87650882-e0d1-40d7-9d4c-c27dd211de30",
+            "name": "Giovanni Bernardi",
+            "country": "IT",
+            "isBot": true,
+            "bib": 34
+          },
+          {
+            "id": "bc8d0f17-aa08-4fab-aef7-ccadcc1ea8e2",
+            "name": "Giovanni Grassi",
+            "country": "IT",
+            "isBot": true,
+            "bib": 35
+          },
+          {
+            "id": "fac6144a-fcc1-4b3f-9a01-f3980661f04d",
+            "name": "Volodymyr Shevchuk",
+            "country": "UA",
+            "isBot": true,
+            "bib": 36
+          },
+          {
+            "id": "35819145-3b7a-4c84-a6cb-85efe006d778",
+            "name": "Cesare Frascino",
+            "country": "IT",
+            "isBot": true,
+            "bib": 37
+          }
+        ]
+      },
+      {
+        "id": "fddcc41d-3055-45d5-8e66-972a901bcd5b",
+        "name": "Granite Pro Cycling",
+        "country": "US",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:10:jersey",
+        "kit": "sides.green.teal",
+        "riders": [
+          {
+            "id": "1154a444-5cac-46de-8e37-21a4cfe943cf",
+            "name": "Nathan Wallace",
+            "country": "US",
+            "isBot": true,
+            "bib": 41
+          },
+          {
+            "id": "7d4217f1-8f9d-4c14-868d-573dbf7e2825",
+            "name": "Noah Coleman",
+            "country": "US",
+            "isBot": true,
+            "bib": 42
+          },
+          {
+            "id": "6beeb676-c70c-4a8e-a89b-f1ce4294a874",
+            "name": "Giovanni Donati",
+            "country": "IT",
+            "isBot": true,
+            "bib": 43
+          },
+          {
+            "id": "d213abce-1b17-448d-bc04-64e0d66a3879",
+            "name": "Dário Barros",
+            "country": "PT",
+            "isBot": true,
+            "bib": 44
+          },
+          {
+            "id": "73c52334-53b8-4057-a073-e28c827638fc",
+            "name": "William Morales",
+            "country": "US",
+            "isBot": true,
+            "bib": 45
+          },
+          {
+            "id": "ab965acd-458c-4e6f-808c-90d76dd409f4",
+            "name": "Anthony Emanuelson",
+            "country": "NL",
+            "isBot": true,
+            "bib": 46
+          },
+          {
+            "id": "491e33ce-3516-43af-9f83-70fdb580e640",
+            "name": "Richard Vásquez",
+            "country": "EC",
+            "isBot": true,
+            "bib": 47
+          }
+        ]
+      },
+      {
+        "id": "9a192e3d-21a4-4d61-b053-911c05f3c9cf",
+        "name": "Andes Ruta",
+        "country": "ES",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:2:jersey",
+        "kit": "hoops.red.orange",
+        "riders": [
+          {
+            "id": "ffbac1cf-b5e8-4155-869a-e7c1e129359e",
+            "name": "Ollie Johnson",
+            "country": "AU",
+            "isBot": true,
+            "bib": 51
+          },
+          {
+            "id": "edb2f75d-016e-4cd1-a875-e94f68f9b2ec",
+            "name": "Benjamín González",
+            "country": "AR",
+            "isBot": true,
+            "bib": 52
+          },
+          {
+            "id": "ebd53430-8766-48ef-b4f0-efca7487c232",
+            "name": "Elías Betancor",
+            "country": "ES",
+            "isBot": true,
+            "bib": 53
+          },
+          {
+            "id": "7d7bbfe0-aef7-4256-bcc7-995f05998c6d",
+            "name": "Mardoqueo Hernandez",
+            "country": "GT",
+            "isBot": true,
+            "bib": 54
+          },
+          {
+            "id": "f0c31622-6b0f-486f-8b8d-ce9b394ccecf",
+            "name": "Ivan Garcia",
+            "country": "PA",
+            "isBot": true,
+            "bib": 55
+          },
+          {
+            "id": "f1d61ca0-bee4-4b38-8216-084796d381ee",
+            "name": "Antonio Camara",
+            "country": "ES",
+            "isBot": true,
+            "bib": 56
+          },
+          {
+            "id": "a065bced-d25c-44f4-9e09-34b553445647",
+            "name": "Ilkin Mammadov",
+            "country": "AZ",
+            "isBot": true,
+            "bib": 57
+          }
+        ]
+      },
+      {
+        "id": "8c1be02a-036e-4509-a342-b04fcb6739be",
+        "name": "Aurore Équipe",
+        "country": "FR",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:9:jersey",
+        "kit": "plain.blue",
+        "riders": [
+          {
+            "id": "e0f05e30-87cf-4038-841e-f68e59ea9bce",
+            "name": "Nordine Lacroix",
+            "country": "FR",
+            "isBot": true,
+            "bib": 61
+          },
+          {
+            "id": "9aad759d-e113-47b6-9e44-2c618de2adcc",
+            "name": "François Benoit",
+            "country": "FR",
+            "isBot": true,
+            "bib": 62
+          },
+          {
+            "id": "4eeb7484-dd65-4154-a73d-fecac1ec4e1b",
+            "name": "Manuel Marroquin",
+            "country": "GT",
+            "isBot": true,
+            "bib": 63
+          },
+          {
+            "id": "5fc76b3d-08c1-4007-ba15-3dc0291c8e5f",
+            "name": "Julien Tanguy",
+            "country": "FR",
+            "isBot": true,
+            "bib": 64
+          },
+          {
+            "id": "41c023a8-a6f3-4b3a-854a-8cb82fa16916",
+            "name": "Hubert Legaie",
+            "country": "SC",
+            "isBot": true,
+            "bib": 65
+          },
+          {
+            "id": "ce20f7e1-4b82-4579-ad70-f6c1dff17cb5",
+            "name": "Alexandre Petit",
+            "country": "FR",
+            "isBot": true,
+            "bib": 66
+          },
+          {
+            "id": "720619ea-279c-4b13-9bca-4bb8faa36278",
+            "name": "Bastien Fabre",
+            "country": "FR",
+            "isBot": true,
+            "bib": 67
+          }
+        ]
+      },
+      {
+        "id": "d1aa0a40-0d79-4312-a08d-c82db4b5b767",
+        "name": "Mistral Équipe",
+        "country": "FR",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:7:jersey",
+        "kit": "hoops.green.yellow",
+        "riders": [
+          {
+            "id": "73f17a87-c2b2-4c80-94fd-3d6a564f7e00",
+            "name": "Ka Ho Yeung",
+            "country": "HK",
+            "isBot": true,
+            "bib": 71
+          },
+          {
+            "id": "3dc4a409-2ca2-4046-a991-31c598628c95",
+            "name": "Mekseb Kiflay",
+            "country": "ER",
+            "isBot": true,
+            "bib": 72
+          },
+          {
+            "id": "fd30b30e-8732-4b10-8051-3db9e93b9034",
+            "name": "Clement Michel",
+            "country": "FR",
+            "isBot": true,
+            "bib": 73
+          },
+          {
+            "id": "1f3b467b-a3f6-49e1-8c52-ae12f1652df8",
+            "name": "Olivier Dumont",
+            "country": "FR",
+            "isBot": true,
+            "bib": 74
+          },
+          {
+            "id": "48a26b2c-ba0c-4de0-befe-3fedfbe95a95",
+            "name": "Leo Campbell",
+            "country": "AU",
+            "isBot": true,
+            "bib": 75
+          },
+          {
+            "id": "57483856-741f-461d-8b42-98ad93f5ccb8",
+            "name": "Dmitry Sharipov",
+            "country": "RU",
+            "isBot": true,
+            "bib": 76
+          },
+          {
+            "id": "d691b1a4-7587-4f93-9d09-ca7db3e7b0c3",
+            "name": "Jules Moreau",
+            "country": "FR",
+            "isBot": true,
+            "bib": 77
+          }
+        ]
+      },
+      {
+        "id": "be275f00-62e2-4d06-8939-b1ae8379fb71",
+        "name": "Falcon Velo",
+        "country": "US",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:11:jersey",
+        "kit": "yoke.navy.blue",
+        "riders": [
+          {
+            "id": "5889da9b-7aea-4dd7-a320-ffe703647fc0",
+            "name": "Emiel Boonen",
+            "country": "BE",
+            "isBot": true,
+            "bib": 81
+          },
+          {
+            "id": "ecfea38a-3ae7-40d3-b2b1-7f317059bc50",
+            "name": "Chun-Hung Pan",
+            "country": "TW",
+            "isBot": true,
+            "bib": 82
+          },
+          {
+            "id": "25f4d78e-49c2-4495-8472-b961a48293ce",
+            "name": "Tyrone Perez",
+            "country": "US",
+            "isBot": true,
+            "bib": 83
+          },
+          {
+            "id": "35d0d570-a6ad-4640-84c2-2f9a34b2a56c",
+            "name": "Alex Clark",
+            "country": "US",
+            "isBot": true,
+            "bib": 84
+          },
+          {
+            "id": "b6de5a61-1c7c-4892-aa7e-ddc8d2819889",
+            "name": "William Rosenberg",
+            "country": "US",
+            "isBot": true,
+            "bib": 85
+          },
+          {
+            "id": "b61b034d-3342-4ba3-aebf-6f23d314151d",
+            "name": "John Green",
+            "country": "US",
+            "isBot": true,
+            "bib": 86
+          },
+          {
+            "id": "c0f2feea-e083-4ca3-89ba-883a598afd52",
+            "name": "Kauê Machado",
+            "country": "BR",
+            "isBot": true,
+            "bib": 87
+          }
+        ]
+      },
+      {
+        "id": "5ebf973c-a339-4b76-8526-bc0a96f59a32",
+        "name": "Csillag Racing",
+        "country": "HU",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:14:jersey",
+        "kit": "band.pink.brown",
+        "riders": [
+          {
+            "id": "d39d94d8-d356-4688-9e50-38e08fc98011",
+            "name": "Abhishek Gupta",
+            "country": "IN",
+            "isBot": true,
+            "bib": 91
+          },
+          {
+            "id": "324212f1-6e66-4f6f-81f7-04b55c44c166",
+            "name": "Marcell Fábián",
+            "country": "HU",
+            "isBot": true,
+            "bib": 92
+          },
+          {
+            "id": "31c93ca1-9f22-49f9-bf2c-ca66ac9f999c",
+            "name": "Attila Török",
+            "country": "HU",
+            "isBot": true,
+            "bib": 93
+          },
+          {
+            "id": "d217fa35-c1d4-4fcf-aaa5-9045dd00288a",
+            "name": "Károly Tóth",
+            "country": "HU",
+            "isBot": true,
+            "bib": 94
+          },
+          {
+            "id": "43a5dcec-07f8-47fb-b1fb-7deb620fd6ca",
+            "name": "Bálint Juhász",
+            "country": "HU",
+            "isBot": true,
+            "bib": 95
+          },
+          {
+            "id": "197416b2-c18c-4579-bfcc-e7aada1a7003",
+            "name": "Bence Nagy",
+            "country": "HU",
+            "isBot": true,
+            "bib": 96
+          },
+          {
+            "id": "2c263c2e-b940-4cb5-8354-abc091efe045",
+            "name": "David Castro",
+            "country": "ES",
+            "isBot": true,
+            "bib": 97
+          }
+        ]
+      },
+      {
+        "id": "5f069a80-000f-4436-8163-3359881e24aa",
+        "name": "Lampo Racing",
+        "country": "IT",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:6:jersey",
+        "kit": "sides.brown.pink",
+        "riders": [
+          {
+            "id": "5f725028-433f-4f73-9180-9f6fc53bd44d",
+            "name": "Giorgio Marchetti",
+            "country": "IT",
+            "isBot": true,
+            "bib": 101
+          },
+          {
+            "id": "56565c9c-37c4-460a-859d-3d1d463160d3",
+            "name": "Jean Bonnafous",
+            "country": "FR",
+            "isBot": true,
+            "bib": 102
+          },
+          {
+            "id": "ce846aab-732e-4b76-a321-efa1fec1b077",
+            "name": "Marco Ferrara",
+            "country": "IT",
+            "isBot": true,
+            "bib": 103
+          },
+          {
+            "id": "ae4f1218-c5f0-4ba0-80dd-dd1d1036bdaf",
+            "name": "Vincenzo Rossi",
+            "country": "IT",
+            "isBot": true,
+            "bib": 104
+          },
+          {
+            "id": "c675672c-2db8-426d-995b-af5d75aab1a6",
+            "name": "Giovanni Bianchi",
+            "country": "IT",
+            "isBot": true,
+            "bib": 105
+          },
+          {
+            "id": "13c71ff8-a855-42fe-97eb-6f87e6b8bfc2",
+            "name": "Ryan Cheung",
+            "country": "SR",
+            "isBot": true,
+            "bib": 106
+          },
+          {
+            "id": "34f5d212-3cac-4a7a-904e-168eb7c6a346",
+            "name": "Francesco Puddu",
+            "country": "IT",
+            "isBot": true,
+            "bib": 107
+          }
+        ]
+      },
+      {
+        "id": "b13196bd-b02e-49a0-8840-feade28cafaf",
+        "name": "Pfeil Radteam",
+        "country": "CH",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:13:jersey",
+        "kit": "yoke.sky.taupe",
+        "riders": [
+          {
+            "id": "a85c8f17-b0c2-4f83-915c-871029dc7c98",
+            "name": "Tobias Bachmann",
+            "country": "CH",
+            "isBot": true,
+            "bib": 111
+          },
+          {
+            "id": "34400c9d-52d2-4357-a972-e57f90c088bd",
+            "name": "Mauro Meyer",
+            "country": "CH",
+            "isBot": true,
+            "bib": 112
+          },
+          {
+            "id": "bb5b1c25-113b-4574-93bb-fa57334191f5",
+            "name": "Yannick Rossi",
+            "country": "CH",
+            "isBot": true,
+            "bib": 113
+          },
+          {
+            "id": "cd951071-e9d1-4bdb-907b-fa60e53ce996",
+            "name": "Levin Frei",
+            "country": "CH",
+            "isBot": true,
+            "bib": 114
+          },
+          {
+            "id": "478729fa-d138-4538-a288-3b774f350e6b",
+            "name": "Mohammed Al-Naimi",
+            "country": "QA",
+            "isBot": true,
+            "bib": 115
+          },
+          {
+            "id": "3dd43f6a-2d1d-4235-ad02-725f0c11dede",
+            "name": "Fabio Hofer",
+            "country": "CH",
+            "isBot": true,
+            "bib": 116
+          },
+          {
+            "id": "121c51fa-20ea-4fc6-b1fa-ab3f165c1974",
+            "name": "Klaus Wagner",
+            "country": "DE",
+            "isBot": true,
+            "bib": 117
+          }
+        ]
+      },
+      {
+        "id": "1d176574-0d84-4c49-a66b-8744496f0a38",
+        "name": "Aurora Racing",
+        "country": "ES",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:0:jersey",
+        "kit": "yoke.red.black",
+        "riders": [
+          {
+            "id": "cb5f443a-80ad-43cd-a066-056ba677bc3d",
+            "name": "Haritz Arias",
+            "country": "ES",
+            "isBot": true,
+            "bib": 121
+          },
+          {
+            "id": "e0c022a5-afac-41b2-aa4b-e685e9fcd5b6",
+            "name": "João Gonçalves",
+            "country": "PT",
+            "isBot": true,
+            "bib": 122
+          },
+          {
+            "id": "d3b872b5-2abe-4b18-b016-6f972088b5cf",
+            "name": "Bo-Wei Liu",
+            "country": "TW",
+            "isBot": true,
+            "bib": 123
+          },
+          {
+            "id": "9ff82bbe-0049-4aeb-b236-3d7864c41183",
+            "name": "Álvaro González",
+            "country": "ES",
+            "isBot": true,
+            "bib": 124
+          },
+          {
+            "id": "b0f121e0-07fa-4095-baf6-20d024944fd2",
+            "name": "Manuel Lozano",
+            "country": "ES",
+            "isBot": true,
+            "bib": 125
+          },
+          {
+            "id": "b7999cfd-40dc-429b-a799-c1ba7a6ec77a",
+            "name": "Kristian Vik",
+            "country": "NO",
+            "isBot": true,
+            "bib": 126
+          },
+          {
+            "id": "cb9bdf33-4dbe-45d6-a68a-4e3732b77098",
+            "name": "Andrés Latorre",
+            "country": "ES",
+            "isBot": true,
+            "bib": 127
+          }
+        ]
+      },
+      {
+        "id": "6ff154e7-8180-498e-aa42-b7bd10cb2d29",
+        "name": "Havik Wielrennen",
+        "country": "BE",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:15:jersey",
+        "kit": "band.blue.brown",
+        "riders": [
+          {
+            "id": "b62400c2-2932-4e1d-98ee-50bb33bc10fa",
+            "name": "Zakaria Cornelis",
+            "country": "BE",
+            "isBot": true,
+            "bib": 131
+          },
+          {
+            "id": "85968056-6ad9-4bd9-8077-9a28b491f4db",
+            "name": "Marc Piret",
+            "country": "BE",
+            "isBot": true,
+            "bib": 132
+          },
+          {
+            "id": "b90997b3-02fd-4943-b9e8-73eece3496b7",
+            "name": "Curtis Xavier",
+            "country": "DM",
+            "isBot": true,
+            "bib": 133
+          },
+          {
+            "id": "5858795c-ad3e-43e6-988d-d01470d94cc2",
+            "name": "Bert Willems",
+            "country": "BE",
+            "isBot": true,
+            "bib": 134
+          },
+          {
+            "id": "cf8fd82f-7042-4b63-b52b-637ee1f2a260",
+            "name": "Hamza Peeters",
+            "country": "BE",
+            "isBot": true,
+            "bib": 135
+          },
+          {
+            "id": "365e5382-4377-4af4-b009-b0f0e2f5dca3",
+            "name": "Vince De Wilde",
+            "country": "BE",
+            "isBot": true,
+            "bib": 136
+          },
+          {
+            "id": "315ffc46-63cc-4c76-a6e9-0eb6aba40514",
+            "name": "Maxime Gérard",
+            "country": "BE",
+            "isBot": true,
+            "bib": 137
+          }
+        ]
+      },
+      {
+        "id": "6f080af9-b66d-4df5-a4f6-2148262e5ec6",
+        "name": "Onda Pro Cycling",
+        "country": "IT",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:4:jersey",
+        "kit": "sides.blue.sky",
+        "riders": [
+          {
+            "id": "f77d3a52-1848-4243-8037-f641794cf7cb",
+            "name": "Andrea Ferraro",
+            "country": "IT",
+            "isBot": true,
+            "bib": 141
+          },
+          {
+            "id": "9c75d58a-b16d-4fe7-bf84-2a7440429da8",
+            "name": "Marios Charalambous",
+            "country": "CY",
+            "isBot": true,
+            "bib": 142
+          },
+          {
+            "id": "4c2f170d-31c4-4813-bc6d-d244ab5c2533",
+            "name": "Enrico Monti",
+            "country": "IT",
+            "isBot": true,
+            "bib": 143
+          },
+          {
+            "id": "cce3a3ae-def8-4087-89d7-bec2f48d2f04",
+            "name": "Luigi Pichler",
+            "country": "IT",
+            "isBot": true,
+            "bib": 144
+          },
+          {
+            "id": "149c3532-6973-4955-adc8-07fdcf9ccf22",
+            "name": "Giovanni Usai",
+            "country": "IT",
+            "isBot": true,
+            "bib": 145
+          },
+          {
+            "id": "20ee1a74-f07a-408f-8be6-6324c603fa07",
+            "name": "Angelo Mariani",
+            "country": "IT",
+            "isBot": true,
+            "bib": 146
+          },
+          {
+            "id": "05554304-8a6f-431e-9df2-994fec34265a",
+            "name": "Franco Nistor",
+            "country": "IT",
+            "isBot": true,
+            "bib": 147
+          }
+        ]
+      },
+      {
+        "id": "b18d281e-2cae-46d1-ab93-0e4eefe1d952",
+        "name": "Relámpago Pro Cycling",
+        "country": "ES",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:3:jersey",
+        "kit": "sash.pink.brown",
+        "riders": [
+          {
+            "id": "aca801b6-df5c-4592-b484-c082aa4bfa3e",
+            "name": "Roland Suter",
+            "country": "CH",
+            "isBot": true,
+            "bib": 151
+          },
+          {
+            "id": "f8f881f1-6f13-408b-a9a3-d4b11ea93b76",
+            "name": "Mark Nepomuceno",
+            "country": "PH",
+            "isBot": true,
+            "bib": 152
+          },
+          {
+            "id": "9e41485d-e1c4-4ece-b858-d78eb9f75092",
+            "name": "Rubén Izquierdo",
+            "country": "ES",
+            "isBot": true,
+            "bib": 153
+          },
+          {
+            "id": "6a1b1a62-926e-4ebc-ac02-230672583e54",
+            "name": "Daniel Navarro",
+            "country": "ES",
+            "isBot": true,
+            "bib": 154
+          },
+          {
+            "id": "592a295f-bbd9-44ea-af79-3306d1ccab57",
+            "name": "Francisco Ripoll",
+            "country": "ES",
+            "isBot": true,
+            "bib": 155
+          },
+          {
+            "id": "c383588d-153e-46b1-9f0c-64d8283566d8",
+            "name": "Esteban Álvarez",
+            "country": "ES",
+            "isBot": true,
+            "bib": 156
+          },
+          {
+            "id": "4431623f-b9a0-467b-a4b7-b5ef919dad79",
+            "name": "Fernando Company",
+            "country": "ES",
+            "isBot": true,
+            "bib": 157
+          }
+        ]
+      },
+      {
+        "id": "16eb5845-1c1d-49f1-a30e-578b2750953b",
+        "name": "Fénix Cycling",
+        "country": "ES",
+        "division": "PRS",
+        "jerseySeed": "cyclingstar-2:team:PRS:1:jersey",
+        "kit": "sides.sky.red",
+        "riders": [
+          {
+            "id": "b9a96087-4e3a-4f4b-bd8f-780bd2ceebe7",
+            "name": "Daniel Morales",
+            "country": "ES",
+            "isBot": true,
+            "bib": 161
+          },
+          {
+            "id": "2d1919c4-4c4c-4d56-9a49-ac1a6aa0bf4a",
+            "name": "Wenjun Traoré",
+            "country": "ES",
+            "isBot": true,
+            "bib": 162
+          },
+          {
+            "id": "17bff345-a88b-4f80-a771-74d3e32d0706",
+            "name": "Emmanuel Mukamana",
+            "country": "RW",
+            "isBot": true,
+            "bib": 163
+          },
+          {
+            "id": "aa1360d9-1216-4b0d-909f-a639b608ed04",
+            "name": "Ángel Nina",
+            "country": "PE",
+            "isBot": true,
+            "bib": 164
+          },
+          {
+            "id": "c13e4ac5-c8ef-4874-be71-baacd1015fb6",
+            "name": "Emilio Castillo",
+            "country": "ES",
+            "isBot": true,
+            "bib": 165
+          },
+          {
+            "id": "38cd12d1-4bb2-4eca-829d-d3e51777e665",
+            "name": "José Fuentes",
+            "country": "ES",
+            "isBot": true,
+            "bib": 166
+          },
+          {
+            "id": "2a7baf42-e58b-4225-b4b2-24be7b4f9948",
+            "name": "Óscar Estrada",
+            "country": "ES",
+            "isBot": true,
+            "bib": 167
+          }
+        ]
+      },
+      {
+        "id": "2d8c1bc5-dfee-4cd2-8afe-94d58b046fd0",
+        "name": "Noord Wielrennen",
+        "country": "BE",
+        "division": "WT",
+        "jerseySeed": "cyclingstar-2:team:WT:0:jersey",
+        "kit": "sides.blue.navy",
+        "riders": [
+          {
+            "id": "8bdc6681-4a51-40c1-a0d1-2fb7e26d5182",
+            "name": "Themba Kambarami",
+            "country": "ZW",
+            "isBot": true,
+            "bib": 171
+          },
+          {
+            "id": "7da5da83-f0cc-408a-adb7-e5923eab6d7f",
+            "name": "Gilles Roelants",
+            "country": "BE",
+            "isBot": true,
+            "bib": 172
+          },
+          {
+            "id": "f3045fb1-c28b-4d93-af6d-e5c74498294d",
+            "name": "Giuseppe Testa",
+            "country": "IT",
+            "isBot": true,
+            "bib": 173
+          },
+          {
+            "id": "a2235902-35dd-4b69-a469-bf04edf9da8b",
+            "name": "Roberts Bērzkalns",
+            "country": "LV",
+            "isBot": true,
+            "bib": 174
+          },
+          {
+            "id": "c56b87c5-ace3-4f7f-91f8-beae991e5cfb",
+            "name": "Ferre Maréchal",
+            "country": "BE",
+            "isBot": true,
+            "bib": 175
+          },
+          {
+            "id": "222eaa06-40d6-4c7f-85ae-761570be5ff6",
+            "name": "Seppe Dendoncker",
+            "country": "BE",
+            "isBot": true,
+            "bib": 176
+          },
+          {
+            "id": "90c42f26-79e1-4ae3-85e1-426d197db84a",
+            "name": "Ricardo Baladán",
+            "country": "UY",
+            "isBot": true,
+            "bib": 177
+          }
+        ]
+      },
+      {
+        "id": "7dc781a5-2e5f-4966-885b-8165db1965ec",
+        "name": "Vuur Racing",
+        "country": "BE",
+        "division": "WT",
+        "jerseySeed": "cyclingstar-2:team:WT:2:jersey",
+        "kit": "yoke.brown.blue",
+        "riders": [
+          {
+            "id": "017ab86e-1465-4069-9c6c-601434c6d4c4",
+            "name": "Noah Cassiers",
+            "country": "BE",
+            "isBot": true,
+            "bib": 181
+          },
+          {
+            "id": "b7a5cfaa-7e9c-4e88-8fba-d7112ce0e2b8",
+            "name": "Volkan Claes",
+            "country": "BE",
+            "isBot": true,
+            "bib": 182
+          },
+          {
+            "id": "be1c3c53-ed0d-4ed6-9a92-a9ef5fe6835d",
+            "name": "Michel Servais",
+            "country": "BE",
+            "isBot": true,
+            "bib": 183
+          },
+          {
+            "id": "1b15eca5-01b4-454b-bc25-ce66545ff5f3",
+            "name": "Mehmet Georgiou",
+            "country": "CY",
+            "isBot": true,
+            "bib": 184
+          },
+          {
+            "id": "1b5ef534-d8d8-43eb-8e2d-d54cad8df029",
+            "name": "Alexis Nijs",
+            "country": "BE",
+            "isBot": true,
+            "bib": 185
+          },
+          {
+            "id": "1c1594e1-a843-4787-98c0-290d8019212f",
+            "name": "Sébastien Lambert",
+            "country": "FR",
+            "isBot": true,
+            "bib": 186
+          },
+          {
+            "id": "b2a3177f-cb32-4e15-805b-ca85abfd832e",
+            "name": "Hafiz Zakaria",
+            "country": "MY",
+            "isBot": true,
+            "bib": 187
+          }
+        ]
+      },
+      {
+        "id": "aebd7576-10f4-4f70-bec4-0e0732de5620",
+        "name": "Sierra Cycling",
+        "country": "ES",
+        "division": "WT",
+        "jerseySeed": "cyclingstar-2:team:WT:14:jersey",
+        "kit": "yoke.orange.brown",
+        "riders": [
+          {
+            "id": "067120f4-01f9-465b-be0d-2ad92cc43cd1",
+            "name": "Gabriel Zúñiga",
+            "country": "CR",
+            "isBot": true,
+            "bib": 191
+          },
+          {
+            "id": "c146169f-b775-4a30-bbdb-f8aff8d6dfc3",
+            "name": "Liridon Vokrri",
+            "country": "XK",
+            "isBot": true,
+            "bib": 192
+          },
+          {
+            "id": "a4712879-edad-499f-9fba-745c318a293d",
+            "name": "Adrien Fontaine",
+            "country": "FR",
+            "isBot": true,
+            "bib": 193
+          },
+          {
+            "id": "2bc78f14-8b6f-46a8-bad2-887054b22615",
+            "name": "Alejandro Hernández",
+            "country": "ES",
+            "isBot": true,
+            "bib": 194
+          },
+          {
+            "id": "f7578ac0-27f5-4c8c-950b-1a96de1d78b9",
+            "name": "Antonio Bellver",
+            "country": "ES",
+            "isBot": true,
+            "bib": 195
+          },
+          {
+            "id": "7ba7eac3-0f8c-4b22-9b8b-ad761d78fc58",
+            "name": "Adel Buhazza",
+            "country": "BH",
+            "isBot": true,
+            "bib": 196
+          },
+          {
+            "id": "6cdc2205-eae0-4ec8-9880-3c5886b46b70",
+            "name": "Ángel Santiago",
+            "country": "PR",
+            "isBot": true,
+            "bib": 197
+          }
+        ]
+      },
+      {
+        "id": "dae2050d-8ccb-4aec-a8f6-ffe4e44c1013",
+        "name": "Lince Ciclismo",
+        "country": "ES",
+        "division": "CON",
+        "jerseySeed": "cyclingstar-2:team:CON:159:jersey",
+        "kit": "hoops.purple.sky",
+        "riders": [
+          {
+            "id": "7452a4ac-13a2-4cc8-a2f4-bbad6b3cee29",
+            "name": "Josu Marinescu",
+            "country": "ES",
+            "isBot": true,
+            "bib": 201
+          },
+          {
+            "id": "66401c8c-f072-4fd1-9bea-3c36fcaaa496",
+            "name": "Valentín Castillo",
+            "country": "ES",
+            "isBot": true,
+            "bib": 202
+          },
+          {
+            "id": "5da8c8b0-f93c-496c-b13d-62b4d03c4d52",
+            "name": "Antonio Goikoetxea",
+            "country": "ES",
+            "isBot": true,
+            "bib": 203
+          },
+          {
+            "id": "f6be9d2a-c88b-4d6b-8f22-3b016a781d74",
+            "name": "José Antonio Vidal",
+            "country": "ES",
+            "isBot": true,
+            "bib": 204
+          },
+          {
+            "id": "b43bdcd4-fa5c-47ae-a413-661e999b59fb",
+            "name": "Urko Goikoetxea",
+            "country": "ES",
+            "isBot": true,
+            "bib": 205
+          },
+          {
+            "id": "07e8c000-8aca-49a7-addc-686e94bf8bee",
+            "name": "Horacio Ruiz",
+            "country": "ES",
+            "isBot": true,
+            "bib": 206
+          },
+          {
+            "id": "ae5bcaac-f0c3-489c-b142-2915768c9682",
+            "name": "Iván Cano",
+            "country": "ES",
+            "isBot": true,
+            "bib": 207
+          }
+        ]
+      }
+    ],
+    "freeAgents": []
+  }
+}

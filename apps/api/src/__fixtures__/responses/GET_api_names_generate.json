@@ -1,0 +1,8 @@
+{
+  "route": "GET /api/names/generate",
+  "url": "/api/names/generate?country=ES&gender=M&seed=s",
+  "status": 200,
+  "body": {
+    "fullName": "Eduardo Delgado"
+  }
+}

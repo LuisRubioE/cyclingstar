@@ -232,7 +232,6 @@ function gnow(
 const START: StartState = {
   leaders: { gc: 3, points: null, kom: null },
   gcTop: [],
-  racingAtStart: 176,
 }
 
 describe('mainGapOf · la diferencia principal y contra quién (§6.2, D-17)', () => {
@@ -318,7 +317,7 @@ describe('instantAt · el corte diagonal sobre la etapa de juguete (§4.5)', () 
   const { tl, ixOf } = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 20, lastBlocks: 10 })
   const ctx: InstantContext = {
     own: new Set([5]),
-    start: { leaders: { gc: 0, points: null, kom: null }, gcTop: [], racingAtStart: 8 },
+    start: { leaders: { gc: 0, points: null, kom: null }, gcTop: [] },
     photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
   }
   const finishDs = visibilityOf(tl).finishDs
@@ -465,7 +464,7 @@ describe('instantAt · una marca que baja (nota 1 del 4b): la resuelve el instan
   const { tl, ixOf } = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 20, lastBlocks: 10 })
   const ctx: InstantContext = {
     own: new Set(),
-    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [], racingAtStart: 8 },
+    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
     photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
   }
   const shed = ixOf.get('shed-2')!
@@ -587,7 +586,7 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
   for (const c of tl.cast.riders) if (c.worn.kind === 'leader') leaders[c.worn.jersey] = c.rider
   const ctx: InstantContext = {
     own: new Set(),
-    start: { leaders, gcTop: [], racingAtStart: tl.riderIds.length },
+    start: { leaders, gcTop: [] },
     photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
   }
 

@@ -12,7 +12,18 @@ import {
   getSeasonAwards,
   getYoungRiders,
 } from '@cyclingstar/db'
-import { currentSeason, isKnownCountry } from '@cyclingstar/shared'
+import {
+  currentSeason,
+  isKnownCountry,
+  countriesResponseSchema,
+  countryRidersResponseSchema,
+  hallOfFameResponseSchema,
+  newsResponseSchema,
+  rankingResponseSchema,
+  recordsResponseSchema,
+  seasonAwardsResponseSchema,
+  freeAgentsResponseSchema,
+} from '@cyclingstar/shared'
 import { notFound } from '../http.js'
 import { diagHorizon } from '../spoiler.js'
 import type { RoutePlugin } from './context.js'
@@ -31,7 +42,9 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   // Ranking individual: puntos de los últimos 365 días de juego (docs/epics.md «G3»).
   app.get(
     '/api/rankings',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: { response: { 200: rankingResponseSchema }, spoiler: 'horizon', veil: { by: ['R'] } },
+    },
     async (request) => {
       const world = await getCurrentWorld(db)
       if (!world) return { ranking: [] }
@@ -43,7 +56,9 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   // Clasificación de jóvenes de la temporada (#59, maillot blanco).
   app.get(
     '/api/rankings/young',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: { response: { 200: rankingResponseSchema }, spoiler: 'horizon', veil: { by: ['R'] } },
+    },
     async (request) => {
       const world = await getCurrentWorld(db)
       if (!world) return { ranking: [] }
@@ -57,7 +72,13 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   // Premios de la temporada (#60): líderes por categoría (mejor del año, sprinter, escalador, revelación).
   app.get(
     '/api/season-awards',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: {
+        response: { 200: seasonAwardsResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['R'] },
+      },
+    },
     async (request) => {
       const world = await getCurrentWorld(db)
       if (!world) return { awards: null }
@@ -71,7 +92,13 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   // Salón de la fama: palmarés acumulado de todas las temporadas (#58).
   app.get(
     '/api/hall-of-fame',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: {
+        response: { 200: hallOfFameResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['R'] },
+      },
+    },
     async (request) => {
       const world = await getCurrentWorld(db)
       if (!world) return { riders: [] }
@@ -83,7 +110,9 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   // Récords de todos los tiempos del mundo (#62).
   app.get(
     '/api/records',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: { response: { 200: recordsResponseSchema }, spoiler: 'horizon', veil: { by: ['R'] } },
+    },
     async (request) => {
       const world = await getCurrentWorld(db)
       if (!world) return { records: null }
@@ -99,23 +128,33 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   // un `stage_ready` por cada una (F). Los dos titulares de líder (`gc_lead_taken` y `jersey_taken`)
   // salen solo a quien le aplica el velo, y con él pasan el filtro como los demás (17-x). Con
   // `?diag=1`, a un administrador con sesión, con el horizonte del mundo (§11.15, 11-h).
-  app.get('/api/news', { config: { spoiler: 'horizon', veil: { by: ['F'] } } }, async (request) => {
-    const world = await getCurrentWorld(db)
-    if (!world) return { news: [] }
-    const h = await diagHorizon(request)
-    const opts = { leaderNews: await request.spoilerApplies() }
-    const userId = await currentUserId(request)
-    const rider = userId ? await getRiderForUser(db, userId) : null
-    const items = rider
-      ? await getRiderNews(db, h, world.worldId, rider.id, 40, opts)
-      : await getGlobalNews(db, h, world.worldId, 40, opts)
-    return { news: items }
-  })
+  app.get(
+    '/api/news',
+    { config: { response: { 200: newsResponseSchema }, spoiler: 'horizon', veil: { by: ['F'] } } },
+    async (request) => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { news: [] }
+      const h = await diagHorizon(request)
+      const opts = { leaderNews: await request.spoilerApplies() }
+      const userId = await currentUserId(request)
+      const rider = userId ? await getRiderForUser(db, userId) : null
+      const items = rider
+        ? await getRiderNews(db, h, world.worldId, rider.id, 40, opts)
+        : await getGlobalNews(db, h, world.worldId, 40, opts)
+      return { news: items }
+    },
+  )
 
   // Naciones (#7): lista de países con corredores y ranking nacional por país. Público.
   app.get(
     '/api/countries',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: {
+        response: { 200: countriesResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['R'] },
+      },
+    },
     async (request) => {
       const world = await getCurrentWorld(db)
       if (!world) return { countries: [] }
@@ -126,7 +165,13 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
 
   app.get<{ Params: { code: string } }>(
     '/api/countries/:code',
-    { config: { spoiler: 'horizon', veil: { by: ['R', 'M'] } } },
+    {
+      config: {
+        response: { 200: countryRidersResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['R', 'M'] },
+      },
+    },
     async (request, reply) => {
       if (!isKnownCountry(request.params.code)) return notFound(reply)
       const world = await getCurrentWorld(db)
@@ -142,7 +187,13 @@ export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   // Agentes libres del mercado (#20): corredores en activo sin equipo, filtrable por país y vocación.
   app.get<{ Querystring: { country?: string; vocation?: string } }>(
     '/api/free-agents',
-    { config: { spoiler: 'horizon', veil: { by: ['R'] } } },
+    {
+      config: {
+        response: { 200: freeAgentsResponseSchema },
+        spoiler: 'horizon',
+        veil: { by: ['R'] },
+      },
+    },
     async (request) => {
       const world = await getCurrentWorld(db)
       if (!world) return { riders: [] }
