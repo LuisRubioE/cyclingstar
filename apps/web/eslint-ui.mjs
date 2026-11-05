@@ -145,6 +145,7 @@ export const UI_IGNORES = [
  */
 export const UI_HEREDADOS = [
   'apps/web/src/components/Flag.tsx',
+  'apps/web/src/components/Logo.tsx',
   'apps/web/src/components/RaceRadioPanel.tsx',
   'apps/web/src/components/WatchBlocks.tsx',
   'apps/web/src/components/broadcast/FixedOverlay.tsx',

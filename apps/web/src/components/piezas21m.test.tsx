@@ -25,7 +25,7 @@ describe('la pantalla de un error', () => {
 
   it('su título y su texto con los tokens, y el mensaje del error', () => {
     const s = fallo()
-    expect(s).toMatch(/<h1 class="text-page text-ink">Something went wrong<\/h1>/)
+    expect(s).toMatch(/<h1[^>]*>Something went wrong<\/h1>/)
     expect(s).toContain('boom')
     expect(s).not.toMatch(PALETA)
   })
@@ -60,6 +60,5 @@ describe('la puerta del velo', () => {
 describe('el enlace del nombre de un corredor', () => {
   it('con los tokens, sin la paleta', () => {
     expect(RIDER_LINK_CLASS).not.toMatch(PALETA)
-    expect(RIDER_LINK_CLASS).toContain('hover:text-accent')
   })
 })

@@ -35,7 +35,7 @@ const OG = {
   name: 'Cycling Star',
 }
 /** Los dos colores de `Logo.tsx` que se cambian: el trazo de la bicicleta y la estrella. */
-const LOGO_COLORS = { stroke: 'var(--color-accent)', star: 'var(--color-gold)' }
+const LOGO_COLORS = { stroke: '#4f46e5', star: '#f59e0b' }
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex')
 

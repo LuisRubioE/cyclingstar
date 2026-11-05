@@ -404,7 +404,7 @@ export function App() {
               Privacy
             </Link>
           </div>
-          <p className="w-full text-ink-2">
+          <p className="w-full leading-5 text-ink-2">
             Cycling Star is a fictional cycling-manager simulation game. All teams, riders, races
             and results shown here are computer-generated and made up — they are{' '}
             <strong>not</strong> real people, real teams or real results, and the game is not
