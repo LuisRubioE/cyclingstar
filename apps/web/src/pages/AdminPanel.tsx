@@ -26,10 +26,11 @@ import { TextLink } from '../components/ui/TextLink'
  * interfaz las refleja desactivando botones, pero no es la que protege.
  *
  * Con el sistema desde el PR 21m (E3, docs/visual.md §17.21): la cabecera en `PageHeader`, con el enlace a
- * la base de nombres en un `TextLink`; la búsqueda, un `Field` con su rótulo a la vista; cada cuenta en su
- * `Panel`, sus chapas en `Chip` y sus acciones en `Button`. Lo que no se puede (el raíz, uno mismo) se
- * deshabilita con su porqué debajo (§4.1), donde antes iba un `title` o nada (regla `ui/4`); y ocupada una
- * acción, su botón gira y los demás no actúan mientras, como el `disabled` de antes.
+ * la base de nombres en un `TextLink`; la búsqueda, un `Field` con su rótulo a la vista; las cuentas, en un
+ * solo `Panel`, cada una un `li` de su lista, con sus chapas en `Chip` y sus acciones en `Button`, que llevan
+ * la cuenta en su nombre. Lo que no se puede (el raíz, uno mismo) se deshabilita con su porqué debajo (§4.1),
+ * donde antes iba un `title` o nada (regla `ui/4`).
+ * Decisión: ocupada una acción, los demás botones ya no se ven deshabilitados; parecen listos y no hacen nada, porque deshabilitar pide su porqué a la vista (§4.1).
  */
 
 /** Por qué no se borra una cuenta: lo que contesta la API si se intenta, y el porqué del botón deshabilitado. */
@@ -99,24 +100,25 @@ function Accounts({ me }: { me: string | null }) {
         layout="max-w-form"
       />
 
-      {/* Los estados, con `QueryView` (E3, PR 10). */}
-      <QueryView
-        query={users}
-        label="accounts"
-        skeleton={{ kind: 'rows', rowHeight: 64 }}
-        isEmpty={(list) => list.length === 0}
-        empty={{ text: 'No accounts match.' }}
-      >
-        {(list) => (
-          <ul className="space-y-3">
-            {list.map((u) => (
-              <li key={u.id}>
-                <UserCard user={u} isMe={u.id === me} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </QueryView>
+      {/* Las cuentas, en un solo `Panel` y no una región por cuenta; sus estados, con `QueryView` (E3, PR 10),
+          dentro, como las listas de `AdminNames`. */}
+      <Panel ariaLabel="Accounts">
+        <QueryView
+          query={users}
+          label="accounts"
+          skeleton={{ kind: 'rows', rowHeight: 64 }}
+          isEmpty={(list) => list.length === 0}
+          empty={{ text: 'No accounts match.' }}
+        >
+          {(list) => (
+            <ul className="divide-y divide-line">
+              {list.map((u) => (
+                <UserCard key={u.id} user={u} isMe={u.id === me} />
+              ))}
+            </ul>
+          )}
+        </QueryView>
+      </Panel>
     </section>
   )
 }
@@ -125,8 +127,9 @@ function Accounts({ me }: { me: string | null }) {
 type Accion = 'verify' | 'premium' | 'admin' | 'delete'
 
 /**
- * Una cuenta, con sus acciones. Se exporta para su test, con `initialError`: el fallo de una acción, que en la
- * página solo llega tras pulsar, pintado en estático (como los `initial` de la entrada, PR 21j).
+ * Una cuenta, con sus acciones: un `li` de la lista del `Panel` de las cuentas. Se exporta para su test, con
+ * `initialError`: el fallo de una acción, que en la página solo llega tras pulsar, pintado en estático (como
+ * los `initial` de la entrada, PR 21j).
  */
 export function UserCard({
   user,
@@ -169,7 +172,7 @@ export function UserCard({
   const deleteReason = isMe ? DELETE_YOURSELF : user.isRootAdmin ? DELETE_ROOT : undefined
 
   return (
-    <Panel ariaLabel={user.email}>
+    <li className="py-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="break-all text-body font-semibold text-ink">{user.email}</span>
         {isMe && <Chip tone="neutral">you</Chip>}
@@ -206,6 +209,7 @@ export function UserCard({
         {!user.emailVerified && (
           <Button
             size="sm"
+            ariaLabel={`Confirm email for ${user.email}`}
             busy={busy === 'verify'}
             onClick={() => patch('verify', { emailVerified: true })}
           >
@@ -214,6 +218,9 @@ export function UserCard({
         )}
         <Button
           size="sm"
+          ariaLabel={
+            user.premium ? `Remove premium from ${user.email}` : `Grant premium to ${user.email}`
+          }
           busy={busy === 'premium'}
           onClick={() => patch('premium', { premium: !user.premium })}
         >
@@ -221,6 +228,7 @@ export function UserCard({
         </Button>
         <Button
           size="sm"
+          ariaLabel={admin ? `Remove admin from ${user.email}` : `Make admin: ${user.email}`}
           busy={busy === 'admin'}
           {...(adminReason !== undefined ? { disabledReason: adminReason } : {})}
           onClick={() => patch('admin', { isAdmin: !user.isAdmin })}
@@ -228,6 +236,7 @@ export function UserCard({
           {admin ? 'Remove admin' : 'Make admin'}
         </Button>
         <Borrado
+          email={user.email}
           confirming={confirmDelete}
           busy={busy === 'delete'}
           disabledReason={deleteReason}
@@ -243,7 +252,7 @@ export function UserCard({
           {error}
         </p>
       )}
-    </Panel>
+    </li>
   )
 }
 
@@ -253,6 +262,7 @@ export function UserCard({
  * que lo pinta en sus dos estados.
  */
 export function Borrado({
+  email,
   confirming,
   busy,
   disabledReason,
@@ -260,6 +270,8 @@ export function Borrado({
   onCancel,
   onConfirm,
 }: {
+  /** la cuenta, para el nombre de sus botones */
+  readonly email: string
   readonly confirming: boolean
   readonly busy: boolean
   readonly disabledReason?: string | undefined
@@ -271,6 +283,7 @@ export function Borrado({
     return (
       <Button
         size="sm"
+        ariaLabel={`Delete ${email}…`}
         onClick={onAsk}
         {...(disabledReason !== undefined ? { disabledReason } : {})}
       >
@@ -282,10 +295,16 @@ export function Borrado({
       <span className="text-meta text-ink-2">
         Delete this account? The rider and team stay, run by the game.
       </span>
-      <Button variant="danger" size="sm" busy={busy} onClick={onConfirm}>
+      <Button
+        variant="danger"
+        size="sm"
+        ariaLabel={`Delete ${email}`}
+        busy={busy}
+        onClick={onConfirm}
+      >
         Delete
       </Button>
-      <Button variant="quiet" size="sm" onClick={onCancel}>
+      <Button variant="quiet" size="sm" ariaLabel={`Cancel deleting ${email}`} onClick={onCancel}>
         Cancel
       </Button>
     </span>

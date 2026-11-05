@@ -4,14 +4,23 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { AdminPanel, Borrado, UserCard } from './AdminPanel'
-import { PALETA, campo, cuantas, estado, pieza, pintaEn, titulo } from './__fixtures__/markup'
+import {
+  PALETA,
+  campo,
+  cuantas,
+  elementoEn,
+  estado,
+  pieza,
+  pintaEn,
+  titulo,
+} from './__fixtures__/markup'
 
 /**
  * EL PANEL DE ADMINISTRACIÓN CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21m), en estático
  * con la caché ya llena: la cabecera en `PageHeader`, con el enlace a la base de nombres en un `TextLink`; la
- * búsqueda, un `Field` con su rótulo a la vista; cada cuenta en su `Panel`, con sus chapas en `Chip` y sus
- * acciones en `Button`; y lo que no se puede (el raíz, uno mismo), deshabilitado con su porqué debajo y no
- * en un `title` (§4.1, regla `ui/4`).
+ * búsqueda, un `Field` con su rótulo a la vista; las cuentas, en un solo `Panel`, cada una un `li` de su lista,
+ * con sus chapas en `Chip` y sus acciones en `Button`, con la cuenta en su nombre; y lo que no se puede (el
+ * raíz, uno mismo), deshabilitado con su porqué debajo y no en un `title` (§4.1, regla `ui/4`).
  */
 
 const SESION: AdminWhoami = { ok: true, via: 'session', userId: 'u-me' }
@@ -29,7 +38,10 @@ const cuenta = (c: Partial<AdminUser> & Pick<AdminUser, 'id' | 'email'>): AdminU
   ...c,
 })
 
-/** Yo (admin por la columna), el raíz (`ADMIN_EMAIL`), una cuenta sin confirmar con premium, corredor y equipo, y una sin nada. */
+/**
+ * Yo (admin por la columna), el raíz (`ADMIN_EMAIL`), una cuenta sin confirmar con premium, corredor y equipo,
+ * una sin nada y otro admin, que no es ni yo ni el raíz.
+ */
 const CUENTAS: readonly AdminUser[] = [
   cuenta({ id: 'u-me', email: 'me@cyclingstar.test', isAdmin: true }),
   cuenta({ id: 'u-root', email: 'root@cyclingstar.test', isRootAdmin: true }),
@@ -42,6 +54,7 @@ const CUENTAS: readonly AdminUser[] = [
     team: { id: 't1', name: 'Mistral Racing' },
   }),
   cuenta({ id: 'u-bo', email: 'bo@example.com' }),
+  cuenta({ id: 'u-cris', email: 'cris@example.com', isAdmin: true }),
 ]
 
 /** La página en `/admin`, con el acceso y las cuentas en la caché, cargando o con un fallo. */
@@ -69,8 +82,11 @@ function pinta(
   )
 }
 
-/** El `Panel` de una cuenta, por su correo. */
-const tarjeta = (markup: string, correo: string): string => pieza(markup, 'Panel', correo)
+/** El `li` de una cuenta, entero, por su correo. */
+const tarjeta = (markup: string, correo: string): string => {
+  const donde = markup.indexOf(`>${correo}</span>`)
+  return donde < 0 ? '' : elementoEn(markup, markup.lastIndexOf('<li class="', donde))
+}
 
 /** ¿Lleva una `Chip` de ese tono con ese texto, y solo ese? */
 const chip = (markup: string, tono: string, texto: string): boolean =>
@@ -92,6 +108,7 @@ const texto = (markup: string): string => markup.replace(/<[^>]+>/g, '')
 const borrado = (props: Partial<Parameters<typeof Borrado>[0]> = {}): string =>
   renderToStaticMarkup(
     <Borrado
+      email="ana@example.com"
       confirming={false}
       busy={false}
       onAsk={() => undefined}
@@ -140,12 +157,16 @@ describe('el panel de administración con el sistema (§17.21; PR 21m)', () => {
     expect(busca).toContain('placeholder="Search by email…"')
   })
 
-  it('cada cuenta en su Panel, en la lista, con su correo y sus chapas en Chip', () => {
+  it('las cuentas, en un solo Panel: cada una, un li de su lista, con su correo y sus chapas en Chip', () => {
     const markup = pinta()
-    expect(markup).toMatch(/<ul[^>]*><li[^>]*><section data-ui="Panel"/)
+    expect(cuantas(markup, /data-ui="Panel"/)).toBe(1)
+    const lista = pieza(markup, 'Panel', 'aria-label="Accounts"')
+    expect(lista).toMatch(/^<section data-ui="Panel"[^>]*aria-label="Accounts"/)
+    expect(lista).toMatch(/<ul class="divide-y divide-line">(?:<li class="[^"]*">)/)
+    expect(cuantas(lista, /<li\b/)).toBe(CUENTAS.length)
     for (const u of CUENTAS) {
-      expect(tarjeta(markup, u.email), u.email).toMatch(/^<section data-ui="Panel"/)
-      expect(tarjeta(markup, u.email)).toContain(`>${u.email}</span>`)
+      expect(tarjeta(lista, u.email), u.email).toMatch(/^<li class="[^"]*">/)
+      expect(tarjeta(lista, u.email)).not.toContain('data-ui="Panel"')
     }
     const yo = tarjeta(markup, 'me@cyclingstar.test')
     expect(chip(yo, 'neutral', 'you')).toBe(true)
@@ -160,6 +181,7 @@ describe('el panel de administración con el sistema (§17.21; PR 21m)', () => {
     expect(chip(ana, 'good', 'confirmed')).toBe(false)
     expect(chip(ana, 'accent', 'premium')).toBe(true)
     expect(cuantas(tarjeta(markup, 'bo@example.com'), /data-ui="Chip"/)).toBe(1)
+    expect(chip(tarjeta(markup, 'cris@example.com'), 'accent', 'admin')).toBe(true)
   })
 
   it('la línea de cada cuenta: el alta, el corredor y el equipo con su TextLink en la frase, o no rider', () => {
@@ -197,7 +219,7 @@ describe('el panel de administración con el sistema (§17.21; PR 21m)', () => {
     )
   })
 
-  it('lo que no se puede, deshabilitado con su porqué a la vista y sin title: el raíz y uno mismo', () => {
+  it('lo que no se puede, deshabilitado con su porqué a la vista y sin title: el raíz y uno mismo, y otro admin no', () => {
     const markup = pinta()
     const porque = (correo: string, accion: string, razon: string) => {
       const boton = pieza(tarjeta(markup, correo), 'Button', accion)
@@ -213,7 +235,42 @@ describe('el panel de administración con el sistema (§17.21; PR 21m)', () => {
     )
     porque('me@cyclingstar.test', 'Remove admin', 'You cannot remove your own admin rights')
     porque('me@cyclingstar.test', 'Delete…', 'Delete your own account from Account settings.')
+    // un admin que no es uno mismo ni el raíz se puede quitar y borrar: listo, sin porqué
+    const otro = tarjeta(markup, 'cris@example.com')
+    for (const accion of ['Remove admin', 'Delete…']) {
+      const boton = pieza(otro, 'Button', accion)
+      expect(estadoDe(boton), accion).toBe('ready')
+      expect(boton).not.toContain('aria-disabled')
+    }
     expect(markup).not.toMatch(/\stitle="/)
+  })
+
+  it('los botones de cada cuenta, con la cuenta en su nombre, que empieza por lo que dice el botón (WCAG 2.5.3)', () => {
+    const markup = pinta()
+    const nombre = (correo: string, accion: string): string | null =>
+      /\saria-label="([^"]+)"/.exec(pieza(tarjeta(markup, correo), 'Button', accion))?.[1] ?? null
+    expect(nombre('ana@example.com', 'Confirm email')).toBe('Confirm email for ana@example.com')
+    expect(nombre('ana@example.com', 'Remove premium')).toBe('Remove premium from ana@example.com')
+    expect(nombre('bo@example.com', 'Grant premium')).toBe('Grant premium to bo@example.com')
+    expect(nombre('bo@example.com', 'Make admin')).toBe('Make admin: bo@example.com')
+    expect(nombre('cris@example.com', 'Remove admin')).toBe('Remove admin from cris@example.com')
+    expect(nombre('bo@example.com', 'Delete…')).toBe('Delete bo@example.com…')
+    // también los deshabilitados, y la pregunta de borrar
+    expect(nombre('root@cyclingstar.test', 'Remove admin')).toBe(
+      'Remove admin from root@cyclingstar.test',
+    )
+    const pregunta = borrado({ confirming: true })
+    expect(pregunta).toContain('aria-label="Delete ana@example.com"')
+    expect(pregunta).toContain('aria-label="Cancel deleting ana@example.com"')
+    // cada nombre empieza por el texto del botón, sin sus puntos suspensivos
+    const botones = [
+      ...`${markup}${pregunta}`.matchAll(
+        /<button\b[^>]*\saria-label="([^"]+)"[^>]*><span[^>]*>([^<]+)<\/span>/g,
+      ),
+    ]
+    expect(botones.length).toBe(cuantas(markup, /<button\b/) + 2)
+    for (const [, n = '', visible = ''] of botones)
+      expect(n.startsWith(visible.replace(/…$/, '')), `${visible} → ${n}`).toBe(true)
   })
 
   it('borrar pregunta antes: Delete… abre la pregunta, con Delete en danger, ocupado mientras borra, y Cancel en quiet', () => {
