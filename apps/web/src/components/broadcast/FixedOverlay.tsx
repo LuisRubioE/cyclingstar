@@ -41,6 +41,9 @@ function useOverlaySummary(instant: Instant, head: OverlayHead): string {
   return next.text
 }
 
+/** Sin `onToggle` (los renders estáticos), tocarla no hace nada. */
+const NADA = (): void => {}
+
 /**
  * LA CAPA FIJA (docs/retransmision.md §6.2, 6-f; D-17): lo que la UCI pide «permanently viewed on
  * screen». A la izquierda, los km a meta de la cabeza (con un decimal; en metros dentro del último km;
@@ -64,9 +67,6 @@ function useOverlaySummary(instant: Instant, head: OverlayHead): string {
  * (`TimeTrialBoard`), y dentro, sin nada más, el `Expander` del catálogo, que se pulsa entero: la capa se
  * toca toda, como antes, con su resumen por nombre y `aria-expanded`, y su relleno va dentro del botón.
  */
-/** Sin `onToggle` (los renders estáticos), tocarla no hace nada. */
-const NADA = (): void => {}
-
 export function FixedOverlay({
   instant,
   head,

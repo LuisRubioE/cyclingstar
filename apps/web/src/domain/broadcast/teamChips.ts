@@ -69,7 +69,7 @@ export function teamLineOf(
 export interface FitOptions {
   /** el hueco entre fichas (`gap-x-1`) */
   readonly gapPx?: number
-  /** lo que mide `+N teams`, más que una ficha */
+  /** lo que mide `+N teams`, más que una ficha: el `Button` `control`, 91 px a 360 con DejaVu Sans (PR 21n) */
   readonly moreWidthPx?: number
   readonly lines?: number
 }
@@ -97,7 +97,7 @@ function fits(widthPx: number, widths: readonly number[], gapPx: number, lines: 
 export function fitTeamChips(
   widthPx: number,
   chipWidths: readonly number[],
-  { gapPx = 4, moreWidthPx = 60, lines = TEAM_KIT_LINES_MAX }: FitOptions = {},
+  { gapPx = 4, moreWidthPx = 91, lines = TEAM_KIT_LINES_MAX }: FitOptions = {},
 ): number {
   if (fits(widthPx, chipWidths, gapPx, lines)) return chipWidths.length
   for (let k = chipWidths.length - 1; k >= 0; k--)
