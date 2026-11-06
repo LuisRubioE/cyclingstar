@@ -131,7 +131,7 @@ export const BROADCAST = {
   // NOMBRES (§6.3, §7.5, §7.7; D-18, D-26, D-27)
   nameWholeGroupUpTo: 12, // corredores: un grupo de hasta 12 se nombra entero. Copia de NAME_WHOLE_GROUP_UP_TO, atada (§15.5)
   byNamesUpTo: 3, // corredores: un grupo de 3 o menos se rotula por sus nombres (GroupLabel 'names'; SPEC §6.15)
-  namesLineUpTo: 5, // corredores: uno de 4 a 5 lleva sus nombres bajo su fila de la barra, en lugar de la línea de equipos (W2)
+  namesLineUpTo: 5, // corredores: uno de 4 a 5 lleva bajo su fila de la barra a cada uno con su bandera, su nombre y su maillot, en lugar de la línea de equipos (W2a)
   namedGcTop: 10, // puestos de salida que se nombran en un grupo mayor que nameWholeGroupUpTo
   /** corredores nombrados como mucho por grupo y foto en la Race Radio; el resto se cuenta (+56 riders more). Era
    *  MAX_NAMED_PER_GROUP de apps/api/src/chronicle.ts (v47), que desde el 11a la lee de aquí, como radioFromTimeline */

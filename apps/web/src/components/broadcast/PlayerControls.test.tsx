@@ -225,13 +225,25 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
   })
 })
 
-// Hasta W2, `Commentary` era un mando de esta fila, que se esconde a los 3 s sin tocar (8-p), y el dueño no
+// Hasta W2a, `Commentary` era un mando de esta fila, que se esconde a los 3 s sin tocar (8-p), y el dueño no
 // veía «lo de atrás»: va bajo la línea de la voz (`VoiceTicker.test.tsx`), y la fila del teléfono se queda en
 // cuatro.
-describe('Commentary ya no va en los mandos (W2)', () => {
-  it('ni en la fila ni en la hoja, en ninguna fase', () => {
+describe('Commentary ya no va en los mandos (W2a)', () => {
+  it('ni en la fila, en ninguna fase, ni en la hoja de ⋯', () => {
     for (const phase of ['playing', 'paused', 'waiting'] as const)
       expect(controls({ phase })).not.toContain('Commentary')
+    const sheet = renderToStaticMarkup(
+      <PlayerSheet
+        view="watch"
+        jumps={ROAD}
+        canShowResult
+        onJump={noop}
+        onView={noop}
+        onShowResult={noop}
+      />,
+    )
+    expect(sheet).toContain('Final 20 km')
+    expect(sheet).not.toContain('Commentary')
   })
 })
 

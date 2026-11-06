@@ -34,6 +34,8 @@ import { WornJerseyIcon, wornTeamOf } from './WornJerseyIcon'
  * escritorio, con su nombre; en el móvil, solo los iconos y solo bajo la fila 1 y las del
  * espectador). Es, provisional hasta las palabras de la barra y las cartas del 6b (§6.3, §7.7), la
  * parte permanente del requisito del dueño: «cuando se escapan cinco, que se vean sus maillots».
+ * Desde W2a, uno de cuatro o cinco lleva debajo sus nombres, cada uno con su bandera y su maillot
+ * (`NamesLine`), también en el teléfono; la línea de equipos queda para los de seis a `nameWholeGroupUpTo`.
  *
  * En el móvil caben `mobileGroupRows` filas, elegidas por prioridad y pintadas en orden de carretera, más
  * las que llevan un maillot de líder, que no se pliegan nunca (W1); el resto se pliega en `+3 groups · 41
@@ -55,7 +57,7 @@ import { WornJerseyIcon, wornTeamOf } from './WornJerseyIcon'
  * Cada fila es un botón de 44 que abre debajo, en el flujo, la lista de sus corredores, una fila de 44
  * con su `RiderLabel` cada uno; otro toque la cierra, y abrir otra cierra la anterior. Un grupo de tres o
  * menos se nombra en su fila con el dorsal, la bandera, el nombre y el maillot, y parte de línea en lugar
- * de cortar. Uno de cuatro a `nameWholeGroupUpTo` lleva la línea de equipos (`teamLineOf`): delante, los
+ * de cortar. Uno de seis (cuatro hasta W2a) a `nameWholeGroupUpTo` lleva la línea de equipos (`teamLineOf`): delante, los
  * de líder y campeón (el nacional, con las letras de su país), y un `Kit` por equipo con su cuenta, los
  * que caben en dos renglones con el ancho medido (`fitTeamChips`) y `+N teams`, que abre la lista.
  */
@@ -243,7 +245,7 @@ export function GroupRow({
         </span>
       </Expander>
       {g.label.k !== 'names' && g.size <= BROADCAST.namesLineUpTo && (
-        <NamesLine group={g} cast={cast} />
+        <NamesLine group={g} cast={cast} kits={g.number === 1 || g.own} />
       )}
       {g.label.k !== 'names' &&
         g.size > BROADCAST.namesLineUpTo &&
@@ -313,15 +315,28 @@ function NamedRider({ card }: { card: RiderCard }) {
 }
 
 /**
- * LOS NOMBRES BAJO LA FILA de un grupo de cuatro a `namesLineUpTo` (W2, la revisión de `Watch` del dueño, su
+ * LOS NOMBRES BAJO LA FILA de un grupo de cuatro a `namesLineUpTo` (W2a, la revisión de `Watch` del dueño, su
  * punto 2: «si es un grupo de 2 o de 4 o de 5... debería poder verse quiénes son»). La fila sigue con su
  * palabra, su tamaño y sus maillots (el grupo del amarillo de cuatro sigue siendo `Race leader’s group`, D-18);
- * debajo, en lugar de la línea de equipos, sus corredores en el orden de la lista, cada uno con su bandera
- * y, si lleva uno, su maillot de líder o de campeón detrás (como la línea de equipos los ponía delante),
- * separados por `·`, que parten de línea antes que cortarse. También en el teléfono, en toda fila de cuatro o
- * cinco: son pocos, y saber quién va es lo que pedía. La identidad entera, al tocar la fila.
+ * debajo, en lugar de la línea de equipos, sus corredores en el orden de la lista, cada uno con su bandera, su
+ * nombre y su maillot de 28 (el de líder, el de campeón o el de su equipo), juntos y en ese orden (D-00c): los
+ * maillots de una fuga de cinco se siguen viendo sin tocarla ([DUEÑO 3]). Parten de línea antes que cortarse, y
+ * el `·` va detrás de cada uno, así que ningún renglón empieza por él. También en el teléfono, en toda fila de
+ * cuatro o cinco: son pocos, y saber quién va es lo que pedía. Allí, el maillot de su equipo solo bajo la fila 1
+ * y las del espectador (`kits`), como la línea de equipos (6-c): bajo las demás, con el de equipo, la barra
+ * crecía 60 px de mediana y hasta 182; los de líder y de campeón, siempre. La identidad entera, al tocar la fila.
  */
-function NamesLine({ group, cast }: { group: GroupNow; cast: readonly RiderCard[] }) {
+function NamesLine({
+  group,
+  cast,
+  kits,
+}: {
+  group: GroupNow
+  cast: readonly RiderCard[]
+  /** el maillot de su equipo también en el teléfono: la fila 1 y las del espectador (6-c) */
+  kits: boolean
+}) {
+  const last = group.members.length - 1
   return (
     <p
       data-names-line=""
@@ -330,19 +345,21 @@ function NamesLine({ group, cast }: { group: GroupNow; cast: readonly RiderCard[
       {group.members.map((r, i) => {
         const card = cast[r]
         return (
-          <Fragment key={r}>
-            {i > 0 && <span className="text-ink-3">·</span>}
-            <span className="inline-flex items-center gap-1">
-              {card !== undefined && <Flag country={card.country} height={12} />}
-              <span className="wrap-anywhere">
-                {card === undefined ? nameOf(cast)(r) : card.name}
-              </span>
-              {/* el maillot de líder o de campeón, tras su nombre: quién lo lleva (el del equipo, en la lista) */}
-              {card !== undefined && card.worn.kind !== 'team' && (
-                <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
-              )}
+          <span key={r} data-named={r} className="inline-flex items-center gap-1">
+            {card !== undefined && <Flag country={card.country} height={12} />}
+            <span className="wrap-anywhere">
+              {card === undefined ? nameOf(cast)(r) : card.name}
             </span>
-          </Fragment>
+            {card !== undefined &&
+              (card.worn.kind !== 'team' || kits ? (
+                <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
+              ) : (
+                <span data-kit-desktop="" className="hidden sm:inline-flex">
+                  <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
+                </span>
+              ))}
+            {i < last && <span className="text-ink-3">·</span>}
+          </span>
         )
       })}
     </p>
@@ -418,7 +435,7 @@ function Chip({ chip, cast }: { chip: LineChip; cast: readonly RiderCard[] }) {
 }
 
 /**
- * La línea de equipos de un grupo de cuatro a doce (§14.4): las fichas que caben en dos renglones, con
+ * La línea de equipos de un grupo de seis a doce (§14.4; de cuatro hasta W2a): las fichas que caben en dos renglones, con
  * lo medido (`ResizeObserver`), y `+N teams`, que abre la lista del grupo. Sin medir (en el servidor, o
  * antes de la primera pintura), todas.
  */

@@ -16,13 +16,14 @@ import { LeaderJersey } from '../ui/LeaderJersey'
  *
  * No es una región viva: el anuncio es por rótulo, no por línea (§18.8).
  *
- * Desde el PR 20 (E3, docs/visual.md §14.5; Ruso-040, 14-i), con tokens. Desde W2 (la revisión de `Watch`
+ * Desde el PR 20 (E3, docs/visual.md §14.5; Ruso-040, 14-i), con tokens. Desde W2a (la revisión de `Watch`
  * del dueño, su punto 7: «aparecen truncados a menudo, no da para leerlos y solo se ve 1, no se ve lo de
  * atrás»), la línea dicha entera: parte de línea en lugar de cortarse (a 360 px, en un renglón solo cabía
- * entera una de cada diez), con tres renglones reservados en cuanto se ha dicho algo, los de nueve de cada
- * diez, para que lo de abajo no salte con cada una. Y `Commentary` va aquí, justo bajo la línea, con las ya
- * dichas contadas (`Commentary · 12`), y no en los mandos, que se esconden a los 3 s sin tocar (8-p): abre
- * el historial debajo, sin repetir la de ahora, que va entera encima.
+ * entera una de cada diez), con tres renglones reservados desde el principio (60 px, los de seis de cada siete
+ * a 360; una con un maillot de 28 sube su renglón), para que lo de abajo no salte con cada una. Y `Commentary`
+ * va aquí, justo bajo la línea, con las ya dichas contadas (`Commentary · 12`), y no en los mandos, que se
+ * esconden a los 3 s sin tocar (8-p): abre el historial debajo, sin repetir la de ahora, que va entera encima,
+ * y cada línea con su clave de siempre, así que una nueva no repinta las demás.
  */
 export function VoiceTicker({
   lines,
@@ -39,7 +40,7 @@ export function VoiceTicker({
   /** `Commentary`: las líneas ya dichas */
   open: boolean
   /** abre o cierra `Commentary` */
-  onToggle?: () => void
+  onToggle: () => void
   /** los últimos `quietFinalM`: la voz calla */
   quiet?: boolean
   /** por línea, el corredor no estaba nombrado antes de ella (`inVoice`, `unnamedBefore`) */
@@ -54,13 +55,13 @@ export function VoiceTicker({
   const before = last === undefined ? said : said.slice(0, -1)
   return (
     <div className="space-y-1">
-      {/* tres renglones reservados en cuanto hay algo dicho, también callada en el final: no salta lo de abajo */}
-      <p className={`${said.length > 0 ? 'min-h-15 ' : ''}text-meta text-ink`} aria-live="off">
+      {/* tres renglones reservados desde el principio, también callada en el final: no salta lo de abajo */}
+      <p className="min-h-15 text-meta text-ink" aria-live="off">
         {last !== undefined && <Item item={last} rev={rev} />}
       </p>
       {before.length > 0 && (
         <>
-          <Expander expanded={open} controls={HISTORY_ID} onToggle={onToggle ?? (() => undefined)}>
+          <Expander expanded={open} controls={HISTORY_ID} onToggle={onToggle}>
             <span className="text-meta font-semibold text-ink-2">
               Commentary <span className="tabular-nums">· {before.length}</span>
             </span>
@@ -72,16 +73,20 @@ export function VoiceTicker({
             className="max-h-72 space-y-1.5 overflow-y-auto border-t border-line pt-2"
           >
             {open &&
-              [...before].reverse().map((l, i) => (
-                <li key={`${l.revealS}-${i}`} className="flex gap-2 text-meta">
-                  <span className="w-14 shrink-0 text-right tabular-nums text-ink-3">
-                    km {l.km}
-                  </span>
-                  <span className="text-ink">
-                    <Item item={l} rev={rev} />
-                  </span>
-                </li>
-              ))}
+              // la clave, por su sitio desde la primera: una línea nueva no cambia la de las demás
+              before
+                .map((l, k) => ({ l, k }))
+                .reverse()
+                .map(({ l, k }) => (
+                  <li key={`${l.revealS}-${k}`} className="flex gap-2 text-meta">
+                    <span className="w-14 shrink-0 text-right tabular-nums text-ink-3">
+                      km {l.km}
+                    </span>
+                    <span className="text-ink">
+                      <Item item={l} rev={rev} />
+                    </span>
+                  </li>
+                ))}
           </ol>
         </>
       )}

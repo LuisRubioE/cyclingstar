@@ -83,10 +83,11 @@ const POR_QUE_SALTO: Readonly<Record<JumpWhy, string>> = {
  *
  * Desde el PR 20 (E3, docs/visual.md §14.6; O-18): en el ámbito oscuro; los iconos `pause`, `play` y
  * `more` en lugar de `❚❚`, `▶︎` y `⋯`, que `ui/10` marca; y cada mando de 44 × 44 como mínimo, así que a
- * 360 px la fila parte en dos renglones. Ninguno es `primary`: el de `Watch` es el de la previa o el del
- * cierre, uno por carrera. Dicen si están escondidos en `data-state`.
+ * 360 px la fila partía en dos renglones (hasta W2a; sin `Commentary`, cabe en uno a 320, 360 y 390).
+ * Ninguno es `primary`: el de `Watch` es el de la previa o el del cierre, uno por carrera. Dicen si están
+ * escondidos en `data-state`.
  *
- * Desde W2 (la revisión de `Watch` del dueño, su punto 7), sin `Commentary`: va bajo la línea de la voz
+ * Desde W2a (la revisión de `Watch` del dueño, su punto 7), sin `Commentary`: va bajo la línea de la voz
  * (`VoiceTicker`), porque aquí se escondía a los 3 s con los demás y el dueño no veía «lo de atrás».
  */
 export function PlayerControls({

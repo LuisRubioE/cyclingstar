@@ -635,7 +635,7 @@ los datos de la línea: `mainRole`, `groupRole`, `mainJersey` y `groupJersey`); 
 acta de quien no tiene `Watch` encendido, una etapa sin línea grabada), `the bunch`. Un solo grupo en
 carretera es `the bunch` (`Bunch together` en la barra). Con tres corredores o menos, el grupo se
 nombra por sus corredores, sea cual sea su papel; con cuatro o cinco, por su palabra, y la barra lleva
-además sus nombres bajo su fila (la revisión de `Watch` del dueño, W2).
+además sus nombres bajo su fila (la revisión de `Watch` del dueño, W2a).
 
 **Qué grupo es el grueso lo decide el corte de dos tercios**, sobre el instante de la retransmisión
 (`groupRoleOf`, con `BROADCAST.bunchMinShare`, atada por test a `PELOTON_MIN_SHARE` del motor), y no

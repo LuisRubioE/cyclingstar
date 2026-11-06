@@ -17,6 +17,7 @@ import { castOf, leaderWorn } from './__fixtures__/screen'
  */
 
 const CAST = castOf(20, { 4: { worn: leaderWorn('gc') } })
+const noop = (): void => {}
 /** Con nombre, el líder: lo que `namedRidersOf` nombraría en un grupo grande. */
 const UNNAMED = () => (id: string) => id !== CAST[4]!.id
 
@@ -53,7 +54,7 @@ const textOf = (markup: string): string =>
 describe('VoiceTicker · la voz a su hora (§12.2)', () => {
   it('cada mención con su bandera, la Flag del catálogo, y ninguna de la de antes (PR 21n)', () => {
     const s = renderToStaticMarkup(
-      <VoiceTicker lines={LINES} t={100} open={false} unnamed={UNNAMED} />,
+      <VoiceTicker lines={LINES} t={100} open={false} unnamed={UNNAMED} onToggle={noop} />,
     )
     expect(s).toMatch(/data-ui="Flag"[^>]*data-state="ready"[^>]*aria-label="Spain"/)
     expect(s).not.toContain('class="flag')
@@ -62,7 +63,9 @@ describe('VoiceTicker · la voz a su hora (§12.2)', () => {
   it('dice la última línea con revealS hasta t, nunca una de después', () => {
     const at = (t: number) =>
       textOf(
-        renderToStaticMarkup(<VoiceTicker lines={LINES} t={t} open={false} unnamed={UNNAMED} />),
+        renderToStaticMarkup(
+          <VoiceTicker lines={LINES} t={t} open={false} unnamed={UNNAMED} onToggle={noop} />,
+        ),
       )
     expect(at(50)).toBe('')
     expect(at(100)).toContain(CAST[1]!.name)
@@ -73,7 +76,9 @@ describe('VoiceTicker · la voz a su hora (§12.2)', () => {
 
   it('el descuelgue de un corredor sin nombrar lo cuenta la barra; el de un líder, la voz', () => {
     const open = textOf(
-      renderToStaticMarkup(<VoiceTicker lines={LINES} t={1000} open unnamed={UNNAMED} />),
+      renderToStaticMarkup(
+        <VoiceTicker lines={LINES} t={1000} open unnamed={UNNAMED} onToggle={noop} />,
+      ),
     )
     expect(open).not.toContain(CAST[7]!.name)
     expect(open).toContain(CAST[4]!.name)
@@ -81,7 +86,7 @@ describe('VoiceTicker · la voz a su hora (§12.2)', () => {
 
   it('Commentary: las anteriores, la más reciente arriba, sin repetir la que dice ahora, que va entera encima', () => {
     const markup = renderToStaticMarkup(
-      <VoiceTicker lines={LINES} t={1000} open unnamed={UNNAMED} />,
+      <VoiceTicker lines={LINES} t={1000} open unnamed={UNNAMED} onToggle={noop} />,
     )
     const list = markup.slice(markup.indexOf('<ol'))
     expect(list.indexOf(CAST[4]!.name)).toBeLessThan(list.indexOf(CAST[1]!.name))
@@ -89,13 +94,15 @@ describe('VoiceTicker · la voz a su hora (§12.2)', () => {
     expect(markup.slice(0, markup.indexOf('<ol'))).toContain(CAST[3]!.name)
   })
 
-  it('en los últimos quietFinalM calla la línea (§6.9), pero lo ya dicho sigue a mano (W2)', () => {
+  it('en los últimos quietFinalM calla la línea (§6.9), pero lo ya dicho sigue a mano (W2a)', () => {
     const markup = renderToStaticMarkup(
-      <VoiceTicker lines={LINES} t={1000} open={false} quiet unnamed={UNNAMED} />,
+      <VoiceTicker lines={LINES} t={1000} open={false} quiet unnamed={UNNAMED} onToggle={noop} />,
     )
     // ninguna línea arriba: solo el mando del historial, con las tres ya dichas (la de un corredor sin
     // nombrar no la dice la voz)
     expect(textOf(markup)).toBe('Commentary · 3')
+    // y el sitio de la línea, guardado: no salta lo de abajo en el final
+    expect(/^<div[^>]*><p([^>]*)>/.exec(markup)?.[1]).toMatch(/class="[^"]*\bmin-h-15\b/)
   })
 })
 
@@ -103,7 +110,7 @@ describe('VoiceTicker · lo que pone la web en la voz (§12.5; 6b)', () => {
   const at = (lines: LiveLine[], t: number, extras = {}) =>
     textOf(
       renderToStaticMarkup(
-        <VoiceTicker lines={lines} t={t} open unnamed={UNNAMED} extras={extras} />,
+        <VoiceTicker lines={lines} t={t} open unnamed={UNNAMED} onToggle={noop} extras={extras} />,
       ),
     )
 
@@ -137,16 +144,16 @@ describe('VoiceTicker · lo que pone la web en la voz (§12.5; 6b)', () => {
 })
 
 /**
- * LA VOZ ENTERA (W2, la revisión de `Watch` del dueño, su punto 7: «aparecen truncados a menudo, no da para
- * leerlos y solo se ve 1, no se ve lo de atrás»). Hasta W2 la línea iba en un renglón cortado con
+ * LA VOZ ENTERA (W2a, la revisión de `Watch` del dueño, su punto 7: «aparecen truncados a menudo, no da para
+ * leerlos y solo se ve 1, no se ve lo de atrás»). Hasta W2a la línea iba en un renglón cortado con
  * `data-clip-ok` (14-i, Ruso-040), y a 360 px solo cabía entera una de cada diez. Ahora parte de línea, con
  * tres renglones reservados en cuanto se ha dicho algo (los de nueve de cada diez a 360), para que lo de
  * abajo no salte con cada una. Y sigue sin ser una región viva (§18.8).
  */
-describe('VoiceTicker · la línea entera (W2)', () => {
+describe('VoiceTicker · la línea entera (W2a)', () => {
   it('parte de línea: sin truncate ni data-clip-ok, con su alto reservado y aria-live off', () => {
     const markup = renderToStaticMarkup(
-      <VoiceTicker lines={LINES} t={950} open unnamed={UNNAMED} />,
+      <VoiceTicker lines={LINES} t={950} open unnamed={UNNAMED} onToggle={noop} />,
     )
     const p = /^<div[^>]*><p([^>]*)>/.exec(markup)?.[1] ?? ''
     expect(p).toContain('aria-live="off"')
@@ -155,12 +162,13 @@ describe('VoiceTicker · la línea entera (W2)', () => {
     expect(markup).not.toContain('data-clip-ok')
   })
 
-  it('antes de la primera línea, sin alto reservado ni historial', () => {
+  it('antes de la primera línea, el mismo sitio guardado y sin historial: la primera no lo mueve', () => {
     const markup = renderToStaticMarkup(
-      <VoiceTicker lines={LINES} t={50} open={false} unnamed={UNNAMED} />,
+      <VoiceTicker lines={LINES} t={50} open={false} unnamed={UNNAMED} onToggle={noop} />,
     )
-    expect(markup).not.toContain('min-h-15')
+    expect(/^<div[^>]*><p([^>]*)>/.exec(markup)?.[1]).toMatch(/class="[^"]*\bmin-h-15\b/)
     expect(markup).not.toContain('data-ui="Expander"')
+    expect(textOf(markup)).toBe('')
   })
 })
 
@@ -173,16 +181,18 @@ function elementsOf(node: ReactNode): ReactElement[] {
 }
 
 /**
- * `Commentary`, EN LA TARJETA DE LA VOZ (W2): hasta W2 era un mando de `PlayerControls`, que se esconde a los
+ * `Commentary`, EN LA TARJETA DE LA VOZ (W2a): hasta W2a era un mando de `PlayerControls`, que se esconde a los
  * 3 s sin tocar (8-p), y el dueño no veía «lo de atrás». Ahora va justo bajo la línea, un `Expander` del
  * catálogo con las ya dichas contadas, que abre el historial debajo: `aria-expanded`, y `aria-controls` a la
  * lista, que está en el árbol también cerrada.
  */
-describe('VoiceTicker · Commentary, bajo la línea (W2)', () => {
+describe('VoiceTicker · Commentary, bajo la línea (W2a)', () => {
   const closed = renderToStaticMarkup(
-    <VoiceTicker lines={LINES} t={1000} open={false} unnamed={UNNAMED} />,
+    <VoiceTicker lines={LINES} t={1000} open={false} unnamed={UNNAMED} onToggle={noop} />,
   )
-  const opened = renderToStaticMarkup(<VoiceTicker lines={LINES} t={1000} open unnamed={UNNAMED} />)
+  const opened = renderToStaticMarkup(
+    <VoiceTicker lines={LINES} t={1000} open unnamed={UNNAMED} onToggle={noop} />,
+  )
 
   it('un Expander con las anteriores contadas, que dice si está abierto y a qué lista abre', () => {
     for (const [markup, open] of [
@@ -211,11 +221,23 @@ describe('VoiceTicker · Commentary, bajo la línea (W2)', () => {
 
   it('sin nada dicho antes de la de ahora, sin Commentary', () => {
     const markup = renderToStaticMarkup(
-      <VoiceTicker lines={LINES} t={100} open={false} unnamed={UNNAMED} />,
+      <VoiceTicker lines={LINES} t={100} open={false} unnamed={UNNAMED} onToggle={noop} />,
     )
     expect(textOf(markup)).toContain(CAST[1]!.name)
     expect(markup).not.toContain('data-ui="Expander"')
     expect(markup).not.toContain('<ol')
+  })
+
+  it('cada línea del historial guarda su clave cuando llega otra: no se repintan todas', () => {
+    const keys = (t: number) =>
+      elementsOf(VoiceTicker({ lines: LINES, t, open: true, unnamed: UNNAMED, onToggle: noop }))
+        .filter((e) => e.type === 'li')
+        .map((e) => String(e.key))
+    const before = keys(800) // dos dichas antes de la de ahora
+    const after = keys(1000) // y una más
+    expect(before).toHaveLength(1)
+    expect(after).toHaveLength(2)
+    expect(after).toContain(before[0])
   })
 
   it('tocarlo llama a onToggle', () => {
