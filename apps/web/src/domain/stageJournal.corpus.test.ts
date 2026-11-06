@@ -108,13 +108,17 @@ function b5Lines(): string[] {
  * cambian de sitio las marcas, en 831 de ellas. Era `d54f2219c8ede513c00471cc09c514bcf20f8a4f53f8a90a0ca8121f9796224b`.
  *
  * RE-SELLADO EN W1 (la revisión de `Watch` del dueño, su punto 4): el grupo de cabeza que lleva el amarillo y
- * no es el pelotón se llama `Race leader’s group` en la barra, y la voz dice la palabra de la barra (D-18).
- * La voz congelada de la e18 gana el maillot en 8 líneas y la de la e20 en 2 (`mainJersey`, y nada más), y de
- * las 968 que se pintan cambia una, en la e18: `The lead group closes it down` pasa a `The race leader’s
- * group closes it down`; las otras nueve usan plantillas que no nombran al grupo. Era
+ * no es el pelotón se llama `Race leader’s group` en la barra, y la voz dice la palabra de la barra (D-18),
+ * por el grupo del título cuando va en cabeza (`mainJersey`) y por la cabeza de ahora (`leadJersey`, en las
+ * plantillas de `HEAD_GROUP_TEMPLATES`, apps/api). La voz congelada gana `mainJersey` en 10 líneas (8 de la
+ * e18 y 2 de la e20) y `leadJersey` en 11 (8 de la e18, 2 de la e20 y 1 de la e5 de Colombia), 17 en
+ * total, y nada más. De las 1.020 que se pintan cambian nueve, y en todas `the lead group` pasa a `the race
+ * leader’s group`: siete de la e18 (el grupo que cierra un ataque, una selección, un corte y cuatro partes
+ * de ventaja), una selección de la e20 y la cabeza que crece en la e5. Las otras ocho anotadas no nombran a
+ * un grupo por su palabra: nombran corredores o a nadie. Era
  * `833679eca9e3f19df7ce87f8c27aed31618789734ffc04c809384e58649cc091`.
  */
-const B5_SHA256 = '1808551a8619c31e66bc34c9e7d562cc50b610c9dc0a72ff7dc580b5ee43eb56'
+const B5_SHA256 = '778415ffb431d94314ecf61c3351f6904bada79013dee3ca8c0a7d744c900949'
 
 const CHILD = process.env.CORPUS_CHILD_OUT
 
@@ -158,6 +162,22 @@ else {
         rmSync(dir, { recursive: true, force: true })
       }
     }, 150_000)
+  })
+
+  describe('W1 · la cabeza que lleva el amarillo, en la voz congelada (D-18)', () => {
+    it('ninguna línea anotada con el maillot de la cabeza dice the lead group', () => {
+      const anotadas: string[] = []
+      const malas: string[] = []
+      for (const name of FIXTURES)
+        fixtureOf(name, 'voz').forEach((e, i) => {
+          if (e.datos?.leadJersey === undefined) return
+          anotadas.push(`${name} ${i}`)
+          for (const l of painted(e)) if (/the lead group/i.test(l)) malas.push(`${name} ${i} ${l}`)
+        })
+      // las once de la e18, la e20 y la e5 de Colombia (el re-sellado de W1, arriba)
+      expect(anotadas).toHaveLength(11)
+      expect(malas).toEqual([])
+    })
   })
 
   describe('B5 · lo que dicen las etapas ya vistas no cambia (§12.7, §16.4)', () => {

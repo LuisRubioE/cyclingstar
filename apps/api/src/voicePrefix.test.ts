@@ -24,6 +24,7 @@ import { recordedClockOf } from './broadcastSource.js'
 import { type ChronicleEvent, buildChronicle } from './chronicle.js'
 import { chunkLinesOf } from './routes/broadcast.js'
 import {
+  HEAD_GROUP_TEMPLATES,
   MAIN_GROUP_TEMPLATES,
   type VoiceClusters,
   lineVoiceOf,
@@ -198,7 +199,7 @@ const B8_ROLES_WARMUP = 2
 
 describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b, 12-n)', () => {
   it.each(ROAD_FIXTURES)(
-    '%s: anota el papel del grupo del título en su hora, y nada más',
+    '%s: anota el papel del grupo del título y el maillot de la cabeza en su hora, y nada más',
     (name) => {
       const tl = loadTimeline(name)
       const ctx = rolesContextOf(tl)
@@ -210,15 +211,23 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
       expect(out).toHaveLength(stored.length)
       out.forEach((ev, i) => {
         const before = stored[i]!
-        if (!MAIN_GROUP_TEMPLATES.has(before.plantilla)) return expect(ev).toBe(before)
-        const g = instantAt(tl, at(before), ctx).groups.find((x) => x.kind === 'peloton')
+        const main = MAIN_GROUP_TEMPLATES.has(before.plantilla)
+        const atHead = HEAD_GROUP_TEMPLATES.has(before.plantilla)
+        if (!main && !atHead) return expect(ev).toBe(before)
+        const now = instantAt(tl, at(before), ctx)
+        const g = main ? now.groups.find((x) => x.kind === 'peloton') : undefined
         const jersey = g?.label.k === 'jersey_group' ? g.label.jersey : undefined
         // el título en gruppetto por la histéresis no se anota (voiceRoles.ts): dice the bunch
         const role = g?.role === 'gruppetto' ? undefined : g?.role
-        if (role === undefined && jersey === undefined) return expect(ev).toBe(before)
+        // la cabeza, la primera fila de la barra con alguien dentro, y el maillot que la nombra (W1)
+        const head = atHead ? now.groups.find((x) => x.members.length > 0) : undefined
+        const leadJersey = head?.label.k === 'jersey_group' ? head.label.jersey : undefined
+        if (role === undefined && jersey === undefined && leadJersey === undefined)
+          return expect(ev).toBe(before)
         expect(ev).not.toBe(before) // una copia: la ruta ata las horas después (12-n)
         expect(ev.datos?.mainRole).toBe(role)
         expect(ev.datos?.mainJersey).toBe(jersey)
+        expect(ev.datos?.leadJersey).toBe(leadJersey)
         // lo demás, igual: los datos de antes siguen y el suceso es el mismo
         expect({ ...ev, datos: null }).toEqual({ ...before, datos: null })
         expect(ev.datos).toMatchObject(before.datos ?? {})
@@ -245,6 +254,30 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
     expect(roles.get('chase') ?? 0).toBeGreaterThan(0)
     // el título en gruppetto no se anota: la voz no dice the gruppetto por él (GROUP_NOUNS)
     expect(roles.get('gruppetto') ?? 0).toBe(0)
+  })
+
+  it('en las cinco: la cabeza que lleva el amarillo se anota, y solo con él (W1)', () => {
+    const heads = new Map<string, number>()
+    for (const name of ROAD_FIXTURES) {
+      const tl = loadTimeline(name)
+      const stored = loadEvents(name)
+      const finishS = fromDs(visibilityOf(tl).finishDs)
+      const hora = new Map(tl.events.flatMap((e) => (e.source >= 0 ? [[e.source, e.revealS]] : [])))
+      const at = (ev: ChronicleEvent): RaceS => hora.get(stored.indexOf(ev)) ?? finishS
+      for (const ev of withGroupRoles(stored, tl, at, rolesContextOf(tl))) {
+        if (ev.datos?.leadJersey === undefined) continue
+        expect(HEAD_GROUP_TEMPLATES.has(ev.plantilla), ev.plantilla).toBe(true)
+        const k = `${name}:${String(ev.datos.leadJersey)}`
+        heads.set(k, (heads.get(k) ?? 0) + 1)
+      }
+    }
+    console.info(
+      `[broadcast] withGroupRoles, la cabeza en las cinco: ${JSON.stringify([...heads])}`,
+    )
+    // en cabeza solo nombra el amarillo (§6.3), y la e1 de Flanders, de un día, no lo tiene
+    expect([...heads.keys()].every((k) => k.endsWith(':gc'))).toBe(true)
+    expect([...heads.keys()].some((k) => k.startsWith('race-flanders-e1'))).toBe(false)
+    expect([...heads.values()].reduce((a, b) => a + b, 0)).toBeGreaterThan(0)
   })
 
   /**

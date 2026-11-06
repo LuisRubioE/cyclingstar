@@ -53,7 +53,8 @@ import { TextLink, gluedLastWord } from './ui/TextLink'
  * cabeza y él, `Chase group`; detrás, `Gruppetto`; sin grueso, persigue lo que va con el título o por
  * delante y la referencia de `chaseReferenceIndex`. El grupo de un maillot de líder que persigue o va
  * descolgado se llama por el maillot (`Race leader’s group`, `Mountains leader’s group`…, por
- * `JERSEY_PRIORITY`), y uno de tres o menos, por sus corredores.
+ * `JERSEY_PRIORITY`), y desde W1 también el de cabeza con el amarillo que no es el pelotón; uno de tres o
+ * menos, por sus corredores.
  *
  * Re-sellado a propósito en el 6b (`raceRadioNames.test.tsx`, seis `it`, los ocho casos de §6.3): se
  * retiran `Peloton` (DD-04: la palabra es `Bunch`), `No man’s land` (el suelto se nombra), `2nd group` y

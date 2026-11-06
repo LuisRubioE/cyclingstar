@@ -366,6 +366,20 @@ describe('overlaySummaryText · la capa fija, en dos frases (§14.3)', () => {
     expect(text).not.toContain('lead group 40 riders')
   })
 
+  it('la cabeza que lleva el amarillo, con la palabra de su fila (W1): race leader’s group', () => {
+    const instant = instantOf(
+      [
+        { members: [0, 1, 2, 3, 4], km: 86.5, jerseys: ['gc'] },
+        { members: range(5, 40), km: 85.5, gapS: 134, kind: 'peloton' },
+      ],
+      { t: 600, mainGap: { ahead: 0, behind: 1, gapS: 134, trend: null, ref: 'bunch' } },
+    )
+    expect(instant.groups[0]!.label).toEqual({ k: 'jersey_group', jersey: 'gc' })
+    expect(overlaySummaryText(instant, HEAD)).toMatch(
+      /^98\.5 km to go, race leader’s group 5 riders, bunch at 2 minutes 14\. /,
+    )
+  })
+
   it('un solo grupo: bunch together, sin cabeza ni diferencia', () => {
     const together = instantOf([{ members: range(0, 40), km: 86.5, kind: 'peloton' }], {
       t: 7200,

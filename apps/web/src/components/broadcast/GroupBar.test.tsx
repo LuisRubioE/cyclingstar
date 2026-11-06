@@ -312,16 +312,16 @@ describe('GroupBar · el móvil: mobileGroupRows filas y el resto plegado (6-c)'
         g.number === 6
           ? { ...g, own: true }
           : g.number === 7
-            ? { ...g, jerseys: ['points' as const] }
+            ? { ...g, jerseys: ['kom' as const] }
             : g,
       ),
     }
     const markup = html(<GroupBar instant={two} cast={CAST} clock="exact" />)
     const hidden = rowsOf(markup).map((r) => /data-mobile="folded"/.test(r.slice(0, 200)))
-    // la 1, la del líder (2), el pelotón (4), la del espectador (6) y la de los puntos (7): cinco; se pliegan
-    // la 3 y la 5
+    // la 1, la del líder (2), el pelotón con los puntos (4), la del espectador (6) y la de la montaña (7):
+    // cinco; se pliegan la 3 (2 corredores) y la 5 (35)
     expect(hidden).toEqual([false, false, true, false, true, false, false])
-    expect(textOf(markup)).toMatch(/\+2 groups · \d+ riders/)
+    expect(textOf(markup)).toContain('+2 groups · 37 riders')
   })
 
   it('desplegada, ninguna plegada; con cuatro grupos o menos, nada que plegar', () => {

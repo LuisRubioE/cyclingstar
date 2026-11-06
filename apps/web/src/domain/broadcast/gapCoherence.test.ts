@@ -80,6 +80,67 @@ describe('la barra de Race Alps, etapa 1 (W1)', () => {
     expect(malas.slice(0, 8), `${malas.length} filas por debajo de la de delante`).toEqual([])
   })
 
+  /** Lo que enseñan las filas en un instante: cuántos van y su diferencia. */
+  const shownAt = (t: number) =>
+    rowsOf(instantAt(line.core, t, ctx)).map((g) => [g.size, mainGapText(g.gap.toHeadS)])
+
+  it('los tres episodios del dueño, con la cifra de la fila de delante', () => {
+    // km 59,5: el de delante leyó en el 59 (+0:13) y el de detrás aún en el 58 (+0:10)
+    expect(shownAt(4818)).toEqual([
+      [6, 's.t.'],
+      [90, '+0:13'],
+      [2, '+0:13'],
+    ])
+    // km 96,6: los dos leyeron en el mismo km, y el de detrás había pasado antes por él (+1:02)
+    expect(shownAt(8018)).toEqual([
+      [4, 's.t.'],
+      [72, '+0:34'],
+      [1, '+1:06'],
+      [17, '+1:06'],
+      [1, '+1:20'],
+    ])
+    // km 115,2: el recién nacido sin lectura propia ni de su origen, que caía al s.t. de la salida
+    expect(shownAt(9798)).toEqual([
+      [2, 's.t.'],
+      [4, '+0:13'],
+      [7, '+0:13'],
+      [22, '+0:35'],
+      [30, '+1:34'],
+      [24, '+3:16'],
+    ])
+  })
+
+  it('la cifra prestada de un km posterior es lo menos que la fila enseña al cruzar ese km', () => {
+    // Cada 2 s, lo que enseña cada grupo y dónde lo leyó; una fila que enseña la cifra de la de delante,
+    // leída en un km posterior, la toma prestada, y al cruzar ella ese km no puede enseñar menos: pasa
+    // por él después. Antes de W1, su lectura propia allí no bajó de esa cifra en ninguna de las 173 veces
+    // (docs/retransmision.md §3.5).
+    const seen = new Map<number, { t: number; km: number; s: number }[]>()
+    const prestadas: { g: number; t: number; km: number; s: number }[] = []
+    for (let t = 0; t <= fin; t += 2) {
+      const rows = rowsOf(instantAt(line.core, t, ctx))
+      rows.forEach((g, k) => {
+        seen.set(g.g, [...(seen.get(g.g) ?? []), { t, km: g.gap.atKm, s: g.gap.toHeadS }])
+        const a = rows[k - 1]
+        if (k >= 2 && a !== undefined && g.gap.toHeadS === a.gap.toHeadS && g.gap.atKm < a.gap.atKm)
+          prestadas.push({ g: g.g, t, km: a.gap.atKm, s: a.gap.toHeadS })
+      })
+    }
+    let cruces = 0
+    const malas: string[] = []
+    for (const p of prestadas) {
+      const at = seen.get(p.g)!.find((x) => x.t > p.t && Math.abs(x.km - p.km) < 1e-6)
+      if (at === undefined) continue // muere o se funde antes de cruzarlo
+      cruces++
+      if (at.s < p.s - 0.5)
+        malas.push(
+          `t=${p.t}: ${mainGapText(p.s)} prestado del km ${p.km.toFixed(1)}, y ${mainGapText(at.s)} al cruzarlo`,
+        )
+    }
+    expect(malas.slice(0, 8), `${malas.length} de ${cruces}`).toEqual([])
+    expect(cruces).toBeGreaterThan(100)
+  })
+
   it('la capa fija dice del pelotón lo mismo que su fila de la barra, en cada instante', () => {
     const distintas: string[] = []
     for (let t = 0; t <= fin; t += 2) {

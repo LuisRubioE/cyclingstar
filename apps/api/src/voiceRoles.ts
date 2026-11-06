@@ -1,11 +1,12 @@
 import {
   BROADCAST,
+  type GroupPick,
   type InstantContext,
   type RaceS,
   type RiderIx,
   type StageTimeline,
   fromDs,
-  groupRoleAt,
+  groupRolesAt,
   photoBlocksOf,
   visibilityOf,
 } from '@cyclingstar/shared'
@@ -38,6 +39,40 @@ export const MAIN_GROUP_TEMPLATES: ReadonlySet<string> = new Set([
 ])
 
 /**
+ * Las plantillas que nombran a LA CABEZA DE AHORA con «the lead group» (W1, la revisión de `Watch` del dueño,
+ * su punto 4): desde W1 la barra llama `Race leader’s group` al grupo de cabeza que lleva el amarillo y no es
+ * el pelotón, y la voz dice su palabra (D-18). Fuera, las que dicen «the lead group» por otro grupo: la fuga
+ * que se caza (`breakaway_caught`), que ya no va en cabeza; el grupo del que se sale (`attack_go`), que en la
+ * hora de la línea puede ir ya segundo; la fuga del día al nacer (`breakaway_formed`), que se presenta con
+ * ese nombre; y la meta (`stage_win`), que no es de la voz.
+ */
+export const HEAD_GROUP_TEMPLATES: ReadonlySet<string> = new Set([
+  'time_gap',
+  'time_gap_run',
+  'bridge_made',
+  'break_cooperation',
+  'break_share',
+  'sprinters_chase',
+  'peloton_pull',
+  'peloton_concedes',
+  'peloton_selection',
+  'peloton_regroup',
+  'peloton_split',
+  'echelon_split',
+  'front_group',
+])
+
+/**
+ * La cabeza de la barra (la primera fila con alguien dentro, en el orden visto) si lleva al amarillo: la
+ * única que un maillot puede nombrar en cabeza (§6.3, W1). Sin él dentro, `groupRolesAt` no la elige y no
+ * le calcula el papel, que es lo que pesa (B8).
+ */
+const yellowHead =
+  (gc: RiderIx): GroupPick =>
+  (x, i, order) =>
+    x.members.includes(gc) && order.findIndex((y) => y.members.length > 0) === i
+
+/**
  * EL CONTEXTO DE LA ANOTACIÓN (§14.3, paso 2): sin espectador y con los maillots de salida del reparto
  * congelado SIN degradar (quién lleva puesto cada `leader`), de los que sale `GroupNow.jerseys` y con
  * él la etiqueta `jersey_group`. Ni `own` ni el resto de `start` cambian grupos, papeles ni etiquetas,
@@ -61,13 +96,15 @@ export function rolesContextOf(tl: StageTimeline): InstantContext {
 /**
  * Copia de los sucesos con `datos.mainRole` (el papel del grupo del título) y `datos.mainJersey` (el
  * maillot que lo nombra, si su etiqueta es `jersey_group`, §6.3) en las diez plantillas de
- * `MAIN_GROUP_TEMPLATES` y, en `crash`, `datos.groupRole` y `datos.groupJersey` (los del grupo del
- * caído). Un `map`: los sucesos en su orden, una copia en los que anota y el mismo objeto en los demás,
- * así que la ruta ata las horas DESPUÉS, posición a posición (12-n). Sin grupo del título (o sin el
- * caído en ningún grupo) en esa hora, el suceso tal cual: dice `the bunch`, como hoy.
+ * `MAIN_GROUP_TEMPLATES`; en `crash`, `datos.groupRole` y `datos.groupJersey` (los del grupo del
+ * caído); y desde W1, `datos.leadJersey` (el maillot que nombra a la cabeza) en las de
+ * `HEAD_GROUP_TEMPLATES`. Un `map`: los sucesos en su orden, una copia en los que anota y el mismo
+ * objeto en los demás, así que la ruta ata las horas DESPUÉS, posición a posición (12-n). Sin nada que
+ * anotar en esa hora (sin grupo del título, sin el caído en ningún grupo, una cabeza sin maillot que la
+ * nombre), el suceso tal cual: dice `the bunch` y `the lead group`, como hoy.
  *
- * El papel y la etiqueta son los de `instantAt` en esa hora (`groupRoleAt`, que solo calcula los de ese
- * grupo: B8). Una desviación del diseño, medida: §12.6 da por hecho que el título nunca es `gruppetto`,
+ * El papel y la etiqueta son los de `instantAt` en esa hora (`groupRolesAt`, que solo calcula los de los
+ * grupos elegidos y lee lo visto una vez para los dos: B8). Una desviación del diseño, medida: §12.6 da por hecho que el título nunca es `gruppetto`,
  * y con la histéresis de 4-q lo es un momento tras cambiar de grupo (4 de las 191 líneas del título de
  * las cinco congeladas). Las filas de `GROUP_NOUNS` de esas diez plantillas (el motor, que el 6b no
  * toca) no tienen `the gruppetto`: ese papel no se anota y la línea dice `the bunch`, como hoy, salvo
@@ -81,19 +118,34 @@ export function withGroupRoles(
 ): ChronicleEvent[] {
   if (tl.timeTrial) return [...events] // la crono no tiene grupos que nombrar
   const ixOf = new Map(tl.riderIds.map((id, r) => [id, r] as const))
+  const gc = ctx.start.leaders.gc
   return events.map((e) => {
     const crash = e.plantilla === 'crash'
-    if (!crash && !MAIN_GROUP_TEMPLATES.has(e.plantilla)) return e
+    const main = MAIN_GROUP_TEMPLATES.has(e.plantilla)
+    const atHead = HEAD_GROUP_TEMPLATES.has(e.plantilla)
+    if (!crash && !main && !atHead) return e
     const fallen = ixOf.get(e.protagonistas[0] ?? '')
     if (crash && fallen === undefined) return e
-    // el papel y la etiqueta de §4.5 en la hora de la línea, del grupo del título o del caído
-    const g = groupRoleAt(tl, revealS(e), ctx, (x) =>
-      crash ? x.members.includes(fallen!) : x.kind === 'peloton',
-    )
-    if (g === null) return e
-    const role = !crash && g.role === 'gruppetto' ? null : g.role
-    const jersey = g.label.k === 'jersey_group' ? g.label.jersey : null
-    if (role === null && jersey === null) return e
+    // la cabeza, solo si la carrera tiene amarillo (una de un día, como la e1 de Flanders, no lo tiene)
+    const head = atHead && gc !== null ? yellowHead(gc) : null
+    if (!crash && !main && head === null) return e
+    // el papel y la etiqueta de §4.5 en la hora de la línea, del grupo del título o del caído, y la cabeza
+    const own: GroupPick | null = crash
+      ? (x) => x.members.includes(fallen!)
+      : main
+        ? (x) => x.kind === 'peloton'
+        : null
+    const got = groupRolesAt(tl, revealS(e), ctx, [
+      ...(own === null ? [] : [own]),
+      ...(head === null ? [] : [head]),
+    ])
+    const g = own === null ? null : (got[0] ?? null)
+    const h = head === null ? null : (got[got.length - 1] ?? null)
+    const role = g === null || (!crash && g.role === 'gruppetto') ? null : g.role
+    const jersey = g?.label.k === 'jersey_group' ? g.label.jersey : null
+    // en cabeza solo nombra el amarillo, y no al pelotón (§6.3, W1)
+    const leadJersey = h?.label.k === 'jersey_group' ? h.label.jersey : null
+    if (role === null && jersey === null && leadJersey === null) return e
     const [roleKey, jerseyKey] = crash ? ['groupRole', 'groupJersey'] : ['mainRole', 'mainJersey']
     return {
       ...e,
@@ -101,6 +153,7 @@ export function withGroupRoles(
         ...e.datos,
         ...(role === null ? {} : { [roleKey]: role }),
         ...(jersey === null ? {} : { [jerseyKey]: jersey }),
+        ...(leadJersey === null ? {} : { leadJersey }),
       },
     }
   })

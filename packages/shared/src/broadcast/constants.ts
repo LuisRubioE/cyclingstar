@@ -151,7 +151,7 @@ export const BROADCAST = {
   estimatedClockMaxErrKm: 1, // km: si el p99 del error de la cabeza del adaptador pasa de esto (B22, paso 6), las etapas sin línea abren solo en Report. S/E
 
   // MÓVIL Y CACHÉ (§6.2, §10, §18; D-17, D-35, D-56)
-  mobileGroupRows: 4, // filas de la barra de grupos en móvil; el resto, +N groups
+  mobileGroupRows: 4, // filas de la barra de grupos en móvil, más las que llevan un maillot de líder (W1); el resto, +N groups
   overlayHz: 10,
   barHz: 4, // repintados por segundo de la capa fija y de la barra. S/E: la medida a mano del paso 10 puede bajar barHz
   decodedCacheEntries: 16, // entradas del LRU de líneas decodificadas por (raceKey, stageDay) en la API. M: de 8 a 30 MB (con 64, de 33 a 121: §5.6, 18-d)
