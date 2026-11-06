@@ -201,14 +201,16 @@ const B8_ROLES_WARMUP = 2
 
 describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b, 12-n)', () => {
   /**
-   * DESDE W2b, CADA GRUPO DEL QUE HABLA LA LÍNEA, CON LA PALABRA DE LA BARRA (D-18): el del título (`mainRole`,
-   * `mainJersey`); el del caído (`groupRole`, `groupJersey`); el de los protagonistas, si es el de la frase
-   * (`lineGroupFits`): su papel, su maillot y si va en cabeza (`groupRole`, `groupJersey`, `groupHead`); en
-   * `attack_reeled`, el grupo en que vuelve a ir el atacante si no es el del título (el que lo cazó); y en los
-   * partes de ventaja, la cabeza si no es el título y casa con `leadSize` (`leadRole`, `leadJersey`) y la
-   * referencia de `chaseKind: 'caza'`, el primer grupo de detrás que casa con `chaseSize` (`chaseRole`,
-   * `chaseJersey`). Un papel solo se anota si cambia la palabra y cabe en la fila de su plantilla: `the
-   * gruppetto` solo lo dice la caída (GROUP_NOUNS).
+   * DESDE W2b, CADA GRUPO DEL QUE HABLA LA LÍNEA, CON LA PALABRA DE LA BARRA (D-18): el del título
+   * (`mainRole`, `mainJersey`); el del caído (`groupRole`, `groupJersey`); el de los protagonistas, si es el
+   * de la frase (`lineGroupFits`): su papel, su maillot y si va en cabeza (`groupRole`, `groupJersey`,
+   * `groupHead`); en `attack_reeled`, el grupo en que vuelve a ir el atacante si lleva a alguien más y no es
+   * el del título (el que lo cazó); y en los partes de ventaja, la cabeza si la frase la nombra por su grupo,
+   * no es el título y casa con `leadSize` (`leadRole`, `leadJersey`), y la referencia de `chaseKind: 'caza'`,
+   * el primer grupo entre la cabeza y el título que casa con `chaseSize` (`chaseRole`, `chaseJersey`). Un
+   * papel se anota si la barra rotula al grupo por él (por sus nombres o por su maillot, no; el que caza, si
+   * va por sus nombres, por su sitio) y está en la fila de su plantilla: `the gruppetto` solo lo dice la caída
+   * (GROUP_NOUNS). Las reglas que este oráculo no separa, una a una, en `voiceRoles.test.ts`.
    */
   it.each(ROAD_FIXTURES)(
     '%s: anota la palabra de la barra de cada grupo del que habla la línea, en su hora, y nada más (W2b)',
@@ -225,10 +227,20 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
       const jerseyOf = (g: { label: GroupLabel } | undefined) =>
         g?.label.k === 'jersey_group' ? g.label.jersey : undefined
       const NOUN_ROLES = new Set(['lead', 'chase', 'bunch'])
+      // el papel que la barra escribe: solo si rotula al grupo por él (con sus nombres o su maillot, no)
+      const roleOf = (g: { role: string; label: GroupLabel } | undefined) =>
+        g !== undefined &&
+        (g.label.k === 'role' || g.label.k === 'together') &&
+        NOUN_ROLES.has(g.role)
+          ? g.role
+          : undefined
       let seen = 0
       out.forEach((ev, i) => {
         const before = stored[i]!
         const p = before.plantilla
+        if (p === 'crash') return // la caída tiene su prueba en la web y en la voz congelada
+        if (!MAIN_GROUP_TEMPLATES.has(p) && !RIDER_GROUP_TEMPLATES.has(p))
+          return expect(ev).toBe(before)
         const now = instantAt(tl, at(before), ctx)
         const rows = now.groups.filter((x) => x.members.length > 0)
         const first = ixOf.get(before.protagonistas[0] ?? '')
@@ -239,38 +251,51 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
           // el título en gruppetto por la histéresis no se anota (voiceRoles.ts): dice the bunch
           if (title !== undefined && title.role !== 'gruppetto') want.mainRole = title.role
           if (jerseyOf(title) !== undefined) want.mainJersey = jerseyOf(title)!
-          if (p === 'attack_reeled' && mine !== undefined && mine.g !== title?.g) {
-            if (NOUN_ROLES.has(mine.role)) want.groupRole = mine.role
-            if (jerseyOf(mine) !== undefined) want.groupJersey = jerseyOf(mine)!
+          // el que caza: el grupo del atacante, si lleva a alguien más que a los atacantes y no es el título
+          const theirs = new Set(before.protagonistas.map((id) => ixOf.get(id)))
+          const catcher = mine?.members.some((r) => !theirs.has(r)) ? mine : undefined
+          if (p === 'attack_reeled' && catcher !== undefined && catcher.g !== title?.g) {
+            // por sus nombres, su sitio
+            const cr =
+              roleOf(catcher) ??
+              (catcher.label.k === 'names' ? (rows[0] === catcher ? 'lead' : 'chase') : undefined)
+            if (cr !== undefined) want.groupRole = cr
+            if (jerseyOf(catcher) !== undefined) want.groupJersey = jerseyOf(catcher)!
           }
           if (p === 'time_gap' || p === 'time_gap_run') {
+            // la cabeza, si la frase la nombra por su grupo (sin nombres y de más de ocho) y no es el título
             const head = rows[0]
             const leadSize = before.datos?.leadSize
             if (
               title?.role !== 'lead' &&
+              before.protagonistas.length === 0 &&
               head !== undefined &&
               leadSize !== undefined &&
+              Number(leadSize) > 8 &&
               head.size === Number(leadSize)
             ) {
-              if (head.role === 'chase' || head.role === 'bunch') want.leadRole = head.role
+              const hr = roleOf(head)
+              if (hr === 'chase' || hr === 'bunch') want.leadRole = hr
               if (jerseyOf(head) !== undefined) want.leadJersey = jerseyOf(head)!
             }
+            // la referencia de una caza, entre la cabeza y el título, por su tamaño
             const chaseSize = before.datos?.chaseSize
-            if (before.datos?.chaseKind === 'caza' && chaseSize !== undefined) {
-              const ref = rows.slice(1).find((x) => x.size === Number(chaseSize))
-              if (ref?.role === 'lead' || ref?.role === 'bunch') want.chaseRole = ref.role
+            const titleRow = title === undefined ? -1 : rows.indexOf(title)
+            if (before.datos?.chaseKind === 'caza' && chaseSize !== undefined && titleRow > 0) {
+              const ref = rows.slice(1, titleRow + 1).find((x) => x.size === Number(chaseSize))
+              const rr = roleOf(ref)
+              if (rr === 'lead' || rr === 'bunch') want.chaseRole = rr
               if (jerseyOf(ref) !== undefined) want.chaseJersey = jerseyOf(ref)!
             }
           }
-        } else if (RIDER_GROUP_TEMPLATES.has(p)) {
+        } else {
           const fits = mine !== undefined && lineGroupFits(before, mine.members, ixOf)
           if (fits) {
-            if (NOUN_ROLES.has(mine.role)) want.groupRole = mine.role
+            if (roleOf(mine) !== undefined) want.groupRole = roleOf(mine)!
             if (jerseyOf(mine) !== undefined) want.groupJersey = jerseyOf(mine)!
             want.groupHead = rows[0] === mine ? 1 : 0
           }
-        } else if (p !== 'crash') return expect(ev).toBe(before)
-        if (p === 'crash') return // la caída tiene su prueba en la web y en la voz congelada
+        }
         if (Object.keys(want).length === 0) return expect(ev).toBe(before)
         seen++
         expect(ev).not.toBe(before) // una copia: la ruta ata las horas después (12-n)
@@ -282,59 +307,10 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
         expect({ ...ev, datos: null }).toEqual({ ...before, datos: null })
         expect(ev.datos).toMatchObject(before.datos ?? {})
       })
-      expect(seen).toBeGreaterThan(0)
+      // cada etapa anota algo y de más de una clase: el oráculo mira algo en todas
+      expect(seen).toBeGreaterThan(5)
     },
   )
-
-  it('la referencia de una caza es un grupo de detrás, nunca la cabeza, aunque tenga su tamaño (W2b)', () => {
-    // sobre la e18, en la primera hora con una cabeza de papel lead cuyo tamaño no repite ningún grupo de detrás
-    const tl = loadTimeline('race-france-e18')
-    const ctx = rolesContextOf(tl)
-    let t = 0
-    let rows = instantAt(tl, t, ctx).groups.filter((g) => g.members.length > 0)
-    for (; t < tl.finish.finishS; t += 60) {
-      rows = instantAt(tl, t, ctx).groups.filter((g) => g.members.length > 0)
-      const head = rows[0]
-      if (
-        rows.length > 2 &&
-        head?.role === 'lead' &&
-        rows.slice(1).every((g) => g.size !== head.size)
-      )
-        break
-    }
-    const head = rows[0]!
-    expect(head.role).toBe('lead')
-    const parte = (chaseSize: number): ChronicleEvent => ({
-      km: 100,
-      tS: t,
-      tipo: 'boquete',
-      plantilla: 'time_gap',
-      protagonistas: [],
-      datos: { gapS: 60, trend: 1, leadSize: head.size, chaseSize, chaseKind: 'caza' },
-    })
-    const [conLaDeLaCabeza, conLaDeDetras] = withGroupRoles(
-      [parte(head.size), parte(rows[1]!.size)],
-      tl,
-      () => t,
-      ctx,
-    )
-    // con el tamaño de la cabeza no hay referencia de detrás: nada que anotar de ella
-    expect(conLaDeLaCabeza!.datos?.chaseRole).toBeUndefined()
-    expect(conLaDeLaCabeza!.datos?.chaseJersey).toBeUndefined()
-    // con el de la segunda, la segunda (su papel, si no es el de siempre, o su maillot)
-    const second = rows[1]!
-    const want: Record<string, string> = {}
-    if (second.role === 'lead' || second.role === 'bunch') want.chaseRole = second.role
-    if (second.label.k === 'jersey_group') want.chaseJersey = second.label.jersey
-    expect({
-      ...(conLaDeDetras!.datos?.chaseRole === undefined
-        ? {}
-        : { chaseRole: conLaDeDetras!.datos.chaseRole }),
-      ...(conLaDeDetras!.datos?.chaseJersey === undefined
-        ? {}
-        : { chaseJersey: conLaDeDetras!.datos.chaseJersey }),
-    }).toEqual(want)
-  })
 
   it('en las cinco: cuántas líneas del grupo del título dejan de decir «the bunch» (§12.6: 40 de 210)', () => {
     const roles = new Map<string, number>()

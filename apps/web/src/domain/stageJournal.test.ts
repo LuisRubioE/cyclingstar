@@ -2420,6 +2420,60 @@ describe('W2b · la palabra de la barra para cada grupo de la línea (D-18)', ()
       }
   })
 
+  it('la criba de un grupo pequeño fuera de cabeza, o con la fuga en carretera, no llama «leaders» a los suyos', () => {
+    const pequena = { before: 8, remaining: 5, dropped: 3, chasing: 0 }
+    const dentro = all('peloton_split', { ...pequena, groupHead: 1 })
+    expect(dentro.some((l) => l.includes('3 of the 8 leaders let go'))).toBe(true)
+    const fuera = all('peloton_split', { ...pequena, groupRole: 'chase', groupHead: 0 })
+    // la misma frase, con su grupo por su papel y sus corredores sin «leaders»
+    fuera.forEach((l, i) =>
+      expect(l).toBe(
+        withWord(dentro[i]!, 'the chase group').replace(
+          '3 of the 8 leaders let go',
+          '3 of the 8 riders let go',
+        ),
+      ),
+    )
+    for (const l of all('peloton_split', { ...pequena, chasing: 1 }))
+      expect(l).not.toMatch(/leaders/)
+  })
+
+  it('la fuga que se entiende o no y quien carga con ella, fuera de cabeza: ni «up front» ni «up the road»', () => {
+    // fuera de cabeza, la misma frase con su grupo donde decía «up front» o «up the road»
+    const fueraDe = (l: string): string =>
+      withWord(l, 'the chase group')
+        .replace(/^(Up front|Up the road)/, 'In the chase group')
+        .replace(/ up front/g, ' in the chase group')
+    const casos = [
+      { plantilla: 'break_cooperation', datos: { cooperating: 1 } },
+      { plantilla: 'break_cooperation', datos: { cooperating: 0 } },
+      { plantilla: 'break_share', datos: { passengers: 0 } },
+      { plantilla: 'break_share', datos: { passengers: 1 } },
+      { plantilla: 'break_share', datos: { passengers: 2 } },
+    ]
+    for (const { plantilla, datos } of casos) {
+      const dentro = all(plantilla, { ...datos, groupHead: 1 })
+      expect(
+        dentro.some((l) => /up front|up the road/i.test(l)),
+        plantilla,
+      ).toBe(true)
+      const fuera = all(plantilla, { ...datos, groupRole: 'chase', groupHead: 0 })
+      fuera.forEach((l, i) => {
+        expect(l, plantilla).toBe(fueraDe(dentro[i]!))
+        expect(l, plantilla).not.toMatch(/up front|up the road/i)
+      })
+    }
+    // y la de «up the road» sale en los km de la prueba
+    expect(
+      all('break_share', { passengers: 1, groupHead: 1 }).some((l) => l.startsWith('Up the road')),
+    ).toBe(true)
+    // uno solo, que no colabora consigo mismo, tampoco va «up front» si va detrás
+    for (const l of all('break_cooperation', { cooperating: 1, groupHead: 0 }, named('Ana')))
+      expect(l).toBe('No wheels to share: he is on his own.')
+    for (const l of all('break_cooperation', { cooperating: 1, groupHead: 1 }, named('Ana')))
+      expect(l).toBe('No wheels to share up front: he is on his own.')
+  })
+
   it('«hit the front» con varios y sin equipo, en el abanico', () => {
     const varios = all('echelon_split', { before: 80, remaining: 40, dropped: 40 })
     expect(varios.some((l) => l.includes('Ana and Bea hit the front'))).toBe(true)

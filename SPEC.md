@@ -631,7 +631,8 @@ fuga con otro maillot sigue siendo `the lead group`; el grueso es `the bunch`, l
 papel lleva su histéresis: el grupo que llega a la cabeza con papel de perseguidor se nombra un rato por
 su maillot, sea cual sea. Son SIETE nombres (DD-04), y nunca dos para el mismo grupo en la misma pantalla: la voz dice
 la palabra que la barra enseña a la hora de la línea (la API pone el papel y el maillot del grupo en
-los datos de la línea: `mainRole`, `groupRole`, `mainJersey` y `groupJersey`); sin esa anotación (el
+los datos de la línea: `mainRole`, `groupRole`, `mainJersey` y `groupJersey`, y desde W2b, de cada grupo del que
+habla, `groupHead`, `leadRole`, `leadJersey`, `chaseRole` y `chaseJersey`); sin esa anotación (el
 acta de quien no tiene `Watch` encendido, una etapa sin línea grabada), `the bunch`. Un solo grupo en
 carretera es `the bunch` (`Bunch together` en la barra). Con tres corredores o menos, el grupo se
 nombra por sus corredores, sea cual sea su papel; con cuatro o cinco, por su palabra, y la barra lleva

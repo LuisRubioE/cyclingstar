@@ -1,5 +1,6 @@
 import {
   BROADCAST,
+  ENGINE_STAGE,
   type InstantContext,
   type RaceS,
   type RiderIx,
@@ -7,7 +8,7 @@ import {
   fromDs,
   type GroupRoleNow,
   type GroupSeen,
-  groupRolesAt,
+  groupsAt,
   photoBlocksOf,
   visibilityOf,
 } from '@cyclingstar/shared'
@@ -126,29 +127,35 @@ export function rolesContextOf(tl: StageTimeline): InstantContext {
 
 /**
  * Copia de los sucesos con la palabra de la barra de cada grupo del que habla la línea, en su hora (§12.6;
- * D-18). Un `map`: los sucesos en su orden, una copia en los que anota y el mismo objeto en los demás, así que
- * la ruta ata las horas DESPUÉS, posición a posición (12-n). Lo que se anota:
+ * D-18). Un `map`: los sucesos en su orden, una copia en los que anota y el mismo objeto en los demás, así
+ * que la ruta ata las horas DESPUÉS, posición a posición (12-n). Lo que se anota:
  *
- * - **El grupo del título** en las diez de `MAIN_GROUP_TEMPLATES`: `mainRole` y `mainJersey` (el maillot que
- *   lo nombra, si su etiqueta es `jersey_group`, §6.3).
+ * - **El grupo del título** en las diez de `MAIN_GROUP_TEMPLATES`: `mainRole` y `mainJersey` (el maillot
+ *   que lo nombra, si su etiqueta es `jersey_group`, §6.3).
  * - **El del caído** en `crash`: `groupRole` y `groupJersey`.
  * - **El de los protagonistas** en las siete de `RIDER_GROUP_TEMPLATES`, si es el de la frase
  *   (`lineGroupFits`): su papel (`groupRole`), su maillot (`groupJersey`, desde W1) y si va en cabeza
- *   (`groupHead`, 1 o 0), desde W2b: la frase decía su sitio («the lead group», «in front»), y en la hora de
- *   la línea el grupo puede ir detrás (en las congeladas, 4 de las 6 cribas del desenlace y 5 de las 8 de lejos
- *   de meta).
- * - **El que caza** en `attack_reeled` (W2b): el grupo en que vuelve a ir el atacante, si no es el del título
- *   (`groupRole`, `groupJersey`); la frase decía «the bunch closes it down» aunque lo cazara otro (en las
- *   congeladas, 4 de 8).
- * - **La cabeza y la referencia de los partes** (`time_gap`, `time_gap_run`; W2b): la cabeza, si no es el
- *   título y casa con `leadSize` (`leadRole`, `leadJersey`); y la de `chaseKind: 'caza'`, el primer grupo de
- *   detrás que casa con `chaseSize` (`chaseRole`, `chaseJersey`): la voz decía «over the chase group» de un
- *   grupo que la barra llama por su maillot (en las congeladas, 9 de 30).
+ *   (`groupHead`, 1 o 0), desde W2b: la frase decía su sitio («the lead group», «in front»), y en la hora
+ *   de la línea el grupo puede ir detrás (en las congeladas, 4 de los 6 `peloton_split` y 5 de los 8
+ *   `peloton_selection`).
+ * - **El que caza** en `attack_reeled` (W2b): el grupo en que vuelve a ir el atacante, si lleva a alguien
+ *   más que a los atacantes de la línea y no es el del título (`groupRole`, `groupJersey`); la frase decía
+ *   la palabra del título aunque lo cazara otro (en las congeladas, 5 de las 8 que la dicen). Si la barra
+ *   lo rotula por sus nombres, su sitio: `lead` en cabeza y `chase` detrás.
+ * - **La cabeza y la referencia de los partes** (`time_gap`, `time_gap_run`; W2b): la cabeza, si la frase
+ *   la nombra por su grupo (sin nombres y de más de `frontNamesMaxRiders`), no es el título y casa con
+ *   `leadSize` (`leadRole`, `leadJersey`); y la de `chaseKind: 'caza'`, el primer grupo entre la cabeza y
+ *   el título que casa con `chaseSize` (`chaseRole`, `chaseJersey`), que es donde la busca el motor: la
+ *   voz decía «over the chase group» de un grupo que la barra llama por su maillot (en las congeladas, 8
+ *   de 30).
  *
- * Un papel solo se anota si cambia la palabra y está en la fila de su plantilla en `GROUP_NOUNS` (el motor):
- * `the gruppetto` solo lo dice la caída, y el título en gruppetto por la histéresis de 4-q (4 de las 191 líneas
- * del título de las cinco congeladas) no se anota y dice `the bunch`. Los papeles y las etiquetas son los de
- * `instantAt` en esa hora, de todos los grupos de la línea en una sola lectura (`groupRolesAt`: B8).
+ * Un papel se anota si la barra rotula al grupo por él (`role` o `together`; por sus nombres o por su
+ * maillot, no: un trío de cabeza puede llevar el `chase` de la histéresis) y está en la fila de su
+ * plantilla en `GROUP_NOUNS` (el motor): `the gruppetto` solo lo dice la caída. De la cabeza y la
+ * referencia, solo si no es la palabra de siempre (`lead`, `chase`). El título en gruppetto por la
+ * histéresis de 4-q (4 de las 191 líneas del título de las cinco congeladas) no se anota y dice
+ * `the bunch`. Los papeles y las etiquetas son los de `instantAt` en esa hora, de un lector por línea
+ * (`groupsAt`) que solo calcula los de los grupos que la frase va a decir (B8).
  */
 export function withGroupRoles(
   events: readonly ChronicleEvent[],
@@ -160,6 +167,11 @@ export function withGroupRoles(
   const ixOf = new Map(tl.riderIds.map((id, r) => [id, r] as const))
   const jerseyOf = (g: GroupRoleNow | null): string | null =>
     g !== null && g.label.k === 'jersey_group' ? g.label.jersey : null
+  // el papel que la barra ESCRIBE: solo si el grupo se rotula por su papel (con nombres o maillot, no)
+  const roleOf = (g: GroupRoleNow | null): string | null =>
+    g !== null && (g.label.k === 'role' || g.label.k === 'together') && NOUN_ROLES.has(g.role)
+      ? g.role
+      : null
   return events.map((e) => {
     const p = e.plantilla
     const crash = p === 'crash'
@@ -171,52 +183,66 @@ export function withGroupRoles(
       const v = e.datos?.[key]
       return v === undefined || v === null ? null : Number(v)
     }
-    const gap = p === 'time_gap' || p === 'time_gap_run'
-    const leadSize = gap ? said('leadSize') : null
-    const chaseSize = gap && e.datos?.chaseKind === 'caza' ? said('chaseSize') : null
-    // los grupos de la línea, en una sola lectura: [el suyo, el que caza, la cabeza, la referencia]
-    type Pick = (x: GroupSeen, row: number) => boolean
     const has = (r: RiderIx | undefined) => (x: GroupSeen) =>
       r !== undefined && x.members.includes(r)
-    const own: Pick = crash
-      ? has(first)
-      : ofRider
-        ? (x) => has(first)(x) && lineGroupFits(e, x.members, ixOf)
-        : (x) => x.kind === 'peloton'
-    const picks: Pick[] = [own]
-    if (p === 'attack_reeled' && first !== undefined) picks.push(has(first))
-    else picks.push(() => false)
-    picks.push(
-      leadSize === null ? () => false : (x, row) => row === 0 && x.members.length === leadSize,
+    const read = groupsAt(tl, revealS(e), ctx)
+    // el grupo de la línea: el del caído, el de sus protagonistas si es el de la frase, o el del título
+    const g = read(
+      crash
+        ? has(first)
+        : ofRider
+          ? (x) => has(first)(x) && lineGroupFits(e, x.members, ixOf)
+          : (x) => x.kind === 'peloton',
     )
-    picks.push(
-      chaseSize === null ? () => false : (x, row) => row > 0 && x.members.length === chaseSize,
-    )
-    const [g, catcher, head, ref] = groupRolesAt(tl, revealS(e), ctx, picks)
     const add: Record<string, number | string> = {}
     if (crash) {
-      if (g != null) add.groupRole = g.role
+      if (g !== null) add.groupRole = g.role
     } else if (ofRider) {
-      if (g != null && NOUN_ROLES.has(g.role)) add.groupRole = g.role
-    } else if (g != null && g.role !== 'gruppetto') add.mainRole = g.role
-    const jersey = jerseyOf(g ?? null)
+      const role = roleOf(g)
+      if (role !== null) add.groupRole = role
+    } else if (g !== null && g.role !== 'gruppetto') add.mainRole = g.role
+    const jersey = jerseyOf(g)
     if (jersey !== null) add[ofRider || crash ? 'groupJersey' : 'mainJersey'] = jersey
-    if (ofRider && g != null) add.groupHead = g.row === 0 ? 1 : 0
-    // el que caza: el grupo en que vuelve a ir el atacante, si no es el del título
-    if (catcher != null && catcher.g !== g?.g) {
-      if (NOUN_ROLES.has(catcher.role)) add.groupRole = catcher.role
-      const cj = jerseyOf(catcher)
-      if (cj !== null) add.groupJersey = cj
+    if (ofRider && g !== null) add.groupHead = g.row === 0 ? 1 : 0
+    // el que caza un ataque: el grupo en que vuelve a ir el atacante, si no es el del título ni el suyo solo
+    if (p === 'attack_reeled' && first !== undefined) {
+      const theirs = new Set(e.protagonistas.map((id) => ixOf.get(id)))
+      const catcher = read((x) => has(first)(x) && x.members.some((r) => !theirs.has(r)))
+      if (catcher !== null && catcher.g !== g?.g) {
+        // si la barra lo rotula por sus nombres, no tiene palabra que decir y la frase dice su sitio: sin
+        // ella diría la del título, que no lo cazó (en el banco, 24 de 2.537)
+        const cr =
+          roleOf(catcher) ??
+          (catcher.label.k === 'names' ? (catcher.row === 0 ? 'lead' : 'chase') : null)
+        if (cr !== null) add.groupRole = cr
+        const cj = jerseyOf(catcher)
+        if (cj !== null) add.groupJersey = cj
+      }
     }
-    // la cabeza de un parte, si casa con lo que cuenta y el título no va en cabeza (entonces ya la nombra)
-    if (head != null && g?.role !== 'lead') {
-      if (head.role === 'chase' || head.role === 'bunch') add.leadRole = head.role
+    const gap = p === 'time_gap' || p === 'time_gap_run'
+    // la cabeza de un parte, si la frase la nombra por su grupo (sin nombres y de más de frontNamesMaxRiders)
+    // y el título no va en cabeza (entonces ya la nombra), y casa con lo que cuenta
+    const leadSize = gap ? said('leadSize') : null
+    if (
+      leadSize !== null &&
+      leadSize > ENGINE_STAGE.frontNamesMaxRiders &&
+      e.protagonistas.length === 0 &&
+      g?.role !== 'lead'
+    ) {
+      const head = read((x, row) => row === 0 && x.members.length === leadSize)
+      const hr = roleOf(head)
+      if (hr === 'chase' || hr === 'bunch') add.leadRole = hr
       const hj = jerseyOf(head)
       if (hj !== null) add.leadJersey = hj
     }
-    // la referencia de una caza: su palabra si no es la de siempre (the chase group)
-    if (ref != null) {
-      if (ref.role === 'lead' || ref.role === 'bunch') add.chaseRole = ref.role
+    // la referencia de una caza: entre la cabeza y el título, que es donde la busca el motor (un trozo que
+    // persigue por delante del resto), y del tamaño que cuenta; su palabra si no es la de siempre
+    const chaseSize = gap && e.datos?.chaseKind === 'caza' ? said('chaseSize') : null
+    if (chaseSize !== null && g !== null && g.row > 0) {
+      const titleRow = g.row
+      const ref = read((x, row) => row > 0 && row <= titleRow && x.members.length === chaseSize)
+      const rr = roleOf(ref)
+      if (rr === 'lead' || rr === 'bunch') add.chaseRole = rr
       const rj = jerseyOf(ref)
       if (rj !== null) add.chaseJersey = rj
     }

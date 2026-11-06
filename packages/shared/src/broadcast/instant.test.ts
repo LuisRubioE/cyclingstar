@@ -671,6 +671,47 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
     expect(groupRolesAt(tl, 100, ctx, [() => false])).toEqual([null])
     expect(groupRolesAt(tl, 100, ctx, [])).toEqual([])
   })
+
+  it('groupRolesAt: la etiqueta sale del papel con histéresis, no del crudo (W2b)', () => {
+    // la e5 de Colombia a las 10.200 s: la cabeza, de cinco, tiene el papel crudo lead y gruppetto por la
+    // histéresis, y la barra la rotula por el maillot de la montaña; con el crudo sería `Lead group`. En la
+    // e20 no pasa en ninguna hora de la prueba de arriba: aquí, 12 veces cada 60 s
+    const col = decodeTimeline(
+      JSON.parse(
+        gunzipSync(
+          readFileSync(
+            new URL(
+              '../../../../apps/api/src/__fixtures__/broadcast/race-colombia-e5.timeline.gz',
+              import.meta.url,
+            ),
+          ),
+        ).toString('utf8'),
+      ),
+    )
+    const lead: { gc: number | null; points: number | null; kom: number | null } = {
+      gc: null,
+      points: null,
+      kom: null,
+    }
+    for (const c of col.cast.riders) if (c.worn.kind === 'leader') lead[c.worn.jersey] = c.rider
+    const ctxC: InstantContext = {
+      own: new Set(),
+      start: { leaders: lead, gcTop: [] },
+      photoBlocks: photoBlocksOf(col.lengthKm, col.dx),
+    }
+    const t = 10200
+    const i = instantAt(col, t, ctxC)
+    const head = i.groups.filter((g) => g.members.length > 0)[0]!
+    const raw = groupRoleOf(
+      i.groups.map((x) => ({ size: x.size, kind: x.kind })),
+      i.racing,
+    )[i.groups.indexOf(head)]
+    expect(raw).toBe('lead')
+    expect(head).toMatchObject({ role: 'gruppetto', label: { k: 'jersey_group', jersey: 'kom' } })
+    expect(groupRolesAt(col, t, ctxC, [(_x, row) => row === 0])).toEqual([
+      { g: head.g, role: 'gruppetto', label: head.label, row: 0 },
+    ])
+  })
 })
 
 describe('coherentGaps · ninguna fila enseña menos que la de delante (W1, paso 8b)', () => {
