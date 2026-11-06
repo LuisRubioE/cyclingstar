@@ -431,8 +431,8 @@ export interface FrozenFields {
  * en estas, el choque entre dos NPC se ve desde su salida, y cambiar uno a mitad de carrera no lo quita.
  * Las ya terminadas no cuentan. Sin los nacionales, como la previsión. Solo las de la temporada de
  * `fromDay`: el cierre de inscripciones no congela las de la siguiente hasta que empieza
- * (`lockUpcomingRosters`), y ninguna carrera pasa de una temporada a la otra. En orden de clave, para que
- * lo que se decide con ellas no dependa del orden de las filas.
+ * (`lockUpcomingRosters`), y ninguna carrera pasa de una temporada a la otra. En orden de clave y, dentro
+ * de cada una, de equipo.
  */
 export async function frozenFields(
   q: Queryable,
@@ -452,11 +452,10 @@ export async function frozenFields(
     .from(raceRosters)
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
     .where(and(inArray(raceRosters.raceId, live.map(keyOf)), eq(riders.worldId, worldId)))
+    .orderBy(raceRosters.raceId, riders.teamId)
   const upcoming = new Map<string, string[]>()
   const running = new Map<string, string[]>()
-  for (const r of [...rows].sort((x, y) =>
-    x.raceId < y.raceId ? -1 : x.raceId > y.raceId ? 1 : 0,
-  )) {
+  for (const r of rows) {
     if (r.teamId === null) continue
     const fields = started.has(r.raceId) ? running : upcoming
     fields.set(r.raceId, [...(fields.get(r.raceId) ?? []), r.teamId])
@@ -485,10 +484,11 @@ function withFrozen(
  * con el de un humano rival cede el suyo (DD-08). Rival es el de la previsión y, desde el 17d, el de una
  * escuadra ya congelada de lo que aún corre (`frozenFields`), haya salido o no; en la de lo que aún no ha
  * salido cede también, ante otro NPC, el de menos presupuesto. El maillot nuevo los evita a todos.
- * Idempotente: una segunda pasada no cambia nada. Cada
- * maillot vale desde mañana, con `set_by = 'system'`; si un mánager se queda con uno mientras corre, se
- * prueba el siguiente libre. No escribe noticias: las escribe `emitKitNews` con lo que devuelve, en la
- * misma transacción del tick (17b).
+ * Idempotente: una segunda pasada no cambia nada, mientras cada uno encuentre un libre sin choque. Si no,
+ * el que cede toma el que menos choca, y si ese aún choca con un humano o con un NPC más rico de una
+ * escuadra por salir, la noche siguiente vuelve a ceder, con su noticia. Cada maillot vale desde mañana,
+ * con `set_by = 'system'`; si un mánager se queda con uno mientras corre, se prueba el siguiente libre. No
+ * escribe noticias: las escribe `emitKitNews` con lo que devuelve, en la misma transacción del tick (17b).
  */
 export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsReport> {
   const day = await today(tx, worldId)
@@ -538,9 +538,10 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
     }
     // …y dos NPC que chocan en la escuadra congelada de una carrera que aún no ha salido (17d): cede el de
     // menos presupuesto (a igualdad, el de id mayor). Su maillot nuevo evita a todos sus rivales, los
-    // previstos y los de las escuadras, así que el que ya cede no hace ceder a nadie más; y los pares, de
-    // todas las escuadras, van del más rico al más pobre, para que ceda antes el que resuelve más y lo que se
-    // decide no dependa del orden de las filas
+    // previstos y los de las escuadras, así que el que ya cede no hace ceder a nadie más. Los pares, de todas
+    // las escuadras, van del más rico al más pobre: cuando se mira uno, lo del más rico ya está decidido,
+    // porque todo par que le haría ceder lleva delante a otro más rico y va antes; así, lo que se decide no
+    // depende del orden de las filas
     const byId = new Map(rows.map((r) => [r.id, r] as const))
     const richFirst = (x: string, y: string) =>
       (byId.get(y)?.budget ?? 0) - (byId.get(x)?.budget ?? 0) || (x < y ? -1 : x > y ? 1 : 0)

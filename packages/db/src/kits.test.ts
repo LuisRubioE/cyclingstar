@@ -1,3 +1,4 @@
+import { SEASON_CALENDAR } from '@cyclingstar/engine'
 import {
   DAYS_PER_SEASON,
   KIT_CODES,
@@ -639,6 +640,8 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       await setKit(tx, b, clash!, 'system', 1)
       await setKit(tx, c, npcKit!, 'system', 1)
       await setKit(tx, x, third!, 'system', 1)
+      // la previsión que mirará ensureKits, ya con esos presupuestos, que ordenan a los admitidos
+      const forecastNow = await currentRivals(tx)
       // las tres primeras que no son un nacional: la race-tachira corre del día 9 al 18, la race-pune del 19
       // al 23 y la race-down-under del 20 al 24; un corredor distinto en cada una
       const [aRider] = await ridersOf(tx, a)
@@ -652,8 +655,9 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
         { raceId: 'race-pune:s0', riderId: (await ridersOf(tx, human2!))[0]! },
         { raceId: 'race-pune:s0', riderId: (await ridersOf(tx, c))[0]! },
       ])
-      // el día 25, las tres ya han terminado, y nadie cede
-      await atDay(tx, 25)
+      // el día 23, la race-tachira y la race-pune ya han terminado, la segunda ese mismo día, y la
+      // race-down-under aún corre: nadie cede, porque lo terminado no cuenta y b y x no se fuerzan
+      await atDay(tx, 23)
       expect((await ensureKits(tx, worldId)).changed).toEqual([])
       // el día 22, la race-tachira ya ha terminado y las otras dos corren mañana, la race-pune su última
       // etapa: en ella cede el NPC ante el humano (DD-08), con un maillot que no choca con los dos; en la
@@ -689,7 +693,7 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       expect(kitsClash(after.get(c)!, after.get(human!)!)).toBe(false)
       expect(kitsClash(after.get(c)!, after.get(human2!)!)).toBe(false)
       for (const team of [b, c])
-        for (const r of now.get(team)?.keys() ?? [])
+        for (const r of forecastNow.get(team)?.keys() ?? [])
           expect(kitsClash(after.get(team)!, after.get(r)!), `${team} ${r}`).toBe(false)
       // una segunda pasada no cambia nada
       expect((await ensureKits(tx, worldId)).changed).toEqual([])
@@ -701,7 +705,7 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
     // maillot de cada día de etapa, así que el que cede por la primera no puede chocar en la segunda
     await rolledBack(async (tx) => {
       await atDay(tx, 22)
-      const { now, kits, worn, hidden } = await sceneOf(tx, 23)
+      const first = await sceneOf(tx, 23)
       const all = await tx
         .select({ id: teams.id, owner: teams.ownerUserId })
         .from(teams)
@@ -713,12 +717,11 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       let clash: KitCode | undefined
       for (const x of npcs)
         for (const y of npcs)
-          if (clash === undefined && x !== y && !now.get(x)?.has(y)) {
-            clash = hidden(y, kits.get(x)!)
+          if (clash === undefined && x !== y && !first.now.get(x)?.has(y)) {
+            clash = first.hidden(y, first.kits.get(x)!)
             if (clash !== undefined) [p, q] = [x, y]
           }
       expect(clash).toBeDefined()
-      worn.add(canonicalKit(clash!))
       await tx.update(teams).set({ budget: 9_000_000 }).where(eq(teams.id, p))
       await tx.update(teams).set({ budget: 1_000_000 }).where(eq(teams.id, q))
       await setKit(tx, q, clash!, 'system', 1)
@@ -731,6 +734,8 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       const alone = await probe(tx, async (sp) => (await ensureKits(sp, worldId)).changed)
       expect(alone?.map((r) => [r.teamId, r.why])).toEqual([[q, 'ceded']])
       const wouldBe = alone![0]!.kit
+      // la escena de ahora, con esos presupuestos y el maillot de q: la previsión que mirará ensureKits
+      const { now, worn, hidden } = await sceneOf(tx, 23)
       worn.add(canonicalKit(wouldBe))
       // y en la race-pune, con q, dos NPC que no son rivales previstos suyos: y, con un maillot que choca con
       // ese, y w, con uno que choca con el de y
@@ -747,19 +752,24 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       expect(wKit).toBeDefined()
       await setKit(tx, y, yKit!, 'system', 1)
       await setKit(tx, w, wKit!, 'system', 1)
+      const [yRider, yOther] = await ridersOf(tx, y)
+      const [wRider, wOther] = await ridersOf(tx, w)
+      // y w con y, también en un nacional que aún no ha salido: los nacionales no cuentan, como en la
+      // previsión, porque mezclan corredores de decenas de equipos
+      const national = SEASON_CALENDAR.find((r) => r.championshipCountry && r.startDay > 23)!
       await tx.insert(raceRosters).values([
         { raceId: 'race-pune:s0', riderId: qOther! },
-        { raceId: 'race-pune:s0', riderId: (await ridersOf(tx, y))[0]! },
-        { raceId: 'race-pune:s0', riderId: (await ridersOf(tx, w))[0]! },
+        { raceId: 'race-pune:s0', riderId: yRider! },
+        { raceId: 'race-pune:s0', riderId: wRider! },
+        { raceId: `${national.id}:s0`, riderId: yOther! },
+        { raceId: `${national.id}:s0`, riderId: wOther! },
       ])
-      // la escuadra que sale mañana y la que corre mañana su última etapa; la race-tachira ya terminó
+      // la de lo que sale mañana y la de lo que corre mañana su última etapa: ni lo ya terminado ni el
+      // nacional
       const fields = await frozenFields(tx, worldId, 23)
-      expect([...fields.upcoming].map(([race, of]) => [race, [...of].sort()])).toEqual([
-        ['race-morvedre:s0', [p, q].sort()],
-      ])
-      expect([...fields.running].map(([race, of]) => [race, [...of].sort()])).toEqual([
-        ['race-pune:s0', [q, y, w].sort()],
-      ])
+      // cada una con sus equipos en orden de id
+      expect([...fields.upcoming]).toEqual([['race-morvedre:s0', [p, q].sort()]])
+      expect([...fields.running]).toEqual([['race-pune:s0', [q, y, w].sort()]])
       // y en la temporada siguiente, las de sus claves, con sus días
       await tx.insert(raceRosters).values([
         { raceId: 'race-morvedre:s1', riderId: qRider! },
