@@ -1,14 +1,14 @@
 import { writeFileSync } from 'node:fs'
 import { SEASON_CALENDAR } from '@cyclingstar/engine'
 import { type KitCode, canonicalKit } from '@cyclingstar/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, like } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { readFrozenStartlist } from './calendarRun.js'
 import { worldHorizon } from './horizon.js'
 import { KIT_ALLOWED } from './kitConflicts.generated.js'
 import { kitsClash, setKit } from './kits.js'
 import { kitsOn } from './kitsOn.js'
-import { gameState, news, teams, users, worlds } from './schema.js'
+import { gameState, news, teams, tickLog, users, worlds } from './schema.js'
 import { rivalsOf, seasonFields } from './seasonRivals.js'
 import { type TestDb, startTestDb } from './testDb.js'
 import { runTick } from './tick.js'
@@ -160,12 +160,21 @@ describe.runIf(NIGHTLY)('db: el maillot a lo largo de una temporada (nocturno)',
         }
       }
       const minutes = (performance.now() - started) / 60_000
-      // lo que cuesta: cuántos NPC han cedido su maillot en la temporada (una noticia por cada uno, 17b)
-      const ceded = (
+      // lo que cuesta: las noticias de los NPC que han cedido su maillot en la temporada, una por cada vez
+      // que cede (17b), y cuántos equipos distintos son: si son menos, alguno ha vuelto a ceder
+      const cededNews = await t.db
+        .select({ data: news.data })
+        .from(news)
+        .where(and(eq(news.worldId, worldId), eq(news.kind, 'kit_ceded')))
+      const ceded = cededNews.length
+      const cededTeams = new Set(cededNews.map((n) => (n.data as { teamId?: string }).teamId)).size
+      // y las ejecuciones del tick en que alguno no encontró un maillot libre lejos de sus rivales
+      // (`kitsNote`): el que cede así puede volver a ceder la noche siguiente
+      const noFree = (
         await t.db
-          .select({ kind: news.kind })
-          .from(news)
-          .where(and(eq(news.worldId, worldId), eq(news.kind, 'kit_ceded')))
+          .select({ notes: tickLog.notes })
+          .from(tickLog)
+          .where(like(tickLog.notes, '%sin un libre%'))
       ).length
       // y la lectura de antes, al final de la temporada, para ver cuánto la mueven los fichajes
       const atEnd = { races: 0, pairs: 0, withNpc: [] as string[], betweenHumans: [] as string[] }
@@ -179,7 +188,8 @@ describe.runIf(NIGHTLY)('db: el maillot a lo largo de una temporada (nocturno)',
         `kitWorld: ${DIAS} noches en ${minutes.toFixed(1)} min; el día de la salida, ${atStart.races} carreras, ` +
           `${atStart.pairs} pares, ${atStart.withNpc.length} con un NPC por debajo de 10, ` +
           `${atStart.betweenHumans.length} entre humanos (${atStart.betweenHumans.slice(0, 5).join('; ')}); ` +
-          `${ceded} NPC han cedido su maillot; ` +
+          `${ceded} noticias de NPC que ceden su maillot, de ${cededTeams} equipos; ` +
+          `${noFree} ejecuciones del tick con alguno sin un libre; ` +
           `leídas al final, ${atEnd.races} carreras y ${atEnd.withNpc.length} con un NPC`,
       )
       if (process.env.KIT_WORLD_OUT !== undefined)
@@ -190,6 +200,8 @@ describe.runIf(NIGHTLY)('db: el maillot a lo largo de una temporada (nocturno)',
               dias: DIAS,
               minutes,
               ceded,
+              cededTeams,
+              noFree,
               atStart,
               atEnd: { ...atEnd, withNpc: atEnd.withNpc.length },
             },
