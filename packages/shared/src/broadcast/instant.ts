@@ -1495,36 +1495,78 @@ export function groupRoleAt(
   tl: TimelineCore,
   t: RaceS,
   ctx: InstantContext,
-  pick: (x: {
-    readonly g: GroupIx
-    readonly kind: RadioGroupKind
-    readonly members: readonly RiderIx[]
-  }) => boolean,
+  pick: (x: GroupSeen) => boolean,
 ): { readonly g: GroupIx; readonly role: GroupRole; readonly label: GroupLabel } | null {
+  const got = groupRolesAt(tl, t, ctx, [pick])[0] ?? null
+  return got === null ? null : { g: got.g, role: got.role, label: got.label }
+}
+
+/** Lo que `groupRoleAt` y `groupRolesAt` enseñan de cada grupo visto para elegirlo. */
+export interface GroupSeen {
+  readonly g: GroupIx
+  readonly kind: RadioGroupKind
+  readonly members: readonly RiderIx[]
+}
+
+/** Un grupo elegido, con su papel, su etiqueta y su fila: su sitio entre los que llevan a alguien (-1, vacío). */
+export interface GroupRoleNow {
+  readonly g: GroupIx
+  readonly role: GroupRole
+  readonly label: GroupLabel
+  readonly row: number
+}
+
+/**
+ * VARIOS GRUPOS A LA VEZ, en una sola lectura de lo visto (W2b, la revisión de `Watch` del dueño; D-18): el
+ * papel, la etiqueta y la fila de cada uno, los de `instantAt`. Es lo que la voz anota de cada grupo del que
+ * habla una línea: el del título, el de sus protagonistas, la cabeza de un parte y su referencia. Cada
+ * `pick` recibe el grupo y su fila (su sitio en la carretera entre los que llevan a alguien, desde 0; -1 si
+ * va vacío) y elige el primero que casa; null, si ninguno. El papel crudo y el fotograma se calculan una vez
+ * y solo si alguno casa.
+ */
+export function groupRolesAt(
+  tl: TimelineCore,
+  t: RaceS,
+  ctx: InstantContext,
+  picks: readonly ((x: GroupSeen, row: number) => boolean)[],
+): (GroupRoleNow | null)[] {
+  if (picks.length === 0) return []
   const ix = indexOf(tl)
   const S = toDs(t)
   const pb = ctx.photoBlocks
   const seen = seenAt(ix, S, pb, 'role')
-  const i = seen.order.findIndex(pick)
-  if (i < 0) return null
-  const x = seen.order[i]!
-  const rolesNow = groupRoleOf(
-    seen.order.map((y) => ({ size: y.members.length, kind: y.kind })),
-    ix.tl.riderIds.length - seen.outs,
-  )
-  const f = frameOf(ix, S, pb, seen, (k) =>
-    countSizes(ix, k, S, new Int32Array(ix.tl.groups.length)),
-  )
-  // el km de foto de su última lectura propia, como lo lee el paso 8 de instantAt
-  const bn = f.lastBlockOf(x)
-  const k = bn === null ? null : f.photoAtOrBefore(bn)
-  const role = f.roleOf(x, rolesNow[i]!, k === null || f.markOf(x.g, k) === null ? null : k)
-  const members = x.members
-  return {
-    g: x.g,
-    role,
-    label: groupLabelOf(members.length, members, jerseysIn(members, ctx), role, seen.order.length),
-  }
+  const rows: number[] = []
+  let n = 0
+  for (const y of seen.order) rows.push(y.members.length > 0 ? n++ : -1)
+  let rolesNow: readonly GroupRole[] | null = null
+  let f: ReturnType<typeof frameOf> | null = null
+  return picks.map((pick) => {
+    const i = seen.order.findIndex((x, k) => pick(x, rows[k]!))
+    if (i < 0) return null
+    const x = seen.order[i]!
+    rolesNow ??= groupRoleOf(
+      seen.order.map((y) => ({ size: y.members.length, kind: y.kind })),
+      ix.tl.riderIds.length - seen.outs,
+    )
+    f ??= frameOf(ix, S, pb, seen, (k) => countSizes(ix, k, S, new Int32Array(ix.tl.groups.length)))
+    // el km de foto de su última lectura propia, como lo lee el paso 8 de instantAt
+    const bn = f.lastBlockOf(x)
+    const k = bn === null ? null : f.photoAtOrBefore(bn)
+    const role = f.roleOf(x, rolesNow[i]!, k === null || f.markOf(x.g, k) === null ? null : k)
+    const members = x.members
+    return {
+      g: x.g,
+      role,
+      label: groupLabelOf(
+        members.length,
+        members,
+        jerseysIn(members, ctx),
+        role,
+        seen.order.length,
+      ),
+      row: rows[i]!,
+    }
+  })
 }
 
 /**

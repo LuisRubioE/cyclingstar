@@ -1,6 +1,7 @@
 import { gunzipSync } from 'node:zlib'
 import {
   BROADCAST,
+  type GroupLabel,
   type LiveLine,
   type RaceS,
   type StageTimeline,
@@ -199,8 +200,18 @@ const B8_ROLES_REPS = 7
 const B8_ROLES_WARMUP = 2
 
 describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b, 12-n)', () => {
+  /**
+   * DESDE W2b, CADA GRUPO DEL QUE HABLA LA LÍNEA, CON LA PALABRA DE LA BARRA (D-18): el del título (`mainRole`,
+   * `mainJersey`); el del caído (`groupRole`, `groupJersey`); el de los protagonistas, si es el de la frase
+   * (`lineGroupFits`): su papel, su maillot y si va en cabeza (`groupRole`, `groupJersey`, `groupHead`); en
+   * `attack_reeled`, el grupo en que vuelve a ir el atacante si no es el del título (el que lo cazó); y en los
+   * partes de ventaja, la cabeza si no es el título y casa con `leadSize` (`leadRole`, `leadJersey`) y la
+   * referencia de `chaseKind: 'caza'`, el primer grupo de detrás que casa con `chaseSize` (`chaseRole`,
+   * `chaseJersey`). Un papel solo se anota si cambia la palabra y cabe en la fila de su plantilla: `the
+   * gruppetto` solo lo dice la caída (GROUP_NOUNS).
+   */
   it.each(ROAD_FIXTURES)(
-    '%s: anota el papel del grupo del título y el maillot del de un protagonista en su hora, y nada más',
+    '%s: anota la palabra de la barra de cada grupo del que habla la línea, en su hora, y nada más (W2b)',
     (name) => {
       const tl = loadTimeline(name)
       const ctx = rolesContextOf(tl)
@@ -211,34 +222,67 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
       const ixOf = new Map(tl.riderIds.map((id, r) => [id, r] as const))
       const out = withGroupRoles(stored, tl, at, ctx)
       expect(out).toHaveLength(stored.length)
+      const jerseyOf = (g: { label: GroupLabel } | undefined) =>
+        g?.label.k === 'jersey_group' ? g.label.jersey : undefined
+      const NOUN_ROLES = new Set(['lead', 'chase', 'bunch'])
+      let seen = 0
       out.forEach((ev, i) => {
         const before = stored[i]!
-        const main = MAIN_GROUP_TEMPLATES.has(before.plantilla)
-        const ofRider = RIDER_GROUP_TEMPLATES.has(before.plantilla)
-        if (!main && !ofRider) return expect(ev).toBe(before)
+        const p = before.plantilla
         const now = instantAt(tl, at(before), ctx)
-        // el grupo del título; o el del primer protagonista, del que solo se anota el maillot (W1)
+        const rows = now.groups.filter((x) => x.members.length > 0)
         const first = ixOf.get(before.protagonistas[0] ?? '')
-        const g = main
-          ? now.groups.find((x) => x.kind === 'peloton')
-          : first === undefined
-            ? undefined
-            : now.groups.find((x) => x.members.includes(first))
-        // el de un protagonista, solo si es el de la frase (lineGroupFits, probada abajo)
-        const fits = main || (g !== undefined && lineGroupFits(before, g.members, ixOf))
-        const jersey = fits && g?.label.k === 'jersey_group' ? g.label.jersey : undefined
-        // el título en gruppetto por la histéresis no se anota (voiceRoles.ts): dice the bunch
-        const role = !main || g?.role === 'gruppetto' ? undefined : g?.role
-        if (role === undefined && jersey === undefined) return expect(ev).toBe(before)
+        const mine = first === undefined ? undefined : rows.find((x) => x.members.includes(first))
+        const want: Record<string, number | string> = {}
+        if (MAIN_GROUP_TEMPLATES.has(p)) {
+          const title = now.groups.find((x) => x.kind === 'peloton')
+          // el título en gruppetto por la histéresis no se anota (voiceRoles.ts): dice the bunch
+          if (title !== undefined && title.role !== 'gruppetto') want.mainRole = title.role
+          if (jerseyOf(title) !== undefined) want.mainJersey = jerseyOf(title)!
+          if (p === 'attack_reeled' && mine !== undefined && mine.g !== title?.g) {
+            if (NOUN_ROLES.has(mine.role)) want.groupRole = mine.role
+            if (jerseyOf(mine) !== undefined) want.groupJersey = jerseyOf(mine)!
+          }
+          if (p === 'time_gap' || p === 'time_gap_run') {
+            const head = rows[0]
+            const leadSize = before.datos?.leadSize
+            if (
+              title?.role !== 'lead' &&
+              head !== undefined &&
+              leadSize !== undefined &&
+              head.size === Number(leadSize)
+            ) {
+              if (head.role === 'chase' || head.role === 'bunch') want.leadRole = head.role
+              if (jerseyOf(head) !== undefined) want.leadJersey = jerseyOf(head)!
+            }
+            const chaseSize = before.datos?.chaseSize
+            if (before.datos?.chaseKind === 'caza' && chaseSize !== undefined) {
+              const ref = rows.slice(1).find((x) => x.size === Number(chaseSize))
+              if (ref?.role === 'lead' || ref?.role === 'bunch') want.chaseRole = ref.role
+              if (jerseyOf(ref) !== undefined) want.chaseJersey = jerseyOf(ref)!
+            }
+          }
+        } else if (RIDER_GROUP_TEMPLATES.has(p)) {
+          const fits = mine !== undefined && lineGroupFits(before, mine.members, ixOf)
+          if (fits) {
+            if (NOUN_ROLES.has(mine.role)) want.groupRole = mine.role
+            if (jerseyOf(mine) !== undefined) want.groupJersey = jerseyOf(mine)!
+            want.groupHead = rows[0] === mine ? 1 : 0
+          }
+        } else if (p !== 'crash') return expect(ev).toBe(before)
+        if (p === 'crash') return // la caída tiene su prueba en la web y en la voz congelada
+        if (Object.keys(want).length === 0) return expect(ev).toBe(before)
+        seen++
         expect(ev).not.toBe(before) // una copia: la ruta ata las horas después (12-n)
-        expect(ev.datos?.mainRole).toBe(role)
-        expect(ev.datos?.mainJersey).toBe(main ? jersey : undefined)
-        expect(ev.datos?.groupRole).toBeUndefined()
-        expect(ev.datos?.groupJersey).toBe(ofRider ? jersey : undefined)
+        const added = Object.fromEntries(
+          Object.entries(ev.datos ?? {}).filter(([k]) => !(k in (before.datos ?? {}))),
+        )
+        expect(added, `${name} ${i} ${p} km ${before.km}`).toEqual(want)
         // lo demás, igual: los datos de antes siguen y el suceso es el mismo
         expect({ ...ev, datos: null }).toEqual({ ...before, datos: null })
         expect(ev.datos).toMatchObject(before.datos ?? {})
       })
+      expect(seen).toBeGreaterThan(0)
     },
   )
 

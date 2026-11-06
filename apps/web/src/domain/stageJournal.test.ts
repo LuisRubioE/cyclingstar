@@ -2265,6 +2265,233 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
   })
 })
 
+/**
+ * W2b · LA VOZ DICE LA PALABRA DE LA BARRA DE CADA GRUPO DEL QUE HABLA (la revisión de `Watch` del dueño;
+ * D-18). La API anota el papel y el maillot de cada grupo que la línea nombra, en la hora de la línea: el de
+ * los protagonistas, si es el de la frase, con si va en cabeza (`groupRole`, `groupJersey`, `groupHead`); el
+ * que caza un ataque (`groupRole`, `groupJersey` en `attack_reeled`); y en los partes, la cabeza que no es el
+ * título y la referencia de una caza (`leadRole`, `leadJersey`, `chaseRole`, `chaseJersey`). La voz dice esa
+ * palabra donde decía su sitio, y fuera de cabeza no dice «in front», «at the front» ni «clear».
+ */
+describe('W2b · la palabra de la barra para cada grupo de la línea (D-18)', () => {
+  const KMS = [10, 40, 70, 100, 130, 160, 11, 41, 71, 101]
+  const ROLE_WORD = {
+    lead: 'the lead group',
+    chase: 'the chase group',
+    bunch: 'the bunch',
+  } as const
+  const lineOf = (
+    plantilla: string,
+    km: number,
+    datos: Record<string, number | string>,
+    who: ChronicleRider[] = named('Ana', 'Bea'),
+  ): string => chronicleLine('en', event({ plantilla, km, protagonists: who, datos }), REV)
+  const all = (
+    plantilla: string,
+    datos: Record<string, number | string>,
+    who?: ChronicleRider[],
+  ): string[] => KMS.map((km) => lineOf(plantilla, km, datos, who))
+  const withWord = (line: string, word: string): string =>
+    line
+      .replace(/the (lead|chase) group/g, word)
+      .replace(/The (lead|chase) group/g, word.charAt(0).toUpperCase() + word.slice(1))
+  const FRONT = /at the front|in front|up front| clear/
+
+  const GRUPO_DE_LA_FRASE: {
+    plantilla: string
+    datos: Record<string, number | string>
+    who?: ChronicleRider[]
+  }[] = [
+    { plantilla: 'bridge_made', datos: { size: 6, entran: 1 } },
+    { plantilla: 'break_cooperation', datos: { cooperating: 1 } },
+    { plantilla: 'break_share', datos: { passengers: 2 } },
+    {
+      plantilla: 'peloton_selection',
+      datos: { before: 119, remaining: 13, dropped: 80, toGo: 125, chasing: 0 },
+    },
+    { plantilla: 'peloton_split', datos: { before: 80, remaining: 40, dropped: 40, chasing: 0 } },
+    { plantilla: 'echelon_split', datos: { before: 80, remaining: 40, dropped: 40 } },
+    {
+      plantilla: 'front_group',
+      datos: { size: 7, gapS: 90, toGo: 40, entran: 2, salen: 1 },
+      who: named('Ana', 'Bea', 'Cris', 'Dani', 'Eva', 'Fer', 'Gus'),
+    },
+  ]
+
+  it('el grupo de la frase, en cabeza, con la palabra de su papel donde decía su sitio, dentro de su fila', () => {
+    const malas: string[] = []
+    for (const caso of GRUPO_DE_LA_FRASE)
+      for (const role of ['lead', 'chase', 'bunch'] as const) {
+        const permitidos = GROUP_NOUNS[caso.plantilla] ?? []
+        if (!permitidos.includes(ROLE_WORD[role]))
+          malas.push(`${caso.plantilla}: falta ${ROLE_WORD[role]}`)
+        KMS.forEach((km) => {
+          const sin = lineOf(caso.plantilla, km, caso.datos, caso.who)
+          const con = lineOf(
+            caso.plantilla,
+            km,
+            { ...caso.datos, groupRole: role, groupHead: 1 },
+            caso.who,
+          )
+          expect(con, `${caso.plantilla} ${role} km ${km}`).toBe(withWord(sin, ROLE_WORD[role]))
+        })
+      }
+    expect(malas).toEqual([])
+  })
+
+  it('el maillot manda sobre el papel, como en la barra', () => {
+    for (const caso of GRUPO_DE_LA_FRASE)
+      KMS.forEach((km) => {
+        const solo = lineOf(
+          caso.plantilla,
+          km,
+          { ...caso.datos, groupJersey: 'gc', groupHead: 1 },
+          caso.who,
+        )
+        const ambos = lineOf(
+          caso.plantilla,
+          km,
+          { ...caso.datos, groupJersey: 'gc', groupRole: 'chase', groupHead: 1 },
+          caso.who,
+        )
+        expect(ambos, `${caso.plantilla} km ${km}`).toBe(solo)
+      })
+  })
+
+  it('fuera de cabeza, la cabeza que crece no dice «at the front», «in front» ni «clear»', () => {
+    const cabezas = [
+      { size: 7, gapS: 90, toGo: 40, entran: 2, salen: 1 },
+      { size: 5, gapS: 90, toGo: 40, salen: 2 },
+      { size: 1, gapS: 90, toGo: 40, salen: 2 },
+      { size: 1, gapS: 90, toGo: 40 },
+      { size: 2, gapS: 90, toGo: 40 },
+      { size: 6, gapS: 90, toGo: 40 },
+    ]
+    for (const datos of cabezas) {
+      const who = named('Ana', 'Bea', 'Cris', 'Dani', 'Eva', 'Fer', 'Gus').slice(
+        0,
+        Math.max(1, datos.size),
+      )
+      const dentro = all('front_group', { ...datos, groupHead: 1 }, who)
+      const fuera = all('front_group', { ...datos, groupRole: 'chase', groupHead: 0 }, who)
+      expect(
+        dentro.some((l) => FRONT.test(l)),
+        JSON.stringify(datos),
+      ).toBe(true)
+      for (const l of fuera) {
+        expect(l, JSON.stringify(datos)).not.toMatch(FRONT)
+        expect(l).not.toMatch(/the lead group/i)
+      }
+      // sin papel que decir (el del gruppetto), fuera de cabeza tampoco es la cabeza: the chase group
+      for (const l of all('front_group', { ...datos, groupHead: 0 }, who))
+        expect(l).not.toMatch(/the lead group/i)
+    }
+  })
+
+  it('el puente fuera de cabeza: «together now» y el grupo por su papel; y «make the junction and join» con varios', () => {
+    const fuera = all('bridge_made', { size: 6, entran: 1, groupRole: 'chase', groupHead: 0 })
+    for (const l of fuera) {
+      expect(l).not.toMatch(FRONT)
+      expect(l).not.toMatch(/the lead group/i)
+      expect(l).toMatch(/— 6 together now\./)
+    }
+    const dentro = all('bridge_made', { size: 6, entran: 1, groupHead: 1 })
+    for (const l of dentro) expect(l).toMatch(/— 6 in front now\./)
+    // la concordancia: varios «make … and join», uno «makes … and joins»
+    const varios = all('bridge_made', { size: 6 })
+    expect(varios.some((l) => l.includes('make the junction and join '))).toBe(true)
+    expect(varios.every((l) => !l.includes('and joins'))).toBe(true)
+    const uno = all('bridge_made', { size: 6 }, named('Ana'))
+    expect(uno.some((l) => l.includes('makes the junction and joins '))).toBe(true)
+  })
+
+  it('las cribas fuera de cabeza dicen dónde quedan por la palabra de su grupo, no «in front»', () => {
+    for (const plantilla of ['peloton_selection', 'peloton_split'])
+      for (const datos of [
+        { before: 119, remaining: 13, dropped: 80, toGo: 125, chasing: 0 },
+        { before: 80, remaining: 40, dropped: 40, chasing: 0 },
+        { dropped: 12, remaining: 40, chasing: 0 },
+      ]) {
+        const fuera = all(plantilla, { ...datos, groupRole: 'bunch', groupHead: 0 })
+        for (const l of fuera) {
+          expect(l, plantilla).not.toMatch(/in front/)
+          expect(l, plantilla).not.toMatch(/the lead group/i)
+        }
+      }
+  })
+
+  it('«hit the front» con varios y sin equipo, en el abanico', () => {
+    const varios = all('echelon_split', { before: 80, remaining: 40, dropped: 40 })
+    expect(varios.some((l) => l.includes('Ana and Bea hit the front'))).toBe(true)
+    expect(varios.every((l) => !l.includes('hits the front'))).toBe(true)
+    const uno = all('echelon_split', { before: 80, remaining: 40, dropped: 40 }, named('Ana'))
+    expect(uno.some((l) => l.includes('Ana hits the front'))).toBe(true)
+  })
+
+  it('el ataque cazado: lo cierra el grupo que lo caza, si no es el del título', () => {
+    const datos = { mainRole: 'chase' }
+    const delTitulo = all('attack_reeled', datos)
+    expect(delTitulo.some((l) => l.startsWith('The chase group closes it down'))).toBe(true)
+    const porLaCabeza = all('attack_reeled', { ...datos, groupRole: 'lead' })
+    expect(porLaCabeza.some((l) => l.startsWith('The lead group closes it down'))).toBe(true)
+    expect(porLaCabeza.every((l) => !l.startsWith('The chase group'))).toBe(true)
+    const porElLider = all('attack_reeled', { ...datos, groupRole: 'lead', groupJersey: 'gc' })
+    expect(porElLider.some((l) => l.startsWith('The race leader’s group closes it down'))).toBe(
+      true,
+    )
+    // el grupo que caza, también un grupo del maillot sin papel que decir
+    const soloMaillot = all('attack_reeled', { ...datos, groupJersey: 'kom' })
+    expect(
+      soloMaillot.some((l) => l.startsWith('The mountains leader’s group closes it down')),
+    ).toBe(true)
+  })
+
+  it('el parte: la cabeza que no es el título, con su palabra; y la referencia de la caza, con la suya', () => {
+    const partes = [
+      { plantilla: 'time_gap', datos: { gapS: 90, trend: 1, leadSize: 40, chaseSize: 60 } },
+      { plantilla: 'time_gap', datos: { gapS: 90, trend: -1, leadSize: 40, chaseSize: 60 } },
+      { plantilla: 'time_gap', datos: { gapS: 90, trend: 0, leadSize: 40, chaseSize: 60 } },
+      {
+        plantilla: 'time_gap_run',
+        datos: { gapS: 38, fromGapS: 179, fromKm: 90, trend: -1, leadSize: 40, chaseSize: 60 },
+      },
+      {
+        plantilla: 'time_gap_run',
+        datos: { gapS: 380, fromGapS: 90, fromKm: 90, trend: 1, leadSize: 40, chaseSize: 60 },
+      },
+      {
+        plantilla: 'time_gap_run',
+        datos: { gapS: 90, fromGapS: 92, fromKm: 90, trend: 0, leadSize: 40, chaseSize: 60 },
+      },
+    ]
+    for (const { plantilla, datos } of partes) {
+      const base = { ...datos, mainRole: 'chase' }
+      // la cabeza con el amarillo, que no es el título
+      for (const l of all(plantilla, { ...base, leadJersey: 'gc' }, [])) {
+        expect(l, plantilla).toMatch(/the race leader’s group/i)
+        expect(l, plantilla).not.toMatch(/the lead group/i)
+      }
+      // la referencia de una caza: «over the race leader’s group», y por su papel si no es la de siempre
+      // (las redacciones de una racha que baja no dicen sobre quién: se miran las que lo dicen)
+      const caza = { ...datos, mainRole: 'bunch', chaseKind: 'caza' }
+      const sobre = (ls: string[]) => ls.filter((l) => / over the (?!last)/.test(l))
+      const conMaillot = sobre(all(plantilla, { ...caza, chaseJersey: 'gc' }, []))
+      expect(conMaillot.length, plantilla).toBe(sobre(all(plantilla, caza, [])).length)
+      if (Number(datos.trend) >= 0 || plantilla === 'time_gap')
+        expect(conMaillot.length, plantilla).toBeGreaterThan(0)
+      for (const l of conMaillot) {
+        expect(l, plantilla).toMatch(/over the race leader’s group/)
+        expect(l, plantilla).not.toMatch(/over the chase group/)
+      }
+      for (const l of sobre(all(plantilla, { ...caza, chaseRole: 'bunch' }, [])))
+        expect(l, plantilla).toMatch(/over the bunch/)
+      // sin anotación, como antes
+      for (const l of sobre(all(plantilla, caza, [])))
+        expect(l, plantilla).toMatch(/over the chase group/)
+    }
+  })
+})
+
 describe('el parte de ventaja responde a las cuatro preguntas (v27)', () => {
   const gap = (datos: Record<string, number | string>, who: ChronicleRider[] = []) =>
     chronicleLine('en', event({ plantilla: 'time_gap', km: 137, protagonists: who, datos }), REV)

@@ -15,6 +15,7 @@ import {
   coherentGaps,
   groupLabelOf,
   groupRoleAt,
+  groupRolesAt,
   groupRoleOf,
   instantAt,
   isGroupRole,
@@ -638,6 +639,37 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
     expect(checked).toBeGreaterThan(500)
     expect(hysteresis).toBeGreaterThan(0) // la histéresis entra: no es solo el papel crudo
     expect(groupRoleAt(tl, 100, ctx, () => false)).toBeNull()
+  })
+
+  it('groupRolesAt: varios grupos de una vez, cada uno con su papel, su etiqueta y su fila, los del instante (W2b)', () => {
+    let checked = 0
+    let behind = 0
+    for (let t = 0; t < tl.finish.finishS; t += 60) {
+      const i = instantAt(tl, t, ctx)
+      // la fila: el sitio en la carretera entre los grupos con alguien dentro; -1, uno vacío
+      const rows = i.groups.filter((g) => g.members.length > 0)
+      const want = (g: (typeof i.groups)[number] | undefined) =>
+        g === undefined ? null : { g: g.g, role: g.role, label: g.label, row: rows.indexOf(g) }
+      const main = i.groups.find((x) => x.kind === 'peloton')
+      const got = groupRolesAt(tl, t, ctx, [
+        (_x, row) => row === 0, // la cabeza
+        (x) => x.kind === 'peloton', // el título
+        (_x, row) => row > 0 && rows[row]!.size === rows[0]!.size, // el primero de detrás con el tamaño de la cabeza
+        ...rows.map((g) => (x: { readonly g: number }) => x.g === g.g),
+      ])
+      expect(got[0], `t ${t}`).toEqual(want(rows[0]))
+      expect(got[1], `t ${t}`).toEqual(want(main))
+      expect(got[2], `t ${t}`).toEqual(want(rows.slice(1).find((g) => g.size === rows[0]!.size)))
+      rows.forEach((g, k) => {
+        expect(got[k + 3], `t ${t} g ${g.g}`).toEqual(want(g))
+        if (k > 0) behind++
+        checked++
+      })
+    }
+    expect(checked).toBeGreaterThan(500)
+    expect(behind).toBeGreaterThan(300)
+    expect(groupRolesAt(tl, 100, ctx, [() => false])).toEqual([null])
+    expect(groupRolesAt(tl, 100, ctx, [])).toEqual([])
   })
 })
 
