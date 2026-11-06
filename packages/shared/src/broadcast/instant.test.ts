@@ -6,10 +6,13 @@ import { synthLine, toyStage, toyStageWithDrop } from './__fixtures__/syntheticL
 import { decodeTimeline } from './codec.js'
 import { BROADCAST } from './constants.js'
 import { chunkOf, cutTimeline, visibilityOf } from './cut.js'
+import { mainGapText } from './screenWords.js'
 import {
+  type GapReading,
   type GroupNow,
   type InstantContext,
   chaseRefOf,
+  coherentGaps,
   groupLabelOf,
   groupRoleAt,
   groupRoleOf,
@@ -109,6 +112,27 @@ describe('groupRoleOf y groupLabelOf · un vocabulario y una regla (§6.3, D-18)
     expect(GROUP_WORDS.jersey.gc[1]).toBe('the race leader’s group')
   })
 
+  // LA REVISIÓN DE `Watch` DEL DUEÑO (W1, su punto 4): «si ya no es el pelotón pero es el grupo donde va el
+  // maillot amarillo, llámalo así». Antes, el de cabeza con el amarillo era `Lead group`.
+  it('el líder de la general en cabeza, en un grupo de 20 que no es el pelotón: Race leader’s group', () => {
+    const roles = groupRoleOf(road([20, 'fuga'], [110, 'peloton']), 176)
+    expect(roles[0]).toBe('lead')
+    expect(labelOf(20, roles[0]!, 2, ['gc'])).toBe('Race leader’s group')
+    expect(labelOf(20, roles[0]!, 2, ['gc', 'kom'])).toBe('Race leader’s group')
+  })
+
+  it('en cabeza, solo el amarillo nombra al grupo: una fuga con el de la montaña sigue siendo Lead group', () => {
+    const roles = groupRoleOf(road([20, 'fuga'], [110, 'peloton']), 176)
+    expect(labelOf(20, roles[0]!, 2, ['kom'])).toBe('Lead group')
+    expect(labelOf(20, roles[0]!, 2, ['points'])).toBe('Lead group')
+  })
+
+  it('el pelotón con el amarillo sigue siendo Bunch, también en cabeza', () => {
+    const roles = groupRoleOf(road([129, 'peloton'], [1, 'tierra']), 130)
+    expect(roles[0]).toBe('bunch')
+    expect(labelOf(129, roles[0]!, 2, ['gc'])).toBe('Bunch')
+  })
+
   it('una fuga de 5, el título con 100 de 176 (57 %) y 71 detrás: Lead group, Chase group, Gruppetto', () => {
     expect(groupRoleOf(road([5, 'fuga'], [100, 'peloton'], [71, 'grupeto']), 176)).toEqual([
       'lead',
@@ -149,12 +173,14 @@ describe('groupRoleOf y groupLabelOf · un vocabulario y una regla (§6.3, D-18)
     expect(labels).toEqual(['names', 'names', 'names', 'role', 'role', 'role', 'names'])
   })
 
-  it('el maillot nombra al grupo solo si persigue o va descolgado, y manda JERSEY_PRIORITY', () => {
+  // RE-SELLADO EN W1 (la revisión de `Watch` del dueño, su punto 4): el de cabeza con el amarillo era `role`
+  it('el maillot nombra al grupo si persigue o va descolgado; en cabeza, solo el amarillo; y manda JERSEY_PRIORITY', () => {
     expect(groupLabelOf(20, [], ['points', 'kom'], 'chase', 3)).toEqual({
       k: 'jersey_group',
       jersey: 'points',
     })
-    expect(groupLabelOf(20, [], ['gc'], 'lead', 3)).toEqual({ k: 'role' })
+    expect(groupLabelOf(20, [], ['gc'], 'lead', 3)).toEqual({ k: 'jersey_group', jersey: 'gc' })
+    expect(groupLabelOf(20, [], ['kom'], 'lead', 3)).toEqual({ k: 'role' })
     expect(groupLabelOf(20, [], ['gc'], 'bunch', 3)).toEqual({ k: 'role' })
   })
 
@@ -613,4 +639,112 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
     expect(hysteresis).toBeGreaterThan(0) // la histéresis entra: no es solo el papel crudo
     expect(groupRoleAt(tl, 100, ctx, () => false)).toBeNull()
   })
+})
+
+describe('coherentGaps · ninguna fila enseña menos que la de delante (W1, paso 8b)', () => {
+  const r = (toHeadS: number, atKm = 10): GapReading => ({
+    toHeadS,
+    toAheadS: null,
+    atKm,
+    trend: { deltaS: -5, windowKm: 5, arrow: 'down' },
+  })
+  const shown = (readings: GapReading[]) => readings.map((reading) => ({ reading, shown: true }))
+
+  it('sin cruces, las mismas lecturas: el mismo objeto', () => {
+    const rows = shown([r(0), r(10), r(30)])
+    coherentGaps(rows).forEach((x, i) => expect(x).toBe(rows[i]!.reading))
+  })
+
+  it('la que da menos toma la de delante, con su km y su tendencia; también en cadena', () => {
+    // el km 59,5 de Race Alps: +0:13 leído en el 59 y, detrás, +0:10 leído en el 58
+    const rows = shown([r(0, 59.05), r(13, 59.05), r(10, 58.05), r(5, 57.05), r(20, 59.05)])
+    const out = coherentGaps(rows)
+    expect(out.map((x) => x.toHeadS)).toEqual([0, 13, 13, 13, 20])
+    expect(out.map((x) => x.atKm)).toEqual([59.05, 59.05, 58.05, 57.05, 59.05])
+    // la tendencia, la de su lectura propia: la lee la voz (gap_trend) y no cambia con la cifra prestada
+    out.forEach((x, i) => expect(x.trend).toBe(rows[i]!.reading.trend))
+  })
+
+  it('las filas vacías ni suben ni ponen suelo', () => {
+    const rows = [
+      { reading: r(0), shown: true },
+      { reading: r(30), shown: false }, // vacía y con más que la siguiente: no pone suelo
+      { reading: r(10), shown: true },
+      { reading: r(2), shown: false }, // vacía y con menos: no sube
+      { reading: r(12), shown: true },
+    ]
+    const out = coherentGaps(rows)
+    expect(out.map((x) => x.toHeadS)).toEqual([0, 30, 10, 2, 12])
+    expect(out[1]).toBe(rows[1]!.reading)
+    expect(out[3]).toBe(rows[3]!.reading)
+  })
+})
+
+describe('la barra de las cinco congeladas en línea, coherente entre filas (W1)', () => {
+  // las de Race Alps no llevan maillots ni general de salida; estas sí (la e16 es la crono, sin barra).
+  // Antes de W1, cuatro tenían de 332 a 503 filas por debajo de la de delante, contadas cada 5 s; la llana
+  // (e7), ninguna, y su caso es solo de guarda
+  const NAMES = [
+    'race-france-e7',
+    'race-france-e18',
+    'race-france-e20',
+    'race-flanders-e1',
+    'race-colombia-e5',
+  ] as const
+  it.each(NAMES)(
+    '%s, cada 5 s: ninguna fila por debajo de la de delante, y la capa fija como su fila',
+    (name) => {
+      const tl = decodeTimeline(
+        JSON.parse(
+          gunzipSync(
+            readFileSync(
+              new URL(
+                `../../../../apps/api/src/__fixtures__/broadcast/${name}.timeline.gz`,
+                import.meta.url,
+              ),
+            ),
+          ).toString('utf8'),
+        ),
+      )
+      const leaders: { gc: number | null; points: number | null; kom: number | null } = {
+        gc: null,
+        points: null,
+        kom: null,
+      }
+      for (const c of tl.cast.riders) if (c.worn.kind === 'leader') leaders[c.worn.jersey] = c.rider
+      const ctx: InstantContext = {
+        own: new Set(),
+        start: { leaders, gcTop: [] },
+        photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+      }
+      const malas: string[] = []
+      let conMaillot = 0
+      for (let t = 0; t < tl.finish.finishS; t += 5) {
+        const i = instantAt(tl, t, ctx)
+        const rows = i.groups.filter((g) => g.members.length > 0)
+        for (let k = 2; k < rows.length; k++) {
+          const a = rows[k - 1]!.gap.toHeadS
+          const b = rows[k]!.gap.toHeadS
+          if (mainGapText(a) !== mainGapText(b) && b < a - 0.5)
+            malas.push(`t=${t}: fila ${k} ${mainGapText(a)} y fila ${k + 1} ${mainGapText(b)}`)
+        }
+        if (rows.some((g) => g.label.k === 'jersey_group')) conMaillot++
+        const gap = i.mainGap
+        const row = gap === null ? undefined : i.groups.find((g) => g.g === gap.behind)
+        if (
+          gap !== null &&
+          row !== undefined &&
+          mainGapText(gap.gapS) !== mainGapText(row.gap.toHeadS)
+        )
+          malas.push(
+            `t=${t}: la capa ${mainGapText(gap.gapS)} y la fila ${mainGapText(row.gap.toHeadS)}`,
+          )
+      }
+      expect(malas.slice(0, 8), `${malas.length} en ${name}`).toEqual([])
+      // con filas nombradas por un maillot en las tres de montaña; en la llana el amarillo va en el grueso,
+      // y la e1 de Flanders, de un día, no tiene maillots de líder
+      if (name !== 'race-france-e7' && name !== 'race-flanders-e1')
+        expect(conMaillot).toBeGreaterThan(0)
+    },
+  )
 })

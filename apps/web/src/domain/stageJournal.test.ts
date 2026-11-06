@@ -16,6 +16,7 @@ import {
   mainNoun,
   ordinalSuffix,
   pickPhrasing,
+  riderGroupNoun,
   timeTrialStory,
   variantSeed,
 } from './stageJournal'
@@ -2028,6 +2029,216 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
     expect(reeled({})).toContain('he bunch')
     expect(reeled({ mainRole: 'chase' })).toMatch(
       /the chase group|The chase group|swept up|elastic/,
+    )
+  })
+
+  /**
+   * EL GRUPO DE LOS PROTAGONISTAS, POR SU MAILLOT (W1, la revisión de `Watch` del dueño, su punto 4; D-18): en
+   * las siete plantillas cuyo grupo es el de sus protagonistas (`RIDER_GROUP_TEMPLATES`, apps/api/src/
+   * voiceRoles.ts, la misma lista), la API anota el maillot que lo nombra en la barra (`groupJersey`), y
+   * cada sitio que lo nombra dice la misma frase con la palabra del maillot donde decía su sitio, declarada
+   * en su fila de `GROUP_NOUNS`.
+   */
+  const sameTeam = [rider('Ana', { team: 'Summit Squad' }), rider('Bea', { team: 'Summit Squad' })]
+  const twoTeams = [rider('Ana', { team: 'Summit Squad' }), rider('Bea', { team: 'Team Sol' })]
+  const DE_SUS_PROTAGONISTAS: {
+    plantilla: string
+    datos: Record<string, number | string>
+    who?: ChronicleRider[]
+  }[] = [
+    { plantilla: 'bridge_made', datos: { size: 6, entran: 1 } },
+    { plantilla: 'break_cooperation', datos: { cooperating: 1 } },
+    { plantilla: 'break_cooperation', datos: { cooperating: 0 } },
+    { plantilla: 'break_share', datos: { passengers: 2 } },
+    {
+      plantilla: 'peloton_selection',
+      datos: { before: 119, remaining: 13, dropped: 80, toGo: 125, chasing: 0 },
+    },
+    {
+      plantilla: 'peloton_selection',
+      datos: { before: 119, remaining: 13, dropped: 80, toGo: 125, chasing: 1 },
+    },
+    { plantilla: 'peloton_split', datos: { before: 80, remaining: 40, dropped: 40, chasing: 0 } },
+    {
+      plantilla: 'peloton_split',
+      datos: { before: 80, remaining: 40, dropped: 40, chasing: 1, phase: 1 },
+    },
+    { plantilla: 'echelon_split', datos: { before: 80, remaining: 40, dropped: 40 } },
+    {
+      plantilla: 'echelon_split',
+      datos: { before: 80, remaining: 40, dropped: 40, grupo: 'caza' },
+    },
+    {
+      plantilla: 'front_group',
+      datos: { size: 7, gapS: 90, toGo: 40, entran: 2, salen: 1 },
+      who: named('Ana', 'Bea', 'Cris', 'Dani', 'Eva', 'Fer', 'Gus'),
+    },
+  ]
+  const KMS = [10, 40, 70, 100, 130, 160, 11, 41, 71, 101]
+  const lineOf = (
+    caso: { plantilla: string; who?: ChronicleRider[] },
+    km: number,
+    datos: Record<string, number | string>,
+  ): string =>
+    chronicleLine(
+      'en',
+      event({
+        plantilla: caso.plantilla,
+        km,
+        protagonists: caso.who ?? named('Ana', 'Bea'),
+        datos,
+      }),
+      REV,
+    )
+  const WORD = {
+    gc: 'the race leader’s group',
+    points: 'the points leader’s group',
+    kom: 'the mountains leader’s group',
+  } as const
+  /** La frase de siempre con la palabra del maillot donde decía el sitio del grupo, en cualquier caja. */
+  const withWord = (line: string, word: string): string =>
+    line
+      .replace(/the (lead|chase) group/g, word)
+      .replace(/The (lead|chase) group/g, word.charAt(0).toUpperCase() + word.slice(1))
+
+  it('las siete del grupo de sus protagonistas, con su maillot, dicen su palabra donde decían su sitio', () => {
+    expect([...new Set(DE_SUS_PROTAGONISTAS.map((c) => c.plantilla))].sort()).toEqual([
+      'break_cooperation',
+      'break_share',
+      'bridge_made',
+      'echelon_split',
+      'front_group',
+      'peloton_selection',
+      'peloton_split',
+    ])
+    const malas: string[] = []
+    const sinCambio: string[] = []
+    DE_SUS_PROTAGONISTAS.forEach((caso, n) => {
+      const permitidos = GROUP_NOUNS[caso.plantilla] ?? []
+      let cambia = false
+      for (const jersey of ['gc', 'points', 'kom'] as const)
+        for (const km of KMS) {
+          const sin = lineOf(caso, km, caso.datos)
+          const con = lineOf(caso, km, { ...caso.datos, groupJersey: jersey })
+          expect(con, `${caso.plantilla} ${jersey} km ${km}`).toBe(withWord(sin, WORD[jersey]))
+          if (con !== sin) cambia = true
+          if (con !== sin && !permitidos.includes(WORD[jersey]))
+            malas.push(`${caso.plantilla}: «${WORD[jersey]}» en «${con}»`)
+        }
+      // cada caso llega a un sitio que nombra a su grupo en alguna de sus redacciones
+      if (!cambia) sinCambio.push(`${n} ${caso.plantilla} ${JSON.stringify(caso.datos)}`)
+    })
+    expect(malas).toEqual([])
+    expect(sinCambio).toEqual([])
+  })
+
+  it('el parte de ventaja nombra a la cabeza con la palabra del título, si la barra lo pone en cabeza', () => {
+    // una cabeza de más de tres llega sin nombres (el motor solo los manda hasta `frontNamesMaxRiders`)
+    const partes = [
+      { plantilla: 'time_gap', datos: { gapS: 90, trend: 1, leadSize: 40, chaseSize: 60 } },
+      { plantilla: 'time_gap', datos: { gapS: 90, trend: -1, leadSize: 40, chaseSize: 60 } },
+      { plantilla: 'time_gap', datos: { gapS: 90, trend: 0, leadSize: 40, chaseSize: 60 } },
+      {
+        plantilla: 'time_gap_run',
+        datos: { gapS: 38, fromGapS: 179, fromKm: 90, trend: -1, leadSize: 40 },
+      },
+      {
+        plantilla: 'time_gap_run',
+        datos: { gapS: 380, fromGapS: 90, fromKm: 90, trend: 1, leadSize: 40 },
+      },
+      {
+        plantilla: 'time_gap_run',
+        datos: { gapS: 90, fromGapS: 92, fromKm: 90, trend: 0, leadSize: 40 },
+      },
+    ]
+    for (const caso of partes)
+      for (const km of KMS) {
+        const parte = { ...caso, who: [] }
+        const sin = lineOf(parte, km, caso.datos)
+        expect(sin).toMatch(/the lead group/i)
+        // el título en cabeza con el amarillo: su palabra
+        const enCabeza = lineOf(parte, km, { ...caso.datos, mainRole: 'lead', mainJersey: 'gc' })
+        expect(enCabeza).toBe(withWord(sin, WORD.gc))
+        // el título detrás, aunque lleve el amarillo: la cabeza es otro grupo, y dice su sitio
+        expect(lineOf(parte, km, { ...caso.datos, mainRole: 'chase', mainJersey: 'gc' })).toMatch(
+          /the lead group/i,
+        )
+      }
+  })
+
+  it('el título pequeño en cabeza dice su palabra; detrás o sin anotación, the lead group', () => {
+    const pull = (datos: Record<string, number | string>) =>
+      KMS.map((km) =>
+        chronicleLine(
+          'en',
+          event({ plantilla: 'peloton_pull', km, protagonists: [rider('Ana')], datos }),
+          REV,
+        ),
+      )
+    const small = { size: 6, effort: 'firme', toGo: 20, chasing: 0 }
+    const enCabeza = pull({ ...small, mainRole: 'lead', mainJersey: 'gc' })
+    expect(enCabeza.some((l) => l.includes('the race leader’s group'))).toBe(true)
+    expect(enCabeza.every((l) => !/the lead group/i.test(l))).toBe(true)
+    expect(pull(small).some((l) => /the lead group/i.test(l))).toBe(true)
+    expect(pull({ ...small, mainRole: 'chase' }).some((l) => /the lead group/i.test(l))).toBe(true)
+  })
+
+  it('las que hablan de otro grupo no cambian con el maillot de un protagonista', () => {
+    // la fuga que se persigue, la que se caza, el grupo del que se sale, la fuga del día al nacer, la meta y
+    // el reagrupamiento, que el motor emite sin protagonistas
+    const OTRAS = [
+      {
+        plantilla: 'peloton_regroup',
+        datos: { joined: 14, remaining: 19, before: 5, chasing: 0 },
+        who: [],
+      },
+      {
+        plantilla: 'peloton_regroup',
+        datos: { joined: 14, remaining: 19, before: 5, chasing: 1 },
+        who: [],
+      },
+      { plantilla: 'sprinters_chase', datos: { porQue: 'general' } },
+      { plantilla: 'sprinters_chase', datos: {}, who: sameTeam },
+      {
+        plantilla: 'peloton_pull',
+        datos: { size: 120, effort: 'firme', toGo: 60, chasing: 1, porQue: 'general' },
+        who: sameTeam,
+      },
+      {
+        plantilla: 'peloton_pull',
+        datos: { size: 120, effort: 'firme', toGo: 45, chasing: 1 },
+        who: twoTeams,
+      },
+      { plantilla: 'peloton_concedes', datos: { cazada: 1 } },
+      { plantilla: 'peloton_concedes', datos: {} },
+      { plantilla: 'breakaway_caught', datos: { size: 6, awayKm: 120, toGo: 30, juntos: 1 } },
+      { plantilla: 'attack_go', datos: { kind: 'ataque_grupo', saltan: 2, toGo: 30 } },
+      { plantilla: 'breakaway_formed', datos: {}, who: named('Ana', 'Bea', 'Cris') },
+      { plantilla: 'stage_win', datos: { won: 'group', margin: 4 } },
+    ]
+    for (const caso of OTRAS) {
+      let dice = false
+      for (const km of KMS) {
+        const sin = lineOf(caso, km, caso.datos)
+        expect(lineOf(caso, km, { ...caso.datos, groupJersey: 'gc' }), caso.plantilla).toBe(sin)
+        // y nombran un grupo por su sitio en alguna redacción: si no, la prueba no miraría nada
+        if (/the (lead|chase) group/i.test(sin)) dice = true
+      }
+      expect(dice, caso.plantilla).toBe(true)
+    }
+  })
+
+  it('la palabra del grupo de un protagonista: la del maillot, si la anota la API; si no, su sitio', () => {
+    expect(riderGroupNoun({ datos: { groupJersey: 'gc' } }, 'the lead group')).toBe(
+      'the race leader’s group',
+    )
+    expect(riderGroupNoun({ datos: { groupJersey: 'kom' } }, 'the chase group')).toBe(
+      'the mountains leader’s group',
+    )
+    expect(riderGroupNoun({ datos: {} }, 'the lead group')).toBe('the lead group')
+    expect(riderGroupNoun({}, 'the chase group')).toBe('the chase group')
+    expect(riderGroupNoun({ datos: { groupJersey: 'yellow' } }, 'the lead group')).toBe(
+      'the lead group',
     )
   })
 

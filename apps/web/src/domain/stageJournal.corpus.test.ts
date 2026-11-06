@@ -106,8 +106,20 @@ function b5Lines(): string[] {
  * abría con el maillot y la bandera. Lo que dice cada etapa no cambia: la frase pelada (`chronicleLine`)
  * es la misma byte a byte en las 1.020, y quitando las marcas de bandera y de maillot también lo pintado;
  * cambian de sitio las marcas, en 831 de ellas. Era `d54f2219c8ede513c00471cc09c514bcf20f8a4f53f8a90a0ca8121f9796224b`.
+ *
+ * RE-SELLADO EN W1 (la revisión de `Watch` del dueño, su punto 4): el grupo de cabeza que lleva el amarillo y
+ * no es el pelotón se llama `Race leader’s group` en la barra, y la voz dice la palabra de la barra (D-18) por
+ * el grupo del título cuando va en cabeza (`mainJersey`, que también nombra al sujeto de los partes de
+ * ventaja) y por el grupo de su primer protagonista en las ocho plantillas que hablan de él (`groupJersey`,
+ * `RIDER_GROUP_TEMPLATES`, apps/api). La voz congelada gana `mainJersey` en 10 líneas (8 de la e18 y 2 de la
+ * e20) y `groupJersey` en otras 10 (5 de la e18, 3 de la e20 y 2 de la e5 de Colombia), y nada más. De las
+ * 1.020 que se pintan cambian 13, todas a `the race leader’s group`: diez decían `the lead group` (el grupo
+ * que cierra un ataque, cuatro partes de ventaja, dos selecciones, dos cortes y la cabeza que crece en la e5)
+ * y tres `the chase group` (una selección de la e18, otra de la e20 y lo que queda de una criba en la e20),
+ * por un grupo que la barra ya llamaba por su maillot. Las otras siete anotadas no nombran a un grupo por su
+ * palabra: nombran corredores o a nadie. Era `833679eca9e3f19df7ce87f8c27aed31618789734ffc04c809384e58649cc091`.
  */
-const B5_SHA256 = '833679eca9e3f19df7ce87f8c27aed31618789734ffc04c809384e58649cc091'
+const B5_SHA256 = 'ea9ece4a725ae6992604edc9988f89c8cdf33802f63ba27fac078164a6a7107f'
 
 const CHILD = process.env.CORPUS_CHILD_OUT
 
@@ -151,6 +163,30 @@ else {
         rmSync(dir, { recursive: true, force: true })
       }
     }, 150_000)
+  })
+
+  describe('W1 · el grupo del maillot, en la voz congelada (D-18)', () => {
+    it('ninguna línea con el maillot de su grupo dice su sitio, ni el parte del título en cabeza', () => {
+      const anotadas: string[] = []
+      const malas: string[] = []
+      for (const name of FIXTURES)
+        fixtureOf(name, 'voz').forEach((e, i) => {
+          // el grupo de un protagonista (fuera de la caída, que lo dice con su papel), o el título en cabeza
+          // como sujeto de un parte de ventaja
+          const deUnProtagonista = e.plantilla !== 'crash' && e.datos?.groupJersey !== undefined
+          const tituloEnCabeza =
+            e.plantilla.startsWith('time_gap') &&
+            e.datos?.mainRole === 'lead' &&
+            e.datos.mainJersey !== undefined
+          if (!deUnProtagonista && !tituloEnCabeza) return
+          anotadas.push(`${name} ${i}`)
+          const sitio = deUnProtagonista ? /the (lead|chase) group/i : /the lead group/i
+          for (const l of painted(e)) if (sitio.test(l)) malas.push(`${name} ${i} ${l}`)
+        })
+      // las diez del grupo de un protagonista y los cuatro partes de la e18 (el re-sellado de W1, arriba)
+      expect(anotadas).toHaveLength(14)
+      expect(malas).toEqual([])
+    })
   })
 
   describe('B5 · lo que dicen las etapas ya vistas no cambia (§12.7, §16.4)', () => {

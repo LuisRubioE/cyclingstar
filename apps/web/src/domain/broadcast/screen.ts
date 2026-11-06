@@ -195,8 +195,16 @@ export function overlaySummaryText(
     // la cabeza retenida no está en `groups` (10a): entonces, `lead group` sin tamaño, y no el del primero
     // de la barra, que puede ser el mismo grupo contra el que se mide
     const ahead = instant.groups.find((g) => g.g === gap.ahead)
+    // con la palabra de su fila si la nombra un maillot (W1: `race leader’s group`); si no, `lead group`
+    const word =
+      ahead?.label.k === 'jersey_group'
+        ? groupLabelText('en', ahead.label, ahead.role, 'voice', nameOf(head.cast)).replace(
+            /^the /,
+            '',
+          )
+        : 'lead group'
     const lead =
-      ahead === undefined ? 'lead group' : `lead group ${counted(ahead.size, 'rider', 'riders')}`
+      ahead === undefined ? 'lead group' : `${word} ${counted(ahead.size, 'rider', 'riders')}`
     const behind = instant.groups.find((g) => g.g === gap.behind)
     const voice =
       behind === undefined
@@ -243,21 +251,24 @@ export function climbAheadText(profile: ProfileStrip, headKm: number): string | 
 }
 
 /**
- * LAS FILAS DEL MÓVIL (6-c): como mucho `mobileGroupRows`, elegidas en este orden (la 1, la del
- * pelotón, las del espectador, las que llevan un maillot y después las siguientes por carretera) y
- * pintadas en el de carretera. Devuelve los `GroupIx` elegidos. «El pelotón» es el grupo con papel
+ * LAS FILAS DEL MÓVIL (6-c): como mucho `mobileGroupRows`, más las que llevan un maillot (W1, abajo),
+ * elegidas en este orden (la 1, la del pelotón, las del espectador, las que llevan un maillot y después
+ * las siguientes por carretera) y pintadas en el de carretera. Devuelve los `GroupIx` elegidos. «El pelotón» es el grupo con papel
  * `bunch` y, si ninguno llega a dos tercios, el del título (6-b).
+ *
+ * Una fila con un maillot de líder no se pliega nunca, aunque pasen de `mobileGroupRows` (la revisión de
+ * `Watch` del dueño, W1: «en todo momento saber estos maillots donde van»): el tope es para las demás.
  */
 export function mobileRowsOf(groups: readonly GroupNow[]): ReadonlySet<number> {
   const max = BROADCAST.mobileGroupRows
   const chosen = new Set<number>()
-  const add = (g: GroupNow | undefined): void => {
-    if (g !== undefined && chosen.size < max) chosen.add(g.g)
+  const add = (g: GroupNow | undefined, always = false): void => {
+    if (g !== undefined && (always || chosen.size < max)) chosen.add(g.g)
   }
   add(groups[0])
   add(packOf(groups) ?? undefined)
   for (const g of groups) if (g.own) add(g)
-  for (const g of groups) if (g.jerseys.length > 0) add(g)
+  for (const g of groups) if (g.jerseys.length > 0) add(g, true)
   for (const g of groups) add(g)
   return chosen
 }

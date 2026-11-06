@@ -625,7 +625,11 @@ Y el grupo de un maillot de líder se nombra por su maillot y no por su papel cu
 descolgado (con más de tres corredores y un líder dentro; si hay dos, manda la general, luego los
 puntos y luego la montaña): `the race leader’s group`, `the points leader’s group` y `the mountains
 leader’s group` (`Race leader’s group`, `Points leader’s group` y `Mountains leader’s group` en la
-barra). Son SIETE nombres (DD-04), y nunca dos para el mismo grupo en la misma pantalla: la voz dice
+barra). Con papel de cabeza, solo el amarillo lo nombra: el grupo de cabeza que lleva al líder de la
+general y no es el pelotón es `the race leader’s group` (la revisión de `Watch` del dueño, W1), y una
+fuga con otro maillot sigue siendo `the lead group`; el grueso es `the bunch`, lleve lo que lleve. El
+papel lleva su histéresis: el grupo que llega a la cabeza con papel de perseguidor se nombra un rato por
+su maillot, sea cual sea. Son SIETE nombres (DD-04), y nunca dos para el mismo grupo en la misma pantalla: la voz dice
 la palabra que la barra enseña a la hora de la línea (la API pone el papel y el maillot del grupo en
 los datos de la línea: `mainRole`, `groupRole`, `mainJersey` y `groupJersey`); sin esa anotación (el
 acta de quien no tiene `Watch` encendido, una etapa sin línea grabada), `the bunch`. Un solo grupo en
