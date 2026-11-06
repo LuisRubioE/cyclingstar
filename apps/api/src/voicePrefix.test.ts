@@ -286,6 +286,56 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
     },
   )
 
+  it('la referencia de una caza es un grupo de detrás, nunca la cabeza, aunque tenga su tamaño (W2b)', () => {
+    // sobre la e18, en la primera hora con una cabeza de papel lead cuyo tamaño no repite ningún grupo de detrás
+    const tl = loadTimeline('race-france-e18')
+    const ctx = rolesContextOf(tl)
+    let t = 0
+    let rows = instantAt(tl, t, ctx).groups.filter((g) => g.members.length > 0)
+    for (; t < tl.finish.finishS; t += 60) {
+      rows = instantAt(tl, t, ctx).groups.filter((g) => g.members.length > 0)
+      const head = rows[0]
+      if (
+        rows.length > 2 &&
+        head?.role === 'lead' &&
+        rows.slice(1).every((g) => g.size !== head.size)
+      )
+        break
+    }
+    const head = rows[0]!
+    expect(head.role).toBe('lead')
+    const parte = (chaseSize: number): ChronicleEvent => ({
+      km: 100,
+      tS: t,
+      tipo: 'boquete',
+      plantilla: 'time_gap',
+      protagonistas: [],
+      datos: { gapS: 60, trend: 1, leadSize: head.size, chaseSize, chaseKind: 'caza' },
+    })
+    const [conLaDeLaCabeza, conLaDeDetras] = withGroupRoles(
+      [parte(head.size), parte(rows[1]!.size)],
+      tl,
+      () => t,
+      ctx,
+    )
+    // con el tamaño de la cabeza no hay referencia de detrás: nada que anotar de ella
+    expect(conLaDeLaCabeza!.datos?.chaseRole).toBeUndefined()
+    expect(conLaDeLaCabeza!.datos?.chaseJersey).toBeUndefined()
+    // con el de la segunda, la segunda (su papel, si no es el de siempre, o su maillot)
+    const second = rows[1]!
+    const want: Record<string, string> = {}
+    if (second.role === 'lead' || second.role === 'bunch') want.chaseRole = second.role
+    if (second.label.k === 'jersey_group') want.chaseJersey = second.label.jersey
+    expect({
+      ...(conLaDeDetras!.datos?.chaseRole === undefined
+        ? {}
+        : { chaseRole: conLaDeDetras!.datos.chaseRole }),
+      ...(conLaDeDetras!.datos?.chaseJersey === undefined
+        ? {}
+        : { chaseJersey: conLaDeDetras!.datos.chaseJersey }),
+    }).toEqual(want)
+  })
+
   it('en las cinco: cuántas líneas del grupo del título dejan de decir «the bunch» (§12.6: 40 de 210)', () => {
     const roles = new Map<string, number>()
     for (const name of ROAD_FIXTURES) {
