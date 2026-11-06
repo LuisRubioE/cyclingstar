@@ -247,17 +247,20 @@ export function climbAheadText(profile: ProfileStrip, headKm: number): string | 
  * pelotón, las del espectador, las que llevan un maillot y después las siguientes por carretera) y
  * pintadas en el de carretera. Devuelve los `GroupIx` elegidos. «El pelotón» es el grupo con papel
  * `bunch` y, si ninguno llega a dos tercios, el del título (6-b).
+ *
+ * Una fila con un maillot de líder no se pliega nunca, aunque pasen de `mobileGroupRows` (la revisión de
+ * `Watch` del dueño, W1: «en todo momento saber estos maillots donde van»): el tope es para las demás.
  */
 export function mobileRowsOf(groups: readonly GroupNow[]): ReadonlySet<number> {
   const max = BROADCAST.mobileGroupRows
   const chosen = new Set<number>()
-  const add = (g: GroupNow | undefined): void => {
-    if (g !== undefined && chosen.size < max) chosen.add(g.g)
+  const add = (g: GroupNow | undefined, always = false): void => {
+    if (g !== undefined && (always || chosen.size < max)) chosen.add(g.g)
   }
   add(groups[0])
   add(packOf(groups) ?? undefined)
   for (const g of groups) if (g.own) add(g)
-  for (const g of groups) if (g.jerseys.length > 0) add(g)
+  for (const g of groups) if (g.jerseys.length > 0) add(g, true)
   for (const g of groups) add(g)
   return chosen
 }
