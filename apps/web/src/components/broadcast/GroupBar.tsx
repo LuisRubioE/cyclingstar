@@ -242,16 +242,21 @@ export function GroupRow({
           )}
         </span>
       </Expander>
-      {g.label.k !== 'names' && g.size <= BROADCAST.nameWholeGroupUpTo && (
-        <TeamLine
-          group={g}
-          cast={cast}
-          mobile={g.number === 1 || g.own}
-          open={open}
-          controls={listId}
-          onMore={onToggle}
-        />
+      {g.label.k !== 'names' && g.size <= BROADCAST.namesLineUpTo && (
+        <NamesLine group={g} cast={cast} />
       )}
+      {g.label.k !== 'names' &&
+        g.size > BROADCAST.namesLineUpTo &&
+        g.size <= BROADCAST.nameWholeGroupUpTo && (
+          <TeamLine
+            group={g}
+            cast={cast}
+            mobile={g.number === 1 || g.own}
+            open={open}
+            controls={listId}
+            onMore={onToggle}
+          />
+        )}
       {t !== undefined && (t.back > 0 || t.across > 0) && (
         <p className="pl-6 text-caption text-ink-2">
           {/* la flecha, el icono `trend` girado y para el ojo: las palabras ya lo dicen (ui/10; PR 21n) */}
@@ -304,6 +309,43 @@ function NamedRider({ card }: { card: RiderCard }) {
       <span className="wrap-anywhere">{card.name}</span>
       <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
     </span>
+  )
+}
+
+/**
+ * LOS NOMBRES BAJO LA FILA de un grupo de cuatro a `namesLineUpTo` (W2, la revisión de `Watch` del dueño, su
+ * punto 2: «si es un grupo de 2 o de 4 o de 5... debería poder verse quiénes son»). La fila sigue con su
+ * palabra, su tamaño y sus maillots (el grupo del amarillo de cuatro sigue siendo `Race leader’s group`, D-18);
+ * debajo, en lugar de la línea de equipos, sus corredores en el orden de la lista, cada uno con su bandera
+ * y, si lleva uno, su maillot de líder o de campeón detrás (como la línea de equipos los ponía delante),
+ * separados por `·`, que parten de línea antes que cortarse. También en el teléfono, en toda fila de cuatro o
+ * cinco: son pocos, y saber quién va es lo que pedía. La identidad entera, al tocar la fila.
+ */
+function NamesLine({ group, cast }: { group: GroupNow; cast: readonly RiderCard[] }) {
+  return (
+    <p
+      data-names-line=""
+      className="flex flex-wrap items-center gap-x-1 gap-y-0.5 pb-1 text-caption text-ink-2 sm:pl-6"
+    >
+      {group.members.map((r, i) => {
+        const card = cast[r]
+        return (
+          <Fragment key={r}>
+            {i > 0 && <span className="text-ink-3">·</span>}
+            <span className="inline-flex items-center gap-1">
+              {card !== undefined && <Flag country={card.country} height={12} />}
+              <span className="wrap-anywhere">
+                {card === undefined ? nameOf(cast)(r) : card.name}
+              </span>
+              {/* el maillot de líder o de campeón, tras su nombre: quién lo lleva (el del equipo, en la lista) */}
+              {card !== undefined && card.worn.kind !== 'team' && (
+                <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
+              )}
+            </span>
+          </Fragment>
+        )
+      })}
+    </p>
   )
 }
 

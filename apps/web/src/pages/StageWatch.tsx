@@ -339,6 +339,7 @@ export function StageWatch({
               lines={w.lines}
               t={w.overlay.t}
               open={commentary}
+              onToggle={() => setCommentary((c) => !c)}
               quiet={tt === null && isQuietFinal(w.overlay.toGoKm)}
               unnamed={unnamed}
               extras={{ present, state: w.trend, namesDelayS: w.namesDelayS }}
@@ -350,14 +351,12 @@ export function StageWatch({
       {phase !== 'arrival' && phase !== 'closing' && (
         <PlayerControls
           state={w.controls}
-          commentaryOpen={commentary}
           jumps={w.jumps}
           canShowResult={canShowResult}
           onPlay={() => w.dispatch({ k: 'play' })}
           onPause={() => w.dispatch({ k: 'pause' })}
           onSpeed={(x) => w.dispatch({ k: 'speed', x })}
           onNextAction={() => w.dispatch({ k: 'nextAction' })}
-          onCommentary={() => setCommentary((c) => !c)}
           onJump={w.jump}
           onView={(v) => w.dispatch({ k: 'view', view: v })}
           onShowResult={askShowResult}
