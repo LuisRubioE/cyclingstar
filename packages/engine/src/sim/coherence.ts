@@ -580,20 +580,16 @@ export const FINALE_KM = 15
  * las cinco frases nuevas que no nombran grupos tienen su fila vacía. SPEC §6.15, que dice tres
  * nombres, lo reescribe el paso 12 (12-r).
  *
- * …Y EN CABEZA, EL AMARILLO (W1, la revisión de `Watch` del dueño, su punto 4): desde W1 la barra llama
- * `Race leader’s group` al grupo de cabeza que lleva el amarillo y no es el pelotón, y la voz lo dice en
- * las plantillas que nombran a la cabeza de ahora (`HEAD_GROUP_TEMPLATES` en apps/api). Las que no tenían
- * los maillots en su fila ganan ese, el único que nombra en cabeza (`LEAD_JERSEY_NOUN`), y el medidor no
- * cuenta ningún nombre nuevo: es uno de los tres del maillot.
+ * …Y EL GRUPO DE LOS PROTAGONISTAS, POR SU MAILLOT (W1, la revisión de `Watch` del dueño, su punto 4): las
+ * ocho plantillas cuyo grupo es el de sus protagonistas (`RIDER_GROUP_TEMPLATES` en apps/api) dicen la
+ * palabra de su maillot si la barra lo nombra así, también en cabeza, donde desde W1 lo nombra el amarillo.
+ * Ganan los tres del maillot en su fila, y el medidor no cuenta ningún nombre nuevo.
  */
 const JERSEY_GROUP_NOUNS = [
   'the race leader’s group',
   'the points leader’s group',
   'the mountains leader’s group',
 ] as const
-
-/** El maillot que nombra a la cabeza: solo el amarillo (§6.3, W1). */
-const LEAD_JERSEY_NOUN = 'the race leader’s group'
 
 export const GROUP_NOUNS: Readonly<Record<string, readonly string[]>> = {
   attack_go: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
@@ -604,23 +600,23 @@ export const GROUP_NOUNS: Readonly<Record<string, readonly string[]>> = {
   move_faded: [],
   move_caught: ['the chase group'],
   move_merge: [],
-  bridge_made: ['the lead group', LEAD_JERSEY_NOUN],
+  bridge_made: ['the lead group', ...JERSEY_GROUP_NOUNS],
   breakaway_formed: ['the lead group'],
-  break_cooperation: ['the lead group', LEAD_JERSEY_NOUN],
-  break_share: ['the lead group', LEAD_JERSEY_NOUN],
+  break_cooperation: ['the lead group', ...JERSEY_GROUP_NOUNS],
+  break_share: ['the lead group', ...JERSEY_GROUP_NOUNS],
   riders_sit_up: [],
   rider_sits_up: [],
   sprinters_chase: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
   sprinters_give_up: ['the bunch', 'the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
   peloton_concedes: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
   peloton_pull: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
-  peloton_split: ['the chase group', 'the lead group', LEAD_JERSEY_NOUN],
-  echelon_split: ['the chase group', 'the lead group', LEAD_JERSEY_NOUN],
-  peloton_selection: ['the chase group', 'the lead group', LEAD_JERSEY_NOUN],
-  peloton_regroup: ['the chase group', 'the lead group', LEAD_JERSEY_NOUN],
+  peloton_split: ['the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
+  echelon_split: ['the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
+  peloton_selection: ['the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
+  peloton_regroup: ['the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
   time_gap: ['the lead group', 'the chase group', 'the bunch', ...JERSEY_GROUP_NOUNS],
   time_gap_run: ['the lead group', 'the chase group', 'the bunch', ...JERSEY_GROUP_NOUNS],
-  front_group: ['the lead group', LEAD_JERSEY_NOUN],
+  front_group: ['the lead group', ...JERSEY_GROUP_NOUNS],
   chase_work: ['the chase group'],
   breakaway_caught: ['the bunch', 'the lead group', 'the chase group', ...JERSEY_GROUP_NOUNS],
   bunch_sprint: ['the bunch'],

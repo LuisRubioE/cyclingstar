@@ -110,34 +110,46 @@ describe('la barra de Race Alps, etapa 1 (W1)', () => {
     ])
   })
 
-  it('la cifra prestada de un km posterior es lo menos que la fila enseña al cruzar ese km', () => {
-    // Cada 2 s, lo que enseña cada grupo y dónde lo leyó; una fila que enseña la cifra de la de delante,
-    // leída en un km posterior, la toma prestada, y al cruzar ella ese km no puede enseñar menos: pasa
-    // por él después. Antes de W1, su lectura propia allí no bajó de esa cifra en ninguna de las 173 veces
-    // (docs/retransmision.md §3.5).
-    const seen = new Map<number, { t: number; km: number; s: number }[]>()
+  it('la cifra prestada de un km posterior es lo menos que la fila lee al cruzar ese km', () => {
+    // Cada 2 s, lo que enseña cada grupo y dónde lo leyó. Una fila que enseña la cifra de la de delante,
+    // leída en un km posterior, la toma prestada; al cruzar ella ese km, su lectura propia no puede ser
+    // menor, porque pasa por él después (docs/retransmision.md §3.5). Al cruzarlo se mira lo que enseña si
+    // es suyo, y no otra cifra prestada: la que iguala a la de delante leída en un km posterior.
+    const prestada = (rows: ReturnType<typeof rowsOf>, k: number): boolean => {
+      const a = rows[k - 1]
+      const g = rows[k]!
+      return k >= 2 && a !== undefined && g.gap.toHeadS === a.gap.toHeadS && g.gap.atKm < a.gap.atKm
+    }
+    const seen = new Map<number, { t: number; km: number; s: number; propia: boolean }[]>()
     const prestadas: { g: number; t: number; km: number; s: number }[] = []
     for (let t = 0; t <= fin; t += 2) {
       const rows = rowsOf(instantAt(line.core, t, ctx))
       rows.forEach((g, k) => {
-        seen.set(g.g, [...(seen.get(g.g) ?? []), { t, km: g.gap.atKm, s: g.gap.toHeadS }])
-        const a = rows[k - 1]
-        if (k >= 2 && a !== undefined && g.gap.toHeadS === a.gap.toHeadS && g.gap.atKm < a.gap.atKm)
-          prestadas.push({ g: g.g, t, km: a.gap.atKm, s: a.gap.toHeadS })
+        const propia = !prestada(rows, k)
+        seen.set(g.g, [...(seen.get(g.g) ?? []), { t, km: g.gap.atKm, s: g.gap.toHeadS, propia }])
+        if (!propia) prestadas.push({ g: g.g, t, km: rows[k - 1]!.gap.atKm, s: g.gap.toHeadS })
       })
     }
     let cruces = 0
+    let otraVez = 0
     const malas: string[] = []
     for (const p of prestadas) {
       const at = seen.get(p.g)!.find((x) => x.t > p.t && Math.abs(x.km - p.km) < 1e-6)
       if (at === undefined) continue // muere o se funde antes de cruzarlo
+      if (!at.propia) {
+        otraVez++ // al cruzarlo vuelve a ir prestada: su lectura propia no se ve
+        continue
+      }
       cruces++
       if (at.s < p.s - 0.5)
         malas.push(
           `t=${p.t}: ${mainGapText(p.s)} prestado del km ${p.km.toFixed(1)}, y ${mainGapText(at.s)} al cruzarlo`,
         )
     }
-    expect(malas.slice(0, 8), `${malas.length} de ${cruces}`).toEqual([])
+    expect(
+      malas.slice(0, 8),
+      `${malas.length} de ${cruces} (y ${otraVez} prestadas otra vez)`,
+    ).toEqual([])
     expect(cruces).toBeGreaterThan(100)
   })
 

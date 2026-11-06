@@ -10,14 +10,12 @@ import { mainGapText } from './screenWords.js'
 import {
   type GapReading,
   type GroupNow,
-  type GroupPick,
   type InstantContext,
   chaseRefOf,
   coherentGaps,
   groupLabelOf,
   groupRoleAt,
   groupRoleOf,
-  groupRolesAt,
   instantAt,
   isGroupRole,
   mainGapOf,
@@ -641,29 +639,6 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
     expect(hysteresis).toBeGreaterThan(0) // la histéresis entra: no es solo el papel crudo
     expect(groupRoleAt(tl, 100, ctx, () => false)).toBeNull()
   })
-
-  it('groupRolesAt: varios a la vez, cada uno el de groupRoleAt a solas y en su sitio (W1)', () => {
-    // la cabeza, como la elige withGroupRoles: la primera fila con alguien dentro
-    const head: GroupPick = (x, i, order) =>
-      x.members.length > 0 && order.findIndex((y) => y.members.length > 0) === i
-    const title: GroupPick = (x) => x.kind === 'peloton'
-    let checked = 0
-    for (let t = 0; t < tl.finish.finishS; t += 120) {
-      const [a, b, c, d] = groupRolesAt(tl, t, ctx, [title, () => false, head, title])
-      expect(a, `t ${t}`).toEqual(groupRoleAt(tl, t, ctx, title))
-      expect(b).toBeNull()
-      expect(c, `t ${t}`).toEqual(groupRoleAt(tl, t, ctx, head))
-      // el mismo grupo dos veces se cuenta una: el mismo objeto
-      expect(d).toBe(a)
-      // y la cabeza es la primera fila de la barra
-      const first = instantAt(tl, t, ctx).groups.find((x) => x.members.length > 0)
-      if (first === undefined) continue
-      expect(c).toEqual({ g: first.g, role: first.role, label: first.label })
-      checked++
-    }
-    expect(checked).toBeGreaterThan(50)
-    expect(groupRolesAt(tl, 100, ctx, [() => false, () => false])).toEqual([null, null])
-  })
 })
 
 describe('coherentGaps · ninguna fila enseña menos que la de delante (W1, paso 8b)', () => {
@@ -680,15 +655,14 @@ describe('coherentGaps · ninguna fila enseña menos que la de delante (W1, paso
     coherentGaps(rows).forEach((x, i) => expect(x).toBe(rows[i]!.reading))
   })
 
-  it('la que da menos toma la de delante, sin tendencia, y con su km; también en cadena', () => {
+  it('la que da menos toma la de delante, con su km y su tendencia; también en cadena', () => {
     // el km 59,5 de Race Alps: +0:13 leído en el 59 y, detrás, +0:10 leído en el 58
-    const out = coherentGaps(
-      shown([r(0, 59.05), r(13, 59.05), r(10, 58.05), r(5, 57.05), r(20, 59.05)]),
-    )
+    const rows = shown([r(0, 59.05), r(13, 59.05), r(10, 58.05), r(5, 57.05), r(20, 59.05)])
+    const out = coherentGaps(rows)
     expect(out.map((x) => x.toHeadS)).toEqual([0, 13, 13, 13, 20])
-    // la tendencia de su lectura no es la de una cifra prestada
-    expect(out.map((x) => x.trend === null)).toEqual([false, false, true, true, false])
     expect(out.map((x) => x.atKm)).toEqual([59.05, 59.05, 58.05, 57.05, 59.05])
+    // la tendencia, la de su lectura propia: la lee la voz (gap_trend) y no cambia con la cifra prestada
+    out.forEach((x, i) => expect(x.trend).toBe(rows[i]!.reading.trend))
   })
 
   it('las filas vacías ni suben ni ponen suelo', () => {
@@ -707,7 +681,9 @@ describe('coherentGaps · ninguna fila enseña menos que la de delante (W1, paso
 })
 
 describe('la barra de las cinco congeladas en línea, coherente entre filas (W1)', () => {
-  // las de Race Alps no llevan maillots ni general de salida; estas sí (la e16 es la crono, sin barra)
+  // las de Race Alps no llevan maillots ni general de salida; estas sí (la e16 es la crono, sin barra).
+  // Antes de W1, cuatro tenían de 332 a 503 filas por debajo de la de delante, contadas cada 5 s; la llana
+  // (e7), ninguna, y su caso es solo de guarda
   const NAMES = [
     'race-france-e7',
     'race-france-e18',

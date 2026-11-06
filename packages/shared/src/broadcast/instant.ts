@@ -98,10 +98,7 @@ export interface GapReading {
   readonly toAheadS: number | null
   /** el km de foto donde se midió: (bloque + 0,5) · dx, la moto de cronometraje */
   readonly atKm: number
-  /**
-   * null si ni él ni un antecesor suyo tenía marca trendWindowKm antes, en el caso 3-e, o si su hueco es
-   * el de la fila de delante (W1): la tendencia de su lectura no es la de una cifra prestada
-   */
+  /** null si ni él ni un antecesor suyo tenía marca trendWindowKm antes, o en el caso 3-e */
   readonly trend: GapTrend | null
 }
 
@@ -150,7 +147,7 @@ export interface MainGap {
    * que lo que enseña la fila de `behind` (W1, `coherentGaps`): la capa fija y la barra dicen lo mismo
    */
   readonly gapS: number
-  /** la de `behind`, por la cadena de successor (§4.5); null si su fila enseña la cifra de la de delante (W1) */
+  /** la de `behind`, por la cadena de successor (§4.5) */
   readonly trend: GapTrend | null
   /** contra el pelotón; contra el primero de detrás con maillot o un top mainGapTopStart de salida; contra el segundo */
   readonly ref: 'bunch' | 'jersey_group' | 'second'
@@ -1468,8 +1465,9 @@ function jerseysIn(members: readonly RiderIx[], ctx: InstantContext): JerseyKind
  * La regla: en el orden de la carretera, la fila que enseña menos que la de delante toma la de delante. Si
  * la de delante leyó en un km de foto posterior, es lo menos que llevará la de detrás, que pasará por él
  * después; si en el mismo, no es una cota, pero es lo que más se acerca a la lectura siguiente de las dos
- * filas, medido contra bajar la de delante (docs/retransmision.md §3.5). La que toma la cifra prestada no
- * lleva tendencia: la de su lectura no es la de esa cifra. La capa fija toma la de su fila (`mainGapOf`).
+ * filas, medido contra bajar la de delante (docs/retransmision.md §3.5). La tendencia sigue en la lectura
+ * propia de cada fila, que es lo que mide cómo se mueve su hueco y lo que lee la voz, y la capa fija toma
+ * la cifra de su fila (`mainGapOf`).
  *
  * Pura: las lecturas en el orden de la carretera, cada una con si su fila se pinta (alguien dentro); las
  * que no se pintan ni suben ni ponen suelo. Devuelve el mismo objeto donde no cambia nada.
@@ -1480,53 +1478,36 @@ export function coherentGaps(
   let floor = Number.NEGATIVE_INFINITY
   return rows.map(({ reading, shown }) => {
     if (!shown) return reading
-    if (reading.toHeadS < floor) return { ...reading, toHeadS: floor, trend: null }
+    if (reading.toHeadS < floor) return { ...reading, toHeadS: floor }
     floor = reading.toHeadS
     return reading
   })
 }
 
-/** Un grupo en el orden visto, como lo ve quien elige. */
-export interface SeenGroup {
-  readonly g: GroupIx
-  readonly kind: RadioGroupKind
-  readonly members: readonly RiderIx[]
-}
-
 /**
- * Cómo se elige un grupo en el orden visto: el del título, el de un corredor o la cabeza. Recibe también
- * su sitio y el orden entero, para elegir por la posición (la primera fila con alguien dentro).
+ * EL PAPEL Y LA ETIQUETA DE UN GRUPO a la hora t, los de `instantAt` sin el resto del instante (§4.5,
+ * pasos 1 a 7 y 9; §6.3): lo que la voz anota en cada suceso (`withGroupRoles`, §12.6). `pick` elige el
+ * grupo en el orden visto (el del título, o el de un corredor); null si no hay ninguno. Calcula el papel
+ * con histéresis solo de ese grupo: la anotación de una etapa entera, con las horas salteadas de sus
+ * sucesos, cuesta así una lectura de lo visto y un papel crudo por suceso, y no uno por grupo vivo (B8).
  */
-export type GroupPick = (x: SeenGroup, i: number, order: readonly SeenGroup[]) => boolean
-
-/** El papel y la etiqueta de un grupo a una hora: los de su fila de la barra. */
-export interface GroupRoleNow {
-  readonly g: GroupIx
-  readonly role: GroupRole
-  readonly label: GroupLabel
-}
-
-/**
- * EL PAPEL Y LA ETIQUETA DE UNOS GRUPOS a la hora t, los de `instantAt` sin el resto del instante (§4.5,
- * pasos 1 a 7 y 9; §6.3): lo que la voz anota en cada suceso (`withGroupRoles`, §12.6). Cada `pick` elige
- * un grupo en el orden visto (el del título, el de un corredor o, desde W1, la cabeza), y la respuesta
- * lleva el suyo en su mismo sitio, o null si no hay ninguno. Calcula el papel con histéresis solo de los
- * grupos elegidos, y lee lo visto una vez para todos: la anotación de una etapa entera, con las horas
- * salteadas de sus sucesos, cuesta así una lectura de lo visto por suceso y un papel por grupo elegido, y
- * no uno por grupo vivo (B8).
- */
-export function groupRolesAt(
+export function groupRoleAt(
   tl: TimelineCore,
   t: RaceS,
   ctx: InstantContext,
-  picks: readonly GroupPick[],
-): (GroupRoleNow | null)[] {
+  pick: (x: {
+    readonly g: GroupIx
+    readonly kind: RadioGroupKind
+    readonly members: readonly RiderIx[]
+  }) => boolean,
+): { readonly g: GroupIx; readonly role: GroupRole; readonly label: GroupLabel } | null {
   const ix = indexOf(tl)
   const S = toDs(t)
   const pb = ctx.photoBlocks
   const seen = seenAt(ix, S, pb, 'role')
-  const found = picks.map((pick) => seen.order.findIndex(pick))
-  if (found.every((i) => i < 0)) return found.map(() => null)
+  const i = seen.order.findIndex(pick)
+  if (i < 0) return null
+  const x = seen.order[i]!
   const rolesNow = groupRoleOf(
     seen.order.map((y) => ({ size: y.members.length, kind: y.kind })),
     ix.tl.riderIds.length - seen.outs,
@@ -1534,42 +1515,16 @@ export function groupRolesAt(
   const f = frameOf(ix, S, pb, seen, (k) =>
     countSizes(ix, k, S, new Int32Array(ix.tl.groups.length)),
   )
-  // dos `pick` que eligen el mismo grupo (la cabeza que es el título) lo calculan una vez
-  const done = new Map<number, GroupRoleNow>()
-  return found.map((i) => {
-    if (i < 0) return null
-    const hit = done.get(i)
-    if (hit !== undefined) return hit
-    const x = seen.order[i]!
-    // el km de foto de su última lectura propia, como lo lee el paso 8 de instantAt
-    const bn = f.lastBlockOf(x)
-    const k = bn === null ? null : f.photoAtOrBefore(bn)
-    const role = f.roleOf(x, rolesNow[i]!, k === null || f.markOf(x.g, k) === null ? null : k)
-    const members = x.members
-    const out: GroupRoleNow = {
-      g: x.g,
-      role,
-      label: groupLabelOf(
-        members.length,
-        members,
-        jerseysIn(members, ctx),
-        role,
-        seen.order.length,
-      ),
-    }
-    done.set(i, out)
-    return out
-  })
-}
-
-/** El papel y la etiqueta de un grupo a la hora t: `groupRolesAt` con un solo `pick`. */
-export function groupRoleAt(
-  tl: TimelineCore,
-  t: RaceS,
-  ctx: InstantContext,
-  pick: GroupPick,
-): GroupRoleNow | null {
-  return groupRolesAt(tl, t, ctx, [pick])[0] ?? null
+  // el km de foto de su última lectura propia, como lo lee el paso 8 de instantAt
+  const bn = f.lastBlockOf(x)
+  const k = bn === null ? null : f.photoAtOrBefore(bn)
+  const role = f.roleOf(x, rolesNow[i]!, k === null || f.markOf(x.g, k) === null ? null : k)
+  const members = x.members
+  return {
+    g: x.g,
+    role,
+    label: groupLabelOf(members.length, members, jerseysIn(members, ctx), role, seen.order.length),
+  }
 }
 
 /**

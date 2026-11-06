@@ -24,8 +24,8 @@ import { recordedClockOf } from './broadcastSource.js'
 import { type ChronicleEvent, buildChronicle } from './chronicle.js'
 import { chunkLinesOf } from './routes/broadcast.js'
 import {
-  HEAD_GROUP_TEMPLATES,
   MAIN_GROUP_TEMPLATES,
+  RIDER_GROUP_TEMPLATES,
   type VoiceClusters,
   lineVoiceOf,
   rolesContextOf,
@@ -199,7 +199,7 @@ const B8_ROLES_WARMUP = 2
 
 describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b, 12-n)', () => {
   it.each(ROAD_FIXTURES)(
-    '%s: anota el papel del grupo del título y el maillot de la cabeza en su hora, y nada más',
+    '%s: anota el papel del grupo del título y el maillot del de un protagonista en su hora, y nada más',
     (name) => {
       const tl = loadTimeline(name)
       const ctx = rolesContextOf(tl)
@@ -207,27 +207,31 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
       const finishS = fromDs(visibilityOf(tl).finishDs)
       const hora = new Map(tl.events.flatMap((e) => (e.source >= 0 ? [[e.source, e.revealS]] : [])))
       const at = (ev: ChronicleEvent): RaceS => hora.get(stored.indexOf(ev)) ?? finishS
+      const ixOf = new Map(tl.riderIds.map((id, r) => [id, r] as const))
       const out = withGroupRoles(stored, tl, at, ctx)
       expect(out).toHaveLength(stored.length)
       out.forEach((ev, i) => {
         const before = stored[i]!
         const main = MAIN_GROUP_TEMPLATES.has(before.plantilla)
-        const atHead = HEAD_GROUP_TEMPLATES.has(before.plantilla)
-        if (!main && !atHead) return expect(ev).toBe(before)
+        const ofRider = RIDER_GROUP_TEMPLATES.has(before.plantilla)
+        if (!main && !ofRider) return expect(ev).toBe(before)
         const now = instantAt(tl, at(before), ctx)
-        const g = main ? now.groups.find((x) => x.kind === 'peloton') : undefined
+        // el grupo del título; o el del primer protagonista, del que solo se anota el maillot (W1)
+        const first = ixOf.get(before.protagonistas[0] ?? '')
+        const g = main
+          ? now.groups.find((x) => x.kind === 'peloton')
+          : first === undefined
+            ? undefined
+            : now.groups.find((x) => x.members.includes(first))
         const jersey = g?.label.k === 'jersey_group' ? g.label.jersey : undefined
         // el título en gruppetto por la histéresis no se anota (voiceRoles.ts): dice the bunch
-        const role = g?.role === 'gruppetto' ? undefined : g?.role
-        // la cabeza, la primera fila de la barra con alguien dentro, y el maillot que la nombra (W1)
-        const head = atHead ? now.groups.find((x) => x.members.length > 0) : undefined
-        const leadJersey = head?.label.k === 'jersey_group' ? head.label.jersey : undefined
-        if (role === undefined && jersey === undefined && leadJersey === undefined)
-          return expect(ev).toBe(before)
+        const role = !main || g?.role === 'gruppetto' ? undefined : g?.role
+        if (role === undefined && jersey === undefined) return expect(ev).toBe(before)
         expect(ev).not.toBe(before) // una copia: la ruta ata las horas después (12-n)
         expect(ev.datos?.mainRole).toBe(role)
-        expect(ev.datos?.mainJersey).toBe(jersey)
-        expect(ev.datos?.leadJersey).toBe(leadJersey)
+        expect(ev.datos?.mainJersey).toBe(main ? jersey : undefined)
+        expect(ev.datos?.groupRole).toBeUndefined()
+        expect(ev.datos?.groupJersey).toBe(ofRider ? jersey : undefined)
         // lo demás, igual: los datos de antes siguen y el suceso es el mismo
         expect({ ...ev, datos: null }).toEqual({ ...before, datos: null })
         expect(ev.datos).toMatchObject(before.datos ?? {})
@@ -256,8 +260,8 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
     expect(roles.get('gruppetto') ?? 0).toBe(0)
   })
 
-  it('en las cinco: la cabeza que lleva el amarillo se anota, y solo con él (W1)', () => {
-    const heads = new Map<string, number>()
+  it('en las cinco: el grupo de un protagonista, por su maillot (W1), y no por la fila 1 de la barra', () => {
+    const jerseys = new Map<string, number>()
     for (const name of ROAD_FIXTURES) {
       const tl = loadTimeline(name)
       const stored = loadEvents(name)
@@ -265,19 +269,33 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
       const hora = new Map(tl.events.flatMap((e) => (e.source >= 0 ? [[e.source, e.revealS]] : [])))
       const at = (ev: ChronicleEvent): RaceS => hora.get(stored.indexOf(ev)) ?? finishS
       for (const ev of withGroupRoles(stored, tl, at, rolesContextOf(tl))) {
-        if (ev.datos?.leadJersey === undefined) continue
-        expect(HEAD_GROUP_TEMPLATES.has(ev.plantilla), ev.plantilla).toBe(true)
-        const k = `${name}:${String(ev.datos.leadJersey)}`
-        heads.set(k, (heads.get(k) ?? 0) + 1)
+        if (!RIDER_GROUP_TEMPLATES.has(ev.plantilla) || ev.datos?.groupJersey === undefined)
+          continue
+        const k = `${name}:${String(ev.datos.groupJersey)}`
+        jerseys.set(k, (jerseys.get(k) ?? 0) + 1)
       }
     }
     console.info(
-      `[broadcast] withGroupRoles, la cabeza en las cinco: ${JSON.stringify([...heads])}`,
+      `[broadcast] withGroupRoles, el grupo de un protagonista: ${JSON.stringify([...jerseys])}`,
     )
-    // en cabeza solo nombra el amarillo (§6.3), y la e1 de Flanders, de un día, no lo tiene
-    expect([...heads.keys()].every((k) => k.endsWith(':gc'))).toBe(true)
-    expect([...heads.keys()].some((k) => k.startsWith('race-flanders-e1'))).toBe(false)
-    expect([...heads.values()].reduce((a, b) => a + b, 0)).toBeGreaterThan(0)
+    expect([...jerseys.values()].reduce((a, b) => a + b, 0)).toBeGreaterThan(0)
+
+    // La trampa de la fila 1: en la e18, km 180, `front_group` cuenta «3 at the front now» de tres que la
+    // barra enseña terceros, por detrás de un grupo de cuatro con el amarillo. Por la fila 1, la voz habría
+    // podido decir «The race leader’s group is up to 3» de un grupo que no lleva al líder.
+    const tl = loadTimeline('race-france-e18')
+    const stored = loadEvents('race-france-e18')
+    const hora = new Map(tl.events.flatMap((e) => (e.source >= 0 ? [[e.source, e.revealS]] : [])))
+    const i = stored.findIndex((e) => e.plantilla === 'front_group' && Math.round(e.km) === 180)
+    expect(i).toBeGreaterThanOrEqual(0)
+    const ctx = rolesContextOf(tl)
+    const rows = instantAt(tl, hora.get(i)!, ctx).groups.filter((g) => g.members.length > 0)
+    const ixOf = new Map(tl.riderIds.map((id, r) => [id, r] as const))
+    const first = ixOf.get(stored[i]!.protagonistas[0]!)!
+    expect(rows[0]!.label).toEqual({ k: 'jersey_group', jersey: 'gc' })
+    expect(rows.findIndex((g) => g.members.includes(first))).toBeGreaterThan(0)
+    const ev = withGroupRoles(stored, tl, (e) => hora.get(stored.indexOf(e))!, ctx)[i]!
+    expect(ev.datos?.groupJersey).toBeUndefined()
   })
 
   /**
