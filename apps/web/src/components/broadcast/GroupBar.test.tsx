@@ -302,6 +302,28 @@ describe('GroupBar · el móvil: mobileGroupRows filas y el resto plegado (6-c)'
     expect(textOf(markup)).toContain('+3 groups · 38 riders')
   })
 
+  // LA REVISIÓN DE `Watch` DEL DUEÑO (W1, su punto 3): «en todo momento saber estos maillots donde van». Una fila
+  // con un maillot de líder no se pliega nunca: el tope de mobileGroupRows es para las demás
+  it('una fila con un maillot de líder no se pliega nunca, aunque pasen de mobileGroupRows', () => {
+    const base = sixPointOne()
+    const two = {
+      ...base,
+      groups: base.groups.map((g) =>
+        g.number === 6
+          ? { ...g, own: true }
+          : g.number === 7
+            ? { ...g, jerseys: ['kom' as const] }
+            : g,
+      ),
+    }
+    const markup = html(<GroupBar instant={two} cast={CAST} clock="exact" />)
+    const hidden = rowsOf(markup).map((r) => /data-mobile="folded"/.test(r.slice(0, 200)))
+    // la 1, la del líder (2), el pelotón con los puntos (4), la del espectador (6) y la de la montaña (7):
+    // cinco; se pliegan la 3 (2 corredores) y la 5 (35)
+    expect(hidden).toEqual([false, false, true, false, true, false, false])
+    expect(textOf(markup)).toContain('+2 groups · 37 riders')
+  })
+
   it('desplegada, ninguna plegada; con cuatro grupos o menos, nada que plegar', () => {
     const open = html(<GroupBar instant={sixPointOne()} cast={CAST} clock="exact" expanded />)
     expect(open).not.toContain('data-mobile="folded"')

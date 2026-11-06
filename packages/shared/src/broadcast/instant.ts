@@ -69,7 +69,10 @@ export type GroupLabel =
   | { readonly k: 'role' }
   /** BROADCAST.byNamesUpTo o menos: se nombra por ellos (SPEC §6.15) */
   | { readonly k: 'names'; readonly riders: readonly RiderIx[] }
-  /** lleva un maillot de líder y no es cabeza ni pelotón: `Race leader’s group` (pantalla) */
+  /**
+   * lleva un maillot de líder y persigue o va descolgado, o va en cabeza con el amarillo y no es el pelotón
+   * (W1): `Race leader’s group` (pantalla)
+   */
   | { readonly k: 'jersey_group'; readonly jersey: JerseyKind }
   /** un solo grupo en carrera: `Bunch together` (pantalla) */
   | { readonly k: 'together' }
@@ -87,7 +90,8 @@ export interface GapReading {
   /**
    * a la cabeza de la pantalla (la fila 1, o la cabeza retenida; 10a), en el último km de foto que ESTE
    * grupo ha cruzado: su marca menos la de ella allí, la misma resta que la diferencia principal; si no
-   * ha cruzado ninguno, el de su origen (3-e)
+   * ha cruzado ninguno, el de su origen (3-e). Y nunca menos que la fila de delante (W1, `coherentGaps`):
+   * si da menos, el de ella, que entonces no se midió en `atKm`
    */
   readonly toHeadS: number
   /** al grupo de número anterior en ese mismo bloque; null si ese grupo no tenía marca allí */
@@ -138,7 +142,10 @@ export interface MainGap {
   /** la cabeza de la pantalla: la fila 1 de la barra o, unos segundos, la cabeza retenida, que no está en `groups` (10a) */
   readonly ahead: GroupIx
   readonly behind: GroupIx
-  /** marca de `behind` menos la de `ahead` en el último km de foto que ha cruzado `behind` */
+  /**
+   * marca de `behind` menos la de `ahead` en el último km de foto que ha cruzado `behind`, y nunca menos
+   * que lo que enseña la fila de `behind` (W1, `coherentGaps`): la capa fija y la barra dicen lo mismo
+   */
   readonly gapS: number
   /** la de `behind`, por la cadena de successor (§4.5) */
   readonly trend: GapTrend | null
@@ -282,7 +289,12 @@ export function groupRoleOf(
   })
 }
 
-/** CÓMO SE ROTULA la fila (§6.3). `jerseys` va en JERSEY_PRIORITY: el primero es el que nombra al grupo. */
+/**
+ * CÓMO SE ROTULA la fila (§6.3). `jerseys` va en JERSEY_PRIORITY: el primero es el que nombra al grupo. El que
+ * persigue o va descolgado se nombra por su maillot; el de cabeza, solo por el amarillo (la revisión de `Watch`
+ * del dueño, W1: «si ya no es el pelotón pero es el grupo donde va el maillot amarillo, llámalo así»), y una
+ * fuga con otro maillot sigue siendo `Lead group`; el grueso, `Bunch`, lleve lo que lleve.
+ */
 export function groupLabelOf(
   size: number,
   members: readonly number[],
@@ -294,6 +306,7 @@ export function groupLabelOf(
   if (size <= BROADCAST.byNamesUpTo) return { k: 'names', riders: members } // tres o menos, por sus nombres
   if ((role === 'chase' || role === 'gruppetto') && jerseys.length > 0)
     return { k: 'jersey_group', jersey: jerseys[0]! }
+  if (role === 'lead' && jerseys[0] === 'gc') return { k: 'jersey_group', jersey: 'gc' }
   return { k: 'role' }
 }
 
@@ -342,7 +355,8 @@ export function mainGapOf(
     }
   }
   const k = behind.gap.atKm // el último km de foto que ha cruzado el de detrás (§3.5)
-  const gapS = Math.max(0, (markAt(behind, k) - markAt(head, k)) / 10)
+  // nunca menos que lo que su fila enseña en la barra: la coherencia entre filas (W1, `coherentGaps`)
+  const gapS = Math.max(0, (markAt(behind, k) - markAt(head, k)) / 10, behind.gap.toHeadS)
   return { ahead: head.g, behind: behind.g, gapS, trend: behind.gap.trend, ref }
 }
 
@@ -1441,6 +1455,36 @@ function jerseysIn(members: readonly RiderIx[], ctx: InstantContext): JerseyKind
 }
 
 /**
+ * LA COHERENCIA ENTRE FILAS (la revisión de `Watch` del dueño, W1, su punto 5; el paso 8b de `instantAt`):
+ * un grupo que va detrás en la carretera no lleva menos tiempo que el de delante, y la barra no puede
+ * decirlo. Cada fila lee en su último km de foto (D-01, punto 4), y dos lecturas de distinta edad se
+ * cruzaban: el de delante ya había pasado una foto en que perdía tiempo y el de detrás aún enseñaba la de
+ * antes; el que adelanta a otro después de una foto; o el recién nacido que no tiene lectura propia ni de su
+ * origen y caía al `s.t.` de la salida. En la etapa 1 de Race Alps, 16 episodios y 890 s.
+ *
+ * La regla: en el orden de la carretera, la fila que enseña menos que la de delante toma la de delante. Si
+ * la de delante leyó en un km de foto posterior, es lo menos que llevará la de detrás, que pasará por él
+ * después; si en el mismo, no es una cota, pero es lo que más se acerca a la lectura siguiente de las dos
+ * filas, medido contra bajar la de delante (docs/retransmision.md §3.5). La tendencia sigue en la lectura
+ * propia de cada fila, que es lo que mide cómo se mueve su hueco y lo que lee la voz, y la capa fija toma
+ * la cifra de su fila (`mainGapOf`).
+ *
+ * Pura: las lecturas en el orden de la carretera, cada una con si su fila se pinta (alguien dentro); las
+ * que no se pintan ni suben ni ponen suelo. Devuelve el mismo objeto donde no cambia nada.
+ */
+export function coherentGaps(
+  rows: readonly { readonly reading: GapReading; readonly shown: boolean }[],
+): GapReading[] {
+  let floor = Number.NEGATIVE_INFINITY
+  return rows.map(({ reading, shown }) => {
+    if (!shown) return reading
+    if (reading.toHeadS < floor) return { ...reading, toHeadS: floor }
+    floor = reading.toHeadS
+    return reading
+  })
+}
+
+/**
  * EL PAPEL Y LA ETIQUETA DE UN GRUPO a la hora t, los de `instantAt` sin el resto del instante (§4.5,
  * pasos 1 a 7 y 9; §6.3): lo que la voz anota en cada suceso (`withGroupRoles`, §12.6). `pick` elige el
  * grupo en el orden visto (el del título, o el de un corredor); null si no hay ninguno. Calcula el papel
@@ -1598,6 +1642,16 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     })
   })
 
+  // 8b. La coherencia entre filas (W1, `coherentGaps`): ninguna fila con alguien dentro enseña menos que la
+  //     de delante.
+  const coherent = coherentGaps(
+    seen.order.map((x) => ({ reading: gapOf.get(x.g)!.reading, shown: x.members.length > 0 })),
+  )
+  seen.order.forEach((x, i) => {
+    const e = gapOf.get(x.g)!
+    if (coherent[i] !== e.reading) gapOf.set(x.g, { ...e, reading: coherent[i]! })
+  })
+
   // 9. El papel, con la histéresis de 4-q (`frameOf`): sobre el km de foto propio de cada grupo, el
   //    de su hueco del paso 8.
   const rolesNow = groupRoleOf(
@@ -1643,6 +1697,8 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
     if (d !== null) return d
     const o = seen.originOf(g.g)
     const od = o === undefined ? null : markOf(o, k)
+    // sin marca suya ni de su origen allí, la de la cabeza más su hueco, que desde W1 puede ser el de la
+    // fila de delante (`coherentGaps`): para el recién nacido sin lectura, mejor que el `s.t.` de la salida
     return od ?? (headAt(k) ?? 0) + g.gap.toHeadS * 10
   }
   // La diferencia principal, entre lo que se pinta: la cabeza de la pantalla delante y la referencia de

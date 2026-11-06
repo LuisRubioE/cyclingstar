@@ -35,8 +35,9 @@ import { WornJerseyIcon, wornTeamOf } from './WornJerseyIcon'
  * espectador). Es, provisional hasta las palabras de la barra y las cartas del 6b (§6.3, §7.7), la
  * parte permanente del requisito del dueño: «cuando se escapan cinco, que se vean sus maillots».
  *
- * En el móvil caben `mobileGroupRows` filas, elegidas por prioridad y pintadas en orden de carretera;
- * el resto se pliega en `+3 groups · 41 riders`, que se abre al tocarlo (6-c). Con el reloj estimado
+ * En el móvil caben `mobileGroupRows` filas, elegidas por prioridad y pintadas en orden de carretera, más
+ * las que llevan un maillot de líder, que no se pliegan nunca (W1); el resto se pliega en `+3 groups · 41
+ * riders`, que se abre al tocarlo (6-c). Con el reloj estimado
  * del adaptador de la radio, el km de todo grupo que no es la cabeza se escribe con `~` (§3.8). En los
  * últimos `quietFinalM`, sin huecos (§6.9). Se repinta a `barHz` y no es una región viva (§18.8).
  *
