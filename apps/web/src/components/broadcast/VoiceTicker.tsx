@@ -1,6 +1,7 @@
 import type { ChronicleEntry, LiveLine } from '@cyclingstar/shared'
 import { chronicleParts } from '../../domain/stageJournal'
 import { type VoiceExtras, type VoiceItem, voiceItemsOf } from '../../domain/voice'
+import { Expander } from '../ui/Expander'
 import { Flag } from '../ui/Flag'
 import { LeaderJersey } from '../ui/LeaderJersey'
 
@@ -15,14 +16,20 @@ import { LeaderJersey } from '../ui/LeaderJersey'
  *
  * No es una región viva: el anuncio es por rótulo, no por línea (§18.8).
  *
- * Desde el PR 20 (E3, docs/visual.md §14.5; Ruso-040, 14-i): con tokens, y la línea dicha en un renglón
- * de 28 (el de sus maillots), que es lo único de `Watch` que puede cortarse, porque la frase entera queda
- * en el historial: lleva `data-clip-ok`.
+ * Desde el PR 20 (E3, docs/visual.md §14.5; Ruso-040, 14-i), con tokens. Desde W2a (la revisión de `Watch`
+ * del dueño, su punto 7: «aparecen truncados a menudo, no da para leerlos y solo se ve 1, no se ve lo de
+ * atrás»), la línea dicha entera: parte de línea en lugar de cortarse (a 360 px, en un renglón solo cabía
+ * entera una de cada diez), con tres renglones reservados desde el principio (60 px, los de seis de cada siete
+ * a 360; una con un maillot de 28 sube su renglón), para que lo de abajo no salte con cada una. Y `Commentary`
+ * va aquí, justo bajo la línea, con las ya dichas contadas (`Commentary · 12`), y no en los mandos, que se
+ * esconden a los 3 s sin tocar (8-p): abre el historial debajo, sin repetir la de ahora, que va entera encima,
+ * y cada línea con su clave de siempre, así que una nueva no repinta las demás.
  */
 export function VoiceTicker({
   lines,
   t,
   open,
+  onToggle,
   quiet = false,
   unnamed,
   extras,
@@ -32,6 +39,8 @@ export function VoiceTicker({
   t: number
   /** `Commentary`: las líneas ya dichas */
   open: boolean
+  /** abre o cierra `Commentary` */
+  onToggle: () => void
   /** los últimos `quietFinalM`: la voz calla */
   quiet?: boolean
   /** por línea, el corredor no estaba nombrado antes de ella (`inVoice`, `unnamedBefore`) */
@@ -42,28 +51,51 @@ export function VoiceTicker({
 }) {
   const said = voiceItemsOf(lines, t, unnamed, extras)
   const last = quiet ? undefined : said[said.length - 1]
-  // `Commentary` despliega las anteriores: la que dice ahora ya está arriba
+  // `Commentary` despliega las anteriores: la que dice ahora ya está arriba, entera
   const before = last === undefined ? said : said.slice(0, -1)
   return (
-    <div className="space-y-2">
-      <p data-clip-ok="" className="min-h-7 truncate text-meta text-ink" aria-live="off">
+    <div className="space-y-1">
+      {/* tres renglones reservados desde el principio, también callada en el final: no salta lo de abajo */}
+      <p className="min-h-15 text-meta text-ink" aria-live="off">
         {last !== undefined && <Item item={last} rev={rev} />}
       </p>
-      {open && (
-        <ol className="max-h-72 space-y-1.5 overflow-y-auto border-t border-line pt-2">
-          {[...before].reverse().map((l, i) => (
-            <li key={`${l.revealS}-${i}`} className="flex gap-2 text-meta">
-              <span className="w-14 shrink-0 text-right tabular-nums text-ink-3">km {l.km}</span>
-              <span className="text-ink">
-                <Item item={l} rev={rev} />
-              </span>
-            </li>
-          ))}
-        </ol>
+      {before.length > 0 && (
+        <>
+          <Expander expanded={open} controls={HISTORY_ID} onToggle={onToggle}>
+            <span className="text-meta font-semibold text-ink-2">
+              Commentary <span className="tabular-nums">· {before.length}</span>
+            </span>
+          </Expander>
+          {/* en el árbol también cerrada, para `aria-controls`; se pinta al abrir */}
+          <ol
+            id={HISTORY_ID}
+            hidden={!open}
+            className="max-h-72 space-y-1.5 overflow-y-auto border-t border-line pt-2"
+          >
+            {open &&
+              // la clave, por su sitio desde la primera: una línea nueva no cambia la de las demás
+              before
+                .map((l, k) => ({ l, k }))
+                .reverse()
+                .map(({ l, k }) => (
+                  <li key={`${l.revealS}-${k}`} className="flex gap-2 text-meta">
+                    <span className="w-14 shrink-0 text-right tabular-nums text-ink-3">
+                      km {l.km}
+                    </span>
+                    <span className="text-ink">
+                      <Item item={l} rev={rev} />
+                    </span>
+                  </li>
+                ))}
+          </ol>
+        </>
       )}
     </div>
   )
 }
+
+/** La lista de `Commentary`: una sola voz por página. */
+const HISTORY_ID = 'voice-history'
 
 function Item({ item, rev }: { item: VoiceItem; rev: number }) {
   return item.k === 'text' ? <>{item.text}</> : <Sentence e={item.e} rev={rev} />

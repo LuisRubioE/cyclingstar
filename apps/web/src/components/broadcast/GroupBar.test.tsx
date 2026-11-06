@@ -140,13 +140,14 @@ const chips = (markup: string): string[] =>
 describe('GroupBar · quién va y con qué maillot (§6.2; [DUEÑO 3]; E3, §14.4)', () => {
   // Re-sellado en el 17a (E3, docs/visual.md §14.4 y §16.3; D-00b): hasta entonces, bajo un grupo de 4 a
   // 12, un maillot de 13 px por corredor; doce a 28 no caben en la barra a 360, así que va un `Kit` por
-  // equipo con su cuenta y, delante, los de líder y campeón. Los nombres, en la lista del grupo.
-  it('un grupo de hasta nameWholeGroupUpTo lleva su línea de equipos: el líder delante y un Kit por equipo con su cuenta', () => {
-    // la fuga de cinco con el líder de la general dentro, y el pelotón detrás
+  // equipo con su cuenta y, delante, los de líder y campeón. Los nombres, en la lista del grupo. Desde W2a,
+  // de seis en adelante: el de cuatro o cinco lleva sus nombres (abajo).
+  it('un grupo de seis a nameWholeGroupUpTo lleva su línea de equipos: el líder delante y un Kit por equipo con su cuenta', () => {
+    // la fuga de seis con el líder de la general dentro, y el pelotón detrás
     const inst = instantOf(
       [
-        { members: [3, 40, 41, 42, 43], km: 60, jerseys: ['gc'] },
-        { members: [...range(0, 3), ...range(4, 40), ...range(44, 176)], km: 59, gapS: 95 },
+        { members: [3, 40, 41, 42, 43, 44], km: 60, jerseys: ['gc'] },
+        { members: [...range(0, 3), ...range(4, 40), ...range(45, 176)], km: 59, gapS: 95 },
       ],
       { racing: 176 },
     )
@@ -154,14 +155,124 @@ describe('GroupBar · quién va y con qué maillot (§6.2; [DUEÑO 3]; E3, §14.
     const fuga = rows[0]!
     // el líder con su maillot, dos veces: en la fila (el maillot que va dentro) y delante en la línea
     expect(count(fuga, 'Race leader')).toBe(2)
-    // los otros cuatro, por equipo (el corredor ix va en el equipo ix % 3): de más a menos, y a
+    // los otros cinco, por equipo (el corredor ix va en el equipo ix % 3): de más a menos, y a
     // igualdad por el dorsal más bajo
-    expect(chips(fuga)).toEqual(['Team 1, 2 riders', 'Team 2, 1 rider', 'Team 0, 1 rider'])
+    expect(chips(fuga)).toEqual(['Team 1, 2 riders', 'Team 2, 2 riders', 'Team 0, 1 rider'])
     expect(kits(fuga)).toBe(3)
     // la línea no nombra a nadie: los nombres van en la lista, al tocar la fila
-    for (const r of [40, 41, 42, 43]) expect(fuga).not.toContain(CAST[r]!.name)
-    // un pelotón de 171 no se nombra entero
+    for (const r of [40, 41, 42, 43, 44]) expect(fuga).not.toContain(CAST[r]!.name)
+    expect(fuga).not.toContain('data-names-line')
+    // un pelotón de 170 no se nombra entero
     expect(rows[1]).not.toContain(CAST[0]!.name)
+  })
+
+  // W2a (la revisión de `Watch` del dueño, su punto 2): «si es un grupo de 2 o de 4 o de 5... debería poder
+  // verse». Uno de tres o menos ya se nombraba en su fila; el de cuatro o cinco sigue con su palabra, su
+  // tamaño y sus maillots arriba (el amarillo de cuatro sigue siendo `Race leader’s group`, D-18), y debajo,
+  // en lugar de la línea de equipos, sus corredores por su nombre, cada uno con su bandera.
+  it(`un grupo de ${BROADCAST.byNamesUpTo + 1} a ${BROADCAST.namesLineUpTo} lleva bajo la fila a cada uno con su bandera, su nombre y su maillot, y su palabra arriba (W2a)`, () => {
+    expect(BROADCAST.byNamesUpTo).toBe(3)
+    expect(BROADCAST.namesLineUpTo).toBe(5)
+    expect(BROADCAST.namesLineUpTo).toBeLessThan(BROADCAST.nameWholeGroupUpTo)
+    for (const members of [
+      [3, 40, 41, 42, 43],
+      [3, 40, 41, 42],
+    ]) {
+      const inst = instantOf(
+        [
+          { members, km: 60, jerseys: ['gc'] },
+          {
+            members: range(0, 176).filter((r) => !members.includes(r)),
+            km: 59,
+            gapS: 95,
+            kind: 'peloton',
+          },
+        ],
+        { racing: 176 },
+      )
+      const fuga = rowsOf(html(<GroupBar instant={inst} cast={CAST} clock="exact" />))[0]!
+      // arriba, la palabra del grupo con su tamaño y el maillot que va dentro
+      expect(textOf(fuga)).toContain(`Race leader’s group · ${members.length}`)
+      expect(fuga).toContain('data-names-line')
+      const line = fuga.slice(
+        fuga.indexOf('data-names-line'),
+        fuga.indexOf('</p>', fuga.indexOf('data-names-line')),
+      )
+      expect(count(fuga.slice(0, fuga.indexOf('data-names-line')), 'Race leader')).toBe(1)
+      // debajo, todos en su orden, cada uno con su bandera, su nombre y su maillot, juntos (D-00c): el del
+      // líder tras su nombre y el de su equipo tras el de los demás, los de una fuga de cinco a la vista
+      // ([DUEÑO 3]); y sin línea de equipos
+      const items = line.split('<span data-named=').slice(1)
+      expect(items).toHaveLength(members.length)
+      members.forEach((r, k) => {
+        const item = items[k]!
+        const [flag, name, jersey] = [
+          item.indexOf('data-ui="Flag"'),
+          item.indexOf(CAST[r]!.name),
+          item.indexOf(r === 3 ? 'aria-label="Race leader"' : `aria-label="Team ${r % 3} kit"`),
+        ]
+        expect(flag, CAST[r]!.name).toBeGreaterThan(-1)
+        expect(name, CAST[r]!.name).toBeGreaterThan(flag)
+        expect(jersey, CAST[r]!.name).toBeGreaterThan(name)
+        // el `·` cierra cada uno menos el último, dentro de su caja: ningún renglón empieza por él
+        expect(item.endsWith('>·</span></span>'), CAST[r]!.name).toBe(k < members.length - 1)
+      })
+      expect(count(line, 'Race leader')).toBe(1)
+      expect(kits(line)).toBe(members.length - 1)
+      expect(chips(fuga)).toEqual([])
+      expect(fuga).not.toContain('data-riders-line')
+    }
+    // uno de tres, por sus nombres en la propia fila, sin línea debajo
+    const rows = rowsOf(html(<GroupBar instant={sixPointOne()} cast={CAST} clock="exact" />))
+    expect(rows[0]).not.toContain('data-names-line')
+  })
+
+  it('la línea de nombres va también en el teléfono, bajo toda fila de cuatro o cinco (W2a)', () => {
+    const inst = instantOf(
+      [
+        { members: range(0, 5), km: 70 },
+        { members: range(5, 9), km: 69.5, gapS: 30 },
+        { members: range(9, 15), km: 69, gapS: 50 },
+        { members: range(15, 176), km: 68, gapS: 90, kind: 'peloton' },
+      ],
+      { racing: 176 },
+    )
+    const rows = rowsOf(html(<GroupBar instant={inst} cast={CAST} clock="exact" />))
+    const names = (row: string) => /<p data-names-line="" class="([^"]*)"/.exec(row)?.[1]
+    // la 1 y la 2, de cinco y de cuatro, en el teléfono y en escritorio; la de seis, con su línea de equipos
+    for (const row of [rows[0]!, rows[1]!]) {
+      expect(names(row)).toBeDefined()
+      expect(names(row)).not.toMatch(/(^|\s)hidden(\s|$)/)
+    }
+    expect(names(rows[2]!)).toBeUndefined()
+    expect(rows[2]).toContain('data-riders-line="desktop"')
+    expect(names(rows[3]!)).toBeUndefined()
+  })
+
+  it('en el teléfono, el maillot de su equipo solo bajo la fila 1 y las del espectador; el de líder, siempre (W2a, 6-c)', () => {
+    const cast = castOf(176, { 6: { worn: leaderWorn('gc') } })
+    const inst = instantOf(
+      [
+        { members: range(0, 5), km: 70 },
+        { members: range(5, 9), km: 69.5, gapS: 30, jerseys: ['gc'] },
+        { members: range(9, 13), km: 69.2, gapS: 40, own: true },
+        { members: range(13, 176), km: 68, gapS: 90, kind: 'peloton' },
+      ],
+      { racing: 176 },
+    )
+    const rows = rowsOf(html(<GroupBar instant={inst} cast={cast} clock="exact" />))
+    const desktopOnly = (row: string) => (row.match(/data-kit-desktop=""/g) ?? []).length
+    // la 1 y la del espectador, con el de cada uno a la vista también en el teléfono
+    expect(desktopOnly(rows[0]!)).toBe(0)
+    expect(kits(rows[0]!)).toBe(5)
+    expect(desktopOnly(rows[2]!)).toBe(0)
+    // la 2: los tres de equipo, solo desde 640; el del líder, a la vista, tras su nombre
+    expect(desktopOnly(rows[1]!)).toBe(3)
+    expect(rows[1]).toMatch(/data-kit-desktop="" class="hidden sm:inline-flex">/)
+    const line = rows[1]!.slice(rows[1]!.indexOf('data-names-line'))
+    const leader = line.indexOf('aria-label="Race leader"')
+    expect(leader).toBeGreaterThan(line.indexOf(cast[6]!.name))
+    expect(line.lastIndexOf('data-kit-desktop', leader)).toBeLessThan(line.indexOf(cast[6]!.name))
   })
 
   it(`hasta ${BROADCAST.nameWholeGroupUpTo} sí; con uno más, solo los maillots de líder que van dentro`, () => {
@@ -202,10 +313,10 @@ describe('GroupBar · quién va y con qué maillot (§6.2; [DUEÑO 3]; E3, §14.
   it('en el móvil, la línea de equipos solo bajo la fila 1 y las del espectador (6-c)', () => {
     const inst = instantOf(
       [
-        { members: range(0, 5), km: 70 },
-        { members: range(5, 10), km: 69.5, gapS: 30 },
-        { members: range(10, 16), km: 69, gapS: 50, own: true },
-        { members: range(16, 176), km: 68, gapS: 90, kind: 'peloton' },
+        { members: range(0, 6), km: 70 },
+        { members: range(6, 12), km: 69.5, gapS: 30 },
+        { members: range(12, 19), km: 69, gapS: 50, own: true },
+        { members: range(19, 176), km: 68, gapS: 90, kind: 'peloton' },
       ],
       { racing: 176 },
     )
@@ -513,8 +624,8 @@ describe('GroupBar · el campeón lleva su maillot (ChampionJersey, §7.4; 6b; E
     const line = html(
       <GroupBar
         instant={instantOf([
-          { members: [0, 1, 2, 3, 4], km: 70 },
-          { members: range(5, 30), km: 69, gapS: 60, kind: 'peloton' },
+          { members: [0, 1, 2, 3, 4, 5], km: 70 },
+          { members: range(6, 30), km: 69, gapS: 60, kind: 'peloton' },
         ])}
         cast={cast}
         clock="exact"
@@ -524,6 +635,22 @@ describe('GroupBar · el campeón lleva su maillot (ChampionJersey, §7.4; 6b; E
     // en la línea va delante, sin cuenta, con las dos letras de su país (a 28 px, varias banderas son
     // gemelas: Italia y Perú a 2,3; Ruso-037)
     expect(line).toMatch(/data-chip="front"[^]*?>IT<\/span>/)
+    // en la de nombres de un grupo de cinco (W2a), tras su nombre, que ya lleva su bandera delante
+    const five = html(
+      <GroupBar
+        instant={instantOf([
+          { members: [0, 1, 2, 3, 4], km: 70 },
+          { members: range(5, 30), km: 69, gapS: 60, kind: 'peloton' },
+        ])}
+        cast={cast}
+        clock="exact"
+      />,
+    )
+    const names = five.slice(five.indexOf('data-names-line'))
+    expect(count(names, 'Champion of Italy')).toBe(1)
+    expect(names.indexOf('aria-label="Champion of Italy"')).toBeGreaterThan(
+      names.indexOf(cast[1]!.name),
+    )
   })
 })
 
