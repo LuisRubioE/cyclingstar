@@ -416,7 +416,9 @@ async function today(q: Queryable, worldId: string): Promise<number> {
  * (`seasonRivals`) no los ve a todos: la escuadra se congela catorce días antes de la salida
  * (`ENROLL_LOCK_DAYS`) con quien de verdad va, y en una temporada del banco de noche juntó a 5 pares de
  * equipos que no eran rivales previstos, en 12 carreras. Las que ya han salido no cuentan: su maillot es el
- * del día de la salida (16b). Sin los nacionales, como la previsión.
+ * del día de la salida (16b). Sin los nacionales, como la previsión. Solo las de la temporada de `fromDay`:
+ * el cierre de inscripciones no congela las de la siguiente hasta que empieza (`lockUpcomingRosters`).
+ * En orden de clave, para que lo que se decide con ellas no dependa del orden de las filas.
  */
 export async function frozenFields(
   q: Queryable,
@@ -424,18 +426,18 @@ export async function frozenFields(
   fromDay: number,
 ): Promise<ReadonlyMap<string, readonly string[]>> {
   const season = currentSeason(fromDay)
-  const keys: string[] = []
-  for (const s of [season, season + 1])
-    for (const race of SEASON_CALENDAR)
-      if (!race.championshipCountry && s * DAYS_PER_SEASON + race.startDay >= fromDay)
-        keys.push(`${race.id}:s${s}`)
+  const keys = SEASON_CALENDAR.filter(
+    (race) => !race.championshipCountry && season * DAYS_PER_SEASON + race.startDay >= fromDay,
+  ).map((race) => `${race.id}:s${season}`)
   const rows = await q
     .selectDistinct({ raceId: raceRosters.raceId, teamId: riders.teamId })
     .from(raceRosters)
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
     .where(and(inArray(raceRosters.raceId, keys), eq(riders.worldId, worldId)))
   const fields = new Map<string, string[]>()
-  for (const r of rows) {
+  for (const r of [...rows].sort((x, y) =>
+    x.raceId < y.raceId ? -1 : x.raceId > y.raceId ? 1 : 0,
+  )) {
     if (r.teamId === null) continue
     fields.set(r.raceId, [...(fields.get(r.raceId) ?? []), r.teamId])
   }
@@ -510,22 +512,31 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
           ceding.add(rivalId)
       }
     }
-    // …y dos NPC que chocan en una escuadra ya congelada (17d): cede el de menos presupuesto (a igualdad,
-    // el de id mayor); el nuevo maillot evita a todos sus rivales, los previstos y los de la escuadra
+    // …y dos NPC que chocan en una escuadra ya congelada (17d): cede el de menos presupuesto (a igualdad, el
+    // de id mayor). Su maillot nuevo evita a todos sus rivales, los previstos y los de las escuadras, así que
+    // el que ya cede no hace ceder a nadie más; y los pares, de todas las escuadras, van del más rico al más
+    // pobre, para que ceda antes el que resuelve más y lo que se decide no dependa del orden de las filas
     const byId = new Map(rows.map((r) => [r.id, r] as const))
-    for (const field of frozen.values())
-      for (const [i, a] of field.entries())
-        for (const b of field.slice(i + 1)) {
+    const richFirst = (x: string, y: string) =>
+      (byId.get(y)?.budget ?? 0) - (byId.get(x)?.budget ?? 0) || (x < y ? -1 : x > y ? 1 : 0)
+    const npcPairs: [string, string][] = []
+    for (const field of frozen.values()) {
+      const ordered = [...field].sort(richFirst)
+      for (const [i, a] of ordered.entries())
+        for (const b of ordered.slice(i + 1)) {
           const ra = byId.get(a)
           const rb = byId.get(b)
           if (ra === undefined || rb === undefined) continue
+          // con un humano, lo dice DD-08, arriba; dos humanos no se fuerzan
           if (ra.ownerUserId !== null || rb.ownerUserId !== null) continue
-          if (ceding.has(a) || ceding.has(b)) continue
           const ka = worn.get(a)
           const kb = worn.get(b)
-          if (ka === undefined || kb === undefined || !kitsClash(ka, kb)) continue
-          ceding.add(ra.budget < rb.budget || (ra.budget === rb.budget && a > b) ? a : b)
+          if (ka !== undefined && kb !== undefined && kitsClash(ka, kb)) npcPairs.push([a, b])
         }
+    }
+    npcPairs.sort(([a1, b1], [a2, b2]) => richFirst(a1, a2) || richFirst(b1, b2))
+    // en cada par, el segundo es el de menos presupuesto
+    for (const [a, b] of npcPairs) if (!ceding.has(a) && !ceding.has(b)) ceding.add(b)
   }
   for (const id of ceding) worn.delete(id)
   const pending = rows.filter((r) => !worn.has(r.id))
