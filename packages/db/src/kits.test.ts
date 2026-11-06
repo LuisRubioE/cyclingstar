@@ -29,7 +29,7 @@ import {
   setKit,
 } from './kits.js'
 import { kitOn, kitsOn, stateKitsOn } from './kitsOn.js'
-import { gameState, news, riders, teamKits, teams, users, worlds } from './schema.js'
+import { gameState, news, raceRosters, riders, teamKits, teams, users, worlds } from './schema.js'
 import { type SeasonRivals, rivalsOf, seasonFields } from './seasonRivals.js'
 import { releaseUserToWorld, takeOverBotTeam } from './teamControl.js'
 import { type TestDb, startTestDb } from './testDb.js'
@@ -57,6 +57,8 @@ const SEED = 'semilla-maillots'
 const NOW = new Date('2026-01-01T00:00:00.000Z')
 const NIGHTLY = process.env.CS_BANCOS === '1'
 const USER = '00000000-0000-4000-8000-00000000016a'
+/** El humano de la prueba del 17d, suyo para no depender de la de DD-08. */
+const USER_17D = '00000000-0000-4000-8000-00000000017d'
 const r1 = (x: number) => Math.round(x * 10) / 10
 
 /** Las carreras de un reparto con algún par de rivales cuyos maillots chocan. */
@@ -501,6 +503,119 @@ describe('db: los maillots (E3, §8.5 a §8.8)', () => {
       changed: [],
     })
     expect(await kitsOn(t.db, teamIds, 1)).toEqual(after)
+  })
+
+  it('el NPC cede también en una escuadra ya congelada (17d): ante otro NPC, el de menos presupuesto; ante un humano, el NPC', async () => {
+    // la previsión no ve a todos: el pelotón real se completa con equipos que no estaban previstos, y la
+    // escuadra se congela 14 días antes de la salida (ENROLL_LOCK_DAYS). En la de una carrera que aún no ha
+    // salido, dos NPC que no son rivales previstos y cuyos maillots chocan: sin ella, nadie cedería
+    const before = await t.db
+      .select({ id: teams.id, owner: teams.ownerUserId })
+      .from(teams)
+      .where(eq(teams.worldId, worldId))
+    // un humano propio, para no depender de la prueba de arriba: el NPC con menos rivales previstos, que con
+    // dueño sigue sin cruzarse con casi nadie; lo que su calendario natural cambie, el tick lo resuelve
+    // antes de montar la escena
+    const forecast = await currentRivals()
+    const human = before
+      .filter((x) => x.owner === null)
+      .map((x) => x.id)
+      .sort((x, y) => (forecast.get(x)?.size ?? 0) - (forecast.get(y)?.size ?? 0))[0]!
+    await t.db.insert(users).values({ id: USER_17D, email: 'maillots-17d@example.com', name: 'N' })
+    await t.db.update(teams).set({ ownerUserId: USER_17D }).where(eq(teams.id, human))
+    await t.db.transaction((tx) => ensureKits(tx, worldId))
+    const now = await currentRivals()
+    const all = await t.db
+      .select({ id: teams.id, owner: teams.ownerUserId, budget: teams.budget })
+      .from(teams)
+      .where(eq(teams.worldId, worldId))
+    const npcs = all.filter((x) => x.owner === null).map((x) => x.id)
+    const kits = await kitsOn(t.db, teamIds, 1)
+    const worn = new Set([...kits.values()].map(canonicalKit))
+    /** Un maillot libre que choca con el de `with` y con ninguno de los rivales previstos de `team`. */
+    const hidden = (team: string, withTeam: string) =>
+      KIT_ALLOWED.find(
+        (c) =>
+          !worn.has(canonicalKit(c)) &&
+          kitsClash(c, kits.get(withTeam)!) &&
+          ![...(now.get(team)?.keys() ?? [])].some((r) => kitsClash(c, kits.get(r)!)),
+      )
+    let a = ''
+    let b = ''
+    let clash: KitCode | undefined
+    for (const x of npcs)
+      for (const y of npcs)
+        if (clash === undefined && x !== y && !now.get(x)?.has(y)) {
+          clash = hidden(y, x)
+          if (clash !== undefined) [a, b] = [x, y]
+        }
+    expect(clash).toBeDefined()
+    worn.add(canonicalKit(clash!))
+    // y un tercero, NPC, que choca con el humano sin ser su rival previsto
+    const c = npcs.find((x) => x !== a && x !== b && !now.get(human)?.has(x) && hidden(x, human))!
+    const humanClash = hidden(c, human)!
+    expect(humanClash).toBeDefined()
+    const budgets = new Map(all.map((x) => [x.id, x.budget]))
+    await t.db.update(teams).set({ budget: 9_000_000 }).where(eq(teams.id, a))
+    await t.db.update(teams).set({ budget: 1_000_000 }).where(eq(teams.id, b))
+    await t.db.transaction(async (tx) => {
+      await setKit(tx, b, clash!, 'system', 1)
+      await setKit(tx, c, humanClash, 'system', 1)
+    })
+    const riderOf = async (team: string) =>
+      (
+        await t.db.select({ id: riders.id }).from(riders).where(eq(riders.teamId, team)).limit(1)
+      )[0]!.id
+    // la primera carrera que no es un nacional, la race-tachira, sale el día 9
+    const tachira = 'race-tachira:s0'
+    const pune = 'race-pune:s0'
+    await t.db.insert(raceRosters).values([
+      { raceId: tachira, riderId: await riderOf(a) },
+      { raceId: tachira, riderId: await riderOf(b) },
+      { raceId: pune, riderId: await riderOf(human) },
+      { raceId: pune, riderId: await riderOf(c) },
+    ])
+    try {
+      // el día 19, las dos ya han salido: el maillot que cuenta es el de su salida, y nadie cede
+      await t.db.update(gameState).set({ currentDay: 19 }).where(eq(gameState.worldId, worldId))
+      expect((await t.db.transaction((tx) => ensureKits(tx, worldId))).changed).toEqual([])
+      // hoy, día 0: las dos están por salir y congeladas
+      await t.db.update(gameState).set({ currentDay: 0 }).where(eq(gameState.worldId, worldId))
+      const report = await t.db.transaction((tx) => ensureKits(tx, worldId))
+      expect(report.ceded).toBe(2)
+      expect(
+        report.changed.map((x) => [x.teamId, x.why]).sort((x, y) => (x[0]! < y[0]! ? -1 : 1)),
+      ).toEqual(
+        [
+          [b, 'ceded'],
+          [c, 'ceded'],
+        ].sort((x, y) => (x[0]! < y[0]! ? -1 : 1)),
+      )
+      const after = await kitsOn(t.db, teamIds, 1)
+      // el rico y el humano conservan el suyo; los que ceden ya no chocan con ellos ni con sus previstos
+      expect(after.get(a)).toBe(kits.get(a))
+      expect(after.get(human)).toBe(kits.get(human))
+      expect(kitsClash(after.get(b)!, after.get(a)!)).toBe(false)
+      expect(kitsClash(after.get(c)!, after.get(human)!)).toBe(false)
+      for (const [team, rivalsNow] of [
+        [b, now.get(b)],
+        [c, now.get(c)],
+      ] as const)
+        for (const r of rivalsNow?.keys() ?? [])
+          expect(kitsClash(after.get(team)!, after.get(r)!), `${team} ${r}`).toBe(false)
+      // una segunda pasada no cambia nada
+      expect((await t.db.transaction((tx) => ensureKits(tx, worldId))).changed).toEqual([])
+    } finally {
+      await t.db.delete(raceRosters).where(inArray(raceRosters.raceId, [tachira, pune]))
+      await t.db.update(gameState).set({ currentDay: 0 }).where(eq(gameState.worldId, worldId))
+      for (const id of [a, b])
+        await t.db
+          .update(teams)
+          .set({ budget: budgets.get(id)! })
+          .where(eq(teams.id, id))
+      await t.db.update(teams).set({ ownerUserId: null }).where(eq(teams.id, human))
+      await t.db.delete(users).where(eq(users.id, USER_17D))
+    }
   })
 
   it('un equipo que nace sin maillot en un mundo ya traducido toma el primero libre de su semilla (8-d)', async () => {

@@ -1,3 +1,4 @@
+import { SEASON_CALENDAR } from '@cyclingstar/engine'
 import {
   type BibStyle,
   DAYS_PER_SEASON,
@@ -20,8 +21,8 @@ import { KIT_ALLOWED, KIT_CONFLICTS } from './kitConflicts.generated.js'
 import { kitRaster, rasterDistance } from './kitDistance.js'
 import { kitOn, kitsBySeed, kitsOn } from './kitsOn.js'
 import { emitNews } from './news.js'
-import { gameState, teamKits, teams } from './schema.js'
-import { type SeasonRivals, seasonRivals } from './seasonRivals.js'
+import { gameState, raceRosters, riders, teamKits, teams } from './schema.js'
+import { type SeasonRivals, rivalsOf, seasonRivals } from './seasonRivals.js'
 import type { Queryable } from './titles.js'
 
 /**
@@ -410,9 +411,58 @@ async function today(q: Queryable, worldId: string): Promise<number> {
 }
 
 /**
+ * LAS ESCUADRAS YA CONGELADAS DE LO QUE AÚN NO HA SALIDO (17d): el pelotón de verdad de cada carrera que sale
+ * desde `fromDay`, por su clave (`race:s0`), con los equipos de sus corredores. La previsión de rivales
+ * (`seasonRivals`) no los ve a todos: la escuadra se congela catorce días antes de la salida
+ * (`ENROLL_LOCK_DAYS`) con quien de verdad va, y en una temporada del banco de noche juntó a 5 pares de
+ * equipos que no eran rivales previstos, en 12 carreras. Las que ya han salido no cuentan: su maillot es el
+ * del día de la salida (16b). Sin los nacionales, como la previsión.
+ */
+export async function frozenFields(
+  q: Queryable,
+  worldId: string,
+  fromDay: number,
+): Promise<ReadonlyMap<string, readonly string[]>> {
+  const season = currentSeason(fromDay)
+  const keys: string[] = []
+  for (const s of [season, season + 1])
+    for (const race of SEASON_CALENDAR)
+      if (!race.championshipCountry && s * DAYS_PER_SEASON + race.startDay >= fromDay)
+        keys.push(`${race.id}:s${s}`)
+  const rows = await q
+    .selectDistinct({ raceId: raceRosters.raceId, teamId: riders.teamId })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .where(and(inArray(raceRosters.raceId, keys), eq(riders.worldId, worldId)))
+  const fields = new Map<string, string[]>()
+  for (const r of rows) {
+    if (r.teamId === null) continue
+    fields.set(r.raceId, [...(fields.get(r.raceId) ?? []), r.teamId])
+  }
+  return fields
+}
+
+/** La previsión con las escuadras congeladas: dos equipos son rivales si comparten una de las dos. */
+function withFrozen(
+  rivals: SeasonRivals,
+  frozen: ReadonlyMap<string, readonly string[]>,
+): SeasonRivals {
+  if (frozen.size === 0) return rivals
+  const out = new Map([...rivals].map(([team, of]) => [team, new Map(of)] as const))
+  for (const [team, of] of rivalsOf(frozen)) {
+    const mine = out.get(team) ?? new Map<string, number>()
+    for (const [rival, n] of of) mine.set(rival, (mine.get(rival) ?? 0) + n)
+    out.set(team, mine)
+  }
+  return out
+}
+
+/**
  * Da maillot a quien no lo tiene (I-05). La primera vez traduce el mundo entero (§8.6); después, los
  * equipos que nacen sin fila toman el primer libre del orden de su semilla, y un NPC cuyo maillot choca
- * con el de un humano rival cede el suyo (DD-08). Idempotente: una segunda pasada no cambia nada. Cada
+ * con el de un humano rival cede el suyo (DD-08). Rival es el de la previsión y, desde el 17d, el de una
+ * escuadra ya congelada de lo que aún no ha salido (`frozenFields`), donde también cede, ante otro NPC, el de
+ * menos presupuesto. Idempotente: una segunda pasada no cambia nada. Cada
  * maillot vale desde mañana, con `set_by = 'system'`; si un mánager se queda con uno mientras corre, se
  * prueba el siguiente libre. No escribe noticias: las escribe `emitKitNews` con lo que devuelve, en la
  * misma transacción del tick (17b).
@@ -425,6 +475,7 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
       id: teams.id,
       ownerUserId: teams.ownerUserId,
       seed: teams.jerseySeed,
+      budget: teams.budget,
     })
     .from(teams)
     .where(eq(teams.worldId, worldId))
@@ -435,7 +486,8 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
       fromDay,
     ),
   )
-  const rivals = await seasonRivals(tx, worldId, currentSeason(fromDay))
+  const frozen = await frozenFields(tx, worldId, fromDay)
+  const rivals = withFrozen(await seasonRivals(tx, worldId, currentSeason(fromDay)), frozen)
   // su aspecto de hoy, el de su semilla: desde el 19e nadie lee la del dibujo, y la traducción ya corrió
   // para todo equipo que la tuviera (§17.19)
   const asTeam = (r: (typeof rows)[number]): KitAssignTeam => ({
@@ -458,6 +510,22 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
           ceding.add(rivalId)
       }
     }
+    // …y dos NPC que chocan en una escuadra ya congelada (17d): cede el de menos presupuesto (a igualdad,
+    // el de id mayor); el nuevo maillot evita a todos sus rivales, los previstos y los de la escuadra
+    const byId = new Map(rows.map((r) => [r.id, r] as const))
+    for (const field of frozen.values())
+      for (const [i, a] of field.entries())
+        for (const b of field.slice(i + 1)) {
+          const ra = byId.get(a)
+          const rb = byId.get(b)
+          if (ra === undefined || rb === undefined) continue
+          if (ra.ownerUserId !== null || rb.ownerUserId !== null) continue
+          if (ceding.has(a) || ceding.has(b)) continue
+          const ka = worn.get(a)
+          const kb = worn.get(b)
+          if (ka === undefined || kb === undefined || !kitsClash(ka, kb)) continue
+          ceding.add(ra.budget < rb.budget || (ra.budget === rb.budget && a > b) ? a : b)
+        }
   }
   for (const id of ceding) worn.delete(id)
   const pending = rows.filter((r) => !worn.has(r.id))

@@ -1,13 +1,14 @@
+import { writeFileSync } from 'node:fs'
 import { SEASON_CALENDAR } from '@cyclingstar/engine'
 import { type KitCode, canonicalKit } from '@cyclingstar/shared'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { readFrozenStartlist } from './calendarRun.js'
 import { worldHorizon } from './horizon.js'
 import { KIT_ALLOWED } from './kitConflicts.generated.js'
 import { kitsClash, setKit } from './kits.js'
 import { kitsOn } from './kitsOn.js'
-import { teams, users, worlds } from './schema.js'
+import { gameState, news, teams, users, worlds } from './schema.js'
 import { rivalsOf, seasonFields } from './seasonRivals.js'
 import { type TestDb, startTestDb } from './testDb.js'
 import { runTick } from './tick.js'
@@ -19,11 +20,19 @@ import { runTick } from './tick.js'
  * la escuadra), así que lo que vale es el pelotón que de verdad se congela. El mundo de la génesis corre
  * su temporada noche a noche, un tick por día como en producción, con tres equipos de jugador: uno se
  * pone un maillot que choca con el de un NPC rival, que tiene que ceder esa noche (DD-08), y los otros
- * dos se ponen dos que chocan entre sí, que no se fuerzan. Al final, en cada carrera congelada que no es
- * un campeonato nacional, con el maillot que cada equipo llevaba el día de la salida: 0 pares por debajo
- * de 10 entre rivales con un NPC, y los choques entre humanos, contados.
+ * dos se ponen dos que chocan entre sí, que no se fuerzan. En cada carrera congelada que no es un
+ * campeonato nacional, el día que sale, con sus equipos de ese día y el maillot de su primera etapa: 0
+ * pares por debajo de 10 entre rivales con un NPC, y los choques entre humanos, contados.
  *
- * `KIT_WORLD_DIAS` acorta la temporada para probar el banco en el contenedor (por defecto, 364).
+ * DESDE EL 17d se mira cada carrera el día que sale y no al final: leídas al final, tras los fichajes y los
+ * equipos nuevos del cambio de temporada, las listas mezclaban en cada carrera equipos que no la corrieron
+ * (la escuadra no guarda el equipo de cada corredor), y el banco contaba 2.538 pares donde el día de la
+ * salida había 12. Esos 12 eran de verdad: dos equipos que la previsión no veía como rivales, y desde el
+ * 17d el NPC cede también ante ellos (`frozenFields`, `ensureKits`). Medido en el contenedor: 0, con 7 NPC
+ * que ceden en la temporada.
+ *
+ * `KIT_WORLD_DIAS` acorta la temporada para probar el banco en el contenedor (por defecto, 364), y
+ * `KIT_WORLD_OUT` escribe las cifras en un fichero.
  */
 
 const NIGHTLY = process.env.CS_BANCOS === '1'
@@ -107,35 +116,89 @@ describe.runIf(NIGHTLY)('db: el maillot a lo largo de una temporada (nocturno)',
     `${DIAS} noches: 0 pares por debajo de 10 entre rivales con un NPC; los choques entre humanos, contados`,
     async () => {
       const started = performance.now()
-      for (let d = 0; d < DIAS; d++) await tick(1)
-      const minutes = (performance.now() - started) / 60_000
       const owned = new Set(humans)
-      let races = 0
-      let pairs = 0
-      const withNpc: string[] = []
-      const betweenHumans: string[] = []
+      /**
+       * EL PELOTÓN DE CADA CARRERA, EL DÍA QUE SALE (17d): la escuadra congelada no guarda el equipo de
+       * cada corredor, y la lista lo toma del corredor (`readFrozenStartlist`, `riders.teamId`), así que
+       * leída al final de la temporada, tras los fichajes y los equipos nuevos del cambio de temporada,
+       * mezcla en cada carrera equipos que no la corrieron. Se mira cada una en cuanto ha salido, con sus
+       * equipos de ese día y el maillot de su primera etapa.
+       */
+      const seen = new Set<string>()
+      const atStart = { races: 0, pairs: 0, withNpc: [] as string[], betweenHumans: [] as string[] }
+      const check = (
+        tally: typeof atStart,
+        raceId: string,
+        teamsOf: readonly { id: string; name: string; kit: KitCode | null }[],
+      ) => {
+        tally.races++
+        const field = teamsOf.filter((x) => x.kit !== null)
+        for (const [i, a] of field.entries())
+          for (const b of field.slice(i + 1)) {
+            tally.pairs++
+            if (!kitsClash(a.kit!, b.kit!)) continue
+            const tag = `${raceId}: ${a.name} y ${b.name}`
+            if (owned.has(a.id) && owned.has(b.id)) tally.betweenHumans.push(tag)
+            else tally.withNpc.push(tag)
+          }
+      }
+      for (let d = 0; d < DIAS; d++) {
+        await tick(1)
+        const [clock] = await t.db
+          .select({ day: gameState.currentDay })
+          .from(gameState)
+          .where(eq(gameState.worldId, worldId))
+        const day = clock?.day ?? 0
+        const season = Math.floor(day / 364)
+        for (const race of SEASON_CALENDAR) {
+          const key = `${race.id}:s${season}`
+          if (race.championshipCountry || race.startDay > day % 364 || seen.has(key)) continue
+          const list = await readFrozenStartlist(t.db, worldHorizon, race, season)
+          if (list === null || !list.frozen) continue
+          seen.add(key)
+          check(atStart, race.id, list.teams)
+        }
+      }
+      const minutes = (performance.now() - started) / 60_000
+      // lo que cuesta: cuántos NPC han cedido su maillot en la temporada (una noticia por cada uno, 17b)
+      const ceded = (
+        await t.db
+          .select({ kind: news.kind })
+          .from(news)
+          .where(and(eq(news.worldId, worldId), eq(news.kind, 'kit_ceded')))
+      ).length
+      // y la lectura de antes, al final de la temporada, para ver cuánto la mueven los fichajes
+      const atEnd = { races: 0, pairs: 0, withNpc: [] as string[], betweenHumans: [] as string[] }
       for (const race of SEASON_CALENDAR) {
         if (race.championshipCountry) continue
         const list = await readFrozenStartlist(t.db, worldHorizon, race, 0)
         if (list === null || !list.frozen) continue
-        races++
-        const field = list.teams.filter((x) => x.kit !== null)
-        for (const [i, a] of field.entries())
-          for (const b of field.slice(i + 1)) {
-            pairs++
-            if (!kitsClash(a.kit!, b.kit!)) continue
-            const tag = `${race.id}: ${a.name} y ${b.name}`
-            if (owned.has(a.id) && owned.has(b.id)) betweenHumans.push(tag)
-            else withNpc.push(tag)
-          }
+        check(atEnd, race.id, list.teams)
       }
       console.info(
-        `kitWorld: ${DIAS} noches en ${minutes.toFixed(1)} min; ${races} carreras congeladas, ${pairs} pares; ` +
-          `${withNpc.length} con un NPC por debajo de 10; ${betweenHumans.length} entre humanos ` +
-          `(${betweenHumans.slice(0, 5).join('; ')})`,
+        `kitWorld: ${DIAS} noches en ${minutes.toFixed(1)} min; el día de la salida, ${atStart.races} carreras, ` +
+          `${atStart.pairs} pares, ${atStart.withNpc.length} con un NPC por debajo de 10, ` +
+          `${atStart.betweenHumans.length} entre humanos (${atStart.betweenHumans.slice(0, 5).join('; ')}); ` +
+          `${ceded} NPC han cedido su maillot; ` +
+          `leídas al final, ${atEnd.races} carreras y ${atEnd.withNpc.length} con un NPC`,
       )
-      expect(races).toBeGreaterThan(0)
-      expect(withNpc, withNpc.slice(0, 10).join('; ')).toEqual([])
+      if (process.env.KIT_WORLD_OUT !== undefined)
+        writeFileSync(
+          process.env.KIT_WORLD_OUT,
+          JSON.stringify(
+            {
+              dias: DIAS,
+              minutes,
+              ceded,
+              atStart,
+              atEnd: { ...atEnd, withNpc: atEnd.withNpc.length },
+            },
+            null,
+            1,
+          ),
+        )
+      expect(atStart.races).toBeGreaterThan(0)
+      expect(atStart.withNpc, atStart.withNpc.slice(0, 10).join('; ')).toEqual([])
     },
     4 * 60 * 60_000,
   )
