@@ -8,7 +8,9 @@ import type { RiderCard, RiderIx, WornJerseyView } from '@cyclingstar/shared'
  * a 28 px varias banderas son gemelas); después, un `Kit` por equipo, de más a menos corredores y, a
  * igualdad, por el dorsal más bajo. Los de delante no cuentan en su equipo: las cuentas y los de delante
  * suman el tamaño del grupo. Lo que no cabe en `TEAM_KIT_LINES_MAX` renglones va a `+N teams`, y cuánto
- * cabe lo dice `fitTeamChips` con el ancho medido de la línea, no una cifra fija.
+ * cabe lo dice `fitTeamChips` con el ancho medido de la línea, no una cifra fija. Desde W2a (la revisión de
+ * `Watch` del dueño), la llevan los de seis a `nameWholeGroupUpTo`: uno de cuatro o cinco lleva sus nombres,
+ * cada uno con su bandera y su maillot (`NamesLine` de `GroupBar`).
  */
 
 /** Los renglones de la línea de equipos (14-d): con dos, la barra cabe en la pantalla 09 (14-g). */

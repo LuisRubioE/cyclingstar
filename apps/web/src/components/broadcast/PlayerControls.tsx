@@ -71,7 +71,7 @@ const POR_QUE_SALTO: Readonly<Record<JumpWhy, string>> = {
 
 /**
  * LOS MANDOS (docs/retransmision.md §8.5, 8-o, 8-p y §18.8). En el teléfono, la fila lleva `❚❚`, la
- * velocidad (un botón que pasa a la siguiente de `×½ ×1 ×2 ×4`), `Next action`, `Commentary` y `⋯`, y la
+ * velocidad (un botón que pasa a la siguiente de `×½ ×1 ×2 ×4`), `Next action` y `⋯`, y la
  * hoja de `⋯`, los saltos, el conmutador de modo y `Show result` (8-p); en escritorio, las cuatro
  * velocidades a la vista, y `←` y `→` son `−5 km` y `+5 km` (el hook). En el digest, solo `❚❚` y `Show
  * results` (§8.1). `Loading` (esperando un tramo) y `Connection lost · Retry` van en `role="status"`.
@@ -83,26 +83,27 @@ const POR_QUE_SALTO: Readonly<Record<JumpWhy, string>> = {
  *
  * Desde el PR 20 (E3, docs/visual.md §14.6; O-18): en el ámbito oscuro; los iconos `pause`, `play` y
  * `more` en lugar de `❚❚`, `▶︎` y `⋯`, que `ui/10` marca; y cada mando de 44 × 44 como mínimo, así que a
- * 360 px la fila parte en dos renglones. Ninguno es `primary`: el de `Watch` es el de la previa o el del
- * cierre, uno por carrera. Dicen si están escondidos en `data-state`.
+ * 360 px la fila partía en dos renglones (hasta W2a; sin `Commentary`, cabe en uno a 320, 360 y 390).
+ * Ninguno es `primary`: el de `Watch` es el de la previa o el del cierre, uno por carrera. Dicen si están
+ * escondidos en `data-state`.
+ *
+ * Desde W2a (la revisión de `Watch` del dueño, su punto 7), sin `Commentary`: va bajo la línea de la voz
+ * (`VoiceTicker`), porque aquí se escondía a los 3 s con los demás y el dueño no veía «lo de atrás».
  */
 export function PlayerControls({
   state,
-  commentaryOpen,
   jumps,
   canShowResult,
   onPlay,
   onPause,
   onSpeed,
   onNextAction,
-  onCommentary,
   onJump,
   onView,
   onShowResult,
   onRetry,
 }: {
   state: ControlsState
-  commentaryOpen: boolean
   /** los saltos de la hoja, en su orden; vacío en el digest */
   jumps: readonly JumpOption[]
   /** `Show result` (y `Show results` en el digest): con sesión, fuera del modo diagnóstico */
@@ -111,7 +112,6 @@ export function PlayerControls({
   onPause: () => void
   onSpeed: (x: Speed) => void
   onNextAction: () => void
-  onCommentary: () => void
   onJump: (id: JumpOption['id']) => void
   onView: (view: 'watch' | 'highlights') => void
   onShowResult: () => void
@@ -181,9 +181,6 @@ export function PlayerControls({
               onClick={onNextAction}
             >
               Next action
-            </Button>
-            <Button variant="control" pressed={commentaryOpen} onClick={onCommentary}>
-              Commentary
             </Button>
             <Button
               variant="control"

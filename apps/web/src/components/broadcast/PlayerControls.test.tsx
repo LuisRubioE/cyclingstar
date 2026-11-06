@@ -99,22 +99,16 @@ const ROAD: readonly JumpOption[] = [
 
 const noop = (): void => {}
 
-function controls(
-  state: Partial<ControlsState> = {},
-  canShowResult = true,
-  commentaryOpen = false,
-): string {
+function controls(state: Partial<ControlsState> = {}, canShowResult = true): string {
   const el: ReactElement = (
     <PlayerControls
       state={{ ...PLAYING, ...state }}
-      commentaryOpen={commentaryOpen}
       jumps={ROAD}
       canShowResult={canShowResult}
       onPlay={noop}
       onPause={noop}
       onSpeed={noop}
       onNextAction={noop}
-      onCommentary={noop}
       onJump={noop}
       onView={noop}
       onShowResult={noop}
@@ -125,9 +119,9 @@ function controls(
 }
 
 describe('PlayerControls a 360 px (8-p, §8.12)', () => {
-  it('la fila lleva Pause, ×1, Next action, Commentary y More, por ese orden; las cuatro velocidades son de escritorio', () => {
+  it('la fila lleva Pause, ×1, Next action y More, por ese orden; las cuatro velocidades son de escritorio', () => {
     const markup = controls()
-    expect(mobileRow(markup)).toEqual(['Pause', '×1', 'Next action', 'Commentary', 'More'])
+    expect(mobileRow(markup)).toEqual(['Pause', '×1', 'Next action', 'More'])
     // en escritorio, las cuatro a la vista (y el botón que pasa de una a otra, no)
     const desktop = buttonsOf(markup).filter((b) => !b.mobile)
     expect(desktop.map((b) => b.text)).toEqual(['×½', '×1', '×2', '×4'])
@@ -173,7 +167,7 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
     expect(markup).toMatch(/^<div[^>]*data-state="hidden"/)
     expect(controls()).toMatch(/^<div[^>]*data-state="shown"/)
     expect(markup).not.toMatch(/<(?:button|div)[^>]*aria-hidden/)
-    expect(mobileRow(markup)).toHaveLength(5)
+    expect(mobileRow(markup)).toHaveLength(4)
   })
 
   it('en el ámbito oscuro, con los iconos pause, play y more, sin un glifo, y ningún primary (E3, §14.6)', () => {
@@ -231,12 +225,25 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
   })
 })
 
-describe('Commentary, un mando que se conmuta (PR 21n)', () => {
-  it('dice si está desplegado: aria-pressed en false y, abierto, en true', () => {
-    const de = (open: boolean) =>
-      buttonsOf(controls({}, true, open)).find((b) => b.text === 'Commentary')?.attrs ?? ''
-    expect(de(false)).toContain('aria-pressed="false"')
-    expect(de(true)).toContain('aria-pressed="true"')
+// Hasta W2a, `Commentary` era un mando de esta fila, que se esconde a los 3 s sin tocar (8-p), y el dueño no
+// veía «lo de atrás»: va bajo la línea de la voz (`VoiceTicker.test.tsx`), y la fila del teléfono se queda en
+// cuatro.
+describe('Commentary ya no va en los mandos (W2a)', () => {
+  it('ni en la fila, en ninguna fase, ni en la hoja de ⋯', () => {
+    for (const phase of ['playing', 'paused', 'waiting'] as const)
+      expect(controls({ phase })).not.toContain('Commentary')
+    const sheet = renderToStaticMarkup(
+      <PlayerSheet
+        view="watch"
+        jumps={ROAD}
+        canShowResult
+        onJump={noop}
+        onView={noop}
+        onShowResult={noop}
+      />,
+    )
+    expect(sheet).toContain('Final 20 km')
+    expect(sheet).not.toContain('Commentary')
   })
 })
 
