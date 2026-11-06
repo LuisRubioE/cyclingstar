@@ -26,6 +26,7 @@ import { chunkLinesOf } from './routes/broadcast.js'
 import {
   MAIN_GROUP_TEMPLATES,
   RIDER_GROUP_TEMPLATES,
+  lineGroupFits,
   type VoiceClusters,
   lineVoiceOf,
   rolesContextOf,
@@ -223,7 +224,9 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
           : first === undefined
             ? undefined
             : now.groups.find((x) => x.members.includes(first))
-        const jersey = g?.label.k === 'jersey_group' ? g.label.jersey : undefined
+        // el de un protagonista, solo si es el de la frase (lineGroupFits, probada abajo)
+        const fits = main || (g !== undefined && lineGroupFits(before, g.members, ixOf))
+        const jersey = fits && g?.label.k === 'jersey_group' ? g.label.jersey : undefined
         // el título en gruppetto por la histéresis no se anota (voiceRoles.ts): dice the bunch
         const role = !main || g?.role === 'gruppetto' ? undefined : g?.role
         if (role === undefined && jersey === undefined) return expect(ev).toBe(before)
@@ -258,6 +261,105 @@ describe('withGroupRoles · la palabra de la voz es la de la barra (§12.6; 12-b
     expect(roles.get('chase') ?? 0).toBeGreaterThan(0)
     // el título en gruppetto no se anota: la voz no dice the gruppetto por él (GROUP_NOUNS)
     expect(roles.get('gruppetto') ?? 0).toBe(0)
+  })
+
+  it('las siete plantillas del grupo de sus protagonistas, las mismas que prueba la web (W1)', () => {
+    // el reagrupamiento sale sin protagonistas (simulate.ts) y queda fuera: nada lo identifica
+    expect([...RIDER_GROUP_TEMPLATES].sort()).toEqual([
+      'break_cooperation',
+      'break_share',
+      'bridge_made',
+      'echelon_split',
+      'front_group',
+      'peloton_selection',
+      'peloton_split',
+    ])
+  })
+
+  it('lineGroupFits: el grupo de un protagonista es el de la frase si tiene lo que la línea dice de él (W1)', () => {
+    const ixOf = new Map(['a', 'b', 'c', 'd'].map((id, r) => [id, r] as const))
+    const line = (plantilla: string, protagonistas: string[], datos?: Record<string, number>) => ({
+      plantilla,
+      protagonistas,
+      ...(datos === undefined ? {} : { datos }),
+    })
+    const of = (n: number): number[] => Array.from({ length: n }, (_, r) => r)
+    // race-italy e17, semilla b11-1, km 187,1: «is up to 1» de uno cazado en el mismo bloque, que en la hora
+    // de la línea va dentro del grupo del líder, de 50
+    expect(lineGroupFits(line('front_group', ['a'], { size: 1 }), of(50), ixOf)).toBe(false)
+    // la cabeza que cuenta, con todos los suyos y nadie más
+    expect(lineGroupFits(line('front_group', ['a', 'b', 'c'], { size: 3 }), [0, 1, 2], ixOf)).toBe(
+      true,
+    )
+    expect(
+      lineGroupFits(line('front_group', ['a', 'b', 'c'], { size: 3 }), [0, 1, 2, 3], ixOf),
+    ).toBe(false)
+    expect(lineGroupFits(line('break_cooperation', ['a', 'b']), [0, 1], ixOf)).toBe(true)
+    expect(lineGroupFits(line('break_cooperation', ['a', 'b']), [0, 2], ixOf)).toBe(false)
+    // el puente y el reparto, por el tamaño que la línea dice
+    expect(lineGroupFits(line('bridge_made', ['a'], { size: 6 }), of(6), ixOf)).toBe(true)
+    expect(lineGroupFits(line('bridge_made', ['a'], { size: 6 }), of(7), ixOf)).toBe(false)
+    expect(lineGroupFits(line('break_share', ['a'], { size: 5, passengers: 2 }), of(5), ixOf)).toBe(
+      true,
+    )
+    expect(lineGroupFits(line('break_share', ['a']), of(5), ixOf)).toBe(false) // sin tamaño, no
+    // las cribas y el abanico, por lo que queda
+    for (const plantilla of ['peloton_split', 'peloton_selection', 'echelon_split']) {
+      expect(
+        lineGroupFits(line(plantilla, ['a'], { remaining: 40 }), of(40), ixOf),
+        plantilla,
+      ).toBe(true)
+      expect(
+        lineGroupFits(line(plantilla, ['a'], { remaining: 40 }), of(41), ixOf),
+        plantilla,
+      ).toBe(false)
+    }
+    // ninguna otra plantilla
+    expect(lineGroupFits(line('peloton_regroup', [], { remaining: 3 }), of(3), ixOf)).toBe(false)
+    expect(lineGroupFits(line('time_gap', [], { leadSize: 3 }), of(3), ixOf)).toBe(false)
+  })
+
+  it('la guarda, sobre la e18: un protagonista del grupo del líder no basta, hace falta el grupo de la frase (W1)', () => {
+    // La trampa del banco (race-italy e17, semilla b11-1): «is up to 1» de uno cazado en el mismo bloque, que
+    // en la hora de la línea va ya dentro del grupo del líder. Aquí, con líneas fabricadas sobre la e18, en la
+    // primera hora en que la fila 1 es el grupo del líder con más de diez.
+    const tl = loadTimeline('race-france-e18')
+    const ctx = rolesContextOf(tl)
+    let t = 0
+    let rows = instantAt(tl, t, ctx).groups.filter((g) => g.members.length > 0)
+    for (; t < tl.finish.finishS; t += 60) {
+      rows = instantAt(tl, t, ctx).groups.filter((g) => g.members.length > 0)
+      if (rows[0]?.label.k === 'jersey_group' && rows[0].size > 10) break
+    }
+    const head = rows[0]!
+    expect(head.label).toEqual({ k: 'jersey_group', jersey: 'gc' })
+    const ids = head.members.map((r) => tl.riderIds[r]!)
+    const line = (
+      plantilla: string,
+      protagonistas: string[],
+      datos: Record<string, number>,
+    ): ChronicleEvent => ({ km: 100, tS: t, tipo: 'prueba', plantilla, protagonistas, datos })
+    const out = withGroupRoles(
+      [
+        line('front_group', [ids[0]!], { size: 1 }),
+        line('front_group', ids, { size: ids.length }),
+        line('bridge_made', [ids[0]!], { size: 1 }),
+        line('bridge_made', [ids[0]!], { size: ids.length }),
+        line('peloton_split', [ids[0]!], { remaining: ids.length + 1 }),
+        line('peloton_split', [ids[0]!], { remaining: ids.length }),
+      ],
+      tl,
+      () => t,
+      ctx,
+    )
+    expect(out.map((e) => e.datos?.groupJersey)).toEqual([
+      undefined,
+      'gc',
+      undefined,
+      'gc',
+      undefined,
+      'gc',
+    ])
   })
 
   it('en las cinco: el grupo de un protagonista, por su maillot (W1), y no por la fila 1 de la barra', () => {

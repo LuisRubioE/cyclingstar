@@ -82,10 +82,10 @@ export const mainNoun = (e: Pick<ChronicleEntry, 'datos'>): string =>
 
 /**
  * LA PALABRA DEL GRUPO DE LOS PROTAGONISTAS (W1, la revisión de `Watch` del dueño, su punto 4; D-18). En las
- * ocho plantillas cuyo grupo es el de sus protagonistas (`RIDER_GROUP_TEMPLATES`, voiceRoles.ts), la API
- * anota el maillot que lo nombra en la barra (`groupJersey`, como en la caída), y la voz dice su palabra
- * (`the race leader’s group`) donde la frase decía su sitio (`place`); sin anotación (el acta, un grupo
- * sin maillot que lo nombre), su sitio, como siempre.
+ * siete plantillas cuyo grupo es el de sus protagonistas (`RIDER_GROUP_TEMPLATES`, voiceRoles.ts), la API
+ * anota el maillot que lo nombra en la barra (`groupJersey`, como en la caída) si el grupo es de verdad el de
+ * la frase (`lineGroupFits`), y la voz dice su palabra (`the race leader’s group`) donde la frase decía su
+ * sitio (`place`); sin anotación (el acta, un grupo sin maillot que lo nombre o que no casa), su sitio.
  */
 export function riderGroupNoun(e: Pick<ChronicleEntry, 'datos'>, place: string): string {
   const jersey = e.datos?.groupJersey
@@ -1355,7 +1355,7 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
       const joined = Number(e.datos?.joined ?? 0)
       const now = Number(e.datos?.remaining ?? 0)
       const before = Number(e.datos?.before ?? 0)
-      const group = own(e.datos?.chasing === 1 ? CHASE_GROUP : LEAD_GROUP)
+      const group = e.datos?.chasing === 1 ? CHASE_GROUP : LEAD_GROUP
       if (before <= 1)
         return `The chase gets back on: ${joined} riders rejoin and ${group} is ${now} strong again.`
       return pick([

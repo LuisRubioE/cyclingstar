@@ -2034,10 +2034,10 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
 
   /**
    * EL GRUPO DE LOS PROTAGONISTAS, POR SU MAILLOT (W1, la revisión de `Watch` del dueño, su punto 4; D-18): en
-   * las ocho plantillas cuyo grupo es el de sus protagonistas (`RIDER_GROUP_TEMPLATES`, apps/api/src/
-   * voiceRoles.ts), la API anota el maillot que lo nombra en la barra (`groupJersey`), y cada sitio que lo
-   * nombra dice la misma frase con la palabra del maillot donde decía su sitio, declarada en su fila de
-   * `GROUP_NOUNS`.
+   * las siete plantillas cuyo grupo es el de sus protagonistas (`RIDER_GROUP_TEMPLATES`, apps/api/src/
+   * voiceRoles.ts, la misma lista), la API anota el maillot que lo nombra en la barra (`groupJersey`), y
+   * cada sitio que lo nombra dice la misma frase con la palabra del maillot donde decía su sitio, declarada
+   * en su fila de `GROUP_NOUNS`.
    */
   const sameTeam = [rider('Ana', { team: 'Summit Squad' }), rider('Bea', { team: 'Summit Squad' })]
   const twoTeams = [rider('Ana', { team: 'Summit Squad' }), rider('Bea', { team: 'Team Sol' })]
@@ -2058,8 +2058,6 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
       plantilla: 'peloton_selection',
       datos: { before: 119, remaining: 13, dropped: 80, toGo: 125, chasing: 1 },
     },
-    { plantilla: 'peloton_regroup', datos: { joined: 14, remaining: 19, before: 5, chasing: 0 } },
-    { plantilla: 'peloton_regroup', datos: { joined: 14, remaining: 19, before: 1, chasing: 1 } },
     { plantilla: 'peloton_split', datos: { before: 80, remaining: 40, dropped: 40, chasing: 0 } },
     {
       plantilla: 'peloton_split',
@@ -2103,8 +2101,16 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
       .replace(/the (lead|chase) group/g, word)
       .replace(/The (lead|chase) group/g, word.charAt(0).toUpperCase() + word.slice(1))
 
-  it('las ocho del grupo de sus protagonistas, con su maillot, dicen su palabra donde decían su sitio', () => {
-    expect(new Set(DE_SUS_PROTAGONISTAS.map((c) => c.plantilla)).size).toBe(8)
+  it('las siete del grupo de sus protagonistas, con su maillot, dicen su palabra donde decían su sitio', () => {
+    expect([...new Set(DE_SUS_PROTAGONISTAS.map((c) => c.plantilla))].sort()).toEqual([
+      'break_cooperation',
+      'break_share',
+      'bridge_made',
+      'echelon_split',
+      'front_group',
+      'peloton_selection',
+      'peloton_split',
+    ])
     const malas: string[] = []
     const sinCambio: string[] = []
     DE_SUS_PROTAGONISTAS.forEach((caso, n) => {
@@ -2178,8 +2184,19 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
   })
 
   it('las que hablan de otro grupo no cambian con el maillot de un protagonista', () => {
-    // la fuga que se persigue, la que se caza, el grupo del que se sale, la fuga del día al nacer y la meta
+    // la fuga que se persigue, la que se caza, el grupo del que se sale, la fuga del día al nacer, la meta y
+    // el reagrupamiento, que el motor emite sin protagonistas
     const OTRAS = [
+      {
+        plantilla: 'peloton_regroup',
+        datos: { joined: 14, remaining: 19, before: 5, chasing: 0 },
+        who: [],
+      },
+      {
+        plantilla: 'peloton_regroup',
+        datos: { joined: 14, remaining: 19, before: 5, chasing: 1 },
+        who: [],
+      },
       { plantilla: 'sprinters_chase', datos: { porQue: 'general' } },
       { plantilla: 'sprinters_chase', datos: {}, who: sameTeam },
       {
@@ -2204,7 +2221,8 @@ describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
       for (const km of KMS) {
         const sin = lineOf(caso, km, caso.datos)
         expect(lineOf(caso, km, { ...caso.datos, groupJersey: 'gc' }), caso.plantilla).toBe(sin)
-        if (/the lead group/i.test(sin)) dice = true
+        // y nombran un grupo por su sitio en alguna redacción: si no, la prueba no miraría nada
+        if (/the (lead|chase) group/i.test(sin)) dice = true
       }
       expect(dice, caso.plantilla).toBe(true)
     }

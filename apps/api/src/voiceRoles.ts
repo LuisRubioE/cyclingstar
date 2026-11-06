@@ -45,9 +45,10 @@ export const MAIN_GROUP_TEMPLATES: ReadonlySet<string> = new Set([
  * `crash`, el maillot de la etiqueta del grupo de su primer protagonista en la hora de la línea
  * (`groupJersey`), y la voz dice su palabra (D-18). Por su grupo y no por la fila 1 de la barra: en esa hora
  * el grupo de la frase puede no ir en cabeza (la línea 102 de la e18 dice «3 at the front now» de tres que
- * la barra enseña terceros, detrás del grupo del líder), y la fila 1 le daría un maillot que no lleva. Las
- * que hablan de la fuga que otros persiguen (`sprinters_chase`, `peloton_pull`, `peloton_concedes`) no la
- * identifican por nada de la línea y siguen diciendo «the lead group».
+ * la barra enseña terceros, detrás del grupo del líder). Y solo si es de verdad el de la frase
+ * (`lineGroupFits`). Fuera, el reagrupamiento (`peloton_regroup`), que el motor emite sin protagonistas, y
+ * las que hablan de la fuga que otros persiguen (`sprinters_chase`, `peloton_pull`, `peloton_concedes`):
+ * nada de la línea las identifica, y siguen diciendo su sitio.
  */
 export const RIDER_GROUP_TEMPLATES: ReadonlySet<string> = new Set([
   'front_group',
@@ -56,9 +57,49 @@ export const RIDER_GROUP_TEMPLATES: ReadonlySet<string> = new Set([
   'break_share',
   'peloton_split',
   'peloton_selection',
-  'peloton_regroup',
   'echelon_split',
 ])
+
+/**
+ * ¿ES ESTE GRUPO EL DE LA FRASE? (W1). En la hora de la línea, el del primer protagonista puede ser otro: la
+ * cabeza que cuenta `front_group` puede morir en el mismo bloque, cazada, y el protagonista ir ya en el grupo
+ * que la cazó. En el banco, race-italy e17 con la semilla b11-1, km 187,1, la voz habría dicho «The race
+ * leader’s group is up to 1 … 1:06 clear» de uno que la barra enseña dentro del grupo del líder, de 50. Se
+ * anota solo si el grupo tiene lo que la línea dice de él: los mismos corredores en `front_group` y
+ * `break_cooperation`, que los nombran a todos; el tamaño en `bridge_made` y `break_share`; y lo que queda
+ * tras el corte en `peloton_split`, `peloton_selection` y `echelon_split`. Si no casa, la frase dice su sitio,
+ * como hoy, y no un maillot que quizá no es el suyo.
+ */
+export function lineGroupFits(
+  e: Pick<ChronicleEvent, 'plantilla' | 'protagonistas' | 'datos'>,
+  members: readonly RiderIx[],
+  ixOf: ReadonlyMap<string, RiderIx>,
+): boolean {
+  const said = (key: string): number | null => {
+    const v = e.datos?.[key]
+    return v === undefined ? null : Number(v)
+  }
+  switch (e.plantilla) {
+    case 'front_group':
+    case 'break_cooperation':
+      return (
+        members.length === e.protagonistas.length &&
+        e.protagonistas.every((id) => {
+          const r = ixOf.get(id)
+          return r !== undefined && members.includes(r)
+        })
+      )
+    case 'bridge_made':
+    case 'break_share':
+      return said('size') === members.length
+    case 'peloton_split':
+    case 'peloton_selection':
+    case 'echelon_split':
+      return said('remaining') === members.length
+    default:
+      return false
+  }
+}
 
 /**
  * EL CONTEXTO DE LA ANOTACIÓN (§14.3, paso 2): sin espectador y con los maillots de salida del reparto
@@ -86,7 +127,7 @@ export function rolesContextOf(tl: StageTimeline): InstantContext {
  * maillot que lo nombra, si su etiqueta es `jersey_group`, §6.3) en las diez plantillas de
  * `MAIN_GROUP_TEMPLATES`; en `crash`, `datos.groupRole` y `datos.groupJersey` (los del grupo del
  * caído); y desde W1, solo `datos.groupJersey` (el maillot que nombra al grupo de su primer
- * protagonista) en las de `RIDER_GROUP_TEMPLATES`. Un `map`: los sucesos en su orden, una copia en los
+ * protagonista, si es el de la frase) en las de `RIDER_GROUP_TEMPLATES`. Un `map`: los sucesos en su orden, una copia en los
  * que anota y el mismo objeto en los demás, así que la ruta ata las horas DESPUÉS, posición a posición
  * (12-n). Sin nada que anotar en esa hora (sin grupo del título, sin el caído en ningún grupo, el grupo de
  * un protagonista sin maillot que lo nombre), el suceso tal cual: dice `the bunch` o su sitio, como hoy.
@@ -117,10 +158,13 @@ export function withGroupRoles(
     if (ofRider && first === undefined) return e
     // fuera de la caída, del grupo de un protagonista solo se anota el maillot: sin maillots, nada que leer
     if (ofRider && !crash && leaders.length === 0) return e
-    // el papel y la etiqueta de §4.5 en la hora de la línea, del grupo del título o del de un protagonista
+    // el papel y la etiqueta de §4.5 en la hora de la línea, del grupo del título o del de un protagonista,
+    // y este, solo si lleva un maillot de líder y es de verdad el de la frase
     const g = groupRoleAt(tl, revealS(e), ctx, (x) =>
       ofRider
-        ? x.members.includes(first!) && (crash || leaders.some((r) => x.members.includes(r)))
+        ? x.members.includes(first!) &&
+          (crash ||
+            (leaders.some((r) => x.members.includes(r)) && lineGroupFits(e, x.members, ixOf)))
         : x.kind === 'peloton',
     )
     if (g === null) return e

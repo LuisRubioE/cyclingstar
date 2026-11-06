@@ -581,7 +581,7 @@ export const FINALE_KM = 15
  * nombres, lo reescribe el paso 12 (12-r).
  *
  * …Y EL GRUPO DE LOS PROTAGONISTAS, POR SU MAILLOT (W1, la revisión de `Watch` del dueño, su punto 4): las
- * ocho plantillas cuyo grupo es el de sus protagonistas (`RIDER_GROUP_TEMPLATES` en apps/api) dicen la
+ * siete plantillas cuyo grupo es el de sus protagonistas (`RIDER_GROUP_TEMPLATES` en apps/api) dicen la
  * palabra de su maillot si la barra lo nombra así, también en cabeza, donde desde W1 lo nombra el amarillo.
  * Ganan los tres del maillot en su fila, y el medidor no cuenta ningún nombre nuevo.
  */
@@ -613,7 +613,7 @@ export const GROUP_NOUNS: Readonly<Record<string, readonly string[]>> = {
   peloton_split: ['the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
   echelon_split: ['the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
   peloton_selection: ['the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
-  peloton_regroup: ['the chase group', 'the lead group', ...JERSEY_GROUP_NOUNS],
+  peloton_regroup: ['the chase group', 'the lead group'],
   time_gap: ['the lead group', 'the chase group', 'the bunch', ...JERSEY_GROUP_NOUNS],
   time_gap_run: ['the lead group', 'the chase group', 'the bunch', ...JERSEY_GROUP_NOUNS],
   front_group: ['the lead group', ...JERSEY_GROUP_NOUNS],
