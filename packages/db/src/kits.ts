@@ -1,4 +1,4 @@
-import { SEASON_CALENDAR } from '@cyclingstar/engine'
+import { SEASON_CALENDAR, raceLastDay } from '@cyclingstar/engine'
 import {
   type BibStyle,
   DAYS_PER_SEASON,
@@ -380,7 +380,10 @@ export async function checkKit(
 export interface KitChange {
   readonly teamId: string
   readonly kit: KitCode
-  /** la traducción, un equipo que nace sin maillot o un NPC que cede el suyo a un humano rival */
+  /**
+   * la traducción, un equipo que nace sin maillot o un NPC que cede el suyo: a un humano rival (DD-08) o,
+   * en la escuadra congelada de una carrera por salir, a otro NPC de más presupuesto (17d)
+   */
   readonly why: 'translated' | 'seeded' | 'ceded'
 }
 
@@ -390,7 +393,7 @@ export interface EnsureKitsReport {
   readonly translated: number
   /** equipos sin maillot que tomaron uno por su semilla */
   readonly seeded: number
-  /** NPC que cedieron su maillot a un humano rival (DD-08) */
+  /** NPC que cedieron su maillot: a un humano rival (DD-08) o a otro NPC más rico (17d) */
   readonly ceded: number
   /** los que no encontraron un libre lejos de todos sus rivales */
   readonly clashes: number
@@ -410,38 +413,55 @@ async function today(q: Queryable, worldId: string): Promise<number> {
   return row?.currentDay ?? 0
 }
 
+/** Las escuadras congeladas que aún cuentan desde un día, por la clave de su carrera (`race:s0`). */
+export interface FrozenFields {
+  /** las de lo que sale desde ese día: en ellas un NPC cede ante un humano y ante otro NPC más rico */
+  readonly upcoming: ReadonlyMap<string, readonly string[]>
+  /** las de lo que ya ha salido y aún corre ese día: en ellas un NPC cede ante un humano, y nada más */
+  readonly running: ReadonlyMap<string, readonly string[]>
+}
+
 /**
- * LAS ESCUADRAS YA CONGELADAS DE LO QUE AÚN NO HA SALIDO (17d): el pelotón de verdad de cada carrera que sale
- * desde `fromDay`, por su clave (`race:s0`), con los equipos de sus corredores. La previsión de rivales
- * (`seasonRivals`) no los ve a todos: la escuadra se congela catorce días antes de la salida
- * (`ENROLL_LOCK_DAYS`) con quien de verdad va, y en una temporada del banco de noche juntó a 5 pares de
- * equipos que no eran rivales previstos, en 12 carreras. Las que ya han salido no cuentan: su maillot es el
- * del día de la salida (16b). Sin los nacionales, como la previsión. Solo las de la temporada de `fromDay`:
- * el cierre de inscripciones no congela las de la siguiente hasta que empieza (`lockUpcomingRosters`).
- * En orden de clave, para que lo que se decide con ellas no dependa del orden de las filas.
+ * LAS ESCUADRAS YA CONGELADAS QUE AÚN CUENTAN (17d): el pelotón de verdad de cada carrera que corre alguna
+ * etapa desde `fromDay`, con los equipos de sus corredores. La previsión de rivales (`seasonRivals`) no los
+ * ve a todos: la escuadra se congela catorce días antes de la salida (`ENROLL_LOCK_DAYS`) con quien de
+ * verdad va, y en una temporada del banco de noche juntó a 5 pares de equipos que no eran rivales
+ * previstos, en 12 carreras. Se separan las que salen desde `fromDay` (`upcoming`) de las que ya han salido
+ * y aún corren (`running`), que también cuentan porque `Watch` pinta el maillot de cada día de etapa (16b):
+ * en estas, el choque entre dos NPC se ve desde su salida, y cambiar uno a mitad de carrera no lo quita.
+ * Las ya terminadas no cuentan. Sin los nacionales, como la previsión. Solo las de la temporada de
+ * `fromDay`: el cierre de inscripciones no congela las de la siguiente hasta que empieza
+ * (`lockUpcomingRosters`), y ninguna carrera pasa de una temporada a la otra. En orden de clave, para que
+ * lo que se decide con ellas no dependa del orden de las filas.
  */
 export async function frozenFields(
   q: Queryable,
   worldId: string,
   fromDay: number,
-): Promise<ReadonlyMap<string, readonly string[]>> {
+): Promise<FrozenFields> {
   const season = currentSeason(fromDay)
-  const keys = SEASON_CALENDAR.filter(
-    (race) => !race.championshipCountry && season * DAYS_PER_SEASON + race.startDay >= fromDay,
-  ).map((race) => `${race.id}:s${season}`)
+  const keyOf = (race: (typeof SEASON_CALENDAR)[number]) => `${race.id}:s${season}`
+  const live = SEASON_CALENDAR.filter(
+    (race) => !race.championshipCountry && season * DAYS_PER_SEASON + raceLastDay(race) >= fromDay,
+  )
+  const started = new Set(
+    live.filter((race) => season * DAYS_PER_SEASON + race.startDay < fromDay).map(keyOf),
+  )
   const rows = await q
     .selectDistinct({ raceId: raceRosters.raceId, teamId: riders.teamId })
     .from(raceRosters)
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
-    .where(and(inArray(raceRosters.raceId, keys), eq(riders.worldId, worldId)))
-  const fields = new Map<string, string[]>()
+    .where(and(inArray(raceRosters.raceId, live.map(keyOf)), eq(riders.worldId, worldId)))
+  const upcoming = new Map<string, string[]>()
+  const running = new Map<string, string[]>()
   for (const r of [...rows].sort((x, y) =>
     x.raceId < y.raceId ? -1 : x.raceId > y.raceId ? 1 : 0,
   )) {
     if (r.teamId === null) continue
+    const fields = started.has(r.raceId) ? running : upcoming
     fields.set(r.raceId, [...(fields.get(r.raceId) ?? []), r.teamId])
   }
-  return fields
+  return { upcoming, running }
 }
 
 /** La previsión con las escuadras congeladas: dos equipos son rivales si comparten una de las dos. */
@@ -463,8 +483,9 @@ function withFrozen(
  * Da maillot a quien no lo tiene (I-05). La primera vez traduce el mundo entero (§8.6); después, los
  * equipos que nacen sin fila toman el primer libre del orden de su semilla, y un NPC cuyo maillot choca
  * con el de un humano rival cede el suyo (DD-08). Rival es el de la previsión y, desde el 17d, el de una
- * escuadra ya congelada de lo que aún no ha salido (`frozenFields`), donde también cede, ante otro NPC, el de
- * menos presupuesto. Idempotente: una segunda pasada no cambia nada. Cada
+ * escuadra ya congelada de lo que aún corre (`frozenFields`), haya salido o no; en la de lo que aún no ha
+ * salido cede también, ante otro NPC, el de menos presupuesto. El maillot nuevo los evita a todos.
+ * Idempotente: una segunda pasada no cambia nada. Cada
  * maillot vale desde mañana, con `set_by = 'system'`; si un mánager se queda con uno mientras corre, se
  * prueba el siguiente libre. No escribe noticias: las escribe `emitKitNews` con lo que devuelve, en la
  * misma transacción del tick (17b).
@@ -489,7 +510,10 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
     ),
   )
   const frozen = await frozenFields(tx, worldId, fromDay)
-  const rivals = withFrozen(await seasonRivals(tx, worldId, currentSeason(fromDay)), frozen)
+  const rivals = withFrozen(
+    await seasonRivals(tx, worldId, currentSeason(fromDay)),
+    new Map([...frozen.upcoming, ...frozen.running]),
+  )
   // su aspecto de hoy, el de su semilla: desde el 19e nadie lee la del dibujo, y la traducción ya corrió
   // para todo equipo que la tuviera (§17.19)
   const asTeam = (r: (typeof rows)[number]): KitAssignTeam => ({
@@ -512,15 +536,16 @@ export async function ensureKits(tx: Tx, worldId: string): Promise<EnsureKitsRep
           ceding.add(rivalId)
       }
     }
-    // …y dos NPC que chocan en una escuadra ya congelada (17d): cede el de menos presupuesto (a igualdad, el
-    // de id mayor). Su maillot nuevo evita a todos sus rivales, los previstos y los de las escuadras, así que
-    // el que ya cede no hace ceder a nadie más; y los pares, de todas las escuadras, van del más rico al más
-    // pobre, para que ceda antes el que resuelve más y lo que se decide no dependa del orden de las filas
+    // …y dos NPC que chocan en la escuadra congelada de una carrera que aún no ha salido (17d): cede el de
+    // menos presupuesto (a igualdad, el de id mayor). Su maillot nuevo evita a todos sus rivales, los
+    // previstos y los de las escuadras, así que el que ya cede no hace ceder a nadie más; y los pares, de
+    // todas las escuadras, van del más rico al más pobre, para que ceda antes el que resuelve más y lo que se
+    // decide no dependa del orden de las filas
     const byId = new Map(rows.map((r) => [r.id, r] as const))
     const richFirst = (x: string, y: string) =>
       (byId.get(y)?.budget ?? 0) - (byId.get(x)?.budget ?? 0) || (x < y ? -1 : x > y ? 1 : 0)
     const npcPairs: [string, string][] = []
-    for (const field of frozen.values()) {
+    for (const field of frozen.upcoming.values()) {
       const ordered = [...field].sort(richFirst)
       for (const [i, a] of ordered.entries())
         for (const b of ordered.slice(i + 1)) {
