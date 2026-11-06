@@ -118,8 +118,20 @@ function b5Lines(): string[] {
  * y tres `the chase group` (una selección de la e18, otra de la e20 y lo que queda de una criba en la e20),
  * por un grupo que la barra ya llamaba por su maillot. Las otras siete anotadas no nombran a un grupo por su
  * palabra: nombran corredores o a nadie. Era `833679eca9e3f19df7ce87f8c27aed31618789734ffc04c809384e58649cc091`.
+ *
+ * RE-SELLADO EN W2b (la revisión de `Watch` del dueño; D-18): la voz dice la palabra de la barra de cada grupo
+ * del que habla, no solo la de su maillot. La voz congelada gana `groupHead` en 44 líneas (las del grupo de sus
+ * protagonistas que casa, 11 de ellas fuera de cabeza), `groupRole` en 25 (21 de esas 44, las que la barra
+ * rotula por su papel, y el grupo que caza en 4 ataques cazados), `groupJersey` en otros 3 ataques cazados y
+ * `chaseJersey` en 8 partes de ventaja, y nada más. De las 1.020 que se pintan cambian 20: los 8 partes dicen
+ * `over the race leader’s group` donde decían `over the chase group`; los 5 ataques cazados, el grupo que los
+ * caza (3 `the race leader’s group`, 1 `the lead group` y 1 `the chase group`) donde decían el del título; 3
+ * cortes y una selección, `the chase group` donde decían `the lead group`, y otra selección «is left alone»
+ * donde decía «is left alone in front»; y las 2 cabezas que crecen fuera de cabeza, «together now» sin «clear»
+ * donde decían «at the front now».
+ * Era `ea9ece4a725ae6992604edc9988f89c8cdf33802f63ba27fac078164a6a7107f`.
  */
-const B5_SHA256 = 'ea9ece4a725ae6992604edc9988f89c8cdf33802f63ba27fac078164a6a7107f'
+const B5_SHA256 = '4ee0811b6e9a0a61c87e44ef9e3a77d7c8a68e62f90daaffb77fd21749798b53'
 
 const CHILD = process.env.CORPUS_CHILD_OUT
 
@@ -183,8 +195,35 @@ else {
           const sitio = deUnProtagonista ? /the (lead|chase) group/i : /the lead group/i
           for (const l of painted(e)) if (sitio.test(l)) malas.push(`${name} ${i} ${l}`)
         })
-      // las diez del grupo de un protagonista y los cuatro partes de la e18 (el re-sellado de W1, arriba)
-      expect(anotadas).toHaveLength(14)
+      // las diez del grupo de un protagonista y los cuatro partes de la e18 (el re-sellado de W1, arriba), y
+      // desde W2b los tres ataques cazados por el grupo del líder
+      expect(anotadas).toHaveLength(17)
+      expect(malas).toEqual([])
+    })
+  })
+
+  describe('W2b · la palabra de la barra para cada grupo, en la voz congelada (D-18)', () => {
+    it('ningún grupo de la frase fuera de cabeza dice que va delante, ni la referencia anotada «over the chase group»', () => {
+      const fuera: string[] = []
+      const malas: string[] = []
+      let referencias = 0
+      for (const name of FIXTURES)
+        fixtureOf(name, 'voz').forEach((e, i) => {
+          if (e.datos?.groupHead === 0) {
+            fuera.push(`${name} ${i}`)
+            for (const l of painted(e))
+              if (/in front|at the front|up front|up the road|the lead group|leaders/i.test(l))
+                malas.push(`${name} ${i} ${l}`)
+          }
+          if (e.datos?.chaseJersey !== undefined || e.datos?.chaseRole !== undefined) {
+            referencias++
+            for (const l of painted(e))
+              if (/over the chase group/.test(l)) malas.push(`${name} ${i} ${l}`)
+          }
+        })
+      // las 11 que la barra enseña detrás (el re-sellado de W2b, arriba) y las 8 referencias anotadas
+      expect(fuera).toHaveLength(11)
+      expect(referencias).toBe(8)
       expect(malas).toEqual([])
     })
   })

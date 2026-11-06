@@ -86,10 +86,38 @@ export const mainNoun = (e: Pick<ChronicleEntry, 'datos'>): string =>
  * anota el maillot que lo nombra en la barra (`groupJersey`, como en la caída) si el grupo es de verdad el de
  * la frase (`lineGroupFits`), y la voz dice su palabra (`the race leader’s group`) donde la frase decía su
  * sitio (`place`); sin anotación (el acta, un grupo sin maillot que lo nombre o que no casa), su sitio.
+ *
+ * Desde W2b, también su papel (`groupRole`: `the chase group`, `the bunch`) y si va en cabeza (`groupHead`):
+ * en la hora de la línea el grupo de la frase puede ir detrás, y la frase decía «the lead group» por él (en
+ * las congeladas, 4 de las 6 cribas del desenlace). El maillot manda sobre el papel, como en la barra; sin
+ * papel que decir (el del gruppetto, que solo nombra la caída) y fuera de cabeza, no es la cabeza: `the chase
+ * group`.
  */
 export function riderGroupNoun(e: Pick<ChronicleEntry, 'datos'>, place: string): string {
   const jersey = e.datos?.groupJersey
-  return isJerseyKind(jersey) ? GROUP_WORDS.jersey[jersey][1] : place
+  if (isJerseyKind(jersey)) return GROUP_WORDS.jersey[jersey][1]
+  const role = e.datos?.groupRole
+  if (role === 'lead' || role === 'chase' || role === 'bunch') return GROUP_WORDS.role[role][1]
+  return e.datos?.groupHead === 0 && place === LEAD_GROUP ? CHASE_GROUP : place
+}
+
+/** ¿Va en cabeza el grupo de la frase? Sin anotación (el acta, un grupo que no casa), lo que dice la frase. */
+const atHead = (e: Pick<ChronicleEntry, 'datos'>): boolean => e.datos?.groupHead !== 0
+
+/**
+ * LA PALABRA DE OTRO GRUPO DE LA LÍNEA (W2b; D-18): el que caza un ataque (`groupRole`, `groupJersey`), la
+ * cabeza de un parte que no es el título (`leadRole`, `leadJersey`) o la referencia de una caza (`chaseRole`,
+ * `chaseJersey`), con la palabra de la barra; null sin anotación, y la frase dice la de siempre.
+ */
+function annotatedNoun(
+  datos: Record<string, number | string> | undefined,
+  roleKey: string,
+  jerseyKey: string,
+): string | null {
+  const jersey = datos?.[jerseyKey]
+  if (isJerseyKind(jersey)) return GROUP_WORDS.jersey[jersey][1]
+  const role = datos?.[roleKey]
+  return role === 'lead' || role === 'chase' || role === 'bunch' ? GROUP_WORDS.role[role][1] : null
 }
 
 /**
@@ -102,7 +130,8 @@ export function riderGroupNoun(e: Pick<ChronicleEntry, 'datos'>, place: string):
 function overWhom(datos: Record<string, number | string> | undefined, main: string): string {
   const kind = String(datos?.chaseKind ?? '')
   if (kind === 'peloton') return ` over ${main}`
-  if (kind === 'caza') return ` over ${CHASE_GROUP}`
+  if (kind === 'caza')
+    return ` over ${annotatedNoun(datos, 'chaseRole', 'chaseJersey') ?? CHASE_GROUP}`
   return ''
 }
 
@@ -413,8 +442,12 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
   const pick = (opts: readonly Phrasing[]): string => pickPhrasing(seed, opts, rev)
   // el grupo del título con la palabra de la barra (D-18, 12-b): `the bunch` sin anotación
   const main = mainNoun(e)
-  // la cabeza de los partes de ventaja: el título, con esa palabra, si la barra lo pone en cabeza (W1)
-  const front = e.datos?.mainRole === 'lead' ? main : LEAD_GROUP
+  // la cabeza de los partes de ventaja: el título, con esa palabra, si la barra lo pone en cabeza (W1); si
+  // no, la cabeza con la suya si la API la anota (W2b), y si no, su sitio
+  const front =
+    e.datos?.mainRole === 'lead'
+      ? main
+      : (annotatedNoun(e.datos, 'leadRole', 'leadJersey') ?? LEAD_GROUP)
   // y el grupo de los protagonistas, con la del maillot que lo nombra en la barra si lo lleva (W1)
   const own = (place: string): string => riderGroupNoun(e, place)
   switch (e.plantilla) {
@@ -517,7 +550,7 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
       // salía «152 Markus Weber sit up».
       const one = e.protagonists.length === 1
       return pick([
-        `${capitalize(main)} closes it down and ${who || 'the attack'} ${one ? 'is' : 'are'} back.`,
+        `${capitalize(annotatedNoun(e.datos, 'groupRole', 'groupJersey') ?? main)} closes it down and ${who || 'the attack'} ${one ? 'is' : 'are'} back.`,
         `Nothing doing: ${who || 'the attack'} ${one ? 'is' : 'are'} swept up again.`,
         `The elastic snaps back — ${who || 'the attackers'} sit${one ? 's' : ''} up.`,
       ])
@@ -547,9 +580,12 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
       // y hasta ahora la frase no lo decía: el lector veía aparecer nombres nuevos en el siguiente
       // parte de cabeza sin que nadie le hubiera contado por dónde entraban.
       const now = Number(e.datos?.size ?? 0)
-      const tail = now > 1 ? ` — ${now} in front now` : ''
+      // …y «in front» solo si su grupo va en cabeza (W2b): en el banco, 12 de 20 puentes eran a un grupo
+      // de detrás
+      const tail = now > 1 ? ` — ${now} ${atHead(e) ? 'in front' : 'together'} now` : ''
+      const solo = e.protagonists.length === 1
       return pick([
-        `${who} make${e.protagonists.length === 1 ? 's' : ''} the junction and joins ${own(LEAD_GROUP)}${tail}.`,
+        `${who} make${solo ? 's' : ''} the junction and join${solo ? 's' : ''} ${own(LEAD_GROUP)}${tail}.`,
         `The bridge works: ${who} get${e.protagonists.length === 1 ? 's' : ''} across to ${own(LEAD_GROUP)}${tail}.`,
       ])
     }
@@ -749,23 +785,27 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
         `${who || 'A move'} slip away and get a gap on the rest.`,
       ])
     }
-    case 'break_cooperation':
+    case 'break_cooperation': {
+      // …y «up front» solo si la barra enseña ese grupo en cabeza en la hora de la línea (W2b)
+      const upFront = atHead(e) ? 'up front' : `in ${own(LEAD_GROUP)}`
       // UNO NO COLABORA CONSIGO MISMO (v21). El motor de hoy ya no lo emite con un solo fugado y la
       // crónica lo tira de las etapas ya corridas —donde está congelado: «up front they collaborate
       // well, rolling smooth turns» para un corredor solo—. Esto es la red de seguridad: si por
       // cualquier vía llega uno, la frase dice lo único que se puede decir de un hombre solo.
-      if (riders.length === 1) return 'No wheels to share up front: he is on his own.'
+      if (riders.length === 1)
+        return `No wheels to share${atHead(e) ? ' up front' : ''}: he is on his own.`
       return e.datos?.cooperating === 1
         ? pick([
-            'Up front they collaborate well, rolling smooth turns.',
+            `${capitalize(upFront)} they collaborate well, rolling smooth turns.`,
             `${capitalize(own(LEAD_GROUP))} is working like a well-drilled team, sharing the load.`,
-            'Good understanding up front — everyone takes their turn.',
+            `Good understanding ${upFront} — everyone takes their turn.`,
           ])
         : pick([
-            'There is little cooperation up front — the turns are ragged.',
-            'They eye each other up front and few want to work.',
+            `There is little cooperation ${upFront} — the turns are ragged.`,
+            `They eye each other ${upFront} and few want to work.`,
             `No unity in ${own(LEAD_GROUP)}: nobody wants to do the work.`,
           ])
+    }
     case 'sprinters_chase': {
       // El motor nombra al JEFE DE FILAS de los sprinters (el mejor rematador del campo): es SU
       // equipo el que se pone a tirar, y hasta ahora la frase decía el nombre del equipo sin decir
@@ -874,7 +914,8 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
       const toGo = Number(e.datos?.toGo ?? 0)
       const left = toGo > 0 ? ` with ${toGo} km still to go` : ''
       const group = own(e.datos?.chasing === 1 ? CHASE_GROUP : LEAD_GROUP)
-      const where = e.datos?.chasing === 1 ? `in ${own(CHASE_GROUP)}` : 'in front'
+      // fuera de cabeza, «in» su grupo y no «in front» (W2b; en las congeladas, 5 de 8)
+      const where = e.datos?.chasing === 1 || !atHead(e) ? `in ${group}` : 'in front'
       // Con el pelotón entero delante quien aprieta es un EQUIPO; con un grupo ya reducido, un
       // corredor. Es el mismo umbral que usa el corte del desenlace.
       const driver =
@@ -884,7 +925,7 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
             ? `${who} forces the selection`
             : 'The pace goes up'
       if (remaining <= 1)
-        return `This is where the race breaks${left}: ${who || 'the leader'} is left alone in front, ${dropped} riders shed on the way.`
+        return `This is where the race breaks${left}: ${who || 'the leader'} is left alone${atHead(e) ? ' in front' : ''}, ${dropped} riders shed on the way.`
       return pick([
         `The race is made a long way from home${left}: ${driver} and ${group} is cut from ${before} riders to ${remaining}.`,
         `${driver}${left} — ${dropped} riders lose the wheel and only ${remaining} of the ${before} are left ${where}.`,
@@ -900,7 +941,13 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
       const left = toGo > 0 ? ` with ${toGo} km to go` : ''
       // La ventaja solo se dice si es de verdad. El "perseguidor" inmediato puede ser el compañero
       // que acaba de soltarse tres segundos antes, y «3s clear» ahí no informa de nada: engaña.
-      const clear = gap >= ENGINE_STAGE.gapReportMinSeconds ? `, ${fmtGap(gap)} clear` : ''
+      // Y fuera de cabeza ni «clear» ni «at the front» (W2b): en la hora de la línea su grupo puede ir detrás
+      // de otro (en las congeladas, 2 de 25; en la e18, km 180, «3 at the front now» de tres que la barra
+      // enseña terceros), y entonces son los que van juntos
+      const head = atHead(e)
+      const clear = head && gap >= ENGINE_STAGE.gapReportMinSeconds ? `, ${fmtGap(gap)} clear` : ''
+      const atFront = head ? 'at the front' : 'together'
+      const inFront = head ? 'in front' : 'together'
       /**
        * CUANDO EL GRUPO DE CABEZA CRECE HAY QUE DECIR OTRA COSA (v25). «Only N riders left in front»
        * da por hecho que una fuga solo se deshace, y en Race Jaén la frase salió con N CRECIENDO
@@ -916,19 +963,25 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
         const joined = entran === 1 ? 'one more has come across' : `${entran} more have come across`
         return pick([
           `${capitalize(own(LEAD_GROUP))} is up to ${size}${left}: ${joined}${gone} — ${who}${clear}.`,
-          `${joined.charAt(0).toUpperCase()}${joined.slice(1)}${gone}: ${size} at the front now${left} — ${who}${clear}.`,
+          `${joined.charAt(0).toUpperCase()}${joined.slice(1)}${gone}: ${size} ${atFront} now${left} — ${who}${clear}.`,
         ])
       }
       if (salen > 0 && size > 0) {
-        if (size === 1) return `${who || 'The leader'} is alone at the front now${clear}${left}.`
+        if (size === 1)
+          return head
+            ? `${who || 'The leader'} is alone at the front now${clear}${left}.`
+            : `${who || 'One rider'} is on their own now${left}.`
         return pick([
-          `The move is coming apart: ${salen} ${salen === 1 ? 'is' : 'are'} gone and ${size} are left in front${left} — ${who}${clear}.`,
-          `Down to ${size} at the front${left} — ${who}${clear}.`,
+          `The move is coming apart: ${salen} ${salen === 1 ? 'is' : 'are'} gone and ${size} are left ${inFront}${left} — ${who}${clear}.`,
+          `Down to ${size}${head ? ' at the front' : ''}${left} — ${who}${clear}.`,
         ])
       }
-      if (size === 1) return `${who || 'The leader'} is alone at the front${clear}${left}.`
-      if (size === 2) return `Just two left in front${left}: ${who}${clear}.`
-      return `Only ${size} riders left in front${left}: ${who}${clear}.`
+      if (size === 1)
+        return head
+          ? `${who || 'The leader'} is alone at the front${clear}${left}.`
+          : `${who || 'One rider'} is on their own${left}.`
+      if (size === 2) return `Just two left ${inFront}${left}: ${who}${clear}.`
+      return `Only ${size} riders left ${inFront}${left}: ${who}${clear}.`
     }
     // --- La atribución del trabajo (v11, docs/motor.md §16) ---------------------------------
     // Las dos preguntas del dueño: «quién tira del pelotón» y «no sé quién hizo el trabajo para
@@ -1168,9 +1221,11 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
           : passengers > 1
             ? ` while ${passengers} of their companions sit on.`
             : '.'
+      // «up front» y «up the road», solo si la barra enseña ese grupo en cabeza (W2b)
+      const head = atHead(e)
       return pick([
-        `${who} ${one ? 'is' : 'are'} doing the lion's share of the work up front${sitting}`,
-        `Up the road the turns are uneven: ${who} keep${one ? 's' : ''} it going${sitting}`,
+        `${who} ${one ? 'is' : 'are'} doing the lion's share of the work ${head ? 'up front' : `in ${own(LEAD_GROUP)}`}${sitting}`,
+        `${head ? 'Up the road' : capitalize(`in ${own(LEAD_GROUP)}`)} the turns are uneven: ${who} keep${one ? 's' : ''} it going${sitting}`,
         `${who} ${one ? 'is' : 'are'} on the front of ${own(LEAD_GROUP)} far more than anyone else${sitting}`,
       ])
     }
@@ -1384,7 +1439,10 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
       // Si la fuga sigue en carretera, este grupo NO va en cabeza: decir "left in front" era falso.
       const chasing = e.datos?.chasing === 1
       const group = own(chasing ? CHASE_GROUP : LEAD_GROUP)
-      const where = chasing ? `in ${own(CHASE_GROUP)}` : 'in front'
+      // …ni si la barra lo enseña detrás en la hora de la línea (W2b; en las congeladas, 4 de 6), y
+      // entonces sus corredores no son «leaders»
+      const inFront = !chasing && atHead(e)
+      const where = inFront ? 'in front' : `in ${group}`
       // `phase` llega desde v8: cuántos avisos lleva ya esta misma criba. El primero presenta a
       // quien aprieta; los siguientes cuentan la PROGRESIÓN y no vuelven a nombrarlo, que es lo que
       // hacía que un puerto largo se leyera como diez partes clónicos con el mismo equipo repetido.
@@ -1424,7 +1482,7 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
         if (small)
           return pick([
             `${driver} and ${group} is down from ${before} to ${remaining}.`,
-            `${driver}; ${dropped} of the ${before} leaders let go — ${remaining} still there.`,
+            `${driver}; ${dropped} of the ${before} ${inFront ? 'leaders' : 'riders'} let go — ${remaining} still there.`,
           ])
         return pick([
           `${driver} and the climb tears ${group} apart — from ${before} riders down to ${remaining}.`,
@@ -1456,7 +1514,7 @@ function chronicleTemplate(e: ChronicleEntry, rev: number): string {
       const driver = team
         ? `${team} hit the front`
         : who
-          ? `${who} hits the front`
+          ? `${who} hit${e.protagonists.length === 1 ? 's' : ''} the front`
           : 'The pace goes up'
       if (before != null && remaining != null && before > remaining) {
         return pick([
