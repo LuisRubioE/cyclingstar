@@ -8,8 +8,8 @@
  *
  * Una clave por token, con el nombre sin el prefijo de su espacio (`--color-canvas` es `color.canvas`;
  * `--text-body--line-height`, `text.body--line-height`; el que es su espacio entero, como `--spacing`,
- * `spacing.DEFAULT`) y el valor tal como está en el CSS. Los heredados (`brand-*`), que borra el paso 22,
- * no van: la app no los usará. En `dark` y `darkScope`, solo lo que esos bloques redefinen.
+ * `spacing.DEFAULT`) y el valor tal como está en el CSS; las 17 líneas del cierre (`--color-*: initial`,
+ * §5.1) no son tokens y no van. En `dark` y `darkScope`, solo lo que esos bloques redefinen.
  *
  * Lo lee también `tokens.test.ts`, que comprueba cada pareja del tema, y `generados.test.ts` falla si
  * `index.css` cambia y esto no se ha vuelto a correr:
@@ -65,7 +65,6 @@ function porEspacio(decls) {
     const ns = NAMESPACES.find((n) => nombre === n || nombre.startsWith(`${n}-`))
     if (ns === undefined) throw new Error(`--${nombre}: no es de ningún espacio del tema`)
     const clave = nombre === ns ? 'DEFAULT' : nombre.slice(ns.length + 1)
-    if (ns === 'color' && clave.startsWith('brand-')) continue
     ;(fuera[ns] ??= {})[clave] = valor
   }
   return fuera

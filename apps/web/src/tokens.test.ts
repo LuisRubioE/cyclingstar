@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { KIT_COLORS } from '@cyclingstar/shared'
 import { distance, type View, VISIONS, wcagContrast } from '@cyclingstar/shared/colorMath'
 import { describe, expect, it } from 'vitest'
 
@@ -71,6 +72,11 @@ const CLARO: readonly Pareja[] = [
   ...TRAMOS.map((t): Pareja => [t, 'surface', GRAFICO]),
   ...sobre('gold', ['navy-dark', 'navy'], GRAFICO),
   ['navy-dark', 'gold', GRAFICO],
+  // el Meter: los segmentos llenos, en accent, contra los vacíos, en line (§4), que es el separador
+  // decorativo y no pide umbral por sí solo
+  ['accent', 'line', GRAFICO],
+  // cyan, la marca: un gráfico sobre blanco, nunca texto (§3.1)
+  ['cyan', 'white', GRAFICO],
   // el deshabilitado, exento
   ...sobre('disabled-ink', ['disabled-bg', 'surface'], DESHABILITADO),
   // los filetes del maillot, contra sus suelos
@@ -94,6 +100,8 @@ const AMBITO: readonly Pareja[] = [
   ...sobre('line-strong', ['surface', 'surface-2', 'disabled-bg'], GRAFICO),
   ...sobre('focus', ['surface', 'surface-2'], GRAFICO),
   ...sobre('gold', ['surface', 'surface-2'], GRAFICO),
+  // el Meter, como en el claro: accent contra line (§3.3)
+  ['accent', 'line', GRAFICO],
   ...sobre('kit-edge', ['navy-dark', 'navy', 'bad'], GRAFICO),
   ...sobre('kit-edge-strong', ['navy-dark', 'navy', 'bad'], GRAFICO),
   // el logotipo en la cabecera, que es navy (PR 21n): es lo único que se ve del enlace a la portada por
@@ -198,5 +206,57 @@ describe('el ΔE00 de los tonos, informado (§3.2): lo que distingue es el icono
       tritan: 51.6,
       gray: 4.3,
     })
+  })
+})
+
+/**
+ * CADA COLOR DEL TEMA, CON SU PAREJA (§5.5; paso 22): un token entra en el `@theme` con su contraste contra el
+ * fondo en que se usa, y lo que el ámbito oscuro redefine, con el suyo ahí; basta con que salga en una
+ * pareja, de color o de fondo. `kit-ink` tiene la suya aparte, contra los quince colores del maillot, y la
+ * estrella del logotipo en el claro, ninguna: es parte de la marca, que E3 no redibuja (§18.3).
+ */
+const PAREJA_APARTE: Readonly<Record<string, string>> = {
+  'kit-ink': 'contra los quince colores del maillot, con white (§3.1 y §9.9; abajo)',
+}
+const SIN_PAREJA: Readonly<Record<string, string>> = {
+  'logo-star': 'la estrella ámbar del logotipo en el claro, parte de la marca (§18.3)',
+}
+
+/** Los tokens que salen en alguna pareja, de color o de fondo. */
+const nombrados = (parejas: readonly Pareja[]): Set<string> =>
+  new Set(parejas.flatMap(([color, fondo]) => [color, fondo]))
+
+describe('cada color del tema tiene su pareja (§5.5; paso 22)', () => {
+  it('en el claro, todos: la estrella del logotipo, fuera, y kit-ink, contra el maillot', () => {
+    const con = nombrados(CLARO)
+    const sueltos = Object.keys(claro).filter(
+      (t) => !con.has(t) && !(t in PAREJA_APARTE) && !(t in SIN_PAREJA),
+    )
+    expect(sueltos).toEqual([])
+  })
+
+  it('en el ámbito oscuro, todo lo que redefine', () => {
+    const con = nombrados(AMBITO)
+    expect(Object.keys(tokens.darkScope.color).filter((t) => !con.has(t))).toEqual([])
+  })
+
+  it('las excepciones son tokens del claro, y sin pareja en CLARO: la lista no se queda vieja', () => {
+    const con = nombrados(CLARO)
+    for (const t of [...Object.keys(PAREJA_APARTE), ...Object.keys(SIN_PAREJA)]) {
+      expect(claro[t], t).toBeDefined()
+      expect(con.has(t), t).toBe(false)
+    }
+  })
+})
+
+/** Lo que se pinta sobre el maillot (§3.1, §9.9; 8-s): `white` o `kit-ink`, el que más contraste. */
+describe('kit-ink, sobre el maillot (§3.1 y §9.9; paso 22)', () => {
+  it('white o kit-ink pasan de 4,5:1 sobre cada uno de los quince colores, y el peor da el 4,79 de §3.1', () => {
+    const mejor = Object.values(KIT_COLORS).map((c) =>
+      Math.max(wcagContrast(claro['kit-ink']!, c), wcagContrast(claro.white!, c)),
+    )
+    expect(mejor).toHaveLength(15)
+    expect(Math.min(...mejor)).toBeGreaterThanOrEqual(TEXTO)
+    expect(Math.min(...mejor)).toBeCloseTo(4.79, 2)
   })
 })

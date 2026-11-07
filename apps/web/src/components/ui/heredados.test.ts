@@ -1,20 +1,22 @@
 /// <reference types="node" />
-import { existsSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { readdirSync } from 'node:fs'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ESLint } from 'eslint'
 import { describe, expect, it } from 'vitest'
-import { UI_HEREDADOS } from '../../../eslint-ui.mjs'
+import * as eslintUi from '../../../eslint-ui.mjs'
 
 /**
- * LAS DIEZ REGLAS Y SUS HEREDADOS (E3, docs/visual.md §5.3; PR 8, decisión 5-c). `ui/1` a `ui/10` están en
- * `error` para todo fichero de la web y en `warn` para los de `UI_HEREDADOS`, que el día del PR 8 ya
- * tenían algún aviso. La lista solo encoge: este test falla si uno de ellos ya no tiene ninguno, para que
- * no quede un fichero limpio en `warn`, y el PR que lo limpia lo saca. El paso 22 la vacía.
+ * LAS DIEZ REGLAS, SIN HEREDADOS (E3, docs/visual.md §5.3; PR 8, decisión 5-c; paso 22). `ui/1` a `ui/10`
+ * están en `error` para todo fichero de producción de la web. Del PR 8 al 21 iban en `warn` para los de la
+ * lista `UI_HEREDADOS`, que el día del PR 8 ya tenían algún aviso, y la lista solo encogía; W4 se llevó el
+ * último, y el paso 22 borró la lista y su bloque de `eslint.config.js`. Lo que se prueba ahora es que no
+ * vuelven: con la configuración que resuelve ESLint para cada fichero real de `apps/web/src`, o las diez en
+ * `error`, o ninguna, y ninguna solo en los tests, sus datos, `components/ui` y lo generado.
  *
  * Corre ESLint con el `eslint.config.js` del repositorio, el mismo que `pnpm lint`, y prueba cada regla
- * contra una muestra que tiene que avisar y otra que no: un instrumento que deja de medir no puede dejar
- * la lista en verde (como las dos sondas de `vocabulario.test.ts`).
+ * contra una muestra que tiene que avisar y otra que no: un instrumento que deja de medir no puede quedar
+ * en verde (como las dos sondas de `vocabulario.test.ts`).
  */
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..')
@@ -33,25 +35,54 @@ async function reglas(codigo: string, ruta = 'apps/web/src/pages/Sonda.tsx'): Pr
   return r === undefined ? [] : avisosUi(r).map((a) => a.regla)
 }
 
-describe('UI_HEREDADOS', () => {
-  it('está ordenada, sin repetidos, y cada fichero existe', () => {
-    expect(UI_HEREDADOS).toEqual([...new Set(UI_HEREDADOS)].sort())
-    expect(UI_HEREDADOS.filter((f) => !existsSync(join(RAIZ, f)))).toEqual([])
+/** Los `.ts` y `.tsx` de `apps/web/src`, con su ruta desde la raíz del repositorio. */
+function ficheros(dir: string = join(RAIZ, 'apps', 'web', 'src')): string[] {
+  return readdirSync(dir, { withFileTypes: true })
+    .flatMap((e) => {
+      const ruta = join(dir, e.name)
+      if (e.isDirectory()) return ficheros(ruta)
+      return /\.tsx?$/.test(e.name) ? [relative(RAIZ, ruta)] : []
+    })
+    .sort()
+}
+
+/** Lo que las reglas no miran (`UI_IGNORES`, §5.3): los tests, sus datos, el sistema y lo generado. */
+const fueraDeLasReglas = (f: string): boolean =>
+  /\.test\.tsx?$/.test(f) ||
+  f.split('/').includes('__fixtures__') ||
+  f.startsWith('apps/web/src/components/ui/') ||
+  f.endsWith('.generated.ts')
+
+describe('sin heredados: las diez reglas, en error en toda la web (paso 22)', () => {
+  it('eslint-ui.mjs ya no exporta UI_HEREDADOS: la lista se fue con su último fichero', () => {
+    expect(Object.keys(eslintUi)).not.toContain('UI_HEREDADOS')
   })
 
-  // W4 (la revisión de `Watch` del dueño; D-16 revocada): el último, `RaceRadioPanel`, se fue con la radio.
-  it('está vacía desde W4: el último heredado se fue con la radio', () => {
-    expect(UI_HEREDADOS).toEqual([])
-  })
-
-  it('cada fichero tiene algún aviso ui/, en warn: el que ya no tiene ninguno sale de la lista', async () => {
-    const resultados = UI_HEREDADOS.length === 0 ? [] : await eslint.lintFiles([...UI_HEREDADOS])
-    const limpios = resultados
-      .filter((r) => avisosUi(r).length === 0)
-      .map((r) => r.filePath.slice(RAIZ.length + 1))
-    expect(limpios).toEqual([])
-    const enError = resultados.filter((r) => avisosUi(r).some((a) => a.severidad !== 1))
-    expect(enError.map((r) => r.filePath)).toEqual([])
+  it('cada fichero de la web resuelve las diez en error, o ninguna si es de los que no miran', async () => {
+    const enError: string[] = []
+    const sinEllas: string[] = []
+    const raros: string[] = []
+    for (const f of ficheros()) {
+      const config = (await eslint.calculateConfigForFile(join(RAIZ, f))) as {
+        readonly rules?: Readonly<Record<string, readonly unknown[] | undefined>>
+      }
+      const regla = config.rules?.['no-restricted-syntax']
+      if (regla === undefined) sinEllas.push(f)
+      else if (
+        regla[0] === 2 &&
+        JSON.stringify(regla.slice(1)) === JSON.stringify(eslintUi.UI_RULES)
+      )
+        enError.push(f)
+      else raros.push(f)
+    }
+    expect(raros).toEqual([])
+    expect(enError.filter(fueraDeLasReglas)).toEqual([])
+    expect(sinEllas.filter((f) => !fueraDeLasReglas(f))).toEqual([])
+    // el instrumento mide: las páginas, las piezas y el dominio de la web están dentro
+    expect(enError.length).toBeGreaterThan(100)
+    expect(enError).toEqual(
+      expect.arrayContaining(['apps/web/src/pages/Home.tsx', 'apps/web/src/App.tsx']),
+    )
   })
 
   it('un fichero nuevo nace en error; components/ui, los tests, sus datos y lo generado no las llevan', async () => {

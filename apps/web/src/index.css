@@ -3,21 +3,31 @@
    de sus __fixtures__, de la prueba del teléfono y de las reglas del lint no van a la hoja. */
 @source not './**/*.test.{ts,tsx}';
 @source not './**/__fixtures__';
-@source not './components/ui/deuda.json';
 @source not '../e2e';
 @source not '../scripts';
 @source not '../eslint-ui.mjs';
 
-/* EL SISTEMA VISUAL (docs/visual.md §3): tokens.test.ts comprueba cada pareja. Sin `inline`. */
+/* EL SISTEMA VISUAL (docs/visual.md §3): tokens.test.ts comprueba cada pareja. Sin `inline`. Empieza por
+   las 17 líneas del cierre (paso 22, D-14; §5.1): vacían esos espacios del tema por defecto de Tailwind, y
+   de ellos solo resuelve lo que el bloque vuelve a declarar. `vocabulario.test.ts` lo mide fichero a fichero. */
 @theme {
-  /* EL CIERRE (paso 22, D-14): el PR del paso 22 cambia este comentario por las 17 líneas de §5.1,
-     una por renglón, y borra los heredados. Hasta entonces lo de hoy sigue resolviendo.
-  --color-*: initial; --font-*: initial; --font-weight-*: initial; --text-*: initial;
-  --tracking-*: initial; --leading-*: initial; --radius-*: initial; --shadow-*: initial;
-  --inset-shadow-*: initial; --drop-shadow-*: initial; --text-shadow-*: initial; --blur-*: initial;
-  --perspective-*: initial; --aspect-*: initial; --animate-*: initial; --breakpoint-*: initial;
+  --color-*: initial;
+  --font-*: initial;
+  --font-weight-*: initial;
+  --text-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+  --blur-*: initial;
+  --perspective-*: initial;
+  --aspect-*: initial;
+  --animate-*: initial;
+  --breakpoint-*: initial;
   --container-*: initial;
-  */
   --color-canvas: #eef2f6;
   --color-surface: #ffffff;
   --color-surface-2: #f5f7fa;
@@ -63,13 +73,6 @@
      exime los logotipos). Sus dos colores de siempre: el trazo y la estrella. */
   --color-logo: #4f46e5;
   --color-logo-star: #f59e0b;
-  /* HEREDADOS (index.css de hoy, l. 6-11): los borra el paso 22. */
-  --color-brand-navy: #123a5c;
-  --color-brand-navy-dark: #0b2740;
-  --color-brand-cyan: #1499bb;
-  --color-brand-cyan-light: #35bdda;
-  --color-brand-gold: #d99400;
-  --color-brand-gold-light: #eaa90c;
 
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', Arial, sans-serif;
   --font-weight-normal: 400;
