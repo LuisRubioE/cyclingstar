@@ -21,6 +21,7 @@ import {
   horizonSummarySchema,
   revResponseSchema,
   stageGateErrorSchema,
+  themeResponseSchema,
   watchResponseSchema,
 } from '@cyclingstar/shared'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -362,6 +363,68 @@ describe('las rutas de /api/me (§14.2)', () => {
       expiredSinceLastVisit: [],
       revealConfirm: true,
     })
+  })
+
+  /**
+   * EL MODO DEL JUGADOR (E3, docs/visual.md §3.3, D-00i; paso 23): `GET` y `PUT /api/me/theme`, con
+   * `themeBodySchema` estricto y `light` por defecto. Va en la cuenta para seguir al jugador de un aparato a
+   * otro, y no depende del velo: con el modo apagado responde igual.
+   */
+  it('GET y PUT /api/me/theme: light por defecto, guarda el de la cuenta y lo lee; el cuerpo, estricto', async () => {
+    const app = appWith('off')
+    const leer = async (user: string) => {
+      const res = await call(app, 'GET', '/api/me/theme', { user })
+      expect(res.statusCode).toBe(200)
+      return themeResponseSchema.parse(res.json())
+    }
+    expect(await leer(PLAYER)).toEqual({ theme: 'light' })
+
+    const puesto = await call(app, 'PUT', '/api/me/theme', {
+      user: PLAYER,
+      payload: { theme: 'dark' },
+    })
+    expect(puesto.statusCode).toBe(200)
+    expect(themeResponseSchema.parse(puesto.json())).toEqual({ theme: 'dark' })
+    expect(await t.client`select theme from users where id = ${PLAYER}`).toEqual([
+      { theme: 'dark' },
+    ])
+    expect(await leer(PLAYER)).toEqual({ theme: 'dark' })
+    // el de otro jugador, sin tocar
+    expect(await leer(PLAYER_2)).toEqual({ theme: 'light' })
+
+    for (const payload of [{ theme: 'sepia' }, { theme: 'dark', extra: 1 }, {}, { theme: null }]) {
+      const res = await call(app, 'PUT', '/api/me/theme', { user: PLAYER, payload })
+      expect(res.statusCode, JSON.stringify(payload)).toBe(400)
+      expect(apiErrorBodySchema.parse(res.json()).error).toBe('validacion')
+    }
+    expect(await leer(PLAYER)).toEqual({ theme: 'dark' })
+
+    // de vuelta al claro, como lo encuentran las demás pruebas
+    await call(app, 'PUT', '/api/me/theme', { user: PLAYER, payload: { theme: 'light' } })
+    expect(await leer(PLAYER)).toEqual({ theme: 'light' })
+  })
+
+  it('sin sesión, /api/me/theme da 401 en los dos sentidos, también con la cookie que solo restringe', async () => {
+    const app = appWith('on')
+    const cookie = `${VIEWER_COOKIE}=${signViewerCookie(PLAYER, SECRET, Date.now() / 1000)}`
+    for (const opts of [{}, { cookie }]) {
+      for (const [method, payload] of [
+        ['GET', undefined],
+        ['PUT', { theme: 'dark' }],
+      ] as const) {
+        const res = await call(
+          app,
+          method,
+          '/api/me/theme',
+          payload === undefined ? opts : { ...opts, payload },
+        )
+        expect(res.statusCode, `${method} ${JSON.stringify(opts)}`).toBe(401)
+        expect(apiErrorBodySchema.parse(res.json()).error).toBe('no_autorizado')
+      }
+    }
+    expect(await t.client`select theme from users where id = ${PLAYER}`).toEqual([
+      { theme: 'light' },
+    ])
   })
 
   it('el progreso en text/plain (el respaldo de sendBeacon, 14-g): el JSON vale; una cadena que no lo es, 400', async () => {

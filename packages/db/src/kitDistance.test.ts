@@ -169,7 +169,10 @@ describe('db: la distancia dibujada, contra el dorado del mapa 03 (E3, §8.4)', 
       '<rect x="14" y="34" width="20" height="3" fill={secondary} />',
       ...LEGACY_PATTERN_PATHS.panels,
       ...LEGACY_PATTERN_PATHS.shoulders,
-      'stroke="rgba(0,0,0,0.18)" strokeWidth="1"',
+      // el filete del claro, que es el que se mide; en el oscuro va el del token (`dark:stroke-kit-edge`,
+      // E3 paso 23), y con la clase el elemento ya no cabe en un renglón
+      'stroke="rgba(0,0,0,0.18)"',
+      'strokeWidth="1"',
       'opacity="0.85"',
     ])
       expect(web, literal).toContain(literal)

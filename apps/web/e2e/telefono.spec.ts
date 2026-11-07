@@ -83,7 +83,9 @@ type Ancho = keyof typeof ANCHOS
 
 /** La clave de la comprobación propia de la 09 en el fichero, junto a las de sus dos anchos (§7.3). */
 const BARRA = '360-barra' as const
-type Clave = Ancho | typeof BARRA
+/** La del modo oscuro (§7.4; 7-n; paso 23): solo la comprobación 6, a 360. */
+const OSCURO = '360-dark' as const
+type Clave = Ancho | typeof BARRA | typeof OSCURO
 
 interface LineaBase {
   readonly pantallas: Readonly<Record<string, Partial<Record<Clave, Cifras>>>>
@@ -395,4 +397,68 @@ for (const p of TELEFONO_PANTALLAS) {
       }
     })
   }
+}
+
+/**
+ * EL MODO OSCURO (E3, docs/visual.md §3.3 y §7.4; 7-n; paso 23). Solo la comprobación 6, a 360 × 800: el
+ * modo redefine colores y nada más, así que las otras nueve no cambian. `/_ui` va con `?theme=dark`, que
+ * no escribe la preferencia (5-h); las de visitante, con `cs-theme` en `dark` (lo pinta el guion de
+ * `<head>`), y las de sesión, con la cuenta en `dark` y nada en el aparato (lo pinta `ThemeSync`). Antes de
+ * medir, la página tiene que estar de verdad en oscuro: un modo que no se pinta no deja la cifra en verde.
+ * La web de la base, sin modo oscuro, no pasa de ahí, y su medida no tiene con qué comparar.
+ */
+const enOscuro = (p: TelefonoPantalla): TelefonoPantalla =>
+  p.id === '_ui' ? { ...p, path: '/_ui?theme=dark' } : p
+
+for (const p of TELEFONO_PANTALLAS) {
+  test(`${p.id} en oscuro`, async ({ browser }, info) => {
+    const baseURL = info.project.use.baseURL ?? 'http://localhost:3005'
+    const { context, page } = await abrePantalla(
+      browser,
+      baseURL,
+      enOscuro(p),
+      ANCHOS['360'],
+      world,
+      sesiones,
+      { oscuro: p.id !== '_ui' },
+    )
+    const cifras = await (async (): Promise<Cifras> => {
+      // con sesión lo pinta `ThemeSync` al llegar la cuenta: se le da un momento
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.dataset.theme), {
+          message: `${p.id}: la página no está en oscuro`,
+          timeout: 5_000,
+        })
+        .toBe('dark')
+      if (p.id === '_ui')
+        expect(
+          await page.evaluate(() => localStorage.getItem('cs-theme')),
+          '/_ui?theme=dark no escribe la preferencia (5-h)',
+        ).toBeNull()
+      const axe = await cuentaAxe(page)
+      return [null, null, null, null, null, axe, null, null, null, null]
+    })().finally(() => context.close())
+    await info.attach('medida.json', {
+      body: JSON.stringify({ cifras }, null, 2),
+      contentType: 'application/json',
+    })
+    if (MODO !== 'compara') apunta(info.project.outputDir, p.id, OSCURO, cifras)
+    const fichero = lineaBase.pantallas[p.id]?.[OSCURO]
+    if (MODO === 'compara')
+      expect(
+        diferencias(cifras, fichero, COMPROBACIONES),
+        `${p.id} en oscuro, contra el fichero`,
+      ).toEqual([])
+    if (MODO === 'trinquete')
+      expect(
+        faltasDelTrinquete(
+          cifras,
+          referencia?.pantallas[p.id]?.[OSCURO],
+          fichero,
+          libroBase?.pantallas[p.id]?.[OSCURO],
+          { instrumentoCambia: INSTRUMENTO_CAMBIA },
+        ),
+        `${p.id} en oscuro, contra la base`,
+      ).toEqual([])
+  })
 }

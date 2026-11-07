@@ -216,6 +216,25 @@ describe('db: migraciones desde cero', () => {
   })
 
   /**
+   * EL MODO DEL JUGADOR (E3, docs/visual.md §3.3, D-00i; la 0054): `users.theme`, del enum `theme`
+   * (`light` y `dark`), no nula y `light` por defecto, como `users.spoiler_scope`.
+   */
+  it('la 0054: users.theme, del enum theme (light y dark), no nula y light por defecto', async () => {
+    const cols = await t.client<
+      { udt_name: string; is_nullable: string; column_default: string }[]
+    >`
+      select udt_name, is_nullable, column_default from information_schema.columns
+      where table_schema = 'public' and table_name = 'users' and column_name = 'theme'`
+    expect(cols).toEqual([
+      { udt_name: 'theme', is_nullable: 'NO', column_default: "'light'::theme" },
+    ])
+    const valores = await t.client<{ enumlabel: string }[]>`
+      select e.enumlabel from pg_enum e join pg_type ty on ty.oid = e.enumtypid
+      where ty.typname = 'theme' order by e.enumsortorder`
+    expect(valores.map((v) => v.enumlabel)).toEqual(['light', 'dark'])
+  })
+
+  /**
    * LAS EQUIPACIONES (E3, docs/visual.md §8.5; la 0052): `teams` gana tres columnas y ninguna es `NOT NULL`
    * sin `DEFAULT` (el reparto no se escribe en SQL y `seedWorld` inserta sin ellas); el índice único deja
    * a un solo equipo por maillot canónico en cada mundo, y no compara los nulos, los de los equipos aún sin
@@ -1007,5 +1026,32 @@ describe('db: la 0053 solo borra la semilla del dibujo', () => {
       select column_name from information_schema.columns
       where table_schema = 'public' and table_name = 'teams' and column_name = 'jersey_style_seed'`
     expect(cols).toEqual([])
+  }, 120_000)
+})
+
+/**
+ * LA 0054, EL MODO DEL JUGADOR (E3, docs/visual.md §17.23; PR 23), sobre una base viva: con el journal cortado
+ * en la 0053 se crea un usuario como los de producción, se migra la carpeta entera y queda en `light`, el
+ * modo por defecto, con lo demás igual.
+ */
+describe('db: la 0054 deja a los usuarios de antes en el modo claro', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('un usuario de antes queda en light, con su alcance del velo', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0053_sin_semilla_del_dibujo')))
+    await t.client`insert into users (email, spoiler_scope) values ('antes@example.com', 'own_only')`
+    await t.detached((url) => runMigrations(url))
+    const rows = await t.client`select email, spoiler_scope, theme from users`
+    expect(rows).toEqual([
+      { email: 'antes@example.com', spoiler_scope: 'own_only', theme: 'light' },
+    ])
   }, 120_000)
 })

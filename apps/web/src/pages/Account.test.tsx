@@ -1,8 +1,9 @@
-import type { AdminWhoami, Health, HorizonSummary } from '@cyclingstar/shared'
+import type { AdminWhoami, Health, HorizonSummary, Theme } from '@cyclingstar/shared'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { THEME_QUERY_KEY } from '../theme'
 import { Account, DeleteAccount } from './Account'
 import { healthWith, horizonWith } from './__fixtures__/world'
 
@@ -37,17 +38,21 @@ function page({
   horizon = {},
   admin = false,
   horizonLoading = false,
+  theme,
 }: {
   veil?: boolean
   horizon?: Partial<HorizonSummary>
   admin?: boolean
   /** el horizonte, sin llegar todavía: su consulta, en espera */
   horizonLoading?: boolean
+  /** el modo guardado en la cuenta (`GET /api/me/theme`); sin él, el del aparato, que aquí es light */
+  theme?: Theme
 } = {}): string {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const health: Health = healthWith('on', veil ? 'on' : 'off')
   client.setQueryData(['health'], health)
   if (!horizonLoading) client.setQueryData(['horizon'], horizonWith(horizon))
+  if (theme !== undefined) client.setQueryData(THEME_QUERY_KEY, { theme })
   client.setQueryData(
     ['admin-whoami'],
     admin ? ({ ok: true, via: 'session', userId: 'u1' } as AdminWhoami) : null,
@@ -187,6 +192,18 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
     expect(
       opciones(page({ horizon: { revealConfirm: false } }), 'Ask before showing a result'),
     ).toEqual(['Yes:off', 'No:on'])
+  })
+
+  it('el modo: Appearance, un Segmented con Light y Dark, con el de la cuenta elegido (paso 23)', () => {
+    expect(opciones(page(), 'Appearance')).toEqual(['Light:on', 'Dark:off'])
+    expect(opciones(page({ theme: 'dark' }), 'Appearance')).toEqual(['Light:off', 'Dark:on'])
+    expect(opciones(page({ theme: 'light' }), 'Appearance')).toEqual(['Light:on', 'Dark:off'])
+    // en su Panel, y también sin el velo para quien mira: no depende de él
+    expect(panel(page(), 'Appearance')).toContain('role="radiogroup" aria-label="Appearance"')
+    expect(opciones(page({ veil: false, theme: 'dark' }), 'Appearance')).toEqual([
+      'Light:off',
+      'Dark:on',
+    ])
   })
 
   it('el correo, en su Panel: con quién entro, un Field con su rótulo y su autocompletado, y Update email, que envía', () => {

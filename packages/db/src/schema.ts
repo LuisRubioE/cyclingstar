@@ -86,6 +86,13 @@ export const worlds = pgTable('worlds', {
 export const spoilerScopeEnum = pgEnum('spoiler_scope', ['guarded', 'own_only', 'off'])
 
 /**
+ * El modo de cada jugador (E3, docs/visual.md §3.3, D-00i; la 0054): `light` por defecto y `dark` si lo
+ * elige en `/account`. Va en la cuenta para que siga al jugador de un aparato a otro. Valores = `Theme`
+ * (`shared`), atados en los dos sentidos por `schema.test.ts`; se amplía, nunca se recrea.
+ */
+export const themeEnum = pgEnum('theme', ['light', 'dark'])
+
+/**
  * Cuentas de usuario / identidad (SPEC 11). Es la tabla de usuario de better-auth
  * (Paso 9): la contraseña se guarda cifrada en `accounts`, no aquí. Los campos
  * `locale` e `isAdmin` son propios del juego; el resto los usa better-auth.
@@ -118,6 +125,8 @@ export const users = pgTable('users', {
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   /** Confirmar antes de revelar (E2, DD-17; la 0048): `Don't ask again` lo pone a false. */
   revealConfirm: boolean('reveal_confirm').notNull().default(true),
+  /** El modo del jugador (E3, D-00i; la 0054): claro por defecto (`GET` y `PUT /api/me/theme`). */
+  theme: themeEnum('theme').notNull().default('light'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

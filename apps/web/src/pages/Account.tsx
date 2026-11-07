@@ -9,7 +9,9 @@ import { Field } from '../components/ui/Field'
 import { Notice } from '../components/ui/Notice'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
+import { Segmented } from '../components/ui/Segmented'
 import { TextLink } from '../components/ui/TextLink'
+import { useTheme } from '../theme'
 
 /**
  * AJUSTES DE LA CUENTA (SPEC 7): correo, contraseña, cerrar sesión y borrar la cuenta.
@@ -24,6 +26,32 @@ import { TextLink } from '../components/ui/TextLink'
 /** Estado de un formulario de ajustes: mensaje de éxito o de error, más "enviando". */
 type Status =
   { kind: 'idle' } | { kind: 'saving' } | { kind: 'ok'; msg: string } | { kind: 'err'; msg: string }
+
+/** Los dos modos, en pantalla (§3.3, D-00i). */
+const MODOS = [
+  { key: 'light', label: 'Light' },
+  { key: 'dark', label: 'Dark' },
+] as const
+
+/**
+ * EL MODO (E3, docs/visual.md §3.3, D-00i; paso 23): claro u oscuro, que se ve al momento y se guarda en
+ * la cuenta para que siga al jugador a otro aparato. No depende del velo.
+ */
+function Appearance() {
+  const { theme, setTheme, saveFailed } = useTheme()
+  return (
+    <Panel title="Appearance">
+      <div className="grid gap-1">
+        <Segmented label="Appearance" options={MODOS} value={theme} onChange={setTheme} />
+        {saveFailed && (
+          <p role="alert" className="text-meta text-bad">
+            Could not save your appearance.
+          </p>
+        )}
+      </div>
+    </Panel>
+  )
+}
 
 /**
  * Lo que contestó el servidor, debajo del formulario. La región de estado está desde el principio, vacía y
@@ -368,6 +396,8 @@ export function Account() {
 
       {/* Qué se protege de destripes (E2, §10.4; 9b): solo con el velo para quien mira. */}
       <SpoilerSettings />
+
+      <Appearance />
 
       {email && data?.user.emailVerified === false && <VerifyEmailNotice email={email} />}
       {email && (

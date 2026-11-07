@@ -38,7 +38,14 @@ export const LegacyJersey = memo(function LegacyJersey({ seed, size, team }: Leg
       className="shrink-0"
       data-kit="team"
     >
-      <path d={TORSO} fill={base} stroke="rgba(0,0,0,0.18)" strokeWidth="1" />
+      {/* el filete de siempre; en el modo oscuro, el del token, que se ve sobre sus fondos (paso 23) */}
+      <path
+        d={TORSO}
+        fill={base}
+        stroke="rgba(0,0,0,0.18)"
+        strokeWidth="1"
+        className="dark:stroke-kit-edge"
+      />
       {pattern === 'band' && <rect x="14" y="24" width="20" height="6" fill={secondary} />}
       {pattern === 'stripes' && (
         <>
