@@ -545,8 +545,8 @@ export function pullingLineOf(
 
 /**
  * El porqué de un equipo en la línea, en pocas palabras (pantalla): las frases de la radio sin
- * destinatario (`motiveLabel`, RaceRadioPanel.tsx), acortadas para una línea. Un motivo nuevo no
- * compila sin su palabra.
+ * destinatario (`motiveLabel`, que vivía en `RaceRadioPanel.tsx` hasta W4), acortadas para una línea. Un
+ * motivo nuevo no compila sin su palabra.
  */
 export const PULL_MOTIVE_WORDS = {
   solo: 'alone',

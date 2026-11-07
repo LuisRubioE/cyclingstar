@@ -114,7 +114,7 @@ Veintidós secciones, de la 0 a la 21, con su título exacto:
 Tres choques de nombre que el mapa 05 registra (§6, contradicciones 8 y 13) y que este documento resuelve así:
 
 - **E1 a E13 son los encargos de `docs/encargos.md`**, no los EPIC de `docs/epics.md`, que llama E1, E3 y E5 a épicas del motor (l. 50, 81 y 255). Cuando este documento habla de E3, E4, E10 o E12, habla de encargos.
-- **«La radio» es la pestaña `Race Radio`** (pantalla), el microscopio del dueño, y nunca la radio de equipo en vivo, que el dueño tumbó ([DUEÑO 9]; `docs/tactica.md` l. 6323).
+- **«La radio» es la pestaña `Race Radio`** (pantalla), el microscopio del dueño, y nunca la radio de equipo en vivo, que el dueño tumbó ([DUEÑO 9]; `docs/tactica.md` l. 6323). **Desde W4** la pestaña ya no existe (D-16 revocada): el microscopio es `scripts/race-radio.mjs`.
 - **«Journal», «crónica», «diario» y `Story` son un solo artefacto con cuatro nombres** (`StageStory.tsx` pinta `data.chronicle`). Desde aquí hay dos: la voz, las líneas que se dicen en `Watch` a su hora, y el acta, la crónica entera con perspectiva, que en pantalla se llama `Report` (D-48, §12.1). `Commentary` (pantalla) es la lista de lo que la voz ya dijo.
 
 Y los identificadores del proceso que se parecen entre sí, con su prefijo:
@@ -7461,6 +7461,8 @@ Se prueba con un test de la API (`apps/api/src/stageRoute.test.ts`, en el 7b, §
 
 ### 11.16 La `Race Radio` bajo el velo
 
+**Desde W4** (la revisión de `Watch` del dueño, E3; D-16 revocada) no hay pestaña `Race Radio`, ni la radio hasta lo pintado de una etapa sin ver: lo que sigue es el diseño de E2, que ya no está en la web.
+
 Hoy la pestaña `Race Radio` (pantalla) de una etapa corrida pinta la radio guardada (`stage_snapshots.radio`, que la ruta de etapa manda como `radio`: `buildRaceRadio`, `apps/api/src/chronicle.ts` l. 1340-1398; `routes/races.ts` l. 518 y 536), con un deslizador por todos los km y un botón `Finish` (pantalla; `RaceRadioPanel.tsx` l. 387-419). Destripa por dos sitios. El primero es obvio: el deslizador y `Finish` llegan a la foto de meta (`sup. E6`). El segundo no lo es: la lista de seguimiento que escribe el tick mete en cada grupo grande, desde el km 0, a los diez primeros DE LA ETAPA (`radioWatchList`, `stageRun.ts` l. 558-568), y el motor guarda además, entre los que tiran por encima de los doce primeros, a los que están en esa lista (`packages/engine/src/sim/raceRadio.ts` l. 912-913). Quien ve nombrado en el pelotón del km 20 a un corredor que ni tira ni lleva maillot ni iba entre los diez primeros de la general sabe que acabará entre los diez primeros. D-16, escrito como hecho: lo guardado no cambia hasta el paso 11, y lo que destripa se corta al leer.
 
 | La etapa, para quien mira                                      | Del paso 7b al 10                                                             | Desde el paso 11 (B16 en verde)                                                                                                                                                                                                                     |
@@ -7522,6 +7524,8 @@ Medido en el scratchpad (`l7/radiocorte.mjs`: el campo del banco de `scripts/rac
 El paso 11 (§17) deja de leer la radio guardada para las etapas con línea (el 11a), y DD-11 decide dejar de escribirla en ese mismo paso (el 11b, 17-v): la columna queda para las etapas viejas, y `veilStoredRadio` y el adaptador siguen para ellas. B16 (§16.4) compara `radioFromTimeline` con `radioForStorage` sin lista de seguimiento (5-g) y, para la etapa conocida, con los diez primeros de la etapa en los dos lados (16-t), así que lo que la pestaña enseña desde el paso 11 es la radio de hoy menos lo que destripaba.
 
 ### 11.17 Lo que `docs/navegacion.md` dice y cambia
+
+**Desde W4** (D-16 revocada), sin `Race Radio` en ninguna ficha, y con `Watch` apagado sin `Story`, que era la crónica: la ficha de un día abre en `Result`, y la página de etapa lleva `Result`, `Classifications` y `Profile` (`docs/navegacion.md` §7.1 y §7.2).
 
 `docs/navegacion.md` es el documento del que sale la navegación de hoy, y en cuatro sitios pone el resultado como lo primero que se ve (mapa 03 §9; contradicción 1 del mapa 05): la cabecera con el ganador, `Stages` (pantalla) con el ganador de cada etapa, la clásica que abre en `Result` y la portada con el puesto. E2 no reescribe ese documento: el paso 12 lo corrige (D-58) para que E6, que es quien lo mantiene, parta de lo que el producto hace. Línea a línea:
 
@@ -8567,7 +8571,7 @@ D-47, escrito como hecho (I-41; contradicción 9 del mapa 05). Hoy hay dos frase
 
 ### 12.10 La radio guardada
 
-D-16, escrito como hecho (I-05; [DUEÑO 10], la radio sigue siendo el microscopio). Hay dos maneras de mirar la misma etapa y las dos se quedan. La FOTO es la del dueño: un km de la carretera, con los grupos que pasan por él y sus huecos como resta de relojes en ese punto, que es lo que enseña `Race Radio` (pantalla). El INSTANTE es la de la tele: la carretera entera en una hora, cada grupo donde está en ese momento, que es lo que enseña `Watch` (§4.5). La foto no se sustituye por el instante porque sirven para cosas distintas: el microscopio compara un km con otro, la retransmisión sigue una hora.
+D-16, escrito como hecho (I-05; [DUEÑO 10], la radio sigue siendo el microscopio). **Revocada en W4** (la revisión de `Watch` del dueño, E3; 7 de noviembre de 2026): «está mucho mejor en general que el race radio o el story (que por cierto, ya los puedes tirar a la basura)». La pestaña `Race Radio` y la crónica bajo el resultado se fueron de la web, y con ellas lo que las servía en la ficha de etapa, el acta y el paquete de meta; `Watch` es la manera de mirar la etapa. El microscopio sigue en la consola (`scripts/race-radio.mjs`), y la radio guardada, en el adaptador (el detalle, en `docs/diseno/e3-visual/implementacion.md`). Lo que sigue es D-16 tal como se escribió: hay dos maneras de mirar la misma etapa y las dos se quedan. La FOTO es la del dueño: un km de la carretera, con los grupos que pasan por él y sus huecos como resta de relojes en ese punto, que es lo que enseña `Race Radio` (pantalla). El INSTANTE es la de la tele: la carretera entera en una hora, cada grupo donde está en ese momento, que es lo que enseña `Watch` (§4.5). La foto no se sustituye por el instante porque sirven para cosas distintas: el microscopio compara un km con otro, la retransmisión sigue una hora.
 
 **Hasta el paso 11, la radio se escribe igual.** `stage_snapshots.radio` sigue saliendo de `radioForStorage` (`stageRun.ts` l. 586) y la pestaña la sigue leyendo con `buildRaceRadio` (`chronicle.ts` l. 1340). Lo que destripa de ella, la lista de seguimiento que mete a los diez primeros DE LA ETAPA desde el km 0 (`stageRun.ts` l. 558-568; mapa 07 §5.2, ceguera 1), se corta al LEER con `veilStoredRadio` (§11.16): la radio servida de una etapa no conocida pasa por la política de nombres de §7.7, y el deslizador llega solo hasta lo alcanzado.
 

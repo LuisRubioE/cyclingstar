@@ -401,10 +401,12 @@ describe('el jugador (§17.21; PR 21g)', () => {
     expect(fallo).not.toContain('No training data yet.')
   })
 
-  it('la última carrera: Full story, un enlace de 44 a su etapa, el puesto y el hueco, y ninguna flecha', () => {
+  // re-sellado en W4: `Full story` pasa a `Open stage`, porque la etapa ya no tiene crónica (D-16 revocada)
+  it('la última carrera: Open stage, un enlace de 44 a su etapa, el puesto y el hueco, y ninguna flecha', () => {
     const markup = jugador()
     const ultima = panel(markup, 'Last race')
-    const enlace = /<a ([^>]*)>Full story<\/a>/.exec(ultima)?.[1] ?? ''
+    expect(ultima).not.toContain('Full story')
+    const enlace = /<a ([^>]*)>Open stage<\/a>/.exec(ultima)?.[1] ?? ''
     expect(enlace).toContain('href="/world/races/race-valencia/stages/3"')
     expect(enlace).toContain('data-ui="TextLink"')
     // la etapa y su recorrido, como toda etapa (§4.10): `Stage 3 · Gandia → Alcoi`

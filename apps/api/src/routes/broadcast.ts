@@ -79,7 +79,7 @@ import {
   stageContextOf,
   stageReplayOf,
 } from '../stageReplay.js'
-import { lineVoiceOf, storedWithRoles } from '../voiceRoles.js'
+import { lineVoiceOf } from '../voiceRoles.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseStageDay } from './params.js'
 
@@ -100,8 +100,8 @@ import { parseRaceId, parseStageDay } from './params.js'
  * (§14.7).
  *
  * Desde el 6a sirven la línea grabada de las etapas que la tienen (`timelineForStage`, §14.4), con el
- * reloj exacto, la revisión de plantillas de su fila (`tplRev`, 12-c) en la cabecera, el acta y la
- * meta, y la preparación pública de la crono en la cabecera (`tt`); una lápida es 404
+ * reloj exacto, la revisión de plantillas de su fila (`tplRev`, 12-c) en la cabecera (hasta W4, también
+ * en el acta y la meta, para su crónica), y la preparación pública de la crono en la cabecera (`tt`); una lápida es 404
  * `broadcast_unavailable` (D-12), y una etapa sin fila sigue con el adaptador.
  */
 
@@ -450,13 +450,9 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       // se ve sabiendo cómo acabó la N − 1.
       const gate = stageGateOf(a.h, a.ctx.raceKey, a.ctx.day)
       if (gate?.k === 'previous_unseen') return sendGate(reply, gate)
-      // el acta con las palabras de papel: esta ruta ya exige Watch encendido (§12.6); sin la radio,
-      // que el paquete de meta no lleva (14-b), y con los títulos de campeón que ve quien mira (17a)
-      const replay = await stageReplayOf(db, a.ctx, {
-        annotate: (stored) => storedWithRoles(tl, stored),
-        radio: false,
-        h: a.h,
-      })
+      // el acta, con los títulos de campeón que ve quien mira (17a); hasta W4 llevaba la crónica con las
+      // palabras de papel de la voz (§12.6) y la revisión de plantillas (12-c), y nunca la radio (14-b)
+      const replay = await stageReplayOf(db, a.ctx, { h: a.h })
       if (!replay.run) return notFound(reply)
       await finishWatch(request, a, fromDs(visibilityOf(tl).finishDs), body.data.mode)
       const ix = new Map(tl.riderIds.map((id, i) => [id, i] as const))
@@ -468,7 +464,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
         })),
         result: replay.results,
         closing: await closingOf(a.ctx, tl, replay, ix),
-        report: { ...withoutRadio(replay), tplRev: await tplRevOf(tl, a) },
+        report: replay,
         // La meta se sirve tras su puerta y con ella la etapa pasa a conocida: sus noticias, enteras, y en
         // su forma de pantalla (19d): la meta no pasa por el serializador, así que lo que no se pinta lo
         // quita esto
@@ -617,27 +613,13 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
           return sendGate(reply, gate)
         return notFound(reply)
       }
-      // Las palabras de papel de la voz (`the chase group`), solo para quien tiene Watch encendido
-      // (§12.6, §14.5): para los demás, el acta de hoy, que dice `the bunch`. Sin línea servible,
-      // tampoco (las etapas sin línea ni radio dicen `the bunch`, como hoy).
-      const tl = (await request.broadcastOn())
-        ? await timelineForStage(db, a.h, a.ctx.raceKey, a.ctx.day)
-        : null
-      // la radio desde la línea nombra a los corredores propios de quien pide (11a, R23.7), y los
-      // títulos de campeón de las tablas son los que ve (17a)
-      const radio = { h: a.h, userId: (await request.viewer())?.userId ?? null }
-      const replay = await stageReplayOf(
-        db,
-        a.ctx,
-        tl === null
-          ? { radio, h: a.h }
-          : { annotate: (stored) => storedWithRoles(tl, stored), radio, h: a.h },
-      )
+      // Los títulos de campeón de las tablas, los que ve quien pide (17a). Hasta W4 el acta llevaba la
+      // crónica, con las palabras de papel de la voz para quien tiene Watch encendido (§12.6), la radio
+      // desde la línea con los corredores propios de quien pide (11a) y la revisión de plantillas de la
+      // fila (12-c); el dueño retiró la crónica y la radio (su revisión de `Watch`, punto 8; D-16 revocada).
+      const replay = await stageReplayOf(db, a.ctx, { h: a.h })
       if (!replay.run) return notFound(reply)
-      // tplRev: el de la fila de la línea grabada (6a), sin construir el adaptador; sin fila o con
-      // lápida, 0 (12-c, §5.6).
-      const tplRev = await readStageTemplateRev(db, a.h, a.ctx.raceKey, a.ctx.day)
-      return { ...replay, tplRev } satisfies StageReport
+      return replay satisfies StageReport
     },
   )
 
@@ -792,13 +774,6 @@ type LiveLines = readonly LiveLine[]
  */
 export function chunkLinesOf(voice: LiveLines, fromS: RaceS): LiveLines {
   return voice.filter((l) => (fromS === 0 ? l.revealS >= 0 : l.revealS > fromS))
-}
-
-/** El acta sin la radio (decisión 14-b): el paquete de meta no la lleva. */
-function withoutRadio<T extends object>(replay: T): Omit<T, 'radio'> {
-  const out: T & { radio?: unknown } = { ...replay }
-  delete out.radio
-  return out
 }
 
 /**

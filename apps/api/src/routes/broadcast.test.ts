@@ -30,9 +30,7 @@ import {
   ATTRIBUTES,
   BROADCAST,
   type BroadcastChunk,
-  type ChronicleRider,
   type KitCode,
-  type RaceRadio,
   type SwitchMode,
   apiErrorBodySchema,
   broadcastChunkSchema,
@@ -43,8 +41,6 @@ import {
   horizonSummarySchema,
   instantAt,
   photoBlocksOf,
-  raceRadioSchema,
-  radioFromTimeline,
   stageGateErrorSchema,
   stageReplaySchema,
   stageWeatherViewSchema,
@@ -57,7 +53,6 @@ import { z } from 'zod'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
 import { clearAdaptedTimelineCache, threeKmRuleRiders, withClimbFeet } from '../broadcastSource.js'
-import { buildRaceRadio } from '../chronicle.js'
 import { VIEWER_COOKIE, signViewerCookie } from '../viewerCookie.js'
 import { servableUpToDs } from './broadcast.js'
 
@@ -150,13 +145,14 @@ const clearLines = (): void => {
   clearAdaptedTimelineCache()
 }
 
-/** Las líneas del acta que llevan la palabra de papel de la voz (§12.6): `plantilla:papel` o `:maillot`. */
-const rolesOf = (body: unknown): string[] =>
-  (stageReplaySchema.parse(body).chronicle ?? []).flatMap((e) =>
-    e.datos?.mainRole === undefined && e.datos?.mainJersey === undefined
-      ? []
-      : [`${e.plantilla}:${e.datos.mainJersey ?? e.datos.mainRole}`],
-  )
+/**
+ * LO QUE W4 SACA DE LA FICHA DE UNA ETAPA (la revisión de `Watch` del dueño; D-16 revocada): la radio, la
+ * crónica, su aviso de que no se guardó y la revisión de plantillas con que se leía. Las claves de una
+ * ficha tal como llega, sin pasarla por su esquema, que las quitaría igual.
+ */
+const W4_GONE = ['radio', 'chronicle', 'journalUnavailable', 'tplRev', 'timeTrial'] as const
+const goneIn = (raw: unknown): string[] =>
+  Object.keys(raw as object).filter((k) => (W4_GONE as readonly string[]).includes(k))
 
 describe('las rutas de la retransmisión (§14.2)', () => {
   let t: TestDb
@@ -340,11 +336,16 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       expect(report.statusCode).toBe(200)
     })
 
-    it('el acta con las palabras de papel solo para quien tiene Watch encendido (§12.6)', async () => {
+    // Re-sellado en W4: el acta ya no lleva crónica, así que no hay palabras de papel que dar solo a quien
+    // tiene Watch encendido (§12.6); la voz las sigue diciendo (frozenVoice, voiceRoles).
+    it('el acta, sin crónica ni radio, para quien tiene Watch encendido y para quien no (W4)', async () => {
       const player = await call(app, 'GET', `${STAGE_URL}/2/report`, PLAYER)
       const admin = await call(app, 'GET', `${STAGE_URL}/2/report`, ADMIN)
-      expect(rolesOf(player.json())).toEqual([])
-      expect(rolesOf(admin.json()).length).toBeGreaterThan(0)
+      for (const res of [player, admin]) {
+        expect(res.statusCode).toBe(200)
+        expect(stageReplaySchema.parse(res.json()).results?.length).toBeGreaterThan(0)
+        expect(goneIn(res.json())).toEqual([])
+      }
     })
 
     describe('la etapa grabada (6a)', () => {
@@ -454,14 +455,9 @@ describe('las rutas de la retransmisión (§14.2)', () => {
           front === undefined ? null : { rider: front.rider, km: Math.round(front.km * 10) / 10 },
         )
         expect(finish.closing.mostKmOutFront).not.toBeNull() // en esta etapa, 64,1 km
-        expect(finish.report.radio).toBeUndefined()
-        // la de la fila: el TEMPLATE_REV del tick que la grabó
-        expect(finish.report.tplRev).toBe(0)
-        // el acta del paquete de meta, que solo se sirve con Watch encendido, con las palabras de papel
-        expect(rolesOf(finish.report)).toEqual(
-          rolesOf((await call(app, 'GET', `${STAGE_URL}/2/report`, ADMIN)).json()),
-        )
-        expect(rolesOf(finish.report).length).toBeGreaterThan(0)
+        // el acta del paquete de meta, sin radio ni crónica (W4)
+        expect(finish.report.results?.length).toBeGreaterThan(0)
+        expect(goneIn((res.json() as { report: unknown }).report)).toEqual([])
         // la regla de los 3 km, de las caídas de la línea, con el final al sprint o en alto (6-o)
         expect([threeKmRuleRiders(tl!, false), threeKmRuleRiders(tl!, true)]).toContainEqual(
           finish.threeKmRule,
@@ -512,7 +508,9 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect(res.body).not.toMatch(/"prevHealth"|"prevUntilDay"|"fromTeamId"/)
       })
 
-      it('la revisión de plantillas sale de su fila: en la cabecera, el acta y la meta (12-c)', async () => {
+      // Re-sellado en W4: el acta y la meta ya no la llevan, porque la leía la crónica; la voz de `Watch`
+      // la lee de la cabecera.
+      it('la revisión de plantillas sale de su fila: en la cabecera; el acta y la meta ya no la llevan (12-c; W4)', async () => {
         await t.client`UPDATE stage_timelines SET tpl_rev = 7 WHERE race_id = ${RACE_KEY} AND stage_day = 2`
         clearLines()
         try {
@@ -520,16 +518,13 @@ describe('las rutas de la retransmisión (§14.2)', () => {
             (await call(app, 'GET', `${STAGE_URL}/2/broadcast`, ADMIN)).json(),
           )
           expect(head.tplRev).toBe(7)
-          const report = stageReplaySchema.parse(
-            (await call(app, 'GET', `${STAGE_URL}/2/report`)).json(),
-          )
-          expect(report.tplRev).toBe(7)
-          const finish = broadcastFinishSchema.parse(
-            (
-              await call(app, 'POST', `${STAGE_URL}/2/broadcast/finish`, ADMIN, { mode: 'play' })
-            ).json(),
-          )
-          expect(finish.report.tplRev).toBe(7)
+          const report = (await call(app, 'GET', `${STAGE_URL}/2/report`)).json()
+          expect(goneIn(report)).toEqual([])
+          const finish = (
+            await call(app, 'POST', `${STAGE_URL}/2/broadcast/finish`, ADMIN, { mode: 'play' })
+          ).json() as { report: unknown }
+          expect(broadcastFinishSchema.parse(finish).result.length).toBeGreaterThan(0)
+          expect(goneIn(finish.report)).toEqual([])
         } finally {
           await t.client`UPDATE stage_timelines SET tpl_rev = 0 WHERE race_id = ${RACE_KEY} AND stage_day = 2`
           clearLines()
@@ -613,7 +608,7 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         }
         const report = await call(app, 'GET', `${STAGE_URL}/${ADAPTED}/report`)
         expect(report.statusCode).toBe(200)
-        expect(stageReplaySchema.parse(report.json()).tplRev).toBe(0)
+        expect(stageReplaySchema.parse(report.json()).results?.length).toBeGreaterThan(0)
       } finally {
         await t.client`DELETE FROM stage_timelines WHERE race_id = ${RACE_KEY} AND stage_day = ${ADAPTED}`
         clearLines()
@@ -624,93 +619,23 @@ describe('las rutas de la retransmisión (§14.2)', () => {
     })
 
     /**
-     * LA RADIO DESDE LA LÍNEA (E2, paso 11a; §12.10 y §11.16, 12-o): el acta y la ruta de etapa de una
-     * etapa con línea la construyen con `radioFromTimeline`, que nombra siempre a los corredores propios
-     * de quien pide (R23.7); con una lápida en su fila, la guardada de siempre (`buildRaceRadio`). En este
-     * mundo de doce todo grupo se nombra entero, así que las dos se rehacen aquí con las caras que trae la
-     * servida (todas) y lo que la ruta lee de la base: la línea y `stage_snapshots.radio`.
-     *
-     * RE-SELLADO EN EL 11b (DD-11, §12.10 y §17.14). Hasta el 11b, la lápida se ponía en la fila de la 2
-     * para leer su radio guardada. Desde el 11b la 2 no la guarda: `flush` la borró al escribir su línea,
-     * y la `Race Radio` de una etapa con línea solo sale de ella. La guardada es la de las etapas cuya
-     * línea no entró: la 3, corrida sin el diario, y la que deja una lápida al grabar (la lápida y su
-     * radio, al correr la etapa, en `packages/db/src/timelines.test.ts`). Con una lápida en la fila de la
-     * 3, la ruta sirve esa.
+     * LA RADIO GUARDADA (E2, DD-11, §12.10 y §17.14), re-sellado en W4. Hasta W4, este caso comparaba la
+     * radio que servían el acta y la ruta de etapa, desde la línea o la guardada; W4 la saca de la ficha
+     * (D-16 revocada). Queda lo que sigue siendo verdad: la 2 dejó su línea, así que `flush` borró su radio
+     * guardada; la 3, sin línea, la guarda, y es la que lee el adaptador (el reloj estimado, abajo).
      */
-    it('11a y 11b: la radio de la 2 sale de su línea, con los propios de quien pide, y la 2 no la guarda; con una lápida, la guardada', async () => {
-      const served = async (url: string, user?: string) => {
-        const res = await call(app, 'GET', url, user)
-        expect(res.statusCode, res.body.slice(0, 200)).toBe(200)
-        return stageReplaySchema.parse(res.json()).radio
-      }
-      /** Las caras de una radio servida: en un mundo de doce, todos los corredores salen en cada foto. */
-      const facesOf = (radio: RaceRadio | undefined): Map<string, ChronicleRider> => {
-        const out = new Map<string, ChronicleRider>()
-        for (const k of radio?.kms ?? [])
-          for (const g of k.groups)
-            for (const r of g.riders) {
-              const face: ChronicleRider = {
-                id: r.id,
-                name: r.name,
-                bib: r.bib,
-                team: r.team,
-                country: r.country,
-                ...(r.jersey === undefined ? {} : { jersey: r.jersey }),
-              }
-              out.set(r.id!, face)
-            }
-        return out
-      }
-      const forPlayer = await served(`${STAGE_URL}/2/report`, PLAYER)
-      const forAdmin = await served(`${STAGE_URL}/2/report`, ADMIN)
-      const tl = (await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2))!
-      const riderOf = facesOf(forPlayer)
-      expect(riderOf.size).toBe(FIELD)
-      const fromLine = (own: readonly number[]) =>
-        raceRadioSchema.parse(
-          JSON.parse(
-            JSON.stringify(
-              radioFromTimeline(tl, {
-                riderOf,
-                own: new Set(own),
-                nameableAt: () => new Set(),
-              }),
-            ),
-          ),
-        )
-      const ownIx = tl.riderIds.indexOf(OWN_RIDER)
-      expect(ownIx).toBeGreaterThanOrEqual(0)
-      expect(forPlayer).toEqual(fromLine([ownIx]))
-      expect(forAdmin).toEqual(fromLine([]))
-      // la ruta de etapa da la misma (SPOILER_MODE apagado: la ficha de hoy, entera)
-      const page = await call(app, 'GET', `${STAGE_URL}/2`, PLAYER)
-      expect(stageReplaySchema.parse(page.json()).radio).toEqual(forPlayer)
-      // DD-11: la 2 dejó su línea, así que no guarda radio; la 3, sin línea, sí
+    it('DD-11: la 2, con línea, no guarda radio; la 3, sin línea, sí, para el adaptador; ninguna ficha la sirve (W4)', async () => {
       expect((await getStageSnapshot(t.db, worldHorizon, RACE_KEY, 2))?.radio).toBeNull()
-      const stored3 = (await getStageSnapshot(t.db, worldHorizon, RACE_KEY, ADAPTED))?.radio
-      expect(stored3).toBeTruthy()
-      // con una lápida en su fila, la guardada de siempre, con las caras de la servida
-      await writeStageTimelineRows(t.db, [
-        tombstoneRow(
-          { raceKey: RACE_KEY, stageDay: ADAPTED, gameDay: dayOf(ADAPTED), tplRev: 0 },
-          { reason: 'I1', message: 'una discrepancia' },
-        ),
-      ])
-      clearLines()
-      try {
-        const radio3 = await served(`${STAGE_URL}/${ADAPTED}/report`, PLAYER)
-        const riderOf3 = facesOf(radio3)
-        expect(riderOf3.size).toBe(FIELD)
-        const stored = raceRadioSchema.parse(
-          JSON.parse(JSON.stringify(buildRaceRadio(stored3, { riderOf: riderOf3 }))),
-        )
-        expect(stored.kms.length).toBeGreaterThan(10)
-        expect(radio3).toEqual(stored)
-      } finally {
-        await t.client`DELETE FROM stage_timelines WHERE race_id = ${RACE_KEY} AND stage_day = ${ADAPTED}`
-        clearLines()
+      expect((await getStageSnapshot(t.db, worldHorizon, RACE_KEY, ADAPTED))?.radio).toBeTruthy()
+      for (const url of [
+        `${STAGE_URL}/2/report`,
+        `${STAGE_URL}/${ADAPTED}/report`,
+        `${STAGE_URL}/2`,
+      ]) {
+        const res = await call(app, 'GET', url, PLAYER)
+        expect(res.statusCode, res.body.slice(0, 200)).toBe(200)
+        expect(goneIn(res.json()), url).toEqual([])
       }
-      expect(await served(`${STAGE_URL}/2/report`, PLAYER)).toEqual(forPlayer)
     })
 
     describe('la etapa sin fila: el adaptador de la radio (3a)', () => {
@@ -791,7 +716,7 @@ describe('las rutas de la retransmisión (§14.2)', () => {
           for (let i = 0; i < c.moves.length; i += 3) expect(c.moves[i]!).toBeLessThan(blocks)
       })
 
-      it('la meta: el paquete con su esquema, sin radio en el acta, sin caídas que contar, y la letra de la 3 (7a)', async () => {
+      it('la meta: el paquete con su esquema, sin radio ni crónica en el acta, sin caídas que contar, y la letra de la 3 (7a)', async () => {
         const res = await call(app, 'POST', `${STAGE_URL}/${ADAPTED}/broadcast/finish`, ADMIN, {
           mode: 'play',
         })
@@ -800,8 +725,7 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect(finish.arrivals[0]?.gapS).toBe(0)
         expect(finish.result.length).toBeGreaterThan(0)
         expect(finish.closing.podium).toHaveLength(3)
-        expect(finish.report.radio).toBeUndefined()
-        expect(finish.report.tplRev).toBe(0)
+        expect(goneIn((res.json() as { report: unknown }).report)).toEqual([])
         // la radio guardada no dice quién se cayó: el adaptador no tiene caídas
         expect(finish.threeKmRule).toEqual([])
         // la 3, vista en directo detrás de la 2, que el administrador ya conocía por su meta
@@ -864,12 +788,13 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       }
     })
 
-    it('el acta: el StageReplay entero de una etapa corrida, con tplRev; sin correr, 404', async () => {
+    it('el acta: el StageReplay entero de una etapa corrida, sin radio ni crónica desde W4; sin correr, 404', async () => {
       const res = await call(app, 'GET', `${STAGE_URL}/2/report`)
       expect(res.statusCode).toBe(200)
       const report = stageReplaySchema.parse(res.json())
-      expect(report).toMatchObject({ run: true, tplRev: 0 })
-      expect(report.radio?.kms.length).toBeGreaterThan(0)
+      expect(report).toMatchObject({ run: true })
+      expect(report.results?.length).toBeGreaterThan(0)
+      expect(goneIn(res.json())).toEqual([])
       const notRun = await call(app, 'GET', `${STAGE_URL}/4/report`)
       expect(notRun.statusCode).toBe(404)
       expect(apiErrorBodySchema.parse(notRun.json()).error).toBe('no_encontrado')

@@ -24,7 +24,8 @@
  *                           lista de seguimiento y los maillots del manifiesto da, campo a campo,
  *                           `stage_snapshots.radio` (la que escribe `runOneStage`, leída antes de
  *                           `flush`, que desde el 11b la borra al escribir la línea: DD-11)
- *   <etapa>.acta.json.gz    las `ChronicleEntry` del acta, las que sirve hoy la ruta de etapa
+ *   <etapa>.acta.json.gz    las `ChronicleEntry` del acta (`stageChronicleOf`; hasta W4, la crónica que
+ *                           servía la ruta de etapa)
  *   manifest.json           motor, semilla, campo, tamaños y sha256 de cada fichero; por carrera, cada
  *                           uuid con su dorsal, país, equipo y nombre de prueba (`Rider 012`); y por
  *                           etapa, lo que el adaptador lee de su snapshot (`riderIds`, `lengthKm`,
@@ -68,8 +69,8 @@
  * 24 etapas del banco (las 21 de `race-france`, `race-flanders`, `race-tramuntana` y la e5 de
  * `race-colombia`) por las dos semillas del banco (`radio-<carrera>-0` y `-1`), cada carrera corrida
  * como el tick con la grabación encendida: el paquete de meta (`POST …/broadcast/finish`, con el acta
- * sin radio de la etapa corrida) y la ruta de etapa conocida (`GET /api/races/:raceId/stages/:day`,
- * `StageReplay` entero, con la radio), con gzip 6 como `@fastify/compress`, contra
+ * de la etapa corrida) y la ruta de etapa conocida (`GET /api/races/:raceId/stages/:day`, `StageReplay`
+ * entero; hasta W4, con la radio y la crónica), con gzip 6 como `@fastify/compress`, contra
  * `BROADCAST.maxFinishGzipBytes` y `maxKnownStageGzipBytes`; el máximo de cada uno va a la tabla de
  * §18.10. Y lo que cuesta servir la línea grabada: `readStageTimeline` en frío (el LRU vaciado: leer la
  * fila, `gunzip`, `JSON.parse` y `decodeTimeline`) y en el LRU, y la cabecera (`GET …/broadcast`) en
@@ -434,7 +435,7 @@ async function runRace({ raceId, days }) {
   // PGlite admite UNA sesión y la ruta de etapa lanza cuatro consultas a la vez (yesterday.test.ts).
   process.env.DB_POOL_MAX = '1'
   const { startTestDb } = await import('../packages/db/dist/testDb.js')
-  const { buildApp } = await import('../apps/api/dist/app.js')
+  const { stageChronicleOf, stageContextOf } = await import('../apps/api/dist/stageReplay.js')
   const t = await startTestDb()
   const seeded = await seedRace(t, race, worldSeed)
   const { worldId, raceKey } = seeded
@@ -574,19 +575,17 @@ async function runRace({ raceId, days }) {
     return { race: null, stages: [] }
   }
 
-  // EL ACTA, la que sirve hoy la ruta de etapa: con los nombres, los equipos y los maillots de la base.
-  const app = buildApp({ db: t.db, auth: fakeAuth, serveWeb: false })
+  // EL ACTA de cada etapa (`stageChronicleOf`, la de los momentos de `Your last race`): con los nombres,
+  // los equipos y los maillots de la base. Hasta W4 se pedía a la ruta de etapa, que la servía como la
+  // crónica (`chronicle`); es la misma, construida igual (D-16 revocada). Por JSON, como la servía.
   for (const s of stages) {
-    const res = await app.inject({ method: 'GET', url: `/api/races/${s.raceId}/stages/${s.day}` })
-    if (res.statusCode !== 200)
-      throw new Error(`${s.name}: la ruta de etapa respondió ${res.statusCode}`)
-    s.acta = res.json().chronicle
-    if (!Array.isArray(s.acta) || s.acta.length === 0)
-      throw new Error(`${s.name}: el acta sale vacía`)
+    const ctx = await stageContextOf(t.db, s.raceId, s.day)
+    if (ctx === null) throw new Error(`${s.name}: el calendario no tiene la etapa`)
+    s.acta = JSON.parse(JSON.stringify((await stageChronicleOf(t.db, worldHorizon, ctx)) ?? []))
+    if (s.acta.length === 0) throw new Error(`${s.name}: el acta sale vacía`)
     // El acta, también igual: la etapa grabada se sirve como siempre hasta el 6a.
     sameAsStep2(s.name, 'acta', s.acta)
   }
-  await app.close()
   await t.close()
 
   const teamsOut = Object.fromEntries(

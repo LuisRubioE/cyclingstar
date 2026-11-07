@@ -54,7 +54,6 @@ const full: StageReplay = {
       puntosMontana: 0,
     },
   ],
-  chronicle: [],
   gc: [
     {
       riderId: 'r1',

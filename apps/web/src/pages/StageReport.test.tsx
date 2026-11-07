@@ -27,7 +27,6 @@ function report(raceId: string, stageCount: number): string {
     altimetry: '<svg/>',
     champions: {},
     results: [],
-    chronicle: [],
     watch: { known: true, reachedS: null, gate: null, seen: true },
   }
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -54,12 +53,19 @@ const jumps = (markup: string): string[] => {
   return [...nav.matchAll(/<a[^>]*>([^<]+)<\/a>/g)].map((m) => m[1] ?? '')
 }
 
+// Re-sellado en W4 (la revisión de `Watch` del dueño; D-16 revocada): sin la crónica, la fila pierde
+// `Chronicle` y solo sale si hay adónde saltar fuera del resultado.
 describe('el acta pública: la fila de saltos (§14.6; 14-c)', () => {
-  it('en una carrera por etapas, Result, Classifications y Chronicle', () => {
-    expect(jumps(report('race-france', 21))).toEqual(['Result', 'Classifications', 'Chronicle'])
+  it('en una carrera por etapas, Result y Classifications, sin Chronicle', () => {
+    const markup = report('race-france', 21)
+    expect(jumps(markup)).toEqual(['Result', 'Classifications'])
+    expect(markup).not.toContain('Chronicle')
   })
 
-  it('en una de un día, sin Classifications: su enlace llevaría a la ficha, que no las tiene', () => {
-    expect(jumps(report('race-jaen', 1))).toEqual(['Result', 'Chronicle'])
+  it('en una de un día, sin Classifications ni fila: solo quedaría un salto al resultado de encima', () => {
+    const markup = report('race-jaen', 1)
+    expect(markup).not.toContain('Report sections')
+    expect(markup).toContain('id="stage-result"')
+    expect(markup).not.toContain('Chronicle')
   })
 })

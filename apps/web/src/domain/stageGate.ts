@@ -20,7 +20,7 @@ const range = (from: number, to: number): number[] =>
 
 /**
  * Qué revela `Show result` en cada puerta. En lo que enseña el resultado (`Report`, `Result`,
- * `Classifications`, `Race Radio` y `/report`), la etapa misma, con las anteriores que falten. En
+ * `Classifications` y `/report`; y `Race Radio` hasta W4), la etapa misma, con las anteriores que falten. En
  * `Watch`, la puerta `previous_unseen` de la N+1 revela la N (`Show result of stage 6 and continue`,
  * §11.12) y arrastra las de antes; la retransmisión de la N+1 empieza después.
  */

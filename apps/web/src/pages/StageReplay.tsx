@@ -7,13 +7,10 @@ import {
 import { type ReactNode, useState } from 'react'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { StageClassEntry, StageGcEntry, TeamClassEntry } from '../api/results'
-import { PaintedRaceRadio } from '../components/PaintedRaceRadio'
 import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
-import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { ShareStage, ShareStageIcon } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard, TwoDeviceNotice } from '../components/StageGate'
 import { StageHead } from '../components/StageHead'
-import { StageStory } from '../components/StageStory'
 import { TabPanel, useTabParam } from '../components/Tabs'
 import { type TabOption, Tabs } from '../components/ui/Tabs'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
@@ -35,8 +32,7 @@ import {
   RESULT_TABS,
   ResultTable,
   StageReportView,
-  paintedRadioWanted,
-  paintedReachedOf,
+  StageResultHead,
   raceKeyOf,
   usePinnedHead,
   useStageFacts,
@@ -84,10 +80,10 @@ export {
  *
  * LOS MAILLOTS QUE SE PINTAN AQUÍ SON LOS DE DESPUÉS DE LA ETAPA (`leaders.afterStage`), porque es
  * el estado que estas tablas están mostrando: si el amarillo cambió de dueño en la meta de hoy, la
- * general de hoy tiene que enseñar al dueño nuevo. La crónica de la pestaña `Story` y el orden de
- * llegada de `Result` llevan los de ANTES —los que se llevaban puestos en la carretera ese día— y
- * la crónica lo dice además en su propia línea, para que la diferencia se lea como lo que es y no
- * como una contradicción.
+ * general de hoy tiene que enseñar al dueño nuevo. El orden de llegada (`Stage result`) lleva los de
+ * ANTES —los que se llevaban puestos en la carretera ese día— y su título lo dice en un `InfoButton`,
+ * para que la diferencia se lea como lo que es y no como una contradicción (hasta W4 lo decía la
+ * crónica, en su propia línea).
  */
 function StageClassifications({
   gc,
@@ -201,7 +197,7 @@ function hrefWith(path: string, params: URLSearchParams, patch: Record<string, s
 
 /**
  * Página de una etapa de una carrera POR ETAPAS. Ya no es un callejón sin salida: la cabecera dice a
- * qué carrera pertenece y qué etapa es de cuántas, hay anterior/siguiente para leer las 21 crónicas
+ * qué carrera pertenece y qué etapa es de cuántas, hay anterior/siguiente para recorrer las 21 etapas
  * seguidas, y el contenido va en pestañas.
  *
  * En una carrera de UN DÍA esta página ya no existe: la carrera y la etapa son la misma cosa y su
@@ -230,8 +226,9 @@ export function StageReplay() {
  * - Las pestañas (`stagePageTabs`): con `Watch` encendido para quien mira, `Watch` delante si no ha visto
  *   la etapa y `Report` (el acta, `Story` y `Result` juntas) si la vio o la reveló; sin `Watch` para esta
  *   etapa (una crono sin línea, una lápida), `Report` con `Broadcast unavailable for this stage`. Con
- *   `Watch` apagado (el jugador hasta el encendido), las de hoy, con `report` llamada `Story`. La pestaña
- *   por defecto se fija la primera vez: que la etapa pase a vista mientras se mira no cambia de pestaña.
+ *   `Watch` apagado (el interruptor de §20.5), `Result`, `Classifications` y `Profile` (hasta W4, con
+ *   `Story`, la crónica, delante). La pestaña por defecto se fija la primera vez: que la etapa pase a
+ *   vista mientras se mira no cambia de pestaña.
  * - La puerta (`StageGateCard`): con la etapa sin ver y en el velo (`watch.gate` de la ficha, o el 403 del
  *   acta), lo que enseñaría el resultado la pinta; `?tab=` no la salta (sup. E9). En `Watch`, la de la
  *   anterior sin ver (`previous_unseen`, D-37). Fuera del velo, lo que no sirvió la ficha lo trae el acta
@@ -242,9 +239,6 @@ export function StageReplay() {
  *   this stage on another device · Watch anyway · Show report`.
  * - El modo diagnóstico (§11.15): `?diag=1` de un administrador, con su franja, la etapa entera y nada
  *   escrito: la ficha, la cabecera, los tramos y el acta lo llevan, y `Watch` no informa.
- * - La `Race Radio` de una etapa sin ver (§11.16, 11-i; paso 11a): en el velo y con línea grabada, la
- *   radio hasta lo pintado (`PaintedRaceRadio`) en lugar de la puerta; la de una conocida la trae la
- *   ficha, desde el 11a sacada de la línea en el servidor.
  * - Los modos (§8.1; paso 10a): `?view=highlights` abre `Watch` en `Highlights` y
  *   `?view=digest&from=5&to=21`, en el digest de la carrera de la 5 a la 21, que encadena navegando a la
  *   siguiente sin dejar rastro en el historial (8-c); `Show result` de los mandos revela con las mismas
@@ -272,8 +266,6 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
   const [finishedHere, setFinishedHere] = useState(false)
   const [revealedHere, setRevealedHere] = useState(false)
   const [otherDeviceSeen, setOtherDeviceSeen] = useState(false)
-  // lo alcanzado en `Watch` en esta página (11a): hasta ahí llega la radio de la etapa sin ver
-  const [reachedHere, setReachedHere] = useState(0)
   const actions = useRevealActions(
     readingWithCookie ? null : raceKeyOf(raceId, f.broadcastHead.data, f.gameDay),
     () => setRevealedHere(true),
@@ -295,16 +287,14 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
     return <QueryView query={f.stage} label="the stage" skeleton={{ kind: 'header' }} />
 
   // Carrera de un día: la ficha de carrera ya contiene todo esto. Se redirige sin dejar rastro en el
-  // historial, así que el botón "atrás" no rebota entre las dos páginas; sin pestaña pedida, a donde
-  // diga `Watch` para quien mira (9b), así que espera a saberlo (`settled`, que siempre llega).
-  if (isOneDay) {
-    if (!settled) return <LoadingState label="the race" skeleton={{ kind: 'header' }} />
-    return <Navigate to={oneDayStageTarget(raceId, params, watchOn)} replace />
-  }
+  // historial, así que el botón "atrás" no rebota entre las dos páginas; sin pestaña pedida, sin `tab`,
+  // y la ficha abre en la suya por defecto. Hasta W4 esperaba a saber si `Watch` estaba encendido
+  // (9b), porque apagado elegía la crónica; ya no depende de eso y sale en cuanto llega la ficha.
+  if (isOneDay) return <Navigate to={oneDayStageTarget(raceId, params)} replace />
 
   const race = data.race
   const stageCount = race?.stageCount ?? 0
-  const options = tabIds.map((id) => ({ key: id, label: stageTabLabel(id, watchOn) }))
+  const options = tabIds.map((id) => ({ key: id, label: stageTabLabel(id) }))
   const pagePath = `/world/races/${raceId}/stages/${data.day}`
   const diagHref = isAdmin ? hrefWith(pagePath, params, { diag: '1' }) : null
   // Dos dispositivos (D-57): sin verla al entrar, vista ahora, y no por la meta ni por revelar aquí.
@@ -319,7 +309,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
     !diagOn
 
   // La pestaña viaja en la URL (enlace compartido) y se conserva al saltar de etapa: quien está
-  // leyendo crónicas sigue leyendo crónicas. El modo de `Watch` no: la otra etapa abre en el suyo.
+  // leyendo actas sigue leyendo actas. El modo de `Watch` no: la otra etapa abre en el suyo.
   function stageHref(target: number): string {
     return hrefWith(`/world/races/${raceId}/stages/${target}`, params, { view: null, from: null })
   }
@@ -357,11 +347,6 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
     if (full !== null) return render(full)
     return <QueryView query={acta} label="the report" skeleton={{ kind: 'panel' }} />
   }
-  // La Race Radio de una etapa sin ver (§11.16, 11-i; 11a): la radio hasta lo pintado, construida aquí
-  // con la cabecera y los tramos de `Watch`, en lugar de la puerta (`paintedRadioWanted`).
-  const radioHead = f.broadcastHead.data
-  const paintedRadio = paintedRadioWanted(gate, watchable, radioHead)
-  const paintedReachedS = paintedReachedOf(radioHead, data.day, reachedHere)
   // `Watch` con la anterior sin ver: la puerta de §11.12, de la ficha o de la cabecera
   const watchGate =
     dataGate?.k === 'previous_unseen'
@@ -433,7 +418,6 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                   reveal={actions}
                   onReport={() => setActive('report')}
                   onFinished={() => setFinishedHere(true)}
-                  onReached={(s) => setReachedHere((x) => Math.max(x, s))}
                   onChain={(next) =>
                     navigate(
                       `/world/races/${raceId}/stages/${next}?tab=watch&view=digest&from=${digestRun?.from ?? data.day}&to=${digestRun?.last ?? next}`,
@@ -455,27 +439,24 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                 {watchOn && unavailable && (
                   <p className="text-meta text-ink-2">Broadcast unavailable for this stage</p>
                 )}
-                {withResult((d) =>
-                  watchOn ? (
-                    <>
-                      {/* el acta se comparte desde aquí, donde está; ver, desde la cabeza (§14.2) */}
-                      {run && <ShareStage raceId={raceId} day={data.day} report watch={false} />}
-                      <StageReportView
-                        data={d}
-                        onWatchAnyway={watchable && seen ? () => setActive('watch') : undefined}
-                        identity={identidad}
-                        ownRiderId={propio.riderId}
-                        classificationsHref={
-                          tabIds.includes('classifications')
-                            ? hrefWith(pagePath, params, { tab: 'classifications' })
-                            : undefined
-                        }
-                      />
-                    </>
-                  ) : (
-                    <StageStory data={d} onFullResult={() => setActive('result')} />
-                  ),
-                )}
+                {/* `report` solo existe con `Watch` encendido: apagado, el resultado es `result` (W4) */}
+                {withResult((d) => (
+                  <>
+                    {/* el acta se comparte desde aquí, donde está; ver, desde la cabeza (§14.2) */}
+                    {run && <ShareStage raceId={raceId} day={data.day} report watch={false} />}
+                    <StageReportView
+                      data={d}
+                      onWatchAnyway={watchable && seen ? () => setActive('watch') : undefined}
+                      identity={identidad}
+                      ownRiderId={propio.riderId}
+                      classificationsHref={
+                        tabIds.includes('classifications')
+                          ? hrefWith(pagePath, params, { tab: 'classifications' })
+                          : undefined
+                      }
+                    />
+                  </>
+                ))}
               </>
             )}
 
@@ -483,7 +464,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
               withResult((d) =>
                 d.results && d.results.length > 0 ? (
                   <div className={card}>
-                    <h2 className={head}>Stage result</h2>
+                    <StageResultHead onRoad={d.leaders?.onRoad} />
                     {/* `onRoad`, no `afterStage`: ver la cabecera de `ResultTable`. */}
                     <ResultTable
                       rows={d.results}
@@ -497,28 +478,6 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
                 ) : (
                   <div className={card}>
                     <EmptyState text="No result for this stage." />
-                  </div>
-                ),
-              )}
-
-            {active === 'radio' && paintedRadio && (
-              <PaintedRaceRadio
-                head={radioHead}
-                raceId={raceId}
-                day={data.day}
-                reachedS={paintedReachedS}
-                onWatch={() => setActive('watch')}
-              />
-            )}
-            {active === 'radio' &&
-              !paintedRadio &&
-              withResult((d) =>
-                d.radio ? (
-                  <RaceRadioPanel radio={d.radio} />
-                ) : (
-                  <div className={card}>
-                    <h2 className={head}>Race Radio</h2>
-                    <EmptyState text="This stage was raced before the race radio was recorded, so there is nothing to replay. We don't rebuild it from scratch: a re-run with today's engine would tell a different race from the one on the result sheet." />
                   </div>
                 ),
               )}

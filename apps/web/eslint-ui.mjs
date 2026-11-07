@@ -75,7 +75,7 @@ const HEX = '^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$'
  * `ui/10` (5-f): un emoji o un glifo de los que §3.7 sustituye por un icono: `ℹ`, `ⓘ`, `▲`, `▼`, las
  * flechas salvo la `→` de `StageRoute` (U+2192), `↺`, `‹`, `›`, `⋯` y el `▶︎` de `PLAY_GLYPH` (U+25B6 con
  * el selector de texto U+FE0E). El `▶` y el `◀` solos se quedan: son texto en los ejes de `Scale5`
- * (D-00n) y en `RaceRadioPanel.tsx`.
+ * (D-00n), y lo eran en `RaceRadioPanel.tsx` hasta W4.
  */
 const GLIFO =
   '[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2139}\\u{2190}\\u{2191}\\u{2193}\\u{2196}-\\u{2199}\\u{21BA}\\u{2039}\\u{203A}\\u{22EF}\\u{24D8}\\u{25B2}\\u{25BC}]|\\u{25B6}\\u{FE0E}'
@@ -141,6 +141,7 @@ export const UI_IGNORES = [
 
 /**
  * LOS HEREDADOS: los ficheros que el día del PR 8 ya tenían algún aviso `ui/`, en `warn` hasta que su PR
- * los limpia (paso 21 y los de cada componente). La lista solo encoge (`heredados.test.ts`).
+ * los limpia (paso 21 y los de cada componente). La lista solo encoge (`heredados.test.ts`): vacía desde
+ * W4, que se llevó el último, `RaceRadioPanel`, con la radio (D-16 revocada).
  */
-export const UI_HEREDADOS = ['apps/web/src/components/RaceRadioPanel.tsx']
+export const UI_HEREDADOS = []

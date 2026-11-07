@@ -19,7 +19,8 @@ import { lineVoiceOf } from './voiceRoles.js'
  *
  * B5 sella con un `sha256` todas las líneas de voz y de acta de las seis etapas congeladas tal como las
  * pinta la web (`apps/web/src/domain/stageJournal.corpus.test.ts`). El acta ya estaba congelada desde el
- * paso 2 (`<etapa>.acta.json.gz`, las `ChronicleEntry` que sirve la ruta de etapa); la voz la arma la API
+ * paso 2 (`<etapa>.acta.json.gz`, las `ChronicleEntry` del acta, `stageChronicleOf`; hasta W4, la crónica
+ * que servía la ruta de etapa); la voz la arma la API
  * al servir cada tramo y la web no la puede construir, porque `buildChronicle` y `lineVoiceOf` viven en
  * `apps/api`. Por eso la voz entera de cada etapa, hasta el borde de la meta, se congela aquí en
  * `<etapa>.voz.json.gz`: las `LiveLine` que, tramo a tramo, sirve la ruta (B19 promete que sus tramos

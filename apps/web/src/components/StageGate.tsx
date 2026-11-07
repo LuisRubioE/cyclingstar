@@ -12,7 +12,7 @@ import { TextLink } from './ui/TextLink'
  *
  * `StageGateCard` es lo que sale en lugar de lo que enseñaría el resultado de una etapa que quien mira
  * no ha visto ni revelado (`watch.gate` de la ruta de etapa, o el 403 del acta como `GateError`): en
- * `Report`, `Result`, `Classifications`, `Race Radio` y `/report`, `This page shows the result of Stage
+ * `Report`, `Result`, `Classifications` y `/report` (y `Race Radio` hasta W4), `This page shows the result of Stage
  * 7. Watch it instead?`; y en `Watch`, cuando falta por ver la anterior (`previous_unseen`), `You haven't
  * watched stage 6 yet` (§11.12). Tres salidas, ninguna cierra: verla, `Show result` con su confirmación
  * (la primera vez, con `Don't ask again`, DD-17) y, solo para un administrador, el último y en pequeño,
