@@ -55,6 +55,7 @@ import {
   failureAction,
   headAtLine,
   jumpWhy,
+  kmSeekOf,
   kmSeekable,
   playerInit,
   playerStep,
@@ -551,6 +552,20 @@ describe('W3 · tras la meta vista, volver atrás (la revisión de Watch del due
     const digest: PlayerState = { ...s, view: 'digest' }
     expect(kmSeekable(digest)).toBe(false)
     expect(playerStep(digest, { k: 'back', toS: 400 }, ctx).next).toBe(digest)
+  })
+
+  it('kmSeekOf: un km por delante de la cabeza es un salto, recortado al último km; uno por detrás, volver atrás; el mismo, nada (§8.5)', () => {
+    expect(kmSeekOf(120, 84.6, 175)).toEqual({ k: 'seek', km: 120 })
+    expect(kmSeekOf(175, 84.6, 175)).toEqual({ k: 'seek', km: 174 })
+    expect(kmSeekOf(500, 84.6, 175)).toEqual({ k: 'seek', km: 174 })
+    expect(kmSeekOf(30, 84.6, 175)).toEqual({ k: 'back', km: 30 })
+    expect(kmSeekOf(-10, 84.6, 175)).toEqual({ k: 'back', km: 0 })
+    expect(kmSeekOf(84.62, 84.6, 175)).toBeNull()
+    expect(kmSeekOf(84.55, 84.6, 175)).toBeNull()
+    // desde el último km (o tras la meta), nada por delante: lo de delante se queda en el último km
+    expect(kmSeekOf(174.5, 174.2, 175)).toBeNull()
+    expect(kmSeekOf(170, 175, 175)).toEqual({ k: 'back', km: 170 })
+    expect(kmSeekOf(Number.NaN, 84.6, 175)).toBeNull()
   })
 
   it('kmSeekable, antes de la meta, es lo de los saltos (jumpable): en la previa, jugando, en pausa y en el resumen, sí; saltando o esperando la meta, no', () => {

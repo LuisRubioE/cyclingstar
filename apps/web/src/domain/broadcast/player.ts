@@ -1332,6 +1332,31 @@ export function recapOf(prev: Instant, next: Instant, ctx: CueDeckContext): Reca
 // --------------------------------------------------------------- los destinos de los saltos (§8.5)
 
 /** Los saltos de recorrido de los mandos (§8.5; pantalla): `−5 km`, `+5 km`, `Next climb`, `Final 20 km`, `Last km`. */
+/** Lo que hace un toque en la barra de progreso o en el perfil (§8.5; W3): un salto o volver atrás, a ese km. */
+export interface KmSeek {
+  readonly k: 'seek' | 'back'
+  readonly km: number
+}
+
+/** Lo que se queda sin hacer un toque: el mismo km de la cabeza, a menos de una décima. */
+const SAME_KM = 0.1
+
+/**
+ * UN TOQUE EN LA BARRA O EN EL PERFIL (§8.5; W3, la revisión de `Watch` del dueño, su punto 6): el sentido
+ * lo da el km tocado frente a la cabeza. Delante, un salto a ese km, que como todos no pasa del último km
+ * (8-j), así que desde el último km, o tras la meta, por delante no queda nada; detrás, volver atrás a ese
+ * km (desde la salida); a menos de una décima de la cabeza, nada.
+ */
+export function kmSeekOf(km: number, headKm: number, lengthKm: number): KmSeek | null {
+  if (!Number.isFinite(km) || !Number.isFinite(headKm)) return null
+  if (km > headKm + SAME_KM) {
+    const target = Math.min(km, Math.max(0, lengthKm - 1))
+    return target > headKm + SAME_KM ? { k: 'seek', km: target } : null
+  }
+  if (km < headKm - SAME_KM) return { k: 'back', km: Math.max(0, km) }
+  return null
+}
+
 export type RoadJump = 'back5' | 'fwd5' | 'nextClimb' | 'final20' | 'lastKm'
 
 /**
