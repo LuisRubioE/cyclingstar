@@ -1,3 +1,4 @@
+import { renderAltimetrySvg, TEST_TOUR } from '@cyclingstar/engine'
 import {
   BROADCAST,
   type BroadcastHead,
@@ -324,6 +325,22 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
     )
   }
   const GATE = 'This page shows the result of Stage 7.'
+
+  it('vista, la pestaña Profile pinta la altimetría con el sistema (paso 24a); sin ella, su vacío', () => {
+    const altimetry = renderAltimetrySvg(TEST_TOUR.find((s) => s.kind === 'reina')!.profile)
+    const con = page('/world/races/race-france/stages/7?tab=profile', 'on', { ...seen, altimetry })
+    expect(con).toMatch(
+      /<figure class="mt-2 pt-6 pb-4" role="img" aria-label="Elevation profile of stage 7, 187 km">/,
+    )
+    expect(con).toContain('data-label="climb"')
+    expect(con).not.toContain('No profile available for this stage.')
+    const sin = page('/world/races/race-france/stages/7?tab=profile', 'on', {
+      ...seen,
+      altimetry: '',
+    })
+    expect(sin).toContain('No profile available for this stage.')
+    expect(sin).not.toContain('<figure')
+  })
 
   for (const watch of ['on', 'off'] as const) {
     it(`Watch ${watch}: ?tab=result&cls=kom pinta la puerta y no la tabla`, () => {

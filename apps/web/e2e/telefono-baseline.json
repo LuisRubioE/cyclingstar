@@ -127,8 +127,8 @@
       "360-dark": [null, null, null, null, null, 0, null, null, null, null]
     },
     "25-me-orders": {
-      "320": [0, 0, 2, 0, 0, 0, null, 0, 0, 0],
-      "360": [0, 0, 2, 0, 0, 0, 0, 0, 0, 0],
+      "320": [0, 0, 0, 0, 0, 0, null, 0, 0, 0],
+      "360": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       "360-dark": [null, null, null, null, null, 0, null, null, null, null]
     },
     "26-me-contract": {

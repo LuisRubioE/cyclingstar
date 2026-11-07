@@ -10,6 +10,7 @@ import {
   saveRaceOrders,
 } from '../api/raceOrders'
 import { fetchMyUpcomingRaces } from '../api/rider'
+import { Altimetry } from '../components/Altimetry'
 import { OrdersGate } from '../components/OrdersGate'
 import { ActionBar } from '../components/ui/ActionBar'
 import { Button } from '../components/ui/Button'
@@ -343,12 +344,10 @@ function StageOrders({
           )}
         </p>
 
-        {/* SVG generado por nuestro motor; se anuncia como imagen con su descripción. */}
-        <div
-          className="w-full overflow-x-auto rounded-ui bg-surface-2 p-1"
-          role="img"
-          aria-label={`Elevation profile of ${stage.name}, ${stage.km} km`}
-          dangerouslySetInnerHTML={{ __html: stage.altimetry }}
+        {/* La altimetría del motor, con el sistema (E3, paso 24a): una imagen con su descripción. */}
+        <Altimetry
+          svg={stage.altimetry}
+          label={`Elevation profile of ${stage.name}, ${stage.km} km`}
         />
 
         {stage.timeTrial ? (

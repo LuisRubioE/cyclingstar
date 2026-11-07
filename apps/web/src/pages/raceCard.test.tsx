@@ -1,3 +1,4 @@
+import { renderAltimetrySvg, TEST_TOUR } from '@cyclingstar/engine'
 import type {
   HorizonSummary,
   RacePref,
@@ -441,5 +442,18 @@ describe('la ficha de carrera con el sistema (§17.21; PR 21a)', () => {
         new RegExp(`<section data-ui="Panel"[^>]*><div[^>]*><h2[^>]*>${title}</h2>`),
       )
     }
+  })
+
+  it('la pestaña Route pinta cada altimetría con el sistema (paso 24a)', () => {
+    const altimetry = renderAltimetrySvg(TEST_TOUR.find((s) => s.kind === 'reina')!.profile)
+    const base = raceViewWith(21)
+    const markup = page('/world/races/race-france?tab=route', {
+      view: { ...base, stages: base.stages.map((s) => ({ ...s, altimetry })) },
+    })
+    expect(
+      markup.match(/<figure class="[^"]*" role="img" aria-label="Elevation profile of [^"]*"/g),
+    ).toHaveLength(21)
+    expect(markup).toContain('data-label="climb"')
+    expect(markup).not.toContain('Altimetría')
   })
 })
