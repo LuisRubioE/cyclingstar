@@ -554,6 +554,37 @@ describe('ProfileStrip · los cursores se mueven sin style (E3, ui/9; PR 21n)', 
   })
 })
 
+describe('ProfileStrip · el perfil que se toca (W3, la revisión de Watch del dueño; §8.5)', () => {
+  const head = headOf(CAST)
+  const pinta = (onSeekKm?: (km: number) => void) =>
+    html(
+      <ProfileStrip
+        profile={head.profile}
+        lengthKm={head.stage.lengthKm}
+        instant={sixPointOne()}
+        clock="exact"
+        {...(onSeekKm === undefined ? {} : { onSeekKm })}
+      />,
+    )
+
+  it('con onSeekKm, el dibujo se toca: data-seek y la mano del puntero; sin él, ni lo uno ni lo otro', () => {
+    const con = pinta(() => undefined)
+    const capa = /<div [^>]*data-seek="km"[^>]*>/.exec(con)?.[0]
+    expect(capa).toBeDefined()
+    expect(capa).toMatch(/\bcursor-pointer\b/)
+    const sin = pinta()
+    expect(sin).not.toContain('data-seek')
+    expect(sin).not.toContain('cursor-pointer')
+  })
+
+  it('solo para el puntero: el perfil sigue siendo una imagen para el lector, sin rol de mando; el mando es la barra', () => {
+    const con = pinta(() => undefined)
+    expect(con).toContain('role="img"')
+    expect(con).not.toContain('role="slider"')
+    expect(con).not.toContain('tabindex')
+  })
+})
+
 describe('ProfileStrip · el perfil con un cursor por grupo y el puerto que viene (§6.2)', () => {
   const head = headOf(CAST)
   const at = (km: number) =>

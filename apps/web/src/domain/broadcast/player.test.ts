@@ -55,6 +55,9 @@ import {
   failureAction,
   headAtLine,
   jumpWhy,
+  jumpable,
+  kmSeekOf,
+  kmSeekable,
   playerInit,
   playerStep,
   recapOf,
@@ -461,6 +464,167 @@ describe('playerStep · la línea, la llegada y el cierre (§8.7)', () => {
     expect(s).toMatchObject({ phase: 'paused', notice: 'offline', inFlight: false })
     const r = run(s, [{ k: 'retry' }, frame(DT, 0.05, true)], ctx)
     expect(r.effects.map((e) => e.k)).toEqual(['report', 'finish'])
+  })
+})
+
+describe('W3 · tras la meta vista, volver atrás (la revisión de Watch del dueño, su punto 6)', () => {
+  /** La meta vista en Watch o en Highlights: el último tramo dentro, la línea, la meta y el cierre. */
+  const closed = (view: ViewMode): PlayerState => {
+    const ctx = ctxOf(150)
+    const last = playerStep(asking(view), chunk(1000, true), ctx).next
+    const s = run(
+      last,
+      [frame(1000, 0.5), frame(DT, 0.05, true), { k: 'finished' }, { k: 'cardDone' }],
+      ctx,
+    ).next
+    expect(s).toMatchObject({ phase: 'closing', atFinish: true, inFlight: false, t: 999.9 })
+    return s
+  }
+
+  it('en el cierre se vuelve atrás: la carrera sigue en la hora pedida, sin red ni cuenta nueva, y lo alcanzado no baja', () => {
+    const ctx = ctxOf(150)
+    for (const view of ['watch', 'highlights'] as const) {
+      const s = closed(view)
+      expect(kmSeekable(s)).toBe(true)
+      const r = playerStep(s, { k: 'back', toS: 400 }, ctx)
+      expect(r.effects).toEqual([])
+      expect(r.next).toMatchObject({
+        phase: 'playing',
+        t: 400,
+        reachedS: s.reachedS,
+        reportedS: s.reportedS,
+        atFinish: true,
+        notice: null,
+      })
+      // y el reloj corre desde ahí, con lo servido en memoria
+      const corre = playerStep(r.next, frame(1, 50), ctx)
+      expect(corre.next.t).toBeGreaterThan(400)
+      expect(corre.effects).toEqual([])
+    }
+  })
+
+  it('al llegar otra vez a la línea pide la meta, sin informe (lo alcanzado ya estaba informado), y vuelve a la llegada y al cierre', () => {
+    const ctx = ctxOf(150)
+    const s = run(closed('watch'), [{ k: 'back', toS: 990 }], ctx).next
+    const r = playerStep(s, frame(DT, 0.05, true), ctx)
+    expect(r.effects.map((e) => e.k)).toEqual(['finish'])
+    const otraVez = run(r.next, [{ k: 'finished' }, { k: 'cardDone' }], ctx).next
+    expect(otraVez.phase).toBe('closing')
+    expect(kmSeekable(otraVez)).toBe(true)
+  })
+
+  it('hacia delante, en el cierre, nada: la cabeza ya está en la meta y ningún salto la cruza (8-j)', () => {
+    const ctx = ctxOf(150)
+    const s = closed('watch')
+    expect(playerStep(s, { k: 'seek', km: 149, headKmAtEnd: 150 }, ctx)).toEqual({
+      next: s,
+      effects: [],
+    })
+  })
+
+  it('en la repetición no se informa nada: ni el informe periódico, ni al pausar, ocultarse o salir', () => {
+    const ctx = ctxOf(150)
+    let s = run(closed('watch'), [{ k: 'back', toS: 100 }], ctx).next
+    const effects: PlayerEffect[] = []
+    // más de progressEveryRealS de pared, fotograma a fotograma, a 10 km de meta (×12): lejos de la línea
+    for (let wall = 0; wall < BROADCAST.progressEveryRealS + 5; wall += 0.25) {
+      const r = playerStep(s, frame(0.25, 10), ctx)
+      s = r.next
+      effects.push(...r.effects)
+    }
+    expect(s.t).toBeGreaterThan(100)
+    expect(s.phase).toBe('playing')
+    for (const a of [
+      { k: 'pause' },
+      { k: 'play' },
+      { k: 'hidden' },
+      { k: 'play' },
+      { k: 'leave' },
+    ] as const)
+      effects.push(...playerStep(s, a, ctx).effects)
+    expect(effects).toEqual([])
+  })
+
+  it('Show result no se ofrece a quien ya vio la meta: en la repetición, nada que revelar', () => {
+    const ctx = ctxOf(150)
+    const r = run(closed('watch'), [{ k: 'back', toS: 400 }, { k: 'showResult' }], ctx)
+    expect(r.effects).toEqual([])
+    expect(r.next).toMatchObject({ phase: 'playing', revealed: false, finishSeen: true })
+  })
+
+  it('en la llegada, el cuadro del ganador, todavía no: el cierre es el que lleva la barra', () => {
+    const ctx = ctxOf(150)
+    const last = playerStep(asking('watch'), chunk(1000, true), ctx).next
+    const llegada = run(
+      last,
+      [frame(1000, 0.5), frame(DT, 0.05, true), { k: 'finished' }],
+      ctx,
+    ).next
+    expect(llegada.phase).toBe('arrival')
+    expect(kmSeekable(llegada)).toBe(false)
+    expect(playerStep(llegada, { k: 'back', toS: 400 }, ctx).next).toBe(llegada)
+  })
+
+  it('tras Show result, no: la etapa revelada no se vuelve a ver desde aquí (§8.5)', () => {
+    const ctx = ctxOf(150)
+    const revealed = run(
+      playing(),
+      [{ k: 'showResult' }, { k: 'finished' }, { k: 'cardDone' }],
+      ctx,
+    ).next
+    expect(revealed).toMatchObject({ phase: 'closing', revealed: true })
+    expect(kmSeekable(revealed)).toBe(false)
+    expect(playerStep(revealed, { k: 'back', toS: 400 }, ctx).next).toBe(revealed)
+  })
+
+  it('en el digest, tampoco: sus mandos son la pausa y Show results (§8.1)', () => {
+    const ctx = ctxOf(150)
+    const s = closed('highlights')
+    const digest: PlayerState = { ...s, view: 'digest' }
+    expect(kmSeekable(digest)).toBe(false)
+    expect(playerStep(digest, { k: 'back', toS: 400 }, ctx).next).toBe(digest)
+  })
+
+  it('kmSeekOf: un km por delante de la cabeza es un salto, recortado al último km; uno por detrás, volver atrás; el mismo, nada (§8.5)', () => {
+    expect(kmSeekOf(120, 84.6, 175)).toEqual({ k: 'seek', km: 120 })
+    expect(kmSeekOf(175, 84.6, 175)).toEqual({ k: 'seek', km: 174 })
+    expect(kmSeekOf(500, 84.6, 175)).toEqual({ k: 'seek', km: 174 })
+    expect(kmSeekOf(30, 84.6, 175)).toEqual({ k: 'back', km: 30 })
+    expect(kmSeekOf(-10, 84.6, 175)).toEqual({ k: 'back', km: 0 })
+    expect(kmSeekOf(84.62, 84.6, 175)).toBeNull()
+    expect(kmSeekOf(84.55, 84.6, 175)).toBeNull()
+    // desde el último km (o tras la meta), nada por delante: lo de delante se queda en el último km
+    expect(kmSeekOf(174.5, 174.2, 175)).toBeNull()
+    expect(kmSeekOf(170, 175, 175)).toEqual({ k: 'back', km: 170 })
+    expect(kmSeekOf(Number.NaN, 84.6, 175)).toBeNull()
+  })
+
+  it('kmSeekable, antes de la meta, es lo de los saltos (jumpable): en la previa, jugando, en pausa, en el resumen y esperando un tramo, sí; saltando o esperando la meta, no', () => {
+    const ctx = ctxOf(150)
+    const esperando = playerStep(playing(), frame(1000, 100), ctx).next
+    expect(esperando).toMatchObject({ phase: 'waiting', atFinish: false })
+    for (const x of [
+      playerInit('watch', 1, null, false).next,
+      playing(),
+      run(playing(), [{ k: 'pause' }], ctx).next,
+      playerInit('watch', 1, 2000, false).next,
+      esperando,
+      { ...playing(), phase: 'seeking' as const },
+    ])
+      expect(kmSeekable(x), x.phase).toBe(jumpable(x))
+    expect(kmSeekable(esperando)).toBe(true)
+    expect(kmSeekable(playerInit('watch', 1, null, false).next)).toBe(true)
+    expect(kmSeekable(playing())).toBe(true)
+    expect(kmSeekable(run(playing(), [{ k: 'pause' }], ctx).next)).toBe(true)
+    expect(kmSeekable(playerInit('watch', 1, 2000, false).next)).toBe(true)
+    expect(kmSeekable({ ...playing(), phase: 'seeking' })).toBe(false)
+    const pidiendo = run(
+      playerStep(asking('watch'), chunk(1000, true), ctx).next,
+      [frame(1000, 0.5), frame(DT, 0.05, true)],
+      ctx,
+    ).next
+    expect(pidiendo).toMatchObject({ phase: 'waiting', atFinish: true, inFlight: true })
+    expect(kmSeekable(pidiendo)).toBe(false)
   })
 })
 
@@ -1620,6 +1784,9 @@ interface Coverage {
   landings: number
   recaps: number
   backs: number
+  /** W3: vueltas atrás desde el cierre, y las metas que se repiten tras ellas */
+  replays: number
+  replayFinishes: number
   reveals: number
   /** 10a: el digest, sus etapas encadenadas y lo que se suelta (18-e) */
   chains: number
@@ -1643,6 +1810,8 @@ const emptyCoverage = (): Coverage => ({
   landings: 0,
   recaps: 0,
   backs: 0,
+  replays: 0,
+  replayFinishes: 0,
   reveals: 0,
   chains: 0,
   releases: 0,
@@ -1892,6 +2061,8 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
       if (s1.phase === 'recap') cov.recaps += 1
     }
     if (a.k === 'back' && s1.t < s0.t) cov.backs += 1
+    if (a.k === 'back' && s0.phase === 'closing' && s1.phase !== 'closing') cov.replays += 1
+    if (r.effects.some((e) => e.k === 'finish') && s0.finishSeen) cov.replayFinishes += 1
     if (s1.stageDay !== s0.stageDay) cov.chains += 1
     cov.releases += r.effects.filter((e) => e.k === 'release').length
     if (a.k === 'frame' && s0.nextAction && !s1.nextAction && s1.lastKm) cov.lastKmOff += 1
@@ -1961,8 +2132,15 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
       } else {
         if (a.k !== 'frame' || !s0.atFinish || !(a.atLine || s0.t >= clockCapS(s0)))
           fail('meta sin la línea')
-        if (rep?.k !== 'report' || rep.reachedS > clockCapS(s0) || rep.reachedS >= st0.finishS)
+        // RE-SELLADO en W3: en una repetición (tras volver atrás desde el cierre de la meta vista), lo
+        // alcanzado ya estaba informado y la meta va sola
+        if (
+          !s0.finishSeen &&
+          (rep?.k !== 'report' || rep.reachedS > clockCapS(s0) || rep.reachedS >= st0.finishS)
+        )
           fail('sin el informe del borde, o un informe en la meta')
+        if (s0.finishSeen && r.effects.some((e) => e.k === 'report'))
+          fail('un informe en la repetición')
       }
       if (fin.k === 'finish' && fin.mode !== REPORT_MODE[s0.view]) fail('meta con otro modo')
     }
@@ -2039,6 +2217,9 @@ describe('las comprobaciones de §8.11, en cada paso de 1.000 secuencias al azar
     expect(cov.landings).toBeGreaterThan(100)
     expect(cov.recaps).toBeGreaterThan(30)
     expect(cov.backs).toBeGreaterThan(100)
+    // W3: se vuelve atrás desde el cierre y la meta se repite
+    expect(cov.replays).toBeGreaterThan(10)
+    expect(cov.replayFinishes).toBeGreaterThan(0)
     expect(cov.reveals).toBeGreaterThan(30)
     expect(cov.chains).toBeGreaterThan(5)
     expect(cov.releases).toBeGreaterThan(0)

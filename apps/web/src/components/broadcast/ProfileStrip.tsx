@@ -1,6 +1,7 @@
 import { type Instant, type ProfileStrip as ProfileData, shownGroupsOf } from '@cyclingstar/shared'
-import { memo, useMemo } from 'react'
+import { type MouseEvent, memo, useMemo } from 'react'
 import { type Cursor, climbAheadText, climbCatText } from '../../domain/broadcast/screen'
+import { kmAtRatio } from './KmBar'
 
 /**
  * EL PERFIL CON CURSORES (docs/retransmision.md §6.2; [DOC 2]): la cota por km de la cabecera a todo
@@ -24,6 +25,10 @@ import { type Cursor, climbAheadText, climbCatText } from '../../domain/broadcas
  * espectador), y las cotas salen del dibujo. El dibujo es un `viewBox` de 600 que se pinta a 310 px a
  * 360, así que un `<text>` de dentro no llegaba a 12 px; las categorías y los números van en una capa
  * encima, un SVG sin `viewBox` con `x` e `y` en porcentaje, donde la letra se pinta a su tamaño.
+ *
+ * Desde W3 (la revisión de `Watch` del dueño, su punto 6; §8.5): con `onSeekKm`, el dibujo se toca y lleva
+ * al km tocado, delante o detrás, como la barra de progreso. Solo para el puntero: para el lector y el
+ * teclado sigue siendo una imagen, y su mando es la barra (`KmBar`), que hace lo mismo.
  */
 
 const W = 600 // el ancho del dibujo; el alto, H: 6 a 1, unos 56 px de alto en un teléfono de 360
@@ -118,6 +123,7 @@ export const ProfileStrip = memo(function ProfileStrip({
   clock,
   reducedMotion = false,
   cursors: given,
+  onSeekKm,
 }: {
   profile: ProfileData
   lengthKm: number
@@ -126,6 +132,8 @@ export const ProfileStrip = memo(function ProfileStrip({
   reducedMotion?: boolean
   /** los del reproductor, que siguen al grupo por su sucesor (`cursorsOf`) */
   cursors?: readonly Cursor[]
+  /** un toque en un km del dibujo (W3); sin él, el perfil no se toca */
+  onSeekKm?: (km: number) => void
 }) {
   const { x, y, relief, climbLabels } = useMemo(
     () => reliefOf(profile, lengthKm),
@@ -150,7 +158,23 @@ export const ProfileStrip = memo(function ProfileStrip({
   return (
     <figure className="space-y-1">
       {/* el margen de arriba deja sitio a la cota de la cima más alta, que a 12 px sale del dibujo */}
-      <div className="relative mt-3">
+      <div
+        className={`relative mt-3${onSeekKm === undefined ? '' : ' cursor-pointer'}`}
+        {...(onSeekKm === undefined
+          ? {}
+          : {
+              'data-seek': 'km',
+              onClick: (e: MouseEvent<HTMLDivElement>) => {
+                // el dibujo va de la salida a la meta a todo el ancho: la proporción tocada es la del km
+                const r = e.currentTarget.getBoundingClientRect()
+                const km = kmAtRatio(
+                  r.width > 0 ? (e.clientX - r.left) / r.width : Number.NaN,
+                  lengthKm,
+                )
+                if (km !== null) onSeekKm(km)
+              },
+            })}
+      >
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="block h-auto w-full"

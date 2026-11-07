@@ -1,9 +1,9 @@
 import { defineConfig } from '@playwright/test'
 
 /**
- * LA PRUEBA DEL TELÉFONO, LA DE CADA NOCHE Y LA DE SIN RED (E3, docs/visual.md §7.4, §7.5 y §12.1; PR 2a
- * y PR 4). Tres proyectos sobre el mundo de `e2e/world/build.mjs`, servido por `e2e/world/serve.mjs` en
- * `E2E_BASE`:
+ * LA PRUEBA DEL TELÉFONO, LA DE CADA NOCHE, LA DE SIN RED Y LA DE MOVERSE (E3, docs/visual.md §7.4, §7.5 y
+ * §12.1; PR 2a, PR 4 y W3). Cuatro proyectos sobre el mundo de `e2e/world/build.mjs`, servido por
+ * `e2e/world/serve.mjs` en `E2E_BASE`:
  *
  * - `telefono`, las diez comprobaciones de §7.1 en `/_ui` y las 46 pantallas, a 360 × 800 y 320 × 640,
  *   contra la línea base (`telefono.spec.ts`, desde el PR 2b). Corre en el trabajo `Teléfono` de
@@ -14,6 +14,9 @@ import { defineConfig } from '@playwright/test'
  *   para ningún PR.
  * - `sinred`, los casos sin red de §12.1 (`sinred.spec.ts`, desde el PR 4). Corre en el mismo trabajo
  *   `Teléfono`, tras la prueba del teléfono.
+ * - `moverse`, la barra de progreso en km y el perfil que se tocan en `Watch`, y volver a ver tras la meta
+ *   (`moverse.spec.ts`, desde W3, la revisión de `Watch` del dueño). Corre en el trabajo `Teléfono`, tras
+ *   la de sin red.
  *
  * Chromium, el 141 de Playwright 1.56.1 (`~/.cache/ms-playwright` en el CI; `/opt/pw-browsers` en el
  * contenedor de diseño, por `PLAYWRIGHT_BROWSERS_PATH`). La letra la fija `e2e/fonts.conf` por
@@ -38,5 +41,7 @@ export default defineConfig({
     { name: 'nocturno', testMatch: /nocturno\.spec\.ts$/ },
     // cada caso tarda segundos: un minuto basta, y lo que se cuelga no se come la hora del trabajo
     { name: 'sinred', testMatch: /sinred\.spec\.ts$/, timeout: 60_000 },
+    // volver a ver tras la meta lleva hasta ella: el último km a ×4, la llegada y el cierre
+    { name: 'moverse', testMatch: /moverse\.spec\.ts$/, timeout: 5 * 60_000 },
   ],
 })

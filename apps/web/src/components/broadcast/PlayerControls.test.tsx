@@ -99,12 +99,18 @@ const ROAD: readonly JumpOption[] = [
 
 const noop = (): void => {}
 
-function controls(state: Partial<ControlsState> = {}, canShowResult = true): string {
+function controls(
+  state: Partial<ControlsState> = {},
+  canShowResult = true,
+  bar: ReactElement | null = null,
+): string {
   const el: ReactElement = (
     <PlayerControls
       state={{ ...PLAYING, ...state }}
       jumps={ROAD}
       canShowResult={canShowResult}
+      bar={bar}
+      closingCaptionId="w3-cierre"
       onPlay={noop}
       onPause={noop}
       onSpeed={noop}
@@ -228,6 +234,36 @@ describe('PlayerControls a 360 px (8-p, §8.12)', () => {
 // Hasta W2a, `Commentary` era un mando de esta fila, que se esconde a los 3 s sin tocar (8-p), y el dueño no
 // veía «lo de atrás»: va bajo la línea de la voz (`VoiceTicker.test.tsx`), y la fila del teléfono se queda en
 // cuatro.
+describe('la barra de progreso en km, bajo la fila (W3; §8.5, 8-p)', () => {
+  const bar = <div data-bar="km" />
+
+  it('va bajo la fila de los mandos, dentro de lo que se esconde con ellos', () => {
+    const s = controls({}, true, bar)
+    expect(s).toContain('data-bar="km"')
+    expect(s.indexOf('data-bar="km"')).toBeGreaterThan(s.indexOf('aria-label="More"'))
+    const escondidos = controls({ hidden: true }, true, bar)
+    expect(escondidos).toMatch(/^<div [^>]*data-state="hidden"[^>]*>[\s\S]*data-bar="km"/)
+  })
+
+  it('en el digest, nunca: sus mandos son la pausa y Show results (§8.1)', () => {
+    expect(controls({ view: 'digest' }, true, bar)).not.toContain('data-bar')
+  })
+
+  it('en el cierre, la leyenda y la barra, sin la fila: volver a ver es lo único que queda', () => {
+    const s = controls({ phase: 'closing' }, true, bar)
+    expect(s).toMatch(/<p id="w3-cierre"[^>]*>Watch again from any km<\/p>/)
+    expect(s.indexOf('id="w3-cierre"')).toBeLessThan(s.indexOf('data-bar="km"'))
+    expect(buttonsOf(s)).toEqual([])
+    // y fuera del cierre, ni la leyenda
+    expect(controls({}, true, bar)).not.toContain('Watch again')
+  })
+
+  it('sin barra (la crono), la fila de siempre', () => {
+    expect(controls({}, true, null)).not.toContain('data-bar')
+    expect(mobileRow(controls({}, true, null))).toEqual(mobileRow(controls({}, true, bar)))
+  })
+})
+
 describe('Commentary ya no va en los mandos (W2a)', () => {
   it('ni en la fila, en ninguna fase, ni en la hoja de ⋯', () => {
     for (const phase of ['playing', 'paused', 'waiting'] as const)
