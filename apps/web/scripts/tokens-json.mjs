@@ -8,8 +8,8 @@
  *
  * Una clave por token, con el nombre sin el prefijo de su espacio (`--color-canvas` es `color.canvas`;
  * `--text-body--line-height`, `text.body--line-height`; el que es su espacio entero, como `--spacing`,
- * `spacing.DEFAULT`) y el valor tal como está en el CSS. Los heredados (`brand-*`), que borra el paso 22,
- * no van: la app no los usará. En `dark` y `darkScope`, solo lo que esos bloques redefinen.
+ * `spacing.DEFAULT`) y el valor tal como está en el CSS; las 17 líneas del cierre (`--color-*: initial`,
+ * §5.1) no son tokens y no van. En `dark` y `darkScope`, solo lo que esos bloques redefinen.
  *
  * Lo lee también `tokens.test.ts`, que comprueba cada pareja del tema, y `generados.test.ts` falla si
  * `index.css` cambia y esto no se ha vuelto a correr:
@@ -50,6 +50,9 @@ export function declaraciones(css, cabecera) {
   if (inicio === -1) return null
   const fin = limpio.indexOf('}', inicio)
   const cuerpo = limpio.slice(inicio + cabecera.length + 2, fin)
+  // un bloque dentro (un `@keyframes` en el `@theme`) cortaría la lectura en su primera llave
+  if (cuerpo.includes('{'))
+    throw new Error(`${cabecera}: un bloque dentro; tokens-json no lo lee, y dejaría tokens fuera`)
   const fuera = new Map()
   for (const d of cuerpo.split(';')) {
     const m = /^\s*--([\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(d)
@@ -65,7 +68,6 @@ function porEspacio(decls) {
     const ns = NAMESPACES.find((n) => nombre === n || nombre.startsWith(`${n}-`))
     if (ns === undefined) throw new Error(`--${nombre}: no es de ningún espacio del tema`)
     const clave = nombre === ns ? 'DEFAULT' : nombre.slice(ns.length + 1)
-    if (ns === 'color' && clave.startsWith('brand-')) continue
     ;(fuera[ns] ??= {})[clave] = valor
   }
   return fuera
@@ -73,6 +75,9 @@ function porEspacio(decls) {
 
 /** `tokens.json` de un `index.css`. */
 export function tokensJson(css) {
+  // uno solo, de cualquier forma (`@theme inline`, `@theme static`): solo se lee el primero
+  if (css.replace(/\/\*[\s\S]*?\*\//g, '').match(/@theme\b/g)?.length !== 1)
+    throw new Error('index.css: no hay un solo bloque @theme; tokens-json lee solo uno')
   const tema = declaraciones(css, '@theme')
   const ambito = declaraciones(css, "[data-surface='dark']")
   if (tema === null || ambito === null)
