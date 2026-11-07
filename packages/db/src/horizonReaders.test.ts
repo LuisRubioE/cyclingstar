@@ -389,6 +389,11 @@ const EXCEPCIONES: ReadonlyMap<string, string> = new Map([
     'seasonRivals.ts:seasonFields',
     'los pelotones que elegirá el tick, para los maillots: el presupuesto ordena y no se devuelve',
   ],
+  // E3, 17d: en una escuadra congelada, el NPC de menos presupuesto cede su maillot.
+  [
+    'kits.ts:ensureKits',
+    'el tick: el presupuesto decide qué NPC cede su maillot en una escuadra congelada; no se devuelve',
+  ],
 ])
 
 /** El programa de `packages/db`, con su `tsconfig.json`, sin los tests (que no exportan lectoras). */
