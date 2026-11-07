@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      El modo oscuro, sin destello (E3, docs/visual.md §3.3, D-00i y 3-h): un guion clásico, antes de la hoja
+      de estilos y de todo lo demás, pone data-theme si el jugador lo eligió en este aparato. En un fichero y
+      no en línea, porque la CSP solo deja script-src 'self'.
+    -->
+    <script src="/theme.js"></script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!--
       El marco (E3, docs/visual.md §12.4; PR 11): con viewport-fit=cover, env(safe-area-inset-*) vale algo

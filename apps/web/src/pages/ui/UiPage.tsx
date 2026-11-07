@@ -9,7 +9,8 @@ import {
   parseKit,
 } from '@cyclingstar/shared'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
-import { type ReactNode, useId, useState } from 'react'
+import { type ReactNode, useEffect, useId, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { CueCard } from '../../components/broadcast/CueCard'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
 import { ActionRow } from '../../components/ui/ActionRow'
@@ -97,6 +98,7 @@ import {
   UI_QUERIES,
   type UiGcRow,
 } from './fixtures'
+import { applyTheme, themeFromSearch } from '../../theme'
 
 /**
  * `/_ui` (E3, docs/visual.md §5.4; PR 9a, I-03 y D-10). Cada componente del catálogo en cada uno de sus
@@ -1556,6 +1558,20 @@ function Rotulos() {
 }
 
 export function UiPage() {
+  // `?theme=dark` (o `light`) pinta la página en ese modo sin escribir la preferencia (§5.4; 5-h): así la
+  // ven el dueño y la prueba del teléfono en los dos modos sin tocar su cuenta ni su aparato.
+  const { search } = useLocation()
+  useEffect(() => {
+    const forzado = themeFromSearch(search)
+    if (forzado === null) return
+    const root = document.documentElement
+    const antes = root.dataset.theme
+    applyTheme(forzado, root, null)
+    return () => {
+      if (antes === undefined) delete root.dataset.theme
+      else root.dataset.theme = antes
+    }
+  }, [search])
   return (
     <main className="mx-auto flex max-w-page flex-col gap-8 px-3 py-6 sm:px-4">
       <meta name="robots" content="noindex" />

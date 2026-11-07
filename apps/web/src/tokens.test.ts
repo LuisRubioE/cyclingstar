@@ -341,9 +341,14 @@ describe('cada color del tema tiene su pareja (§5.5; paso 22)', () => {
     expect(delModo.filter((t) => !con.has(t))).toEqual([])
   })
 
-  it('en el ámbito oscuro, todo lo que redefine', () => {
+  // lo que el ámbito devuelve al claro para el modo oscuro (3-j; paso 23) tiene las parejas del claro
+  it('en el ámbito oscuro, todo lo que redefine con un valor suyo', () => {
     const con = nombrados(AMBITO)
-    expect(Object.keys(tokens.darkScope.color).filter((t) => !con.has(t))).toEqual([])
+    const propios = Object.keys(tokens.darkScope.color).filter(
+      (t) => tokens.darkScope.color[t] !== claro[t],
+    )
+    expect(propios.length).toBeGreaterThan(10)
+    expect(propios.filter((t) => !con.has(t))).toEqual([])
   })
 
   it('las excepciones son tokens del claro, y sin pareja en CLARO: la lista no se queda vieja', () => {

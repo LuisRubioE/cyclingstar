@@ -2091,3 +2091,14 @@ export const adminUsersResponseSchema = z.object({
   ok: z.boolean(),
   users: z.array(adminUserSchema),
 })
+
+// --- /api/me/theme: el modo del jugador (E3, docs/visual.md §3.3, D-00i; paso 23) ---------------------
+/** Los dos modos: claro por defecto, y oscuro en las opciones (D-00i). No sigue a `prefers-color-scheme`. */
+export const THEMES = ['light', 'dark'] as const
+export type Theme = (typeof THEMES)[number]
+export const themeSchema = z.enum(THEMES)
+/** `PUT /api/me/theme`: `{ theme }` y nada más. */
+export const themeBodySchema = z.strictObject({ theme: themeSchema })
+/** `GET` y `PUT /api/me/theme`: el modo guardado en la cuenta. */
+export const themeResponseSchema = z.object({ theme: themeSchema })
+export type ThemeResponse = z.infer<typeof themeResponseSchema>

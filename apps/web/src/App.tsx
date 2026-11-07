@@ -12,6 +12,7 @@ import { LoadingState } from './components/ui/QueryView'
 import { isStagePagePath } from './domain/firstPaint'
 import { pageKindOfPath, usePageTitle } from './domain/pageTitle'
 import { lazyPage } from './lazyPage'
+import { ThemeSync } from './theme'
 import type { PageKind } from '@cyclingstar/shared'
 
 /**
@@ -196,6 +197,8 @@ export function App() {
     */
     <div className="min-h-screen pb-[var(--fixed-bottom)] text-ink">
       <SessionExpiryWatcher />
+      {/* El modo del jugador (§3.3, D-00i; paso 23): al llegar la cuenta, manda la cuenta. */}
+      <ThemeSync />
       <RouteTitle />
       <Header />
       {/* Sin red, la franja que lo dice, con la hora de lo que se ve (§12.1; PR 4). */}

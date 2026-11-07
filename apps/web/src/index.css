@@ -126,6 +126,51 @@
   --fixed-bottom: 0px;
 }
 
+/* EL MODO OSCURO (§3.3, D-00i; paso 23): claro por defecto, y oscuro solo si el jugador lo elige en
+   /account; public/theme.js pone data-theme antes de la primera pintura. No sigue a prefers-color-scheme.
+   Redefine colores y nada más: white, navy, navy-dark, on-navy-2, cyan y gold no cambian, así que la
+   cabecera, la barra y las marcas son las mismas en los dos modos. tokens.test.ts mide sus 57 parejas. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-canvas: #071a2d;
+  --color-surface: #0b2740;
+  --color-surface-2: #123a5c;
+  --color-line: #2c5274;
+  --color-line-strong: #7f97b0;
+  --color-ink: #ffffff;
+  --color-ink-2: rgb(255 255 255 / 0.75);
+  --color-ink-3: rgb(255 255 255 / 0.75);
+  --color-accent: #35bdda;
+  --color-accent-strong: #7fd6e9;
+  --color-on-accent: #0b2740;
+  --color-gold-ink: #f0b429;
+  --color-good: #5bd08c;
+  --color-good-bg: #0e3b2e;
+  --color-warn: #f5b04f;
+  --color-warn-bg: #3d2c0c;
+  --color-bad: #ff8f86;
+  --color-bad-bg: #45191f;
+  --color-on-bad: #0b2740;
+  --color-info-bg: #0d3a55;
+  --color-focus: #ffd166;
+  --color-disabled-bg: #1f4567;
+  --color-disabled-ink: #a3b2c3;
+  --color-own: #e0a106;
+  --color-own-tint: #2e2a16;
+  --color-arrival-cooked: #ff8f86;
+  --color-arrival-loaded: #f5a35c;
+  --color-arrival-fine: #a3b2c3;
+  --color-arrival-spoton: #5bd08c;
+  --color-arrival-rusty: #82b4f5;
+  --color-on-arrival: #0b2740;
+  /* el filete del maillot, claro sobre los fondos del modo (§9.10); kit-ink no cambia (8-s) */
+  --color-kit-edge: rgb(255 255 255 / 0.6);
+  --color-kit-edge-strong: rgb(255 255 255 / 0.6);
+  /* el logotipo, el de la cabecera (PR 21n) */
+  --color-logo: #ffffff;
+  --color-logo-star: #e0a106;
+}
+
 /* Los cursores del perfil de `Watch` (`ProfileStrip`), que se mueven solo de sitio: su centro (PR 21n). */
 @utility transition-center {
   transition-property: cx, cy;
@@ -140,8 +185,8 @@
 }
 
 /* EL ÁMBITO OSCURO (I-10, §3.3), el mismo en los dos modos: un token de tinta nunca es un fondo aquí
-   dentro. Con el modo oscuro (paso 23), lo que él redefine y el ámbito no vuelve aquí a su valor claro
-   (decisión 3-j). */
+   dentro. Lo que el modo oscuro redefine y el ámbito no vuelve aquí a su valor claro (decisión 3-j), para
+   que la cabecera, la barra y las capas de Watch salgan iguales con el modo activo. */
 [data-surface='dark'] {
   --color-surface: #0b2740;
   --color-surface-2: #123a5c;
@@ -161,6 +206,25 @@
   /* el logotipo, como en la imagen de compartir (§14.7): sobre navy, el índigo de su trazo daba 1,87:1 */
   --color-logo: #ffffff;
   --color-logo-star: #e0a106;
+  /* lo que el modo oscuro redefine, con su valor claro (3-j) */
+  --color-canvas: #eef2f6;
+  --color-gold-ink: #7a5000;
+  --color-good: #167a3a;
+  --color-good-bg: #e6f4ea;
+  --color-warn: #8f4e00;
+  --color-warn-bg: #fff3d6;
+  --color-bad: #b42318;
+  --color-bad-bg: #fdeceb;
+  --color-on-bad: #ffffff;
+  --color-info-bg: #e3f2f7;
+  --color-own: #a87300;
+  --color-own-tint: #fdf4dc;
+  --color-arrival-cooked: #b42318;
+  --color-arrival-loaded: #b45309;
+  --color-arrival-fine: #566579;
+  --color-arrival-spoton: #167a3a;
+  --color-arrival-rusty: #1d5fa8;
+  --color-on-arrival: #ffffff;
   color: var(--color-ink);
 }
 
