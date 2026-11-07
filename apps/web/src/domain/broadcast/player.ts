@@ -149,6 +149,11 @@ export interface PlayerState {
   readonly lastKm: boolean
   /** `Show result` aceptado: la meta se pidió tras revelar (§8.5). No estaba en §8.11 */
   readonly revealed: boolean
+  /**
+   * la meta llegó en esta reproducción, viéndola (W3): lo que siga es volver a verla, que ni informa nada
+   * nuevo ni ofrece `Show result`. No estaba en §8.11
+   */
+  readonly finishSeen: boolean
 }
 
 /**
@@ -432,6 +437,7 @@ export function playerInit(
     seekVia: null,
     lastKm: false,
     revealed: false,
+    finishSeen: false,
   })
 }
 
@@ -458,7 +464,8 @@ function frame(
   // La línea (§8.7): el último tramo dentro y la cabeza en su último bloque, o el reloj en el borde.
   // Se informa de lo alcanzado en el borde y se pide la meta con el modo de la curva (14-f).
   if (s.atFinish && (a.atLine || s.t >= cap)) {
-    const r = withReport(ticked, false)
+    // en una repetición (W3), lo alcanzado ya estaba informado: solo la meta
+    const r = s.finishSeen ? { next: ticked, effects: [] } : withReport(ticked, false)
     return {
       next: { ...r.next, phase: 'waiting', notice: 'loading', inFlight: true },
       effects: [...r.effects, { k: 'finish', mode: REPORT_MODE[s.view] }],
@@ -649,6 +656,8 @@ function back(s: PlayerState, toS: RaceS): PlayerStep {
  * la pantalla. Lo que estuviera en vuelo responde antes y no cambia nada (el último tramo ya no se espera).
  */
 function showResult(s: PlayerState): PlayerStep {
+  // quien ya vio la meta no tiene nada que revelar: en la repetición (W3), nada
+  if (s.finishSeen) return none(s)
   if (!canJump(s) && !(s.phase === 'seeking' && !s.revealed)) return none(s)
   return {
     next: {
@@ -704,6 +713,7 @@ function chainDigest(s: PlayerState, nextDay: number): PlayerStep {
     loaded: [...keep, nextDay],
     lastKm: false,
     revealed: false,
+    finishSeen: false,
   }
   const r = fetchMore(start)
   return {
@@ -853,7 +863,13 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
 
     case 'finished':
       if (!(s.inFlight && s.atFinish)) return none(s) // solo la meta que se pidió
-      return none({ ...s, inFlight: false, phase: 'arrival', notice: null })
+      return none({
+        ...s,
+        inFlight: false,
+        phase: 'arrival',
+        notice: null,
+        finishSeen: s.finishSeen || !s.revealed,
+      })
 
     case 'cardDone':
       if (s.phase === 'preview' || s.phase === 'recap') return fetchMore(resume(s))

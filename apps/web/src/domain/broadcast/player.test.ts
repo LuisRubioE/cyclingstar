@@ -55,6 +55,7 @@ import {
   failureAction,
   headAtLine,
   jumpWhy,
+  jumpable,
   kmSeekOf,
   kmSeekable,
   playerInit,
@@ -502,11 +503,11 @@ describe('W3 · tras la meta vista, volver atrás (la revisión de Watch del due
     }
   })
 
-  it('al llegar otra vez a la línea pide la meta, como la primera vez, y vuelve a la llegada y al cierre', () => {
+  it('al llegar otra vez a la línea pide la meta, sin informe (lo alcanzado ya estaba informado), y vuelve a la llegada y al cierre', () => {
     const ctx = ctxOf(150)
     const s = run(closed('watch'), [{ k: 'back', toS: 990 }], ctx).next
     const r = playerStep(s, frame(DT, 0.05, true), ctx)
-    expect(r.effects.map((e) => e.k)).toEqual(['report', 'finish'])
+    expect(r.effects.map((e) => e.k)).toEqual(['finish'])
     const otraVez = run(r.next, [{ k: 'finished' }, { k: 'cardDone' }], ctx).next
     expect(otraVez.phase).toBe('closing')
     expect(kmSeekable(otraVez)).toBe(true)
@@ -519,6 +520,36 @@ describe('W3 · tras la meta vista, volver atrás (la revisión de Watch del due
       next: s,
       effects: [],
     })
+  })
+
+  it('en la repetición no se informa nada: ni el informe periódico, ni al pausar, ocultarse o salir', () => {
+    const ctx = ctxOf(150)
+    let s = run(closed('watch'), [{ k: 'back', toS: 100 }], ctx).next
+    const effects: PlayerEffect[] = []
+    // más de progressEveryRealS de pared, fotograma a fotograma, a 10 km de meta (×12): lejos de la línea
+    for (let wall = 0; wall < BROADCAST.progressEveryRealS + 5; wall += 0.25) {
+      const r = playerStep(s, frame(0.25, 10), ctx)
+      s = r.next
+      effects.push(...r.effects)
+    }
+    expect(s.t).toBeGreaterThan(100)
+    expect(s.phase).toBe('playing')
+    for (const a of [
+      { k: 'pause' },
+      { k: 'play' },
+      { k: 'hidden' },
+      { k: 'play' },
+      { k: 'leave' },
+    ] as const)
+      effects.push(...playerStep(s, a, ctx).effects)
+    expect(effects).toEqual([])
+  })
+
+  it('Show result no se ofrece a quien ya vio la meta: en la repetición, nada que revelar', () => {
+    const ctx = ctxOf(150)
+    const r = run(closed('watch'), [{ k: 'back', toS: 400 }, { k: 'showResult' }], ctx)
+    expect(r.effects).toEqual([])
+    expect(r.next).toMatchObject({ phase: 'playing', revealed: false, finishSeen: true })
   })
 
   it('en la llegada, el cuadro del ganador, todavía no: el cierre es el que lleva la barra', () => {
@@ -568,8 +599,20 @@ describe('W3 · tras la meta vista, volver atrás (la revisión de Watch del due
     expect(kmSeekOf(Number.NaN, 84.6, 175)).toBeNull()
   })
 
-  it('kmSeekable, antes de la meta, es lo de los saltos (jumpable): en la previa, jugando, en pausa y en el resumen, sí; saltando o esperando la meta, no', () => {
+  it('kmSeekable, antes de la meta, es lo de los saltos (jumpable): en la previa, jugando, en pausa, en el resumen y esperando un tramo, sí; saltando o esperando la meta, no', () => {
     const ctx = ctxOf(150)
+    const esperando = playerStep(playing(), frame(1000, 100), ctx).next
+    expect(esperando).toMatchObject({ phase: 'waiting', atFinish: false })
+    for (const x of [
+      playerInit('watch', 1, null, false).next,
+      playing(),
+      run(playing(), [{ k: 'pause' }], ctx).next,
+      playerInit('watch', 1, 2000, false).next,
+      esperando,
+      { ...playing(), phase: 'seeking' as const },
+    ])
+      expect(kmSeekable(x), x.phase).toBe(jumpable(x))
+    expect(kmSeekable(esperando)).toBe(true)
     expect(kmSeekable(playerInit('watch', 1, null, false).next)).toBe(true)
     expect(kmSeekable(playing())).toBe(true)
     expect(kmSeekable(run(playing(), [{ k: 'pause' }], ctx).next)).toBe(true)
@@ -1741,6 +1784,9 @@ interface Coverage {
   landings: number
   recaps: number
   backs: number
+  /** W3: vueltas atrás desde el cierre, y las metas que se repiten tras ellas */
+  replays: number
+  replayFinishes: number
   reveals: number
   /** 10a: el digest, sus etapas encadenadas y lo que se suelta (18-e) */
   chains: number
@@ -1764,6 +1810,8 @@ const emptyCoverage = (): Coverage => ({
   landings: 0,
   recaps: 0,
   backs: 0,
+  replays: 0,
+  replayFinishes: 0,
   reveals: 0,
   chains: 0,
   releases: 0,
@@ -2013,6 +2061,8 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
       if (s1.phase === 'recap') cov.recaps += 1
     }
     if (a.k === 'back' && s1.t < s0.t) cov.backs += 1
+    if (a.k === 'back' && s0.phase === 'closing' && s1.phase !== 'closing') cov.replays += 1
+    if (r.effects.some((e) => e.k === 'finish') && s0.finishSeen) cov.replayFinishes += 1
     if (s1.stageDay !== s0.stageDay) cov.chains += 1
     cov.releases += r.effects.filter((e) => e.k === 'release').length
     if (a.k === 'frame' && s0.nextAction && !s1.nextAction && s1.lastKm) cov.lastKmOff += 1
@@ -2082,8 +2132,15 @@ function randomSequence(seed: string, restarts: boolean, cov: Coverage): void {
       } else {
         if (a.k !== 'frame' || !s0.atFinish || !(a.atLine || s0.t >= clockCapS(s0)))
           fail('meta sin la línea')
-        if (rep?.k !== 'report' || rep.reachedS > clockCapS(s0) || rep.reachedS >= st0.finishS)
+        // RE-SELLADO en W3: en una repetición (tras volver atrás desde el cierre de la meta vista), lo
+        // alcanzado ya estaba informado y la meta va sola
+        if (
+          !s0.finishSeen &&
+          (rep?.k !== 'report' || rep.reachedS > clockCapS(s0) || rep.reachedS >= st0.finishS)
+        )
           fail('sin el informe del borde, o un informe en la meta')
+        if (s0.finishSeen && r.effects.some((e) => e.k === 'report'))
+          fail('un informe en la repetición')
       }
       if (fin.k === 'finish' && fin.mode !== REPORT_MODE[s0.view]) fail('meta con otro modo')
     }
@@ -2160,6 +2217,9 @@ describe('las comprobaciones de §8.11, en cada paso de 1.000 secuencias al azar
     expect(cov.landings).toBeGreaterThan(100)
     expect(cov.recaps).toBeGreaterThan(30)
     expect(cov.backs).toBeGreaterThan(100)
+    // W3: se vuelve atrás desde el cierre y la meta se repite
+    expect(cov.replays).toBeGreaterThan(10)
+    expect(cov.replayFinishes).toBeGreaterThan(0)
     expect(cov.reveals).toBeGreaterThan(30)
     expect(cov.chains).toBeGreaterThan(5)
     expect(cov.releases).toBeGreaterThan(0)
