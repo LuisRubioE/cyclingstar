@@ -190,17 +190,20 @@ describe('elegir en Appearance (useTheme)', () => {
     expect(e.avisos.at(-1)).toBe(false)
   })
 
-  it('avisa solo si falla el último: uno viejo que falla no tapa al que fue bien', async () => {
+  it('avisa solo si falla el último: uno viejo que falla no avisa ni pide la cuenta, que desharía el nuevo', async () => {
     let n = 0
     const e = elector(async () => {
       n++
       if (n === 1) throw new Error('red')
       return { theme: 'light' }
     })
+    const invalidar = vi.spyOn(e.queryClient, 'invalidateQueries')
     e.elegir('dark', true)
     e.elegir('light', true)
     await espera()
-    expect(e.avisos.at(-1)).toBe(false)
+    expect(e.avisos).not.toContain(true)
+    expect(invalidar).not.toHaveBeenCalled()
+    expect(e.queryClient.getQueryData(THEME_QUERY_KEY)).toEqual({ theme: 'light' })
   })
 
   it('si falla el último: lo dice, pasa el error al manejador global (un 401 lleva a /login) y pide la cuenta otra vez', async () => {
