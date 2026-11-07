@@ -282,8 +282,11 @@ export default tseslint.config(
     // fichero de la web salvo los tests, `components/ui/**` y lo generado. Ningún otro bloque usa
     // `no-restricted-syntax` en `apps/web`: los dos que hay son del motor. Del PR 8 al 21, otro detrás las
     // bajaba a `warn` para los heredados; el paso 22 lo quitó, y `heredados.test.ts` comprueba que no vuelve.
+    // Sin comentarios que configuren el lint (`noInlineConfig`): un `eslint-disable` o la regla en `warn`
+    // en un fichero las apagaría sin que nada fallase; la web de producción no lleva ninguno.
     files: UI_FILES,
     ignores: UI_IGNORES,
+    linterOptions: { noInlineConfig: true },
     rules: { 'no-restricted-syntax': ['error', ...UI_RULES] },
   },
 )

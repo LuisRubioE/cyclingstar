@@ -12,7 +12,8 @@ import * as eslintUi from '../../../eslint-ui.mjs'
  * lista `UI_HEREDADOS`, que el día del PR 8 ya tenían algún aviso, y la lista solo encogía; W4 se llevó el
  * último, y el paso 22 borró la lista y su bloque de `eslint.config.js`. Lo que se prueba ahora es que no
  * vuelven: con la configuración que resuelve ESLint para cada fichero real de `apps/web/src`, o las diez en
- * `error`, o ninguna, y ninguna solo en los tests, sus datos, `components/ui` y lo generado.
+ * `error`, o ninguna, y ninguna solo en los tests, sus datos, `components/ui` y lo generado. Y que un
+ * comentario no las apaga ni las baja a `warn` (`noInlineConfig`, desde la revisión del paso 22).
  *
  * Corre ESLint con el `eslint.config.js` del repositorio, el mismo que `pnpm lint`, y prueba cada regla
  * contra una muestra que tiene que avisar y otra que no: un instrumento que deja de medir no puede quedar
@@ -65,12 +66,14 @@ describe('sin heredados: las diez reglas, en error en toda la web (paso 22)', ()
     for (const f of ficheros()) {
       const config = (await eslint.calculateConfigForFile(join(RAIZ, f))) as {
         readonly rules?: Readonly<Record<string, readonly unknown[] | undefined>>
+        readonly linterOptions?: { readonly noInlineConfig?: boolean }
       }
       const regla = config.rules?.['no-restricted-syntax']
       if (regla === undefined) sinEllas.push(f)
       else if (
         regla[0] === 2 &&
-        JSON.stringify(regla.slice(1)) === JSON.stringify(eslintUi.UI_RULES)
+        JSON.stringify(regla.slice(1)) === JSON.stringify(eslintUi.UI_RULES) &&
+        config.linterOptions?.noInlineConfig === true
       )
         enError.push(f)
       else raros.push(f)
@@ -83,6 +86,22 @@ describe('sin heredados: las diez reglas, en error en toda la web (paso 22)', ()
     expect(enError).toEqual(
       expect.arrayContaining(['apps/web/src/pages/Home.tsx', 'apps/web/src/App.tsx']),
     )
+  })
+
+  it('un comentario no las apaga ni las baja: ni eslint-disable ni la regla en warn', async () => {
+    const boton = 'export const Sonda = () => <button type="button">Go</button>\n'
+    for (const comentario of [
+      '// eslint-disable-next-line no-restricted-syntax\n',
+      '/* eslint-disable */\n',
+      '/* eslint no-restricted-syntax: "warn" */\n',
+    ]) {
+      const [r] = await eslint.lintText(comentario + boton, {
+        filePath: join(RAIZ, 'apps/web/src/pages/Sonda.tsx'),
+      })
+      expect(r === undefined ? [] : avisosUi(r), comentario).toEqual([
+        { regla: 'ui/1', severidad: 2 },
+      ])
+    }
   })
 
   it('un fichero nuevo nace en error; components/ui, los tests, sus datos y lo generado no las llevan', async () => {
@@ -135,6 +154,21 @@ describe('las diez reglas, contra sus muestras', () => {
     expect(await reglas(api, 'apps/web/src/api/x.ts')).toEqual([])
     const plantilla = 'request(`/x/${id}`, s, { errorMessage: `Could not load ${id}.` })\n'
     expect(await reglas(plantilla, 'apps/web/src/api/x.ts')).toEqual([])
+  })
+
+  it('ui/6: los brand-* que borró el cierre (paso 22) caen, en un literal o una plantilla; brand- solo, no', async () => {
+    expect(
+      await reglas('export const A = () => <p className="bg-brand-navy sm:text-ink" />\n'),
+    ).toEqual(['ui/6'])
+    expect(
+      await reglas(
+        'export const f = (x: string) => `hover:border-brand-${x}`\n',
+        'apps/web/src/a.ts',
+      ),
+    ).toEqual(['ui/6'])
+    expect(await reglas('export const A = () => <p className="brand-logo text-ink" />\n')).toEqual(
+      [],
+    )
   })
 
   it('ui/10: el ▶︎ de PLAY_GLYPH y los glifos de una plantilla caen; el ▶ solo, no', async () => {

@@ -69,8 +69,8 @@
   --color-kit-edge: rgb(0 0 0 / 0.3);
   --color-kit-edge-strong: rgb(0 0 0 / 0.35);
   --color-kit-ink: #10202f;
-  /* EL LOGOTIPO (D20, §18.3; PR 21n): una marca, no un color del sistema, y fuera de las parejas (WCAG 1.4.3
-     exime los logotipos). Sus dos colores de siempre: el trazo y la estrella. */
+  /* EL LOGOTIPO (D20, §18.3; PR 21n): una marca, no un color del sistema. Sus dos colores de siempre: el
+     trazo, con sus parejas de gráfico, y la estrella, sin pareja en el claro (tokens.test.ts). */
   --color-logo: #4f46e5;
   --color-logo-star: #f59e0b;
 

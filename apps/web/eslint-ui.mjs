@@ -48,6 +48,12 @@ const DE_COLOR =
 const COLOR = `(?:^|\\s|:)!?${DE_COLOR}-${PALETA}-\\d{2,3}`
 
 /**
+ * `ui/6` también: los seis `brand-*` heredados, que borró el paso 22 con el cierre. Su clase ya no resuelve
+ * con ningún tema, así que `vocabulario.test.ts` no la cuenta, y sin esto pasaría sin pintar nada.
+ */
+const BRAND = `(?:^|\\s|:)!?${DE_COLOR}-brand-`
+
+/**
  * `ui/7`: una clase con un valor arbitrario, que no es de `ARBITRARY_ALLOWED`. Cuatro formas: un valor
  * (`text-[11px]`, `data-[state=open]:`), una propiedad (`[scrollbar-width:none]`), una variante
  * (`[&::-webkit-scrollbar]:hidden`) y el atajo de Tailwind 4 para una variable (`p-(--x)`, que es
@@ -120,6 +126,8 @@ export const UI_RULES = [
   },
   { selector: `Literal[value=/${COLOR}/]`, message: MENSAJES[6] },
   { selector: `TemplateElement[value.cooked=/${COLOR}/]`, message: MENSAJES[6] },
+  { selector: `Literal[value=/${BRAND}/]`, message: MENSAJES[6] },
+  { selector: `TemplateElement[value.cooked=/${BRAND}/]`, message: MENSAJES[6] },
   { selector: `Literal[value=/${ARBITRARIO}/]`, message: MENSAJES[7] },
   { selector: `TemplateElement[value.cooked=/${ARBITRARIO}/]`, message: MENSAJES[7] },
   { selector: `Literal[value=/${HEX}/]`, message: MENSAJES[8] },

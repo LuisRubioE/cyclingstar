@@ -112,7 +112,10 @@ const CIERRE_EN_EL_TEMA = `@theme {\n  ${CIERRE.join('\n  ')}\n`
 
 /** `index.css` con el tema abierto: el mismo sin las 17 líneas, el tema por defecto de Tailwind más el nuestro. */
 function abrir(css: string): string {
-  if (css.split('@theme {').length !== 2) throw new Error('index.css: no hay un solo bloque @theme')
+  const sinComentarios = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  // uno solo, de cualquier forma (`@theme inline`, `@theme static`): el abierto se arma quitándole el cierre
+  if (sinComentarios.match(/@theme\b/g)?.length !== 1)
+    throw new Error('index.css: no hay un solo bloque @theme')
   if (!css.includes(CIERRE_EN_EL_TEMA))
     throw new Error('index.css: el cierre no está al abrir @theme')
   return css.replace(CIERRE_EN_EL_TEMA, '@theme {\n')
@@ -301,6 +304,17 @@ describe('los contadores', () => {
       expect(fueraDeLayout(dentro), dentro).toBe(false)
     for (const fuera of ['bg-surface', 'text-ink', 'p-4', 'rounded-ui', 'shadow-card', 'flex-col'])
       expect(fueraDeLayout(fuera), fuera).toBe(true)
+  })
+
+  it('abrir() falla con un segundo @theme, también inline o static, y no con el nombre en un comentario', () => {
+    const css = readFileSync(join(SRC, 'index.css'), 'utf8')
+    expect(() => abrir(`${css}\n@theme inline {\n  --color-otro: #123456;\n}\n`)).toThrow(
+      /un solo bloque/,
+    )
+    expect(() => abrir(`${css}\n@theme static {\n  --color-otro: #123456;\n}\n`)).toThrow(
+      /un solo bloque/,
+    )
+    expect(() => abrir(`/* el @theme de abajo */\n${css}`)).not.toThrow()
   })
 
   it('index.css lleva el cierre: las 17 líneas activas al abrir @theme, sin los brand-* (paso 22)', () => {

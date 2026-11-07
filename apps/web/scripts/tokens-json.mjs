@@ -50,6 +50,9 @@ export function declaraciones(css, cabecera) {
   if (inicio === -1) return null
   const fin = limpio.indexOf('}', inicio)
   const cuerpo = limpio.slice(inicio + cabecera.length + 2, fin)
+  // un bloque dentro (un `@keyframes` en el `@theme`) cortaría la lectura en su primera llave
+  if (cuerpo.includes('{'))
+    throw new Error(`${cabecera}: un bloque dentro; tokens-json no lo lee, y dejaría tokens fuera`)
   const fuera = new Map()
   for (const d of cuerpo.split(';')) {
     const m = /^\s*--([\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(d)
@@ -72,6 +75,9 @@ function porEspacio(decls) {
 
 /** `tokens.json` de un `index.css`. */
 export function tokensJson(css) {
+  // uno solo, de cualquier forma (`@theme inline`, `@theme static`): solo se lee el primero
+  if (css.replace(/\/\*[\s\S]*?\*\//g, '').match(/@theme\b/g)?.length !== 1)
+    throw new Error('index.css: no hay un solo bloque @theme; tokens-json lee solo uno')
   const tema = declaraciones(css, '@theme')
   const ambito = declaraciones(css, "[data-surface='dark']")
   if (tema === null || ambito === null)
