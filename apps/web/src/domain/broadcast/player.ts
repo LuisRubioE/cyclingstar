@@ -499,6 +499,22 @@ const canJump = (s: PlayerState): boolean =>
 export const jumpable = (s: PlayerState): boolean => s.view !== 'digest' && canJump(s)
 
 /**
+ * TRAS LA META VISTA (W3, la revisión de `Watch` del dueño, su punto 6: «hoy no se puede ir para atrás»): en
+ * el cierre, con la meta a la que se llegó viéndola (ni tras `Show result` ni en el digest) y nada en vuelo,
+ * la línea entera está servida y se puede volver atrás, sin red ni cuenta nueva: una etapa conocida no
+ * registra nada (`recordProgress`), y al llegar otra vez a la línea se pide la meta como la primera vez. En
+ * la llegada, el cuadro del ganador, todavía no.
+ */
+const afterFinish = (s: PlayerState): boolean =>
+  s.phase === 'closing' && s.view !== 'digest' && !s.revealed && s.atFinish && !s.inFlight
+
+/**
+ * ¿Se puede tocar la barra de progreso o el perfil (§8.5; W3)? Lo de los saltos y, tras la meta vista, volver
+ * atrás: delante, como un salto a ese km; detrás, como `−5 km` a ese km.
+ */
+export const kmSeekable = (s: PlayerState): boolean => jumpable(s) || afterFinish(s)
+
+/**
  * POR QUÉ UN SALTO DE LA HOJA NO LLEVA A NINGÚN SITIO (8-j, 9-g; revisión del 21n), o null si lleva: lo oye el
  * lector del salto apagado. `busy`, con otro salto en curso; `notYet`, el de atrás en la previa; `lastKm`, uno
  * de adelante desde el último km (o desde la última salida, en la crono); `none`, sin destino o en el digest.
@@ -606,10 +622,18 @@ function land(s: PlayerState, a: Extract<PlayerAction, { k: 'landed' }>): Player
   return chain({ next, effects }, fetchMore)
 }
 
-/** Volver atrás (§8.5): dentro de lo servido, sin red ni cuenta nueva; lo alcanzado no baja. */
+/**
+ * Volver atrás (§8.5): dentro de lo servido, sin red ni cuenta nueva; lo alcanzado no baja. Desde W3, también
+ * desde el cierre de la meta vista (`afterFinish`), y la carrera sigue desde ahí.
+ */
 function back(s: PlayerState, toS: RaceS): PlayerStep {
   // en el digest no hay saltos: sus mandos son la pausa y `Show results` (§8.1)
-  if (s.view === 'digest' || !canJump(s) || s.phase === 'preview' || !Number.isFinite(toS))
+  if (
+    s.view === 'digest' ||
+    !(canJump(s) || afterFinish(s)) ||
+    s.phase === 'preview' ||
+    !Number.isFinite(toS)
+  )
     return none(s)
   // dentro de lo servido: lo de antes está en la línea en memoria (§8.5)
   const t = Math.max(0, Math.min(toS, s.t, s.servedS))

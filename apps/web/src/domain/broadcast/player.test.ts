@@ -55,6 +55,7 @@ import {
   failureAction,
   headAtLine,
   jumpWhy,
+  kmSeekable,
   playerInit,
   playerStep,
   recapOf,
@@ -461,6 +462,111 @@ describe('playerStep · la línea, la llegada y el cierre (§8.7)', () => {
     expect(s).toMatchObject({ phase: 'paused', notice: 'offline', inFlight: false })
     const r = run(s, [{ k: 'retry' }, frame(DT, 0.05, true)], ctx)
     expect(r.effects.map((e) => e.k)).toEqual(['report', 'finish'])
+  })
+})
+
+describe('W3 · tras la meta vista, volver atrás (la revisión de Watch del dueño, su punto 6)', () => {
+  /** La meta vista en Watch o en Highlights: el último tramo dentro, la línea, la meta y el cierre. */
+  const closed = (view: ViewMode): PlayerState => {
+    const ctx = ctxOf(150)
+    const last = playerStep(asking(view), chunk(1000, true), ctx).next
+    const s = run(
+      last,
+      [frame(1000, 0.5), frame(DT, 0.05, true), { k: 'finished' }, { k: 'cardDone' }],
+      ctx,
+    ).next
+    expect(s).toMatchObject({ phase: 'closing', atFinish: true, inFlight: false, t: 999.9 })
+    return s
+  }
+
+  it('en el cierre se vuelve atrás: la carrera sigue en la hora pedida, sin red ni cuenta nueva, y lo alcanzado no baja', () => {
+    const ctx = ctxOf(150)
+    for (const view of ['watch', 'highlights'] as const) {
+      const s = closed(view)
+      expect(kmSeekable(s)).toBe(true)
+      const r = playerStep(s, { k: 'back', toS: 400 }, ctx)
+      expect(r.effects).toEqual([])
+      expect(r.next).toMatchObject({
+        phase: 'playing',
+        t: 400,
+        reachedS: s.reachedS,
+        reportedS: s.reportedS,
+        atFinish: true,
+        notice: null,
+      })
+      // y el reloj corre desde ahí, con lo servido en memoria
+      const corre = playerStep(r.next, frame(1, 50), ctx)
+      expect(corre.next.t).toBeGreaterThan(400)
+      expect(corre.effects).toEqual([])
+    }
+  })
+
+  it('al llegar otra vez a la línea pide la meta, como la primera vez, y vuelve a la llegada y al cierre', () => {
+    const ctx = ctxOf(150)
+    const s = run(closed('watch'), [{ k: 'back', toS: 990 }], ctx).next
+    const r = playerStep(s, frame(DT, 0.05, true), ctx)
+    expect(r.effects.map((e) => e.k)).toEqual(['report', 'finish'])
+    const otraVez = run(r.next, [{ k: 'finished' }, { k: 'cardDone' }], ctx).next
+    expect(otraVez.phase).toBe('closing')
+    expect(kmSeekable(otraVez)).toBe(true)
+  })
+
+  it('hacia delante, en el cierre, nada: la cabeza ya está en la meta y ningún salto la cruza (8-j)', () => {
+    const ctx = ctxOf(150)
+    const s = closed('watch')
+    expect(playerStep(s, { k: 'seek', km: 149, headKmAtEnd: 150 }, ctx)).toEqual({
+      next: s,
+      effects: [],
+    })
+  })
+
+  it('en la llegada, el cuadro del ganador, todavía no: el cierre es el que lleva la barra', () => {
+    const ctx = ctxOf(150)
+    const last = playerStep(asking('watch'), chunk(1000, true), ctx).next
+    const llegada = run(
+      last,
+      [frame(1000, 0.5), frame(DT, 0.05, true), { k: 'finished' }],
+      ctx,
+    ).next
+    expect(llegada.phase).toBe('arrival')
+    expect(kmSeekable(llegada)).toBe(false)
+    expect(playerStep(llegada, { k: 'back', toS: 400 }, ctx).next).toBe(llegada)
+  })
+
+  it('tras Show result, no: la etapa revelada no se vuelve a ver desde aquí (§8.5)', () => {
+    const ctx = ctxOf(150)
+    const revealed = run(
+      playing(),
+      [{ k: 'showResult' }, { k: 'finished' }, { k: 'cardDone' }],
+      ctx,
+    ).next
+    expect(revealed).toMatchObject({ phase: 'closing', revealed: true })
+    expect(kmSeekable(revealed)).toBe(false)
+    expect(playerStep(revealed, { k: 'back', toS: 400 }, ctx).next).toBe(revealed)
+  })
+
+  it('en el digest, tampoco: sus mandos son la pausa y Show results (§8.1)', () => {
+    const ctx = ctxOf(150)
+    const s = closed('highlights')
+    const digest: PlayerState = { ...s, view: 'digest' }
+    expect(kmSeekable(digest)).toBe(false)
+    expect(playerStep(digest, { k: 'back', toS: 400 }, ctx).next).toBe(digest)
+  })
+
+  it('kmSeekable, antes de la meta, es lo de los saltos (jumpable): en la previa, jugando, en pausa y en el resumen, sí; saltando o esperando la meta, no', () => {
+    const ctx = ctxOf(150)
+    expect(kmSeekable(playerInit('watch', 1, null, false).next)).toBe(true)
+    expect(kmSeekable(playing())).toBe(true)
+    expect(kmSeekable(run(playing(), [{ k: 'pause' }], ctx).next)).toBe(true)
+    expect(kmSeekable(playerInit('watch', 1, 2000, false).next)).toBe(true)
+    expect(kmSeekable({ ...playing(), phase: 'seeking' })).toBe(false)
+    const pidiendo = run(
+      playerStep(asking('watch'), chunk(1000, true), ctx).next,
+      [frame(1000, 0.5), frame(DT, 0.05, true)],
+      ctx,
+    ).next
+    expect(pidiendo).toMatchObject({ phase: 'waiting', atFinish: true, inFlight: true })
+    expect(kmSeekable(pidiendo)).toBe(false)
   })
 })
 
