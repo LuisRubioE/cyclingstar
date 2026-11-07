@@ -101,7 +101,7 @@ function Item({ item, rev }: { item: VoiceItem; rev: number }) {
   return item.k === 'text' ? <>{item.text}</> : <Sentence e={item.e} rev={rev} />
 }
 
-/** Una frase de la voz con sus banderas y sus maillots, como en el acta (`StageStory`). */
+/** Una frase de la voz con sus banderas y sus maillots, como en `Your last race` (`ChronicleSentence`). */
 function Sentence({ e, rev }: { e: ChronicleEntry; rev: number }) {
   return (
     <>

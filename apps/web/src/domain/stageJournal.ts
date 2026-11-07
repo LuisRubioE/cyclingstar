@@ -15,7 +15,6 @@ import {
   GROUP_WORDS,
   type JerseyKind,
   type NameResolver,
-  type StageResultEntry,
   type Variant,
   isGroupRole,
   isJerseyKind,
@@ -248,7 +247,7 @@ export function listNames(names: string[]): string {
 // navegadores de escritorio los emoji de bandera salen como dos letras), y toda la web la pinta como
 // imagen, del sprite de las banderas (E3, PR 6). Como esto es un módulo de texto puro y sin React, la
 // frase se compone con una MARCA invisible alrededor del código de país y `chronicleParts()` la parte en
-// trozos para que `StageStory` intercale el mismo `<Flag/>` del resto de la web. `chronicleLine()`
+// trozos para que quien la pinta intercale el mismo `<Flag/>` del resto de la web. `chronicleLine()`
 // devuelve el texto pelado (sin banderas) y sigue siendo lo que usan los tests y cualquier contexto
 // sin DOM.
 const FLAG_MARK = '\u0001'
@@ -387,7 +386,7 @@ export function teamsOf(e: ChronicleEntry): string[] {
 
 /**
  * La frase partida en trozos para pintarla: el texto tal cual y las banderas como marcas, que
- * `StageStory` convierte en el `<Flag/>` de siempre.
+ * `ChronicleSentence` y la voz convierten en el `<Flag/>` de siempre.
  *
  * `rev` es la revisión de plantillas de la etapa (`tplRev` del acta y de la cabecera, §12.7; 0 en una
  * etapa sin línea y en las rutas que no la sirven), y `_locale`, la lengua, que E10 leerá (12-q): las dos
@@ -1863,23 +1862,4 @@ export function gapToBest(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const ss = String(seconds % 60).padStart(2, '0')
   return `+${m}:${ss}`
-}
-
-/**
- * Relato de una contrarreloj a partir de los tiempos reales: una crono no tiene fuga ni sprint que
- * narrar, así que el journal cuenta lo que importa —mejor tiempo, quién se acercó, y cuán apretada
- * quedó la clasificación contra el crono—.
- */
-export function timeTrialStory(results: StageResultEntry[]): string[] {
-  if (results.length === 0) return []
-  const winner = results[0]!
-  const gap = (r: StageResultEntry) => r.tiempoS - winner.tiempoS
-  const lines = [`Best time of the day: ${winner.name} — ${formatTime(winner.tiempoS)}.`]
-  if (results[1]) lines.push(`${results[1].name} came closest, ${gapToBest(gap(results[1]))} down.`)
-  if (results[2])
-    lines.push(`${results[2].name} completed the podium at ${gapToBest(gap(results[2]))}.`)
-  const within = results.filter((r) => gap(r) <= 60).length
-  if (within >= 2)
-    lines.push(`${within} riders finished within a minute of the best time — a tight one.`)
-  return lines
 }

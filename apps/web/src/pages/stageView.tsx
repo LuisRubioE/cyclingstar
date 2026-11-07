@@ -1,9 +1,10 @@
 /**
  * LO QUE LA PÁGINA DE UNA ETAPA Y LA FICHA DE UNA CARRERA DE UN DÍA COMPARTEN (E2, docs/retransmision.md
- * §6.10, §11.10, §11.16 y §11.17; nació en `StageReplay.tsx` con el 9a y el 9b lo saca aquí): los hechos de
- * la etapa antes de elegir pestaña, el acta a un toque, la cabecera de `Watch` fijada, la radio hasta lo
- * pintado y la tabla de llegada. No importa `StageWatch`, que montan la página de etapa y la ficha de un día
- * (`OneDayRace.tsx`): el acta (`StageReport.tsx`) importa de aquí y no se descarga el reproductor.
+ * §6.10, §11.10 y §11.17; nació en `StageReplay.tsx` con el 9a y el 9b lo saca aquí): los hechos de la etapa
+ * antes de elegir pestaña, el acta a un toque, la cabecera de `Watch` fijada y la tabla de llegada. No
+ * importa `StageWatch`, que montan la página de etapa y la ficha de un día (`OneDayRace.tsx`): el acta
+ * (`StageReport.tsx`) importa de aquí y no se descarga el reproductor. La radio hasta lo pintado se fue
+ * con la pestaña `Race Radio` en W4 (D-16 revocada).
  */
 import {
   type BroadcastHead,
@@ -22,10 +23,8 @@ import {
 } from '../api/broadcast'
 import { ApiError, GateError } from '../api/request'
 import { fetchCalendarStage, stageReplayKey } from '../api/results'
-import { readLocalProgress } from '../api/watch'
 import { authClient } from '../auth/client'
 import { StageResultRankTable } from '../components/RaceRankTables'
-import { StageStory } from '../components/StageStory'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { TextLink } from '../components/ui/TextLink'
@@ -80,9 +79,10 @@ export function raceKeyOf(
 
 /**
  * `REPORT`, EL ACTA (decisión 1 del dueño durante la implementación, 8 de octubre de 2026; D-48, DD-28):
- * con `Watch` encendido, `Story` y `Result` son una sola pestaña, el resultado entero y la crónica debajo,
- * sin repetir el podio. Se abre al terminar de ver la etapa o al revelarla; `Watch anyway` la vuelve a
- * poner a un toque (§11.10). La pinta también el acta pública de `/report`.
+ * con `Watch` encendido, `Story` y `Result` son una sola pestaña, el resultado entero. Hasta W4 llevaba la
+ * crónica debajo; el dueño la retiró (su revisión de `Watch`, punto 8; D-16 revocada). Se abre al terminar
+ * de ver la etapa o al revelarla; `Watch anyway` la vuelve a poner a un toque (§11.10). La pinta también
+ * el acta pública de `/report`.
  */
 export function StageReportView({
   data,
@@ -107,7 +107,8 @@ export function StageReportView({
   // LA FILA DE SALTOS (E3, docs/visual.md §14.6; 14-c; PR 20): a sus partes, sin perder la pestaña ni la
   // búsqueda de la página; el router no lleva a la vista lo que nombra el ancla, así que se lleva aquí. Con
   // la `key` de la navegación, y no solo con el ancla: el segundo toque al mismo salto deja el ancla igual
-  // (el router lo cambia por un `replace`, con otra `key`) y también tiene que llevar a la vista.
+  // (el router lo cambia por un `replace`, con otra `key`) y también tiene que llevar a la vista. Desde W4,
+  // sin la crónica, solo sale si hay adónde saltar fuera del resultado: las clasificaciones.
   const { pathname, search, hash, key } = useLocation()
   useEffect(() => {
     if (hash !== '') document.getElementById(hash.slice(1))?.scrollIntoView()
@@ -141,27 +142,18 @@ export function StageReportView({
           <EmptyState text="No result for this stage." />
         </div>
       )}
-      <nav aria-label="Report sections" className="flex flex-wrap items-center gap-x-4">
-        <TextLink to={here('stage-result')}>Result</TextLink>
-        {classificationsHref !== undefined && (
+      {classificationsHref !== undefined && (
+        <nav aria-label="Report sections" className="flex flex-wrap items-center gap-x-4">
+          <TextLink to={here('stage-result')}>Result</TextLink>
           <TextLink to={classificationsHref}>Classifications</TextLink>
-        )}
-        <TextLink to={here('stage-chronicle')}>Chronicle</TextLink>
-      </nav>
-      <div id="stage-chronicle" className="space-y-4">
-        <StageStory data={data} podium={false} />
-      </div>
+        </nav>
+      )}
     </>
   )
 }
 
 /** Las pestañas que enseñan lo que la etapa dejó: sin verla, la puerta (sup. E9) o el acta. */
-export const RESULT_TABS: ReadonlySet<string> = new Set([
-  'report',
-  'result',
-  'classifications',
-  'radio',
-])
+export const RESULT_TABS: ReadonlySet<string> = new Set(['report', 'result', 'classifications'])
 
 /** La puerta como texto estable: la cabecera que ve `Watch` solo se cambia si cambia la puerta. */
 const gateKey = (g: StageGate | null): string =>
@@ -356,40 +348,4 @@ export function usePinnedHead(head: BroadcastHead | undefined): BroadcastHead | 
   )
     setWatchHead(head)
   return watchHead
-}
-
-/**
- * LA RACE RADIO DE UNA ETAPA SIN VER (§11.16, 11-i; 11a): en el velo (la puerta `not_seen`) y con línea
- * grabada, la radio hasta lo pintado en lugar de la puerta. Sin línea (el adaptador, una lápida) o en una
- * crono, que no tiene radio, la puerta; con la anterior sin ver, también.
- */
-export function paintedRadioWanted(
-  gate: StageGate | null,
-  watchable: boolean,
-  head: BroadcastHead | undefined,
-): head is BroadcastHead {
-  return (
-    gate?.k === 'not_seen' &&
-    watchable &&
-    head !== undefined &&
-    head.source === 'timeline' &&
-    !head.stage.timeTrial
-  )
-}
-
-/**
- * Lo alcanzado para la radio hasta lo pintado: el mayor de lo que dice la cabecera (con sesión) o el
- * `localStorage` (sin ella, 11-p) y lo visto en esta página.
- */
-export function paintedReachedOf(
-  head: BroadcastHead | undefined,
-  day: number,
-  reachedHere: number,
-): number {
-  if (head === undefined) return 0
-  return Math.max(
-    reachedHere,
-    head.view?.reachedS ?? 0,
-    head.view === null ? (readLocalProgress(head.stage.raceKey, day) ?? 0) : 0,
-  )
 }

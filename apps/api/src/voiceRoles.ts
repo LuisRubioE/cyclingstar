@@ -365,25 +365,5 @@ export function namedLineOf(
   }
 }
 
-/** Los sucesos guardados anotados de cada línea, una vez por objeto (§12.6): el acta los pide en cada lectura. */
-const storedRoles = new WeakMap<StageTimeline, readonly ChronicleEvent[]>()
-
-/**
- * EL ACTA CON LOS PAPELES (§12.6): los sucesos guardados, en su orden, anotados con la hora de su
- * suceso en la línea (el de su `source`; uno sin él, con el borde de la meta). Solo para quien tiene
- * `Watch` encendido: la ruta la pide con `request.broadcastOn()` (§14.5).
- */
-export function storedWithRoles(
-  tl: StageTimeline,
-  stored: readonly ChronicleEvent[],
-): readonly ChronicleEvent[] {
-  const hit = storedRoles.get(tl)
-  if (hit !== undefined && hit.length === stored.length) return hit
-  const finishS = fromDs(visibilityOf(tl).finishDs)
-  const bySource = new Map<number, RaceS>()
-  for (const e of tl.events) if (e.source >= 0) bySource.set(e.source, e.revealS)
-  const horaDe = new Map(stored.map((ev, i) => [ev, bySource.get(i) ?? finishS] as const))
-  const out = withGroupRoles(stored, tl, (ev) => horaDe.get(ev) ?? finishS, rolesContextOf(tl))
-  storedRoles.set(tl, out)
-  return out
-}
+// Hasta W4, `storedWithRoles` anotaba aquí los sucesos guardados con los papeles de la voz para el acta
+// (§12.6): la crónica que el dueño retiró (su revisión de `Watch`, punto 8; D-16 revocada).

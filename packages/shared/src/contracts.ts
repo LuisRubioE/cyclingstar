@@ -1909,13 +1909,10 @@ export const stageReplaySchema = z.object({
   /** Salida y llegada de la etapa. Ausentes si la etapa no tiene ciudades. */
   from: z.string().nullish(),
   to: z.string().nullish(),
-  /** Contrarreloj: el journal cuenta la historia del crono (mejor tiempo, diferencias). */
+  /** Contrarreloj: la etapa se corrió contra el reloj. */
   timeTrial: z.boolean().optional(),
-  /** La etapa corrió antes de guardar la crónica: no hay journal detallado. */
-  journalUnavailable: z.boolean().optional(),
   altimetry: z.string(),
   results: z.array(stageResultEntrySchema).optional(),
-  chronicle: z.array(chronicleEntrySchema).optional(),
   gc: z.array(stageGcEntrySchema).optional(),
   /** Clasificación de la montaña (KOM) tras esta etapa. */
   kom: z.array(pointsEntrySchema).optional(),
@@ -1926,36 +1923,26 @@ export const stageReplaySchema = z.object({
   /** Clasificación por equipos acumulada TRAS esta etapa. */
   teamGc: z.array(teamClassEntrySchema).optional(),
   /**
-   * LOS MAILLOTS, en DOS juegos, y son dos a propósito: la crónica y las tablas de esta misma
-   * página hablan de momentos distintos y se contradirían sin decir por qué.
+   * LOS MAILLOTS, en DOS juegos, y son dos a propósito: el orden de llegada y las tablas de esta
+   * misma página hablan de momentos distintos y se contradirían sin decir por qué.
    *
    * - `onRoad`: la clasificación tras la etapa N−1, o sea **el maillot que se llevaba puesto ESE
-   *   día en la carretera**. Es el que usa el journal: «el amarillo ataca en el km 120» solo es
-   *   verdad si es el amarillo de ese día, no el que acabó ganando la etapa. Y por lo mismo es el
-   *   del ORDEN DE LLEGADA —la tabla `Result` y el podio de `Story`—, que no es una clasificación
-   *   sino la foto de una tarde: quien cruzó la meta segundo llevaba encima el maillot de ayer.
+   *   día en la carretera**. Es el del ORDEN DE LLEGADA (la tabla del resultado), que no es una
+   *   clasificación sino la foto de una tarde: quien cruzó la meta segundo llevaba encima el maillot
+   *   de ayer. Hasta W4 lo usaba también la crónica: «el amarillo ataca en el km 120» solo es verdad si
+   *   es el amarillo de ese día.
    * - `afterStage`: la clasificación tras la etapa N, que es lo que están mostrando las tablas de
    *   general, puntos, montaña y equipos de esta ficha, y solo esas.
    *
-   * Los dos van a null en la etapa 1 y en una carrera de un día. El `onRoad` va además repetido
-   * DENTRO de cada corredor de la crónica (`chronicleRiderSchema.jersey`), porque una entrada de la
-   * crónica no lleva ids; se calcula una sola vez y se proyecta, así que no pueden discrepar.
+   * Los dos van a null en la etapa 1 y en una carrera de un día.
    */
   leaders: z.object({ onRoad: raceLeadersSchema, afterStage: raceLeadersSchema }).optional(),
   /** los títulos que se llevan el día de esta etapa, el de las tablas de esta ficha (E3, §8.5; 4-l) */
   champions: championsSchema,
-  /**
-   * LA RADIO DE CARRERA, km a km. Ausente en las etapas corridas antes de guardarla: no se inventa
-   * re-simulando, que contaría una carrera distinta de la que quedó en el marcador.
-   */
-  radio: raceRadioSchema.optional(),
-  /**
-   * LA REVISIÓN DE LAS PLANTILLAS con que se lee el acta (E2, docs/retransmision.md 12-c, §14.2):
-   * `stage_timelines.tpl_rev`, el `TEMPLATE_REV` del tick que corrió la etapa; 0 sin línea. La
-   * sirven el acta y el paquete de meta desde el 3a. Opcional por la web de ayer (D-50), que la
-   * descarta; `yesterday.test.ts` la omite.
-   */
-  tplRev: z.number().int().min(0).optional(),
+  // Sin la radio de carrera (`radio`), la crónica (`chronicle`), su aviso de que no se guardó
+  // (`journalUnavailable`) ni la revisión de plantillas con que se leía (`tplRev`) desde W4: el dueño
+  // retiró la pestaña `Race Radio` y la crónica bajo el resultado (su revisión de `Watch`, punto 8;
+  // D-16 revocada). La web de ayer los tenía opcionales (`yesterday.test.ts`).
   /**
    * LO VISTO DE ESTA ETAPA para quien la pide (E2, docs/retransmision.md §14.1 y §14.2; paso 7b): si
    * la conoce (`W`, `S`, `R` o `A`; la `X` no, 10-e), si la vio (6-r), lo alcanzado si la dejó a medias y

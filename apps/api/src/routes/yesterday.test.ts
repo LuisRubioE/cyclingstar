@@ -14,11 +14,13 @@ import { type TestDb, startTestDb } from '@cyclingstar/db/test'
 import { SEASON_CALENDAR } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
+  chronicleEntrySchema,
   healthSchema,
   lastRaceResponseSchema,
   newsItemSchema,
   newsResponseSchema,
   pointsEntrySchema,
+  raceRadioSchema,
   riderRaceReportSchema,
   riderRaceResultSchema,
   riderResultsResponseSchema,
@@ -64,10 +66,18 @@ const NEWS_DATA = {
 } as const
 
 const YESTERDAY = {
-  // `tplRev`, del 3a (12-c): la sirven el acta y el paquete de meta; la ruta de etapa, todavía no. Y
   // `watch`, del 7b (§14.1): lo visto de la etapa, que la ruta de etapa sirve con SPOILER_MODE. Y
   // `champions`, del 17a de E3 (docs/visual.md §8.5, 4-l): los títulos que se llevan el día de sus tablas.
-  stageReplay: stageReplaySchema.omit({ tplRev: true, watch: true, champions: true }),
+  // `tplRev`, del 3a (12-c), ya no está en el de hoy: lo saca W4 con la crónica, que era quien lo leía.
+  // W4 saca también, con la pestaña `Race Radio` y la crónica (D-16 revocada), `journalUnavailable`,
+  // `chronicle` y `radio`. La web de ayer los lee, pero opcionales desde la base de E2: sin ellos, su
+  // esquema casa igual, y la pestaña abierta durante el despliegue enseña la radio y la crónica vacías
+  // hasta recargar. Vuelven aquí, opcionales, para que lo que se valida siga siendo su esquema.
+  stageReplay: stageReplaySchema.omit({ watch: true, champions: true }).extend({
+    journalUnavailable: z.boolean().optional(),
+    chronicle: z.array(chronicleEntrySchema).optional(),
+    radio: raceRadioSchema.optional(),
+  }),
   // `teamId` y `teamName`, del 12b de E3 (docs/visual.md §6.1, 17-q): el equipo de cada fila de puntos y
   // de montaña, que va anidada en `kom` y `points` de la etapa.
   pointsEntry: pointsEntrySchema.omit({ teamId: true, teamName: true }),
@@ -347,12 +357,14 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
     return res.json()
   }
 
-  it('la etapa en línea corrida, con maillots de la víspera, radio y acta', async () => {
+  // Re-sellado en W4: sin radio ni crónica, que la web de ayer tiene opcionales (D-16 revocada).
+  it('la etapa en línea corrida, con maillots de la víspera, sin radio ni crónica (W4)', async () => {
     const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/2`))
     expect(stage.run).toBe(true)
     expect(stage.results?.length).toBeGreaterThan(0)
-    expect(stage.chronicle?.length).toBeGreaterThan(0)
-    expect(stage.radio?.kms.length).toBeGreaterThan(0)
+    expect(stage.chronicle).toBeUndefined()
+    expect(stage.radio).toBeUndefined()
+    expect(stage.journalUnavailable).toBeUndefined()
     expect(stage.leaders?.onRoad.gc).not.toBeNull()
   })
 
@@ -480,7 +492,7 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
   /**
    * EL EQUIPO DE CADA FILA DE PUNTOS Y DE MONTAÑA (docs/visual.md §6.1, 17-q; E3, paso 12b): `teamId` y
    * `teamName`, en cada fila de `kom` y `points` de la etapa. Van anidados, así que la web de ayer la
-   * valida con `stageReplaySchema.omit({ tplRev: true, watch: true }).extend({ kom: z.array(
+   * valida con `stageReplaySchema.omit({ watch: true, champions: true }).extend({ kom: z.array(
    * pointsEntrySchema.omit({ teamId: true, teamName: true })).optional(), points: … })` (regla 8 de
    * §14.7): los objetos son strip y los descarta.
    */

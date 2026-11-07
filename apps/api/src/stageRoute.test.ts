@@ -295,19 +295,11 @@ const ADMIN = idDe(902)
 const TEAM_IDS = [idDe(100), idDe(101)]
 const dayOf = (stageDay: number): number => RACE.startDay + stageDay - 1
 const STAGE_URL = `/api/races/${RACE_ID}/stages`
-/** Los opcionales de resultado de `StageReplay` (§14.1, regla 1): la ficha sin resultado no lleva ninguno. */
-const RESULT_KEYS = [
-  'results',
-  'chronicle',
-  'gc',
-  'kom',
-  'points',
-  'teamStage',
-  'teamGc',
-  'radio',
-  'leaders',
-  'journalUnavailable',
-] as const
+/**
+ * Los opcionales de resultado de `StageReplay` (§14.1, regla 1): la ficha sin resultado no lleva ninguno.
+ * Sin `chronicle`, `radio` ni `journalUnavailable` desde W4, que los saca de la ficha (D-16 revocada).
+ */
+const RESULT_KEYS = ['results', 'gc', 'kom', 'points', 'teamStage', 'teamGc', 'leaders'] as const
 
 const specOf = (stageDay: number): StageRunSpec => {
   const stage = RACE.stages.find((s) => s.index === stageDay)!
@@ -591,18 +583,24 @@ describe('la ruta de etapa cerrada sobre una etapa corrida (§14.1; 7b)', () => 
    * 11a, en una etapa con línea como la 2, la de la línea (`radioFromTimeline`, con los diez primeros de la
    * etapa y los propios de quien pide, que aquí no tiene ninguno): las tres comparaciones no cambian.
    */
-  it('la Race Radio: sin radio en la etapa no conocida; la de la ficha de hoy, entera, en la vista y con ?diag=1 (§11.16)', async () => {
+  /**
+   * SIN RADIO NI CRÓNICA (W4, la revisión de `Watch` del dueño, su punto 8; D-16 revocada): la ficha de
+   * etapa ya no lleva la radio, la crónica, su aviso de que no se guardó ni la revisión de plantillas con
+   * que se leía, ni la de hoy, ni la vista, ni con `?diag=1`. El resto de la ficha, el de siempre.
+   */
+  it('W4: la ficha de etapa ya no lleva la radio ni la crónica, ni la de hoy, ni vista, ni con ?diag=1', async () => {
     const app = appWith('admins', 'admins')
-    const today = stageReplaySchema.parse(JSON.parse(await todayOf(2, ADMIN)))
-    expect(today.radio?.kms.length).toBeGreaterThan(0)
-    await setWatch(ADMIN, watchRow('W'))
-    const veiled = stageReplaySchema.parse((await get(app, `${STAGE_URL}/2`, ADMIN)).json())
-    expect(veiled.radio).toBeUndefined()
-    const diag = stageReplaySchema.parse((await get(app, `${STAGE_URL}/2?diag=1`, ADMIN)).json())
-    expect(diag.radio).toEqual(today.radio)
+    const GONE = ['radio', 'chronicle', 'journalUnavailable', 'tplRev']
+    const keysOf = (body: string): string[] => Object.keys(JSON.parse(body) as object)
+    const today = keysOf(await todayOf(2, ADMIN))
+    expect(today).toEqual(expect.arrayContaining(['results', 'gc', 'leaders', 'altimetry']))
+    expect(today.filter((k) => GONE.includes(k))).toEqual([])
+    const diag = await get(app, `${STAGE_URL}/2?diag=1`, ADMIN)
+    expect(keysOf(diag.body).filter((k) => GONE.includes(k))).toEqual([])
     await setWatch(ADMIN, watchRow('WW'))
-    const seen = stageReplaySchema.parse((await get(app, `${STAGE_URL}/2`, ADMIN)).json())
-    expect(seen.radio).toEqual(today.radio)
+    const seen = await get(app, `${STAGE_URL}/2`, ADMIN)
+    expect(keysOf(seen.body)).toContain('results')
+    expect(keysOf(seen.body).filter((k) => GONE.includes(k))).toEqual([])
     await setWatch(ADMIN, null)
   })
 

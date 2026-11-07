@@ -39,6 +39,11 @@ describe('UI_HEREDADOS', () => {
     expect(UI_HEREDADOS.filter((f) => !existsSync(join(RAIZ, f)))).toEqual([])
   })
 
+  // W4 (la revisión de `Watch` del dueño; D-16 revocada): el último, `RaceRadioPanel`, se fue con la radio.
+  it('está vacía desde W4: el último heredado se fue con la radio', () => {
+    expect(UI_HEREDADOS).toEqual([])
+  })
+
   it('cada fichero tiene algún aviso ui/, en warn: el que ya no tiene ninguno sale de la lista', async () => {
     const resultados = UI_HEREDADOS.length === 0 ? [] : await eslint.lintFiles([...UI_HEREDADOS])
     const limpios = resultados

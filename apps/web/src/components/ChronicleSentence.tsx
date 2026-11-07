@@ -12,8 +12,9 @@ import { RIDER_LINK_CLASS } from './RiderName'
  * (v58). `chronicleParts` devuelve la frase ya partida en texto, banderas, maillots y nombres: el enlace
  * se pinta aquí y no se busca en el texto, porque la marca viene puesta desde `riderFull`/`riderShort`.
  *
- * La pintaban `StageStory` (el acta) y, desde el paso 12 de E2, los momentos del corredor de
- * `Your last race` (§12.9, 12-k). `rev` es la revisión de plantillas de la etapa (§12.7).
+ * La pintan los momentos del corredor de `Your last race` (§12.9, 12-k; desde el paso 12 de E2), y hasta W4
+ * también el acta (`StageStory`, que se fue con la crónica; D-16 revocada). `rev` es la revisión de
+ * plantillas de la etapa (§12.7).
  */
 export function ChronicleSentence({ e, rev }: { e: ChronicleEntry; rev: number }) {
   return (

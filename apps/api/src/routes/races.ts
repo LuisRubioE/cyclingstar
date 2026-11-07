@@ -11,7 +11,6 @@ import {
   raceStagesForWorld,
   readWatch,
   setStageOrders,
-  worldHorizon,
 } from '@cyclingstar/db'
 import {
   ENGINE_VERSION,
@@ -204,8 +203,9 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
   )
 
   /**
-   * LA FICHA DE UNA ETAPA DE CALENDARIO (pública): cuenta lo que pasó (fuga, caza, cimas, sprints,
-   * meta) a partir de los eventos congelados al correrla, aunque no hayas corrido tú.
+   * LA FICHA DE UNA ETAPA DE CALENDARIO (pública): su resultado, sus clasificaciones y la altimetría con
+   * las marcas de lo que pasó, de lo congelado al correrla, aunque no hayas corrido tú. Hasta W4 contaba
+   * también la etapa en prosa (la crónica) y llevaba la radio (D-16 revocada).
    *
    * Desde el 7b (E2, docs/retransmision.md §14.1 y §14.2; D-40, D-50, decisiones 14-e y 11-h) sirve el
    * resultado solo si la pantalla lo va a enseñar (`stageAccessOf`): una etapa que no se ha visto da su
@@ -238,14 +238,10 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       // El espectador se resuelve siempre, con `?diag=1` o sin él: así quien no es administrador recibe
       // lo mismo, cabeceras incluidas (la `cs_viewer` de §14.9), que sin el parámetro (11-h).
       const viewer = await request.viewer()
-      // La radio desde la línea nombra siempre a sus corredores propios (11a, R23.7).
-      const userId = viewer?.userId ?? null
-      if (q.data.diag === '1' && (await request.diagAllowed()))
-        return stageReplayOf(db, ctx, { radio: { h: worldHorizon, userId } })
-      if (!(await request.spoilerApplies()))
-        return stageReplayOf(db, ctx, { radio: { h: worldHorizon, userId } })
-      // El snapshot con el horizonte de quien pide (G, §10.6): de una etapa velada, sin sucesos ni
-      // radio, que la ficha sin resultado (`stageShellOf`) no lee; la entrada es el recorrido (N).
+      if (q.data.diag === '1' && (await request.diagAllowed())) return stageReplayOf(db, ctx)
+      if (!(await request.spoilerApplies())) return stageReplayOf(db, ctx)
+      // El snapshot con el horizonte de quien pide (G, §10.6): de una etapa velada, sin sucesos, que la
+      // ficha sin resultado (`stageShellOf`) no lee; la entrada es el recorrido (N).
       const h = await request.horizon()
       const [watchOn, row, snapshot] = await Promise.all([
         request.broadcastOn(),
@@ -265,7 +261,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       })
       // Con el horizonte de quien pide también para los títulos de campeón de sus tablas (E3, 17a).
       const body = access.serveResult
-        ? await stageReplayOf(db, ctx, { snapshot, radio: { h, userId }, h })
+        ? await stageReplayOf(db, ctx, { snapshot, h })
         : stageShellOf(ctx, snapshot)
       return {
         ...body,

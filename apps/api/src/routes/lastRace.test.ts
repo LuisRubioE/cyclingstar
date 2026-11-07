@@ -27,13 +27,12 @@ import {
   type SwitchMode,
   broadcastChunkSchema,
   lastRaceResponseSchema,
-  stageReplaySchema,
 } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
 import { clearAdaptedTimelineCache } from '../broadcastSource.js'
-import { namesOfTheDay, riderMomentsOf, stageContextOf } from '../stageReplay.js'
+import { namesOfTheDay, riderMomentsOf, stageActaOf, stageContextOf } from '../stageReplay.js'
 
 /**
  * `GET /api/riders/me/last-race` CON LOS MOMENTOS DEL CORREDOR, Y LA IDENTIDAD DEL DÍA (E2,
@@ -43,9 +42,10 @@ import { namesOfTheDay, riderMomentsOf, stageContextOf } from '../stageReplay.js
  * la tarjeta `Your last race` se quedaría sin los momentos del corredor. Aquí, sobre un mundo de PGlite
  * con tres etapas de `race-france` corridas por `runOneStage` como el tick (con su línea grabada):
  *
- * - con la etapa conocida, `report.moments` son las líneas del acta (la ruta de etapa) en que el
- *   corredor es protagonista o destinatario, en el orden del acta; y con la última corrida velada, el
- *   informe es el de la anterior conocida, con sus momentos, y `ready` lleva la velada;
+ * - con la etapa conocida, `report.moments` son las líneas del acta (`stageActaOf`, la que servía la
+ *   ruta de etapa hasta que W4 la sacó de la ficha; D-16 revocada) en que el corredor es protagonista o
+ *   destinatario, en el orden del acta; y con la última corrida velada, el informe es el de la anterior
+ *   conocida, con sus momentos, y `ready` lleva la velada;
  * - la identidad del día: tras un traspaso, el acta, la voz de `Watch` y los momentos siguen nombrando
  *   el equipo con el que cada uno corrió, no el de hoy, y quien corrió sin equipo sigue sin él.
  */
@@ -130,8 +130,15 @@ describe('last-race con los momentos del corredor, y la identidad del día (§12
     return res.json()
   }
 
-  const actaOf = async (app: ReturnType<typeof buildApp>, day: number): Promise<ChronicleEntry[]> =>
-    stageReplaySchema.parse(await get(app, `${STAGE_URL}/${day}`)).chronicle ?? []
+  /**
+   * EL ACTA DE UNA ETAPA, la de la que salen los momentos (`stageActaOf`), por JSON como la sirve la API.
+   * Hasta W4 la servía la ruta de etapa (`chronicle`), y este test la pedía ahí.
+   */
+  const actaOf = async (day: number): Promise<ChronicleEntry[]> => {
+    const ctx = await stageContextOf(t.db, RACE_ID, day, 0)
+    const acta = ctx === null ? null : await stageActaOf(t.db, worldHorizon, ctx)
+    return JSON.parse(JSON.stringify(acta ?? [])) as ChronicleEntry[]
+  }
 
   /** Lo visto por el jugador: `knownThrough` etapas, y el memo del horizonte, al día. */
   const watched = async (knownThrough: number | null): Promise<void> => {
@@ -220,8 +227,7 @@ describe('last-race con los momentos del corredor, y la identidad del día (§12
       .values({ worldId, currentDay: dayOf(4), lastProcessedDay: dayOf(4) })
     // El corredor del jugador se elige con las etapas ya corridas, y no cambia ninguna carrera: uno que
     // salga en el acta de la 2 y en la de la 3, para que los momentos de las dos no sean vacíos.
-    const app = appWith('off')
-    const [acta2, acta3] = [await actaOf(app, 2), await actaOf(app, 3)]
+    const [acta2, acta3] = [await actaOf(2), await actaOf(3)]
     const in2 = new Set(ridersIn(acta2).map((r) => r.id))
     own = ridersIn(acta3).find((r) => r.id !== null && in2.has(r.id))?.id ?? ''
     expect(own, 'nadie sale en las actas de la 2 y de la 3').not.toBe('')
@@ -241,7 +247,7 @@ describe('last-race con los momentos del corredor, y la identidad del día (§12
     const app = appWith('off')
     const { report } = lastRaceResponseSchema.parse(await get(app, '/api/riders/me/last-race'))
     expect(report?.stageDay).toBe(3)
-    const acta = await actaOf(app, 3)
+    const acta = await actaOf(3)
     const mine = linesOf(acta, own)
     expect(mine.length).toBeGreaterThan(0)
     expect(report?.moments).toEqual(mine)
@@ -268,12 +274,9 @@ describe('last-race con los momentos del corredor, y la identidad del día (§12
       const body = lastRaceResponseSchema.parse(await get(veiled, '/api/riders/me/last-race'))
       expect(body.report?.stageDay).toBe(2)
       expect(body.ready?.stageDay).toBe(3)
-      const mine = linesOf(await actaOf(veiled, 2), own)
+      const mine = linesOf(await actaOf(2), own)
       expect(mine.length).toBeGreaterThan(0)
       expect(body.report?.moments).toEqual(mine)
-      // Ningún momento sale de la velada: la crónica de la 3 no viaja.
-      const veiledActa = stageReplaySchema.parse(await get(veiled, `${STAGE_URL}/3`))
-      expect(veiledActa.chronicle).toBeUndefined()
     } finally {
       await watched(null)
     }
@@ -291,7 +294,7 @@ describe('last-race con los momentos del corredor, y la identidad del día (§12
       const today = await getRaceRiderIdentities(t.db, RACE_KEY)
       for (const r of today) expect(r.teamName, r.name).toBe(dayTeamOf(ixOf(r.riderId) + 1))
       const app = appWith('off')
-      const acta = await actaOf(app, 3)
+      const acta = await actaOf(3)
       const voice: ChronicleEntry[] = []
       for (let from = 0; ; from += BROADCAST.chunkRaceS * 10) {
         const chunk = broadcastChunkSchema.parse(
