@@ -97,15 +97,13 @@ test('con los mandos escondidos, el primer toque en la barra solo los enseña; e
   await expect.poll(km, { timeout: 60_000 }).toBeGreaterThanOrEqual(Math.floor(0.8 * L) - 1)
 })
 
-test('tras la meta vista, la barra sola vuelve a la carrera desde el km tocado', async ({
-  page,
-}) => {
+/** Hasta el cierre de la meta vista: el último km a ×4, la meta, la llegada y el cierre. */
+async function toClosing(page: Page): Promise<{ again: Locator; L: number }> {
   await page.goto(ETAPA)
   await button(page, 'Play').click()
   const { bar, km, length } = kmBar(page)
   await expect(bar).toHaveCount(1)
   const L = await length()
-  // al último km, a ×4
   await button(page, 'More').click()
   await button(page, 'Last km').click()
   await expect.poll(km, { timeout: 60_000 }).toBeGreaterThanOrEqual(L - 2)
@@ -114,13 +112,20 @@ test('tras la meta vista, la barra sola vuelve a la carrera desde el km tocado',
     if ((await speed.getAttribute('aria-label'))?.startsWith('Speed ×4')) break
     await speed.click()
   }
-  // la meta, la llegada y el cierre: la barra sola, con lo que hace
   const again = page.getByText('Watch again from any km')
   await expect(again).toBeVisible({ timeout: 180_000 })
+  return { again, L }
+}
+
+test('tras la meta vista, la barra en el sitio de los mandos vuelve a la carrera, y con el teclado no pierde el foco', async ({
+  page,
+}) => {
+  const { again, L } = await toClosing(page)
+  const { bar, km } = kmBar(page)
   await expect(bar).toHaveCount(1)
   await expect(button(page, 'Pause')).toHaveCount(0)
 
-  // con el teclado: ← vuelve 5 km atrás y la barra sigue con el foco, ya con los mandos
+  // con el foco en la barra: ← vuelve 5 km atrás y la barra sigue con el foco, ya con los mandos
   await bar.focus()
   await page.keyboard.press('ArrowLeft')
   await expect(again).toHaveCount(0)
@@ -132,5 +137,17 @@ test('tras la meta vista, la barra sola vuelve a la carrera desde el km tocado',
   await tap(bar, 0.3)
   await expect.poll(km, { timeout: 10_000 }).toBeLessThanOrEqual(Math.ceil(0.3 * L) + 2)
   expect(await km()).toBeGreaterThanOrEqual(Math.floor(0.3 * L) - 2)
+  await expect(button(page, 'Pause')).toBeVisible()
+})
+
+test('tras la meta vista, ← de la página, sin el foco en la barra, también vuelve 5 km atrás', async ({
+  page,
+}) => {
+  const { again, L } = await toClosing(page)
+  const { km } = kmBar(page)
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await page.keyboard.press('ArrowLeft')
+  await expect(again).toHaveCount(0)
+  await expect.poll(km, { timeout: 10_000 }).toBeLessThanOrEqual(L - 4)
   await expect(button(page, 'Pause')).toBeVisible()
 })
