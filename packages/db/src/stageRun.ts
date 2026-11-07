@@ -643,6 +643,8 @@ export async function runOneStage(
       // siempre porque aquí no se sabe todavía si la línea va a entrar: se queda con
       // TIMELINE_RECORD=off, con una lápida (I1, I5 o el grabador que falla), si `flush` falla, si la
       // etapa ya tenía fila o si nadie llama a `flush`, y es la única radio que esas etapas tendrán.
+      // DESDE W4 NINGUNA PESTAÑA LA PINTA (el dueño retiró `Race Radio`; D-16 revocada): la lee el
+      // adaptador de la retransmisión, que con ella estima el reloj de las etapas sin línea.
       radio: radioForStorage(
         stageRadio,
         radioWatchList,

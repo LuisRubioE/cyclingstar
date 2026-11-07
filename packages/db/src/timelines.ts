@@ -262,14 +262,16 @@ export async function writeStageTimelineRows(
 
 /**
  * LA RADIO GUARDADA DE LAS ETAPAS CUYA LÍNEA ACABA DE ENTRAR, FUERA (DD-11; E2, paso 11b; §12.10 y
- * §17.14). Desde el 11b, la `Race Radio` de una etapa con línea sale de ella (`radioFromTimeline`, 11a,
- * con B16 en verde), y su `stage_snapshots.radio` se queda en null: una sola fuente para la pestaña y la
- * retransmisión. La etapa la sigue escribiendo al correr (`runOneStage`) y se borra aquí, en el mismo
+ * §17.14). Desde el 11b, la radio de una etapa con línea sale de ella (`radioFromTimeline`, 11a,
+ * con B16 en verde), y su `stage_snapshots.radio` se queda en null: una sola fuente para la retransmisión
+ * y, hasta W4, para la pestaña `Race Radio`, que el dueño retiró (D-16 revocada); hoy la lee de la línea
+ * la herramienta de consola (`scripts/race-radio.mjs --db`). La etapa la sigue escribiendo al correr (`runOneStage`) y se borra aquí, en el mismo
  * punto de guardado que el `INSERT` de su línea, porque el snapshot se escribe antes de saber si la línea
  * va a entrar: se cierra después (`recordStageTimeline`), puede salir lápida (I1, I5 o un error) y,
  * aunque salga línea, no entra hasta `flush`, al acabar las carreras del día, que puede fallar o
- * encontrarse la fila de antes (§17.19). Una etapa sin línea y sin radio no tendría `Race Radio` nunca,
- * y no escribirla de entrada pediría guardar en memoria la radio de todas las etapas del día hasta
+ * encontrarse la fila de antes (§17.19). Una etapa sin línea y sin radio no tendría retransmisión nunca
+ * (el adaptador estima su reloj con ella), y no escribirla de entrada pediría guardar en memoria la radio
+ * de todas las etapas del día hasta
  * `flush`. Así, la radio solo se va con su línea dentro: si el `INSERT` falla, el punto se deshace con
  * este borrado, y las lápidas de `flush` encuentran la radio en su sitio. Solo llegan aquí las líneas que
  * el `INSERT` escribió: ni las lápidas ni las que encontraron fila.

@@ -1,14 +1,10 @@
 import type { StageGate, StageReplay as StageReplayData } from '@cyclingstar/shared'
 import { type ReactNode, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PaintedRaceRadio } from '../components/PaintedRaceRadio'
-import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { ShareStage } from '../components/ShareStage'
 import { StageGateCard, TwoDeviceNotice } from '../components/StageGate'
-import { StageStory } from '../components/StageStory'
 import { TabPanel, useTabParam } from '../components/Tabs'
 import { Tabs } from '../components/ui/Tabs'
-import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingState, QueryView } from '../components/ui/QueryView'
 import { type RaceTabId, raceTabLabel, raceTabOf, raceTabs } from '../domain/raceTabs'
 import type { TableIdentity } from '../domain/tableIdentity'
@@ -17,8 +13,6 @@ import { useRevealActions } from '../queryClient'
 import {
   RESULT_TABS,
   StageReportView,
-  paintedRadioWanted,
-  paintedReachedOf,
   raceKeyOf,
   usePinnedHead,
   useStageFacts,
@@ -29,31 +23,26 @@ import {
 // de un día terminada descarga el reproductor también con `Watch` apagado (unos 58 kB, 19 con gzip).
 import { StageWatch, watchViewOf } from './StageWatch'
 
-const card = 'rounded-ui border border-line bg-surface p-4 shadow-card'
-const head = 'mb-3 text-caption font-semibold uppercase tracking-caps text-ink-2'
 /** El panel de la tira de pestañas de la ficha (`RACE_PANEL` de `Race.tsx`). */
 const RACE_PANEL = 'race-section'
 
 /**
  * LA CARRERA DE UN DÍA TERMINADA (E2, docs/retransmision.md §11.17; 11-o, sup. C3 y E9; paso 9b), con la
  * decisión 1 del dueño durante la implementación. Su ficha ES la de su etapa 1: con `Watch` encendido para
- * quien mira lleva `Watch`, `Report` (el acta: el resultado y la crónica) y `Race Radio`, con la misma puerta
- * que la página de una etapa y sus mismas piezas (`useStageFacts`, `useStageResult`, `StageGateCard`,
- * `StageWatch`, `PaintedRaceRadio`), y abre en `Watch` si no la ha visto y en `Report` si la vio o la reveló.
- * Por eso, con `Watch` encendido, la ficha pide la ruta de su etapa al abrirse y no al tocar la pestaña:
- * de ella depende la pestaña por defecto; mientras llega, la cabecera sin pestañas.
+ * quien mira lleva `Watch` y `Report` (el acta con el resultado), con la misma puerta que la página de una
+ * etapa y sus mismas piezas (`useStageFacts`, `useStageResult`, `StageGateCard`, `StageWatch`), y abre en
+ * `Watch` si no la ha visto y en `Report` si la vio o la reveló. Por eso, con `Watch` encendido, la ficha
+ * pide la ruta de su etapa al abrirse y no al tocar la pestaña: de ella depende la pestaña por defecto;
+ * mientras llega, la cabecera sin pestañas.
  *
- * Con `Watch` apagado (el jugador hasta el encendido, §20.5), las de hoy: `Result` primero, el acta al lado
- * con el nombre `Story` y la radio, y la ruta de la etapa se sigue pidiendo solo al abrir una de las dos
- * (la primera carga no pide nada más que hoy). Lo que enseña el resultado de una carrera que quien mira
- * tiene en su velo pinta la puerta, también con `Watch` apagado.
- *
- * Arregla de paso la `Race Radio` de una carrera sin ver (nota 6 del 11a): decía `This race was run before
- * the race radio was recorded`, que no era verdad; ahora pinta la puerta o, con `Watch` y línea grabada, la
- * radio hasta lo pintado.
+ * Con `Watch` apagado (el interruptor de §20.5), `Result` primero, el de la ficha de carrera, sin pedir la
+ * ruta de la etapa. Lo que enseña el resultado de una carrera que quien mira tiene en su velo pinta la
+ * puerta, también con `Watch` apagado. Hasta W4 llevaba además el acta con el nombre `Story`, que era la
+ * crónica con el podio, y `Race Radio`; el dueño las retiró (su revisión de `Watch`, punto 8; D-16
+ * revocada).
  *
  * Vive en su propio fichero, que la ficha carga diferido (`lazy`) solo para una carrera de un día terminada:
- * así la de una vuelta no se descarga la etapa (`stageView.tsx`, su cliente y la crónica), y una carga
+ * así la de una vuelta no se descarga la etapa (`stageView.tsx` y su cliente), y una carga
  * completa de la ficha no pide más ficheros que antes del 9b (cuentan para el límite de 300 peticiones por
  * minuto e IP). Las pestañas que son de la ficha (`Result`, `Route` y `Roll of honour`) se las pasa
  * `Race.tsx` ya hechas.
@@ -88,12 +77,10 @@ export function OneDaySections({
   honours: ReactNode
 }) {
   const [params] = useSearchParams()
-  // Con `Watch` apagado las pestañas no dependen de la etapa: la de la URL decide si hace falta pedirla.
-  const offTabs = raceTabs('finished', 1, true, false)
-  const offActive = raceTabOf(params.get('tab'), offTabs) ?? offTabs[0]
   // la carrera en el velo de quien mira: con `Watch` apagado, `Result` pinta la puerta sin pedir nada
   const veiled = veil !== null && veil.stages.includes(1)
-  const needStage = watchSettled && (watchOn || offActive === 'report' || offActive === 'radio')
+  // Con `Watch` apagado ninguna pestaña pinta la etapa (W4): solo con él encendido se pide su ruta.
+  const needStage = watchSettled && watchOn
   const f = useStageFacts(raceId, 1, { oneDay: true, enabled: needStage })
   const tabsKnown = watchSettled && (!watchOn || f.settled)
   const tabIds = raceTabs('finished', 1, f.seen, watchOn, f.watchable)
@@ -110,7 +97,6 @@ export function OneDaySections({
   const [finishedHere, setFinishedHere] = useState(false)
   const [revealedHere, setRevealedHere] = useState(false)
   const [otherDeviceSeen, setOtherDeviceSeen] = useState(false)
-  const [reachedHere, setReachedHere] = useState(0)
   const actions = useRevealActions(
     f.readingWithCookie ? null : raceKeyOf(raceId, f.broadcastHead.data, f.gameDay),
     () => setRevealedHere(true),
@@ -128,7 +114,7 @@ export function OneDaySections({
       <LoadingState label="the race" />
     )
 
-  const options = tabIds.map((id) => ({ key: id, label: raceTabLabel(id, watchOn) }))
+  const options = tabIds.map((id) => ({ key: id, label: raceTabLabel(id) }))
   const pagePath = `/world/races/${raceId}`
   const diagHref = f.isAdmin ? `${pagePath}?diag=1` : null
   const otherDevice =
@@ -165,8 +151,6 @@ export function OneDaySections({
       return <QueryView query={f.stage} label="the race" skeleton={{ kind: 'panel' }} />
     return <QueryView query={acta} label="the race" skeleton={{ kind: 'panel' }} />
   }
-  const radioHead = f.broadcastHead.data
-  const paintedRadio = paintedRadioWanted(gate, f.watchable, radioHead)
   // los modos (§8.1; 10a): `?view=highlights` y el digest, que en una carrera de un día es su etapa
   const watchView = watchViewOf(params.get('view'))
 
@@ -208,7 +192,6 @@ export function OneDaySections({
               reveal={actions}
               onReport={() => setActive('report')}
               onFinished={() => setFinishedHere(true)}
-              onReached={(s) => setReachedHere((x) => Math.max(x, s))}
             />
           ) : (
             <QueryView query={f.broadcastHead} label="the broadcast" skeleton={{ kind: 'panel' }} />
@@ -220,49 +203,24 @@ export function OneDaySections({
             {watchOn && f.unavailable && (
               <p className="text-meta text-ink-2">Broadcast unavailable for this race</p>
             )}
-            {withResult((d) =>
-              watchOn ? (
-                <>
-                  {/* el acta se comparte desde aquí, donde está (§14.2) */}
-                  <ShareStage raceId={raceId} day={1} report watch={false} />
-                  <StageReportView
-                    data={d}
-                    onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
-                    identity={identity}
-                    ownRiderId={ownRiderId}
-                  />
-                </>
-              ) : (
-                <StageStory data={d} onFullResult={() => setActive('result')} />
-              ),
-            )}
+            {/* `report` solo existe con `Watch` encendido: apagado, el resultado es `result` (W4) */}
+            {withResult((d) => (
+              <>
+                {/* el acta se comparte desde aquí, donde está (§14.2) */}
+                <ShareStage raceId={raceId} day={1} report watch={false} />
+                <StageReportView
+                  data={d}
+                  onWatchAnyway={f.watchable && f.seen ? () => setActive('watch') : undefined}
+                  identity={identity}
+                  ownRiderId={ownRiderId}
+                />
+              </>
+            ))}
           </>
         )}
 
         {/* `Result`, solo con `Watch` apagado: el de la ficha de carrera, o la puerta si está en el velo. */}
         {active === 'result' && (veiled ? gateCard({ k: 'not_seen' }) : classifications)}
-
-        {active === 'radio' && paintedRadio && (
-          <PaintedRaceRadio
-            head={radioHead}
-            raceId={raceId}
-            day={1}
-            reachedS={paintedReachedOf(radioHead, 1, reachedHere)}
-            onWatch={() => setActive('watch')}
-          />
-        )}
-        {active === 'radio' &&
-          !paintedRadio &&
-          withResult((d) =>
-            d.radio ? (
-              <RaceRadioPanel radio={d.radio} />
-            ) : (
-              <div className={card}>
-                <h2 className={head}>Race Radio</h2>
-                <EmptyState text="This race was run before the race radio was recorded, so there is nothing to replay." />
-              </div>
-            ),
-          )}
 
         {active === 'route' && route}
         {active === 'honours' && honours}

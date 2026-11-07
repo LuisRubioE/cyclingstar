@@ -544,7 +544,7 @@ function RaceSections({
   )
   const options: TabOption<RaceTabId>[] = tabIds.map((id) => ({
     key: id,
-    label: raceTabLabel(id, watchOn),
+    label: raceTabLabel(id),
     ...(id === 'stages' && veil !== null ? { badge: <StagesBadge n={veil.stages.length} /> } : {}),
   }))
   return (

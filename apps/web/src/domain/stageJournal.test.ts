@@ -1,10 +1,4 @@
-import {
-  type ChronicleEntry,
-  type ChronicleRider,
-  type StageResultEntry,
-  TEMPLATE_REV,
-  fnv1a,
-} from '@cyclingstar/shared'
+import { type ChronicleEntry, type ChronicleRider, TEMPLATE_REV, fnv1a } from '@cyclingstar/shared'
 import { GROUP_NOUNS, WATCHED_GROUP_NOUNS } from '@cyclingstar/engine'
 import { describe, expect, it } from 'vitest'
 import {
@@ -17,7 +11,6 @@ import {
   ordinalSuffix,
   pickPhrasing,
   riderGroupNoun,
-  timeTrialStory,
   variantSeed,
 } from './stageJournal'
 
@@ -41,23 +34,6 @@ const named = (...names: string[]): ChronicleRider[] => names.map((n) => rider(n
 
 function event(partial: Partial<ChronicleEntry> & { plantilla: string }): ChronicleEntry {
   return { km: 100, protagonists: [], ...partial } as ChronicleEntry
-}
-
-function result(name: string, puesto: number, tiempoS: number): StageResultEntry {
-  return {
-    riderId: `r${puesto}`,
-    name,
-    country: 'ES',
-    dnf: false,
-    reason: null,
-    teamName: null,
-    isBot: true,
-    puesto,
-    tiempoS,
-    bonificacionS: 0,
-    puntosVolante: 0,
-    puntosMontana: 0,
-  }
 }
 
 describe('formato del journal', () => {
@@ -184,24 +160,8 @@ describe('crónica de la etapa', () => {
   })
 })
 
-describe('crónica de una contrarreloj', () => {
-  it('sin resultados no hay nada que contar', () => {
-    expect(timeTrialStory([])).toEqual([])
-  })
-
-  it('cuenta el mejor tiempo, quién se acercó y lo apretada que quedó', () => {
-    const lineas = timeTrialStory([
-      result('Ana', 1, 3600),
-      result('Bea', 2, 3612),
-      result('Cris', 3, 3700),
-    ])
-    expect(lineas[0]).toContain('Ana')
-    expect(lineas[1]).toContain('+12s')
-    expect(lineas[2]).toContain('+1:40')
-    // Ana y Bea entran en el minuto; Cris no.
-    expect(lineas[3]).toContain('2 riders')
-  })
-})
+// `timeTrialStory`, el relato de una crono a partir de los tiempos, se fue con la crónica en W4 (D-16
+// revocada): solo lo pintaba `StageStory` en las cronos corridas antes de la v18.
 
 // --- La crónica tiene que EXPLICAR la carrera (docs/motor.md §16) ---------------------------
 // El dueño leyó dos crónicas y no se entendían: "de 81 corredores a 3 en tres kilómetros, con solo

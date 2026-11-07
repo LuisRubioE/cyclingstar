@@ -6,8 +6,12 @@
  * 9b, también de si quien mira la ha visto y de si tiene `Watch` encendido (11-o).
  *
  * En una carrera de UN DÍA la carrera y la etapa son la misma cosa, así que la ficha de carrera
- * contiene directamente lo que en una vuelta vive en la ficha de etapa: `Watch`, el acta y la radio. No
- * hay pestaña `Stages` —sería una lista de un solo elemento— y por tanto no hay salto intermedio.
+ * contiene directamente lo que en una vuelta vive en la ficha de etapa: `Watch` y el acta. No hay
+ * pestaña `Stages` —sería una lista de un solo elemento— y por tanto no hay salto intermedio.
+ *
+ * Sin `Race Radio` ni la crónica desde W4 (la revisión de `Watch` del dueño, su punto 8: «ya los puedes
+ * tirar a la basura»; D-16 revocada): con `Watch` apagado, `Story` era la crónica con el podio, así que
+ * en ese modo la ficha abre en `Result`.
  *
  * Lógica pura, sin React: se prueba sin DOM.
  */
@@ -16,26 +20,17 @@ import type { RaceStatus } from '@cyclingstar/shared'
 
 /**
  * Las pestañas de la ficha de carrera y de la página de etapa (E2, docs/retransmision.md §11.17, D-48): `story`
- * pasó a `report` en el 9b (los enlaces viejos con `?tab=story` la abren por `LEGACY_TAB`), y `watch` y
- * `report` llegaron en el 9a.
+ * pasó a `report` en el 9b (los enlaces viejos con `?tab=story` la abren por `ACTA`), y `watch` y `report`
+ * llegaron en el 9a. `radio` se fue en W4.
  */
 export type RaceTabId =
-  | 'watch'
-  | 'classifications'
-  | 'result'
-  | 'report'
-  | 'radio'
-  | 'stages'
-  | 'route'
-  | 'startlist'
-  | 'honours'
+  'watch' | 'classifications' | 'result' | 'report' | 'stages' | 'route' | 'startlist' | 'honours'
 
 export const RACE_TAB_LABEL: Record<RaceTabId, string> = {
   watch: 'Watch',
   classifications: 'Classifications',
   result: 'Result',
   report: 'Report',
-  radio: 'Race Radio',
   stages: 'Stages',
   route: 'Route',
   startlist: 'Startlist',
@@ -43,11 +38,11 @@ export const RACE_TAB_LABEL: Record<RaceTabId, string> = {
 }
 
 /**
- * El nombre de cada pestaña: `report` se llama `Story`, como hoy, mientras `Watch` no esté encendido
- * para quien mira; el cambio llega con el encendido y no con el despliegue del 9a y el 9b (§20.5).
+ * El nombre de cada pestaña. Hasta W4, `report` se llamaba `Story` con `Watch` apagado, porque ahí era la
+ * crónica; sin ella, `report` solo existe con `Watch` encendido y tiene un solo nombre.
  */
-export function raceTabLabel(id: RaceTabId, watchOn: boolean): string {
-  return id === 'report' && !watchOn ? 'Story' : RACE_TAB_LABEL[id]
+export function raceTabLabel(id: RaceTabId): string {
+  return RACE_TAB_LABEL[id]
 }
 
 /** Pestañas de una carrera POR ETAPAS: antes de correrse manda el recorrido, en cuanto rueda las clasificaciones. */
@@ -68,27 +63,25 @@ const ONE_DAY_TABS: Record<Exclude<RaceStatus, 'finished'>, readonly RaceTabId[]
 }
 
 /**
- * LA CARRERA DE UN DÍA TERMINADA (11-o; sup. C3; 9b). Su ficha ES la de su etapa: lleva `Watch`, el acta
- * y la `Race Radio` con la misma puerta que la página de una etapa (§6.10). Con la decisión 1 del dueño
- * durante la implementación (8 de octubre de 2026), con `Watch` encendido `Story` y `Result` son una sola
- * pestaña, `Report` (el resultado y la crónica), como en la página de etapa desde el 9a; §11.17 las tenía
- * aparte.
+ * LA CARRERA DE UN DÍA TERMINADA (11-o; sup. C3; 9b). Su ficha ES la de su etapa: lleva `Watch` y el acta
+ * con la misma puerta que la página de una etapa (§6.10). Con la decisión 1 del dueño durante la
+ * implementación (8 de octubre de 2026), con `Watch` encendido `Story` y `Result` son una sola pestaña,
+ * `Report` (el acta con el resultado), como en la página de etapa desde el 9a; §11.17 las tenía aparte.
  *
  * - `unseen`: no la ha visto (sin letra, `A` o `X`; 6-r, 10-e): `Watch` delante, el recorrido detrás, y lo
  *   que enseña el resultado a un toque (con la puerta si está en su velo).
  * - `seen`: la vio o la reveló (`W`, `S` o `R`): `Report` delante y `Watch` al final (`Watch anyway`).
  * - `unwatchable`: sin `Watch` para su etapa (una crono sin línea, una lápida; §17.19): `Report` delante.
- * - `off`: `Watch` apagado para quien mira (el jugador hasta el encendido, §20.5): las de hoy, `Result`
- *   primero y el acta al lado con el nombre `Story` (`raceTabLabel`).
+ * - `off`: `Watch` apagado para quien mira (el interruptor de §20.5): `Result` primero. Hasta W4 llevaba
+ *   al lado el acta con el nombre `Story`, que era la crónica con el podio.
  *
- * `Race Radio` sigue en todas: en una vuelta vive en la ficha de etapa, y como aquí la de etapa redirige a
- * esta, sin pestaña propia la radio de una clásica era inalcanzable.
+ * W4 quitó `Race Radio` de todas (D-16 revocada).
  */
 const ONE_DAY_FINISHED: Record<'seen' | 'unseen' | 'unwatchable' | 'off', readonly RaceTabId[]> = {
-  unseen: ['watch', 'route', 'report', 'radio', 'honours'],
-  seen: ['report', 'radio', 'route', 'honours', 'watch'],
-  unwatchable: ['report', 'radio', 'route', 'honours'],
-  off: ['result', 'report', 'radio', 'route', 'honours'],
+  unseen: ['watch', 'route', 'report', 'honours'],
+  seen: ['report', 'route', 'honours', 'watch'],
+  unwatchable: ['report', 'route', 'honours'],
+  off: ['result', 'route', 'honours'],
 }
 
 /**
@@ -124,41 +117,39 @@ export function defaultRaceTab(
 }
 
 /**
- * Los enlaces ya compartidos con `?tab=story` abren `report`: con la etapa velada, la puerta (sup. E9). La
- * aplican la ficha de carrera (`raceTabOf`) y la de etapa (`stagePageTabOf`) antes de `useTabParam`.
+ * EL ACTA Y EL RESULTADO SON LA MISMA PESTAÑA con dos nombres: `report` con `Watch` encendido (decisión 1
+ * del dueño) y `result` con él apagado (W4, que se llevó la crónica de `Story`). Los enlaces ya
+ * compartidos con `?tab=story` (D-48), `?tab=report` y `?tab=result` abren la que haya: con la etapa
+ * velada, la puerta (sup. E9). La aplican la ficha de carrera (`raceTabOf`) y la de etapa
+ * (`stagePageTabOf`) antes de `useTabParam`.
  */
-export const LEGACY_TAB: Readonly<Record<string, RaceTabId>> = { story: 'report' }
+const ACTA: readonly string[] = ['story', 'report', 'result']
 
 /**
- * Lo que pide `?tab=` en la ficha de carrera, contra sus pestañas: una que existe se respeta; `story` (los
- * enlaces de hoy, D-48) abre `report`, y `result`, que con `Watch` encendido vive dentro de `Report`
- * (decisión 1 del dueño), también. Una que no existe da null y la ficha abre en la suya por defecto. La
- * pestaña pedida no salta la puerta.
+ * Lo que pide `?tab=` en la ficha de carrera, contra sus pestañas: una que existe se respeta; `story`,
+ * `report` y `result` abren la del acta que haya (`ACTA`). Una que no existe, como `radio` desde W4, da
+ * null y la ficha abre en la suya por defecto. La pestaña pedida no salta la puerta.
  */
 export function raceTabOf(raw: string | null, tabs: readonly RaceTabId[]): RaceTabId | null {
   if (raw === null) return null
   const exact = tabs.find((t) => t === raw)
   if (exact !== undefined) return exact
-  const legacy = LEGACY_TAB[raw] ?? (raw === 'result' ? 'report' : undefined)
-  return legacy !== undefined && tabs.includes(legacy) ? legacy : null
+  return ACTA.includes(raw) ? (tabs.find((t) => t === 'report' || t === 'result') ?? null) : null
 }
 
 /**
  * A dónde va `/world/races/:raceId/stages/1` de una carrera de UN DÍA: a la ficha de carrera, que ya
- * contiene lo que había en la de etapa, en la pestaña equivalente a la que se pedía. Sin `?tab=` y con
- * `Watch` encendido para quien mira, ya no elige (11-o; 9b): la ficha abre en su pestaña por defecto,
- * `Watch` o `Report` según la haya visto, que es lo que promete el enlace de un marcador del feed (§11.7).
- * Hasta el 9b elegía `story`, que a quien no la había visto le enseñaba la puerta en lugar de la carrera.
- * Con `Watch` apagado sigue eligiendo la crónica, como hoy (`null` aquí y `report`, que se lee `Story`, en
- * `oneDayStageTarget`): el `Full story →` de la portada no cambia hasta el encendido (§20.5).
+ * contiene lo que había en la de etapa, en la pestaña equivalente a la que se pedía. Sin `?tab=`, ya no
+ * elige (11-o; 9b): la ficha abre en su pestaña por defecto, `Watch` o `Report` según la haya visto, que es
+ * lo que promete el enlace de un marcador del feed (§11.7), y `Result` con `Watch` apagado. Hasta el 9b
+ * elegía `story`, que a quien no la había visto le enseñaba la puerta en lugar de la carrera; y hasta W4,
+ * con `Watch` apagado, la crónica. `radio`, desde W4, no lleva a ninguna.
  */
 export function oneDayStageTab(stageTab: string | null): RaceTabId | null {
   switch (stageTab) {
     case 'result':
     case 'classifications':
       return 'result'
-    case 'radio':
-      return 'radio'
     case 'profile':
       return 'route'
     case 'watch':
@@ -172,16 +163,12 @@ export function oneDayStageTab(stageTab: string | null): RaceTabId | null {
 }
 
 /**
- * URL completa de esa redirección, conservando el resto de la query (`?cls=`). Sin pestaña pedida, sin `tab`
- * con `Watch` encendido para quien mira y la crónica (`report`) con él apagado.
+ * URL completa de esa redirección, conservando el resto de la query (`?cls=`). Sin pestaña pedida, o con
+ * una que ya no existe, sin `tab`.
  */
-export function oneDayStageTarget(
-  raceId: string,
-  search: URLSearchParams,
-  watchOn: boolean,
-): string {
+export function oneDayStageTarget(raceId: string, search: URLSearchParams): string {
   const next = new URLSearchParams(search)
-  const tab = oneDayStageTab(search.get('tab')) ?? (watchOn ? null : 'report')
+  const tab = oneDayStageTab(search.get('tab'))
   if (tab === null) next.delete('tab')
   else next.set('tab', tab)
   const q = next.toString()
@@ -191,16 +178,16 @@ export function oneDayStageTarget(
 // ------------------------------------------------- la página de una etapa (E2, §6.10 y §11.17; 9a)
 
 /** Las pestañas de la página de una etapa CORRIDA de una carrera por etapas. La sin correr, `Profile`. */
-export type StagePageTabId = 'watch' | 'report' | 'result' | 'classifications' | 'radio' | 'profile'
+export type StagePageTabId = 'watch' | 'report' | 'result' | 'classifications' | 'profile'
 
 /**
  * LAS PESTAÑAS DE UNA ETAPA CORRIDA (§6.10, D-48; 6-r), en el mismo fichero para probarlas sin DOM, con
  * la decisión 1 del dueño durante la implementación (8 de octubre de 2026): con `Watch` encendido para
- * quien mira, `Story` y `Result` se funden en una sola pestaña, `Report`, el acta con el resultado y la
- * crónica (los nombres de DD-28).
+ * quien mira, `Story` y `Result` se funden en una sola pestaña, `Report`, el acta con el resultado (los
+ * nombres de DD-28). Sin `Race Radio` desde W4 (D-16 revocada).
  *
- * - `watchOn` falso (el jugador hasta el encendido, §20.5): las de hoy, en su orden (`StageReplay.tsx`
- *   hasta el 9a), con `report` llamada `Story`. Nada cambia para él.
+ * - `watchOn` falso (el interruptor de §20.5): `Result`, `Classifications` y `Profile`. Hasta W4 abría en
+ *   `Story`, la crónica con el podio.
  * - `seen` falso (sin letra, `A` o `X`; 6-r, 10-e): `Watch` primero y el perfil, que no cuenta nada,
  *   detrás; lo que enseña el resultado, a un toque (con la puerta si la etapa está en el velo).
  * - `seen` (`W`, `S` o `R`): `Report` primero, el acta al terminar de verla o al revelarla, y `Watch` al
@@ -213,23 +200,23 @@ export function stagePageTabs(
   watchOn: boolean,
   watchable = true,
 ): readonly StagePageTabId[] {
-  if (!watchOn) return ['report', 'result', 'radio', 'classifications', 'profile']
-  if (!watchable) return ['report', 'classifications', 'radio', 'profile']
+  if (!watchOn) return ['result', 'classifications', 'profile']
+  if (!watchable) return ['report', 'classifications', 'profile']
   return seen
-    ? ['report', 'classifications', 'radio', 'profile', 'watch']
-    : ['watch', 'profile', 'report', 'classifications', 'radio']
+    ? ['report', 'classifications', 'profile', 'watch']
+    : ['watch', 'profile', 'report', 'classifications']
 }
 
 /** El nombre de cada pestaña de la página de etapa: los de la ficha de carrera y `Profile`. */
-export function stageTabLabel(id: StagePageTabId, watchOn: boolean): string {
-  return id === 'profile' ? 'Profile' : raceTabLabel(id, watchOn)
+export function stageTabLabel(id: StagePageTabId): string {
+  return id === 'profile' ? 'Profile' : raceTabLabel(id)
 }
 
 /**
- * Lo que pide `?tab=` en la página de etapa, contra sus pestañas: `story` (los enlaces de hoy, D-48)
- * abre `report`, y `result`, que con `Watch` encendido vive dentro de `Report`, también. Una pestaña que
- * no existe da null y la página abre en la suya por defecto. La pestaña pedida no salta la puerta: con
- * la etapa sin ver, `report`, `result`, `classifications` y `radio` la pintan (sup. E9).
+ * Lo que pide `?tab=` en la página de etapa, contra sus pestañas: `story`, `report` y `result` abren la
+ * del acta que haya (`ACTA`). Una pestaña que no existe, como `radio` desde W4, da null y la página abre
+ * en la suya por defecto. La pestaña pedida no salta la puerta: con la etapa sin ver, `report`, `result`
+ * y `classifications` la pintan (sup. E9).
  */
 export function stagePageTabOf(
   raw: string | null,
@@ -238,7 +225,5 @@ export function stagePageTabOf(
   if (raw === null) return null
   const exact = tabs.find((t) => t === raw)
   if (exact !== undefined) return exact
-  return (LEGACY_TAB[raw] === 'report' || raw === 'result') && tabs.includes('report')
-    ? 'report'
-    : null
+  return ACTA.includes(raw) ? (tabs.find((t) => t === 'report' || t === 'result') ?? null) : null
 }

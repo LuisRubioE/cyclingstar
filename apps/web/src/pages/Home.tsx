@@ -241,9 +241,10 @@ export function NextUp({
 }
 
 /**
- * Crónica de la última carrera corrida, con enlace a la etapa completa. Bajo el velo (E2, §11.4; sup. H1;
- * 9b), la de la última etapa CONOCIDA; si la última que corrió su corredor está velada, `Your last race ·
- * Race France, Stage 8 · Ready to watch` con `Watch` en lugar de `Full story`.
+ * La última carrera corrida, con enlace a su etapa (`Open stage`; hasta W4, `Full story`, cuando la etapa
+ * tenía crónica). Bajo el velo (E2, §11.4; sup. H1; 9b), la de la última etapa CONOCIDA; si la última que
+ * corrió su corredor está velada, `Your last race · Race France, Stage 8 · Ready to watch` con `Watch` en
+ * lugar de `Open stage`.
  */
 function LastRaceCard() {
   const rev = useHorizonRev()
@@ -265,7 +266,7 @@ function LastRaceCard() {
       title="Last race"
       action={
         <TextLink to={`/world/races/${raceIdFromKey(data.raceId)}/stages/${data.stageDay}`}>
-          Full story
+          Open stage
         </TextLink>
       }
     >

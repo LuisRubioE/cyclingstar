@@ -5,8 +5,8 @@ import { BROADCAST } from './constants.js'
 import { cutTimeline, visibilityOf } from './cut.js'
 import { photoBlocksOf } from './instant.js'
 import { photoAt } from './reduce.js'
-import { type RadioNames, radioFromTimeline, radioKmOfBlock, radioNameableAt } from './radio.js'
-import type { Block, GroupDetail, RiderIx, TimelineCore, TimelineEvent } from './timeline.js'
+import { type RadioNames, radioFromTimeline, radioKmOfBlock } from './radio.js'
+import type { Block, GroupDetail, RiderIx, TimelineCore } from './timeline.js'
 import { fromDs } from './timeline.js'
 
 /**
@@ -345,54 +345,5 @@ describe('radioFromTimeline · una línea cortada da el prefijo de fotos cerrada
       plainNames(tl.riderIds),
     )
     expect(after.kms.length).toBeGreaterThan(i)
-  })
-})
-
-describe('radioNameableAt · los nombrables de cada foto por la política de §7.7 (12-o)', () => {
-  const ev = (km: number, riders: readonly RiderIx[]): TimelineEvent => ({
-    source: 0,
-    plantilla: 'attack',
-    km,
-    tS: 0,
-    bEmit: 0,
-    revealS: 0,
-    riders,
-    datos: null,
-  })
-
-  it('los maillots, los namedGcTop primeros de salida y extra, siempre; los protagonistas, desde el km de su suceso', () => {
-    const nameable = radioNameableAt(
-      { events: [ev(4.5, [6]), ev(2, [3, 4]), ev(2.05, [7])] },
-      {
-        wearing: [1],
-        gcTop: [
-          { rider: 2, rank: 1 },
-          { rider: 8, rank: BROADCAST.namedGcTop },
-          { rider: 9, rank: BROADCAST.namedGcTop + 1 },
-        ],
-        extra: [5],
-      },
-    )
-    const sorted = (km: number) => [...nameable(km)].sort((a, b) => a - b)
-    expect(sorted(0)).toEqual([1, 2, 5, 8])
-    expect(sorted(1.95)).toEqual([1, 2, 5, 8])
-    expect(sorted(2.0000000000000004)).toEqual([1, 2, 3, 4, 5, 8])
-    expect(sorted(2.1)).toEqual([1, 2, 3, 4, 5, 7, 8])
-    expect(sorted(200)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
-  })
-
-  it('sobre una línea cortada en lo pintado, solo nombran los sucesos ya revelados (los que trae el corte)', () => {
-    const { photos, riderIds } = toyStage()
-    const { tl } = synthLine(photos, riderIds, OPTS)
-    const line: TimelineCore = {
-      ...tl,
-      events: [
-        { ...ev(1, [4]), revealS: 5 },
-        { ...ev(1, [3]), revealS: 50 },
-      ],
-    }
-    const policy = { wearing: [], gcTop: [] }
-    expect([...radioNameableAt(cutTimeline(line, 10), policy)(5)]).toEqual([4])
-    expect([...radioNameableAt(line, policy)(5)].sort((a, b) => a - b)).toEqual([3, 4])
   })
 })

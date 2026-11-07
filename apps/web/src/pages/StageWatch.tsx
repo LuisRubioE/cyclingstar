@@ -165,10 +165,6 @@ export interface DigestRun {
  * dispositivo. Y el modo diagnóstico del dueño (`diag`, §11.15): los tramos y la meta con `?diag=1`, que
  * la API sirve sin tope y sin escribir, desde la previa y sin informar de lo alcanzado.
  *
- * Desde el 11a, cada informe de lo alcanzado (y el de salir, al cambiar de pestaña) se le dice también a
- * la página (`onReached`): la `Race Radio` de una etapa sin ver llega hasta lo que se ha visto aquí sin
- * esperar a que la cabecera se pida otra vez (11-i).
- *
  * Desde el 10a, el montaje y los modos (§8.1, §8.5 a §8.8): la previa de cuatro cuadros, la llegada (el
  * ganador, los grupos que llegan y el fuera de control) y el cierre de seis (`StageCards.tsx`, con los
  * textos de `montage.ts`); `Highlights` (`summaryPace`, o la curva de 8-m en la crono) y el digest
@@ -188,7 +184,6 @@ export function StageWatch({
   reveal = null,
   onReport,
   onFinished,
-  onReached,
   onChain,
 }: {
   head: BroadcastHead
@@ -208,8 +203,6 @@ export function StageWatch({
   onReport: () => void
   /** la meta respondió: la etapa se vio aquí (la página no la toma por otro dispositivo, D-57) */
   onFinished?: () => void
-  /** lo alcanzado que se acaba de informar (11a): hasta ahí llega la radio de una etapa sin ver */
-  onReached?: (reachedS: RaceS) => void
   /** el digest pasa a la etapa siguiente (8-c): la página navega a ella */
   onChain?: (nextDay: number) => void
 }) {
@@ -219,7 +212,6 @@ export function StageWatch({
     digest,
     oneDay,
     onFinished,
-    onReached,
     onChain,
     reveal: reveal === null ? null : () => reveal.reveal(digest?.last ?? day),
   })
@@ -553,7 +545,6 @@ interface PlayerOptions {
   readonly digest: DigestRun | null
   readonly oneDay: boolean
   readonly onFinished: (() => void) | undefined
-  readonly onReached: ((reachedS: RaceS) => void) | undefined
   readonly onChain: ((nextDay: number) => void) | undefined
   /** `POST /api/me/reveal` de la etapa (o, en el digest, de la última, que arrastra las demás) */
   readonly reveal: (() => Promise<unknown>) | null
@@ -585,15 +576,13 @@ function useWatchPlayer(
   const queryClient = useQueryClient()
   // los avisos a la página y la revelación, sin reiniciar el reproductor cuando la página los cambia
   const finishedRef = useRef(opts.onFinished)
-  const reachedRef = useRef(opts.onReached)
   const chainRef = useRef(opts.onChain)
   const revealRef = useRef(opts.reveal)
   useEffect(() => {
     finishedRef.current = opts.onFinished
-    reachedRef.current = opts.onReached
     chainRef.current = opts.onChain
     revealRef.current = opts.reveal
-  }, [opts.onFinished, opts.onReached, opts.onChain, opts.reveal])
+  }, [opts.onFinished, opts.onChain, opts.reveal])
   const digestFrom = digest?.from ?? null
   const digestLast = digest?.last ?? null
   const ctx = useMemo<InstantContext>(
@@ -885,13 +874,11 @@ function useWatchPlayer(
           return f
         },
         sleep: (sec) => new Promise((resolve) => window.setTimeout(resolve, sec * 1000)),
-        // En el modo diagnóstico nada se informa (§11.15): ni al servidor, ni al localStorage. Lo que se
-        // informa se le dice también a la página, para la radio de una etapa sin ver (11a).
+        // En el modo diagnóstico nada se informa (§11.15): ni al servidor, ni al localStorage.
         report: diag
           ? async () => undefined
           : signedIn
             ? async (reachedS, mode) => {
-                reachedRef.current?.(reachedS)
                 const res = await postWatchProgress(raceKey, day, { reachedS, mode })
                 // El primer progreso puede seguir la carrera (D-30) y arrastrar con `A` las anteriores
                 // (10-a): el `rev` cambia, y con él lo que el mundo enseña (9b). Si es otro, el horizonte
@@ -902,18 +889,15 @@ function useWatchPlayer(
                 return res
               }
             : async (reachedS) => {
-                reachedRef.current?.(reachedS)
                 writeLocalProgress(raceKey, day, reachedS)
               },
         beacon: diag
           ? () => undefined
           : signedIn
             ? (reachedS, mode) => {
-                reachedRef.current?.(reachedS)
                 beaconWatchProgress(raceKey, day, { reachedS, mode })
               }
             : (reachedS) => {
-                reachedRef.current?.(reachedS)
                 writeLocalProgress(raceKey, day, reachedS)
               },
         // `Show result` (§8.5): la revelación, delante de la meta; si falla, `Connection lost · Retry`
@@ -924,11 +908,10 @@ function useWatchPlayer(
         },
         release,
         // El salto de recorrido en el servidor (8-t, 10b): una petición en lugar de un informe y un tramo por
-        // vuelta. Lo que informa el servidor se le dice a la página, como un informe, y su `rev`, igual.
+        // vuelta. Si el servidor informó, su `rev`, como el de un informe.
         seek: async (km, fromD) => {
           const res = await postBroadcastSeek(raceId, day, km, fromD, undefined, { diag })
           if (res.written) {
-            reachedRef.current?.(res.reachedS)
             const known = queryClient.getQueryData<HorizonSummary | null>(['horizon'])
             if (known != null && known.rev !== res.rev)
               void queryClient.invalidateQueries({ queryKey: ['horizon'] })

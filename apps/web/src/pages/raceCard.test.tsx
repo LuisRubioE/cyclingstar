@@ -39,7 +39,6 @@ const veiledStage: StageReplayData = {
 const seenStage: StageReplayData = {
   ...veiledStage,
   results: [],
-  chronicle: [],
   watch: { known: true, reachedS: null, gate: null, seen: true },
 }
 
@@ -77,7 +76,6 @@ function page(
       broadcastHeadKey(raceId, 1, undefined, false, REV),
       broadcastHeadWith(raceId, 1),
     )
-    client.setQueryData(['painted-radio', raceId, 1, 0], [])
   }
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
@@ -124,7 +122,8 @@ describe('la carrera de un día terminada (11-o; sup. C3 y E9)', () => {
       horizon: sanremoVeil,
       stage: veiledStage,
     })
-    expect(tabsOf(markup)).toEqual(['Watch', 'Route', 'Report', 'Race Radio', 'Roll of honour'])
+    // re-sellado en W4: sin `Race Radio` (D-16 revocada)
+    expect(tabsOf(markup)).toEqual(['Watch', 'Route', 'Report', 'Roll of honour'])
     expect(selectedOf(markup)).toBe('Watch')
     expect(markup).toContain('Finished · ready to watch')
     expect(markup).not.toContain('>Winner<')
@@ -142,20 +141,22 @@ describe('la carrera de un día terminada (11-o; sup. C3 y E9)', () => {
     }
   })
 
-  it('la Race Radio de la carrera sin ver ya no dice que se corrió sin radio (nota 6 del 11a)', () => {
+  // W4 (la revisión de `Watch` del dueño; D-16 revocada): sin `Race Radio`, el enlace viejo a la radio de
+  // la carrera sin ver abre la pestaña por defecto, `Watch`, y nada de radio.
+  it('?tab=radio de la carrera sin ver abre Watch, la de por defecto, sin radio (W4)', () => {
     const markup = page(`/world/races/${SANREMO}?tab=radio`, {
       view: sanremo,
       horizon: sanremoVeil,
       stage: veiledStage,
     })
-    expect(markup).not.toContain('before the race radio was recorded')
-    // con línea grabada, la radio hasta lo pintado (11a), y con nada visto todavía, sin fotos
-    expect(markup).toContain('the race radio fills in as far as you&#x27;ve watched')
+    expect(selectedOf(markup)).toBe('Watch')
+    expect(markup).not.toContain('race radio')
+    expect(markup).not.toContain('Race Radio')
   })
 
   it('vista o revelada: abre en Report y deja Watch al final', () => {
     const markup = page(`/world/races/${SANREMO}`, { view: sanremo, stage: seenStage })
-    expect(tabsOf(markup)).toEqual(['Report', 'Race Radio', 'Route', 'Roll of honour', 'Watch'])
+    expect(tabsOf(markup)).toEqual(['Report', 'Route', 'Roll of honour', 'Watch'])
     expect(selectedOf(markup)).toBe('Report')
   })
 
@@ -176,9 +177,10 @@ describe('la carrera de un día terminada (11-o; sup. C3 y E9)', () => {
     expect(veiled).not.toContain('Share the report')
   })
 
-  it('con Watch apagado (el jugador hasta el encendido): las de hoy, Result primero y Story al lado', () => {
+  // re-sellado en W4: `Story` era la crónica con el podio y se fue con ella, como `Race Radio`
+  it('con Watch apagado: Result primero, sin Story ni Race Radio (W4)', () => {
     const markup = page(`/world/races/${SANREMO}`, { watch: 'off', view: sanremo })
-    expect(tabsOf(markup)).toEqual(['Result', 'Story', 'Race Radio', 'Route', 'Roll of honour'])
+    expect(tabsOf(markup)).toEqual(['Result', 'Route', 'Roll of honour'])
     expect(selectedOf(markup)).toBe('Result')
   })
 

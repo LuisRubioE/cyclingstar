@@ -13,16 +13,16 @@
  * Dos fuentes:
  *
  *   node scripts/medir-defectos.mjs produccion [urlBase]
- *       Lee la API de producción (`/api/calendar` y `/api/races/:id/stages/:day`) y audita la crónica
- *       de todas las etapas ya corridas. Es lo que el dueño está leyendo HOY. Los eventos están
- *       CONGELADOS: los defectos del motor no se pueden arreglar hacia atrás, los de la crónica sí.
+ *       Hasta W4 leía la API de producción (`/api/calendar` y `/api/races/:id/stages/:day`) y auditaba
+ *       la crónica de todas las etapas ya corridas. Desde W4 la ruta de etapa no la sirve (D-16
+ *       revocada) y el modo se niega, como `etapa`.
  *
  *   node scripts/medir-defectos.mjs banco [semillas]
  *       Corre el banco de carreras pequeñas (`sim/smallTours.ts`) con el motor y la crónica de ESTE
  *       árbol, y audita lo que sale. Es la única fuente que se puede correr antes y después.
  *
  *   node scripts/medir-defectos.mjs etapa <raceId> <day> [urlBase]
- *       El detalle de UNA etapa, hallazgo a hallazgo. Para mirar un caso concreto.
+ *       El detalle de UNA etapa, hallazgo a hallazgo; se niega desde W4, como `produccion`.
  *
  * No vive en packages/engine/src porque el motor es puro y esto es herramienta de banco: lee del
  * `dist` ya compilado, igual que `pnpm sim` y `scripts/medir-carrera.mjs`.
@@ -49,7 +49,6 @@ import { simulateStage, stageTss } from '../packages/engine/dist/stage/simulate.
 import { autoStageOrders } from '../packages/engine/dist/world/autoOrders.js'
 import { generateNpcRider, sampleNpcAge } from '../packages/engine/dist/world/npc.js'
 
-const BASE = 'https://cyclingstar.up.railway.app'
 const VOCATIONS = ['escalada', 'velocidad', 'clasicas', 'crono', 'fondo']
 const NEUTRAL = {
   role: 'libre',
@@ -70,77 +69,9 @@ const fromApi = (chronicle) =>
     datos: e.datos ?? {},
   }))
 
-/**
- * LA CRÓNICA DE HOY SOBRE LOS EVENTOS DE AYER. Los eventos congelados no se sirven en crudo por
- * ninguna ruta, así que la única forma de medir cuánto quita la capa de narración NUEVA sobre lo ya
- * corrido es volver a construirla encima de lo que la API entrega. Es una aproximación por arriba
- * —las pasadas viejas ya se le han aplicado una vez— y por eso se dice: mide lo que la v25 AÑADE,
- * no la crónica reconstruida desde cero.
- */
-const rebuild = (chronicle) =>
-  buildChronicle(
-    chronicle.map((e) => ({
-      km: e.km,
-      tS: e.tS,
-      tipo: '',
-      plantilla: e.plantilla,
-      protagonistas: (e.protagonists ?? []).map((p) => p.name),
-      ...(e.datos ? { datos: e.datos } : {}),
-    })),
-    chronicleNames(
-      chronicle.flatMap((e) =>
-        (e.protagonists ?? []).map((p) => ({
-          riderId: p.name,
-          name: p.name,
-          teamName: p.team,
-          country: p.country,
-          bib: p.bib,
-        })),
-      ),
-    ),
-  )
-
-// --- Fuente 1: producción -----------------------------------------------------------------------
-
-async function getJson(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} en ${url}`)
-  return res.json()
-}
-
-async function medirProduccion(base, rehacer = false) {
-  const cal = await getJson(`${base}/api/calendar`)
-  const started = cal.races.filter((r) => r.startDay <= cal.dayOfSeason)
-  const world = emptyWorldAudit()
-  let sinCronica = 0
-  const porEtapa = []
-  for (const race of started) {
-    for (const stage of race.stages) {
-      let data
-      try {
-        data = await getJson(`${base}/api/races/${race.id}/stages/${stage.index}`)
-      } catch {
-        continue
-      }
-      if (!data.run || !Array.isArray(data.chronicle) || data.chronicle.length === 0) {
-        sinCronica += 1
-        continue
-      }
-      // LA CRÓNICA DE HOY SOBRE LOS EVENTOS DE AYER (`--rehacer`). Los eventos congelados no se
-      // sirven en crudo por ninguna ruta, así que la única forma de medir cuánto quita la capa de
-      // narración NUEVA sobre lo ya corrido es volver a construir la crónica encima de lo que la
-      // API entrega. Es una aproximación por arriba —las pasadas viejas ya se le han aplicado una
-      // vez— y por eso se dice: mide lo que la v25 AÑADE, no la crónica desde cero.
-      const entries = fromApi(rehacer ? rebuild(data.chronicle) : data.chronicle)
-      const result = auditStage(entries)
-      const id = `${race.id} e${stage.index}`
-      addToWorld(world, result)
-      addStoryToWorld(world, storyMetrics(entries), id)
-      porEtapa.push({ id, result })
-    }
-  }
-  return { world, sinCronica, porEtapa, dayOfSeason: cal.dayOfSeason }
-}
+// --- Fuente 1: producción, hasta W4 -------------------------------------------------------------
+// Leía la crónica de la ruta de etapa (`produccion`, `etapa`, y `--rehacer`, que la rehacía con la capa
+// de narración de este árbol). Desde W4 la ruta no la sirve: los dos modos se niegan, abajo.
 
 // --- Fuente 2: el banco ---------------------------------------------------------------------------
 // El mismo campo y el mismo bucle que `sim/smallTours.ts` (que no devuelve los eventos), más la
@@ -322,15 +253,14 @@ function imprimirEspina(s, ancho) {
 
 const [modo, ...args] = process.argv.slice(2)
 
-if (modo === 'produccion') {
-  const rehacer = args.includes('--rehacer')
-  const base = args.find((a) => !a.startsWith('--')) ?? BASE
-  const { world, sinCronica, dayOfSeason, porEtapa } = await medirProduccion(base, rehacer)
-  console.log(
-    `Producción ${base} — día de juego ${dayOfSeason} (${sinCronica} etapas sin crónica)` +
-      (rehacer ? ' · crónica RECONSTRUIDA con la capa de narración de este árbol' : ''),
+// DESDE W4 LA RUTA DE ETAPA NO SIRVE LA CRÓNICA (la revisión de `Watch` del dueño; D-16 revocada):
+// `produccion` y `etapa` la leían de ahí, y sin ella cada etapa contaría como «sin crónica» y la auditoría
+// saldría vacía sin decirlo. Se niegan; `banco` corre la crónica de este árbol y sigue midiendo.
+if (modo === 'produccion' || modo === 'etapa') {
+  console.error(
+    `\nmedir-defectos: desde W4 la ruta de etapa no sirve la crónica (D-16 revocada), así que \`${modo}\` ya no tiene de dónde leerla; usa \`banco\`.\n`,
   )
-  imprimir(world, porEtapa)
+  process.exit(1)
 } else if (modo === 'banco-detalle') {
   // El detalle de una carrera del banco, hallazgo a hallazgo: es como se mira un defecto de cerca.
   const [raceId, run = '0', filtro] = args
@@ -358,22 +288,6 @@ if (modo === 'produccion') {
   const { world, porEtapa } = medirBanco(runs)
   console.log(`Banco de carreras pequeñas — ${SMALL_TOURS.length} carreras × ${runs} semillas`)
   imprimir(world, porEtapa)
-} else if (modo === 'etapa') {
-  const rehacer = args.includes('--rehacer')
-  const [raceId, day, base = BASE] = args.filter((a) => !a.startsWith('--'))
-  const data = await getJson(`${base}/api/races/${raceId}/stages/${day}`)
-  const entries = fromApi(rehacer ? rebuild(data.chronicle ?? []) : (data.chronicle ?? []))
-  const { counts, findings } = auditStage(entries)
-  console.log(`${raceId} e${day}: ${findings.length} hallazgos`)
-  for (const f of findings)
-    console.log(`  km ${String(f.km).padStart(3)}  ${f.defect}: ${f.detail}`)
-  for (const d of DEFECTS) if (counts[d] > 0) console.log(`  ${d} = ${counts[d]}`)
-  const m = storyMetrics(entries)
-  console.log(
-    `  espina: mudo ${m.mudoKm} km (desde el ${m.mudoDesdeKm}) · ${m.dosConHueco} veces dos con hueco · ` +
-      `${m.finalDelGanador}/${m.finalLineas} lineas del ganador en los ultimos ${FINALE_KM} km · ` +
-      `${m.nombresDeGrupo} nombres de grupo`,
-  )
 } else {
   console.error('uso: medir-defectos.mjs produccion|banco|etapa …  (ver cabecera del fichero)')
   process.exit(1)

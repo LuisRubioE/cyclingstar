@@ -222,7 +222,7 @@ export interface BroadcastSeek {
   readonly rev: string
 }
 
-/** El acta: el stageReplaySchema de hoy, con watch (7b) y tplRev (12-c). */
+/** El acta: el stageReplaySchema de hoy, con watch (7b); sin tplRev (12-c) desde W4, que la leía la crónica. */
 export type StageReport = StageReplay
 
 /** La previa: cuatro cuadros de BROADCAST.previewCardS s (D-22, I-22). */

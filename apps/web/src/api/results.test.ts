@@ -163,18 +163,19 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     const withDiag = await queriesOf('/world/races/race-france/stages/7?diag=1', path, page)
     expect(withDiag.keys).toEqual([['stage-replay', 'race-france', 7, true, '9.1']])
     expect(withDiag.urls).toEqual(['/api/races/race-france/stages/7?diag=1'])
-    const plain = await queriesOf('/world/races/race-france/stages/7?tab=radio', path, page)
+    const plain = await queriesOf('/world/races/race-france/stages/7?tab=profile', path, page)
     expect(plain.keys).toEqual([['stage-replay', 'race-france', 7, false, '9.1']])
     expect(plain.urls).toEqual(['/api/races/race-france/stages/7'])
   })
 
   // Re-sellado en el 9b: las pestañas de una carrera de un día ya no son `OneDayStory` y `OneDayRadio` sino la
-  // ficha entera (`OneDaySections`), que pide la ruta de su etapa al abrir una de las dos con `Watch`
-  // apagado, y con él encendido, al abrirse (§11.17). `?tab=story` es el acta, `report` (D-48).
-  it('Race.tsx, en las pestañas Story (report) y Race Radio de una carrera de un día, igual', async () => {
+  // ficha entera (`OneDaySections`), que con `Watch` encendido pide la ruta de su etapa al abrirse
+  // (§11.17). `?tab=story` es el acta, `report` (D-48). Re-sellado en W4: `?tab=radio`, el enlace viejo a la
+  // radio que se fue, abre la de por defecto, y la ficha la pide igual.
+  it('Race.tsx, en Report de una carrera de un día y con sus enlaces viejos (?tab=story, ?tab=radio), igual', async () => {
     const path = '/world/races/:raceId'
     const page = createElement(Race)
-    for (const tab of ['story', 'radio']) {
+    for (const tab of ['report', 'story', 'radio']) {
       const withDiag = await queriesOf(`/world/races/race-sanremo?tab=${tab}&diag=1`, path, page)
       expect(withDiag.keys).toEqual([['stage-replay', 'race-sanremo', 1, true, '9.1']])
       expect(withDiag.urls).toEqual(['/api/races/race-sanremo/stages/1?diag=1'])
@@ -184,18 +185,12 @@ describe('web: la ficha de una etapa con ?diag=1 (14-s)', () => {
     }
   })
 
-  it('9b: con Watch apagado, la ficha de una carrera de un día en Result no pide la ruta de su etapa (como hoy)', async () => {
-    const plain = await queriesOf(
-      '/world/races/race-sanremo',
-      '/world/races/:raceId',
-      createElement(Race),
-    )
-    expect(plain.enabled).toEqual([false])
-    const story = await queriesOf(
-      '/world/races/race-sanremo?tab=story',
-      '/world/races/:raceId',
-      createElement(Race),
-    )
-    expect(story.enabled).toEqual([true])
+  // Re-sellado en W4: con `Watch` apagado ya no hay `Story` (era la crónica), y `?tab=story` abre `Result`,
+  // que tampoco pide la ruta de la etapa.
+  it('9b y W4: con Watch apagado, la ficha de una carrera de un día no pide la ruta de su etapa, ni con ?tab=story', async () => {
+    for (const url of ['/world/races/race-sanremo', '/world/races/race-sanremo?tab=story']) {
+      const plain = await queriesOf(url, '/world/races/:raceId', createElement(Race))
+      expect(plain.enabled, url).toEqual([false])
+    }
   })
 })

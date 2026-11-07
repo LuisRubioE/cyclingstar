@@ -3,11 +3,9 @@ import {
   type Horizon,
   type StageResultRow,
   type StageSnapshotRow,
-  TimelineUnavailableError,
   getCurrentWorld,
   getGcThroughStage,
   getKomClassification,
-  getOwnRiderIds,
   getPointsClassification,
   getRaceRiderIdentities,
   getStageNonFinishers,
@@ -15,9 +13,7 @@ import {
   getStageSnapshot,
   getTeamClassifications,
   raceStagesForWorld,
-  readStageTimeline,
   teamsOfTheDay,
-  veilCast,
   worldHorizon,
 } from '@cyclingstar/db'
 import {
@@ -32,13 +28,8 @@ import {
   NO_LEADERS,
   type PreStageInfo,
   type RaceLeaders,
-  type RaceRadio,
-  type StageTimeline,
   currentSeason,
   raceLeaders,
-  radioFromTimeline,
-  radioNameableAt,
-  startStateOf,
 } from '@cyclingstar/shared'
 import { leadersThroughStage } from './broadcastSource.js'
 import { tableChampions } from './champions.js'
@@ -49,7 +40,6 @@ import {
   type ChronicleNames,
   buildChronicle,
   buildMarkers,
-  buildRaceRadio,
   chronicleNames,
 } from './chronicle.js'
 import { type StageSpecHead, calendarStageSpec, stageHead } from './stageHistory.js'
@@ -133,38 +123,23 @@ export function preStageInfoOf(ctx: StageContext): PreStageInfo {
   }
 }
 
-/** Lo que la retransmisión cambia de la ficha (§12.6): los sucesos con que se redacta la crónica. */
+/**
+ * Lo que una ruta le da a la ficha ya leído o de quien mira. Hasta W4 llevaba también los sucesos con los
+ * papeles de grupo de la voz para redactar la crónica (`annotate`, §12.6) y a quién nombraba la radio
+ * (`radio`, 11a); W4 sacó las dos de la ficha (D-16 revocada).
+ */
 export interface StageReplayOptions {
-  /**
-   * Los sucesos guardados antes de redactarlos: las rutas de la retransmisión les ponen los papeles de
-   * grupo de la voz (`storedWithRoles`, 6b) para quien tiene `Watch` encendido. Los marcadores de la
-   * altimetría siguen leyendo los guardados.
-   */
-  readonly annotate?: (stored: readonly ChronicleEvent[]) => readonly ChronicleEvent[]
   /**
    * El snapshot de la etapa ya leído (null: sin correr), para no leerlo dos veces: la ruta de etapa lo
    * lee antes de decidir si sirve el resultado (`stageAccessOf`, 7b). Sin él, se lee aquí.
    */
   readonly snapshot?: StageSnapshotRow | null
   /**
-   * A QUIÉN NOMBRA LA RADIO DESDE LA LÍNEA (11a; §12.10, 12-o): el horizonte de quien mira, con el que se
-   * degrada el reparto del que salen los maillots y la general de salida que nombra §7.7, y de quién son
-   * los corredores propios (R23.7). Sin él, el horizonte del mundo y nadie propio. `false`, sin radio: el
-   * paquete de meta no la lleva (14-b) y no se construye para tirarla.
-   */
-  readonly radio?: RadioViewer | false
-  /**
    * EL VELO DE LOS TÍTULOS (E3, docs/visual.md §8.5; 4-l, 17a): el horizonte de quien mira, con el que
    * `champions` deja fuera el título de un campeonato que no ha visto. Sale de otras carreras, que la
    * puerta de esta etapa no cubre. Sin él, el del mundo.
    */
   readonly h?: Horizon
-}
-
-/** Quién mira la radio de una ficha: su horizonte y su cuenta (null, el visitante). */
-export interface RadioViewer {
-  readonly h: Horizon
-  readonly userId: string | null
 }
 
 /**
@@ -198,7 +173,6 @@ function notRunReplayOf(ctx: StageContext) {
     ...citiesOf(ctx),
     label: spec.label,
     kind: spec.kind,
-    timeTrial: spec.timeTrial,
     altimetry: renderAltimetrySvg(stage.profile),
     // sin tablas, nadie a quien vestir de campeón (E3, §8.5; 17a)
     champions: {},
@@ -225,8 +199,8 @@ function racedOf(ctx: StageContext, snapshot: StageSnapshotRow) {
 /**
  * LA FICHA SIN RESULTADO (§14.1, regla 1; 14-e; paso 7b): lo que la ruta de etapa sirve cuando la
  * pantalla no va a enseñar el resultado. Los obligatorios de `StageReplay` (`day`, `name`, `km`, `run` y
- * `altimetry`) y el contexto de siempre, sin los opcionales de resultado (`results`, `chronicle`, `gc`,
- * `kom`, `points`, `teamStage`, `teamGc` y `radio`), sin `leaders` ENTERO (la web de ayer lo lee con
+ * `altimetry`) y el contexto de siempre, sin los opcionales de resultado (`results`, `gc`, `kom`,
+ * `points`, `teamStage` y `teamGc`), sin `leaders` ENTERO (la web de ayer lo lee con
  * `?.`; uno sin `afterStage` no pasaría su esquema), sin campeones (no hay tablas; 17a) y con la
  * altimetría sin marcas, como la de una etapa sin correr (sup. E7). Ninguno de esos campos depende del
  * desenlace. Pura: el snapshot llega leído.
@@ -242,14 +216,15 @@ export function stageShellOf(ctx: StageContext, snapshot: StageSnapshotRow | nul
     race: raceInfoOf(ctx),
     ...citiesOf(ctx),
     kind: head.kind,
-    timeTrial: head.timeTrial,
     altimetry: renderAltimetrySvg(profile),
     champions: {},
   }
 }
 
 /**
- * La ficha de la etapa (`StageReplay`): sin correr, corrida sin crónica o corrida con crónica y radio.
+ * La ficha de la etapa (`StageReplay`): sin correr, o corrida con su resultado y sus clasificaciones. Sin
+ * crónica ni radio desde W4 (D-16 revocada): las dos se fueron de la pantalla, y lo que no se pinta no
+ * cruza (la frontera, §13.2).
  *
  * SIN HORIZONTE, A PROPÓSITO (E2, docs/retransmision.md §10.6 y §14.1; paso 8a): lo que se sirve ya lo
  * han decidido antes de llamarla `stageAccessOf` (la ruta de etapa), la puerta del acta y la de la
@@ -303,7 +278,7 @@ export async function stageReplayOf(
     day,
   )
   // LOS MAILLOTS, en dos juegos (ver `stageReplaySchema.leaders`): los de la carretera de ese
-  // día —la clasificación tras la N−1, que es lo que cuenta el journal— y los de después de la
+  // día —la clasificación tras la N−1, la del orden de llegada y los momentos— y los de después de la
   // etapa, que es lo que muestran las tablas de esta misma página. En una carrera de UN DÍA no
   // hay ninguno: no hay clasificación anterior que arrastrar ni día siguiente que defender.
   const oneDay = race.stages.length === 1
@@ -326,53 +301,13 @@ export async function stageReplayOf(
     },
     [...results, ...gc, ...kom, ...points].map((r) => r.riderId),
   )
-  // El journal se lee de los eventos CONGELADOS al correr la etapa (no se re-simula): así siempre
-  // cuadra con el resultado guardado. Las etapas corridas antes de guardarlos no tienen journal
-  // detallado (no lo inventamos re-simulando, que daría una historia distinta al resultado real).
+  // Los sucesos CONGELADOS al correr la etapa ponen las marcas de la altimetría (los puertos, las
+  // volantes y lo que pasó en ellos). Las etapas corridas antes de guardarlos van sin marcas.
   const storedEvents = snapshot.events as ChronicleEvent[] | null
-  if (!storedEvents) {
-    return {
-      day,
-      name: head.name,
-      km: head.km,
-      run: true as const,
-      race: raceInfo,
-      ...ciudades,
-      kind: head.kind,
-      timeTrial: head.timeTrial,
-      altimetry: renderAltimetrySvg(racedProfile),
-      results,
-      gc,
-      kom,
-      points,
-      teamStage: teamClassView(teamStage),
-      teamGc: teamClassView(teamGc),
-      leaders,
-      champions,
-      journalUnavailable: true,
-    }
-  }
-  // La identidad de los protagonistas sale del ROSTER (dorsal, equipo del día, país de todos los
-  // inscritos) y, para quien no esté en él, de los resultados de la etapa, con el maillot que
-  // llevaba PUESTO ese día (`namesOfTheDay`). El índice de identidades se construye UNA vez: lo
-  // comparten el journal y la radio, así que no pueden llamar de dos maneras distintas al mismo
-  // corredor.
-  const names = await namesOfTheDay(db, raceKey, teamsOfTheDay(racedInput.riders), results, onRoad)
-  const chronicle = buildChronicle(
-    opts.annotate === undefined ? storedEvents : [...opts.annotate(storedEvents)],
-    names,
-    // Una crono se lee por el reloj de carrera, no por el kilómetro (v18); y si se corrió contra
-    // el reloj lo dice el snapshot, que es quien vio la etapa.
-    { byClock: racedTimeTrial },
+  const altimetry = renderAltimetrySvg(
+    racedProfile,
+    storedEvents ? { markers: buildMarkers(storedEvents) } : undefined,
   )
-  const altimetry = renderAltimetrySvg(racedProfile, { markers: buildMarkers(storedEvents) })
-  // LA RADIO DE CARRERA, con la misma gente que el journal. `null` en las etapas corridas antes
-  // de guardarla, y ahí la vista lo dice en vez de inventarla. Desde el 11a sale de la línea grabada
-  // si la etapa la tiene (`radioOf`); si no, de la guardada, a la que aquí solo se le pone cara.
-  const radio =
-    opts.radio === false
-      ? null
-      : await radioOf(db, ctx, snapshot, names, results, opts.radio ?? WORLD_VIEWER)
   return {
     day,
     name: head.name,
@@ -381,10 +316,8 @@ export async function stageReplayOf(
     race: raceInfo,
     ...ciudades,
     kind: head.kind,
-    timeTrial: head.timeTrial,
     altimetry,
     results,
-    chronicle,
     gc,
     kom,
     points,
@@ -394,7 +327,6 @@ export async function stageReplayOf(
     teamGc: teamClassView(teamGc),
     leaders,
     champions,
-    ...(radio ? { radio } : {}),
   }
 }
 
@@ -425,19 +357,16 @@ export async function namesOfTheDay(
 }
 
 /**
- * LOS MOMENTOS DE UN CORREDOR EN UNA ETAPA (E2, docs/retransmision.md §12.9, 12-k, D-47; paso 12): las
- * líneas del acta de la etapa (`buildChronicle` sin `live` sobre `stage_snapshots.events`, con los
- * nombres del día, como la ruta de etapa) en que el corredor es protagonista o destinatario (`mentions`:
- * el `forId` de los que tiran para él), en el orden del acta. El racimo de `groupRuns` en que va cuenta
- * como suyo: es la línea que dice que se descolgó. Los pinta la tarjeta `Your last race` en lugar de
- * `personalNarration`. Null si la etapa no se corrió, no guardó sus sucesos (antes de la `0024`) o `h`
- * la vela (G: la ruta pide la última CONOCIDA, así que no debería).
+ * EL ACTA DE UNA ETAPA (E2, docs/retransmision.md §12.9): `buildChronicle` sin `live` sobre
+ * `stage_snapshots.events`, con los nombres del día, en su orden (por el reloj de carrera en una crono,
+ * v18). Hasta W4 la servía también la ruta de etapa como la crónica bajo el resultado (`chronicle`); el
+ * dueño la retiró de la pantalla (D-16 revocada) y queda de ella lo que leen los momentos del corredor.
+ * Null si la etapa no se corrió, no guardó sus sucesos (antes de la `0024`) o `h` la vela.
  */
-export async function riderMomentsOf(
+export async function stageChronicleOf(
   db: Database,
   h: Horizon,
   ctx: StageContext,
-  riderId: string,
 ): Promise<ChronicleEntry[] | null> {
   const snapshot = await getStageSnapshot(db, h, ctx.raceKey, ctx.day)
   const events = (snapshot?.events ?? null) as ChronicleEvent[] | null
@@ -458,66 +387,28 @@ export async function riderMomentsOf(
       ? NO_LEADERS
       : await leadersThroughStage(db, ctx.raceKey, ctx.day - 1)
   const names = await namesOfTheDay(db, ctx.raceKey, teamsOfTheDay(input.riders), results, onRoad)
-  const isMine = (r: { readonly id?: string | null }): boolean => r.id === riderId
-  return buildChronicle(events, names, { byClock: timeTrial }).filter(
-    (e) => e.protagonists.some(isMine) || Object.values(e.mentions ?? {}).some(isMine),
-  )
+  return buildChronicle(events, names, { byClock: timeTrial })
 }
 
-/** Sin espectador: el horizonte del mundo y nadie propio. */
-const WORLD_VIEWER: RadioViewer = { h: worldHorizon, userId: null }
-
-/** Los diez primeros de una etapa conocida (12-o): la lista de seguimiento de hoy, aplicada al leer. */
-const FIRST_OF_THE_STAGE = 10
-
 /**
- * LA RADIO DE LA FICHA (E2, docs/retransmision.md §12.10 y §11.16; D-16, 12-o; paso 11a). La de la línea
- * grabada si la etapa la tiene (`radioFromTimeline`), con la política de §7.7 sobre el reparto degradado
- * por el velo de quien mira (los maillots que no son del equipo y los `namedGcTop` primeros de la
- * general de salida, más los protagonistas de los sucesos hasta cada foto), los diez primeros de la etapa
- * (en una etapa conocida no destripan, y son a quien el dueño sigue por la radio aunque no tire: el
- * ganador que viajó escondido en el pelotón) y los corredores propios de quien mira (R23.7). Quien llama
- * solo pide la ficha entera de una etapa conocida, o con `?diag=1`, o sin `SPOILER_MODE`, o fuera del
- * velo. Sin línea (corrida antes del paso 5 o con `TIMELINE_RECORD=off`) o con una lápida, la guardada de
- * siempre: desde el 11b (DD-11) solo la guardan esas etapas, porque `flush` borra la de las etapas cuya
- * línea entra (`stage_snapshots.radio` a null), y `buildRaceRadio` da null si no hay.
+ * LOS MOMENTOS DE UN CORREDOR EN UNA ETAPA (E2, docs/retransmision.md §12.9, 12-k, D-47; paso 12): las
+ * líneas del acta de la etapa (`stageChronicleOf`) en que el corredor es protagonista o destinatario
+ * (`mentions`: el `forId` de los que tiran para él), en el orden del acta. El racimo de `groupRuns` en que
+ * va cuenta como suyo: es la línea que dice que se descolgó. Los pinta la tarjeta `Your last race` en
+ * lugar de `personalNarration`. Null como el acta (G: la ruta pide la última CONOCIDA, así que no
+ * debería).
  */
-async function radioOf(
+export async function riderMomentsOf(
   db: Database,
+  h: Horizon,
   ctx: StageContext,
-  snapshot: StageSnapshotRow,
-  names: ChronicleNames,
-  results: readonly { readonly riderId: string; readonly puesto: number; readonly dnf: boolean }[],
-  viewer: RadioViewer,
-): Promise<RaceRadio | null> {
-  let tl: StageTimeline | null = null
-  try {
-    tl = await readStageTimeline(db, viewer.h, ctx.raceKey, ctx.day)
-  } catch (err) {
-    if (!(err instanceof TimelineUnavailableError)) throw err
-  }
-  if (tl === null) return buildRaceRadio(snapshot.radio, names)
-  const ixOf = new Map(tl.riderIds.map((id, r) => [id, r] as const))
-  const ixs = (ids: Iterable<string>): number[] =>
-    [...ids].flatMap((id) => {
-      const r = ixOf.get(id)
-      return r === undefined ? [] : [r]
-    })
-  // una crono no tiene radio (la vacía, como la guardada), ni hace falta saber de quién es nadie
-  const own = tl.timeTrial || viewer.userId === null ? [] : await getOwnRiderIds(db, viewer.userId)
-  const cast = veilCast(tl.cast, viewer.h)
-  const firstTen = results
-    .filter((r) => !r.dnf)
-    .sort((a, b) => a.puesto - b.puesto)
-    .slice(0, FIRST_OF_THE_STAGE)
-    .map((r) => r.riderId)
-  return radioFromTimeline(tl, {
-    riderOf: names.riderOf,
-    own: new Set(ixs(own)),
-    nameableAt: radioNameableAt(tl, {
-      wearing: cast.riders.filter((c) => c.worn.kind !== 'team').map((c) => c.rider),
-      gcTop: startStateOf(cast).gcTop,
-      extra: ixs(firstTen),
-    }),
-  })
+  riderId: string,
+): Promise<ChronicleEntry[] | null> {
+  const acta = await stageChronicleOf(db, h, ctx)
+  const isMine = (r: { readonly id?: string | null }): boolean => r.id === riderId
+  return (
+    acta?.filter(
+      (e) => e.protagonists.some(isMine) || Object.values(e.mentions ?? {}).some(isMine),
+    ) ?? null
+  )
 }

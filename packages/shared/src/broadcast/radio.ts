@@ -3,7 +3,9 @@
  * paso 11a). El contrato `RaceRadio` de hoy (de `radioGroupSchema` a `raceRadioSchema`, `contracts.ts`)
  * construido desde la línea grabada en lugar de desde `stage_snapshots.radio`: la FOTO del dueño, un km
  * de la carretera con los grupos que pasan por él y sus huecos como resta de relojes en ese punto
- * (§3.2), que es otra mirada que el INSTANTE de `Watch` y se queda.
+ * (§3.2), que es otra mirada que el INSTANTE de `Watch`. Desde W4 ninguna pantalla la pinta (D-16
+ * revocada): la leen la herramienta de consola (`scripts/race-radio.mjs --db`) y B16, que la ata a la
+ * radio guardada.
  *
  * Por cada bloque de foto (`photoBlocksOf`, §4.5), los grupos de `photoAt` (§4.4) en orden de carretera
  * (el reloj de su marca en ese bloque y, a igual reloj, el id del motor, como `radioKmFrom`), con su
@@ -22,7 +24,7 @@
  * guarda el reloj de cada corredor dentro de su grupo, así que el orden de carretera de la radio
  * guardada no existe aquí. Un corredor que `riderOf` no conoce no se nombra y se cuenta.
  *
- * UNA LÍNEA CORTADA (`TimelineCore`, 4-b), como la que la web rehace con sus tramos (11-i): solo salen
+ * UNA LÍNEA CORTADA (`TimelineCore`, 4-b), como la que la web rehacía con sus tramos hasta W4 (11-i): solo salen
  * las fotos CERRADAS, aquellas en las que todos los grupos vivos llevan ya su marca de ese bloque, es
  * decir, por las que ya han pasado todos (la foto del km 150 lleva el hueco del grupeto en el km 150, y
  * enseñarla antes de que pase adelantaría si entra en el control). Sale el prefijo de fotos cerradas:
@@ -53,7 +55,6 @@ import type {
   GroupIx,
   RiderIx,
   TimelineCore,
-  TimelineEvent,
 } from './timeline.js'
 
 /**
@@ -247,47 +248,5 @@ function namedOf(
   return { riders: shown, unnamed: Math.max(0, members.length - shown.length) }
 }
 
-/** Lo que la política de §7.7 lee del reparto servido para nombrar en la radio (12-o). */
-export interface RadioNamePolicy {
-  /** los que llevan un maillot que no es el de su equipo (líder o campeón), con el velo de quien mira */
-  readonly wearing: Iterable<RiderIx>
-  /** la general de salida servida, con el velo: se nombran los `namedGcTop` primeros */
-  readonly gcTop: readonly { readonly rider: RiderIx; readonly rank: number }[]
-  /** además, en una etapa conocida y con `?diag=1`: los diez primeros de la etapa (12-o) */
-  readonly extra?: Iterable<RiderIx>
-}
-
-/**
- * LOS NOMBRABLES DE CADA FOTO (§7.7 sobre la línea; 12-o): los que llevan un maillot que no es el de su
- * equipo, los `BROADCAST.namedGcTop` primeros de la general de salida, los de `extra` y los
- * protagonistas de los sucesos de km menor o igual que el de la foto, la regla del adaptador
- * (`veilStoredRadio`, §11.16) para los sucesos ya revelados. Sobre una línea cortada en lo pintado, sus
- * sucesos son los revelados hasta ahí, y ninguno de después entra.
- */
-export function radioNameableAt(
-  tl: Pick<TimelineCore, 'events'>,
-  policy: RadioNamePolicy,
-): (km: number) => ReadonlySet<RiderIx> {
-  const base = new Set<RiderIx>(policy.wearing)
-  for (const row of policy.gcTop) if (row.rank <= BROADCAST.namedGcTop) base.add(row.rider)
-  for (const r of policy.extra ?? []) base.add(r)
-  const events: readonly TimelineEvent[] = [...tl.events].sort((a, b) => a.km - b.km)
-  const byCount = new Map<number, ReadonlySet<RiderIx>>()
-  return (km) => {
-    let lo = 0
-    let hi = events.length
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1
-      if (events[mid]!.km <= km + 1e-9) lo = mid + 1
-      else hi = mid
-    }
-    let set = byCount.get(lo)
-    if (set === undefined) {
-      const s = new Set(base)
-      for (let i = 0; i < lo; i++) for (const r of events[i]!.riders) s.add(r)
-      set = s
-      byCount.set(lo, set)
-    }
-    return set
-  }
-}
+// Hasta W4, `radioNameableAt` decidía aquí los nombrables de cada foto por la política de §7.7 para la
+// radio que servía la ficha de etapa (12-o); el dueño retiró la pestaña (D-16 revocada) y nadie lo llamaba.

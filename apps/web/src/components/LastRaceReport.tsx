@@ -13,8 +13,8 @@ import { Stat } from './ui/Stat'
 
 /**
  * La revisión de plantillas con que se redactan los momentos (E2, §12.7; paso 12). El informe no la
- * lleva, como la ruta de etapa: vale 0, la de toda etapa corrida hasta hoy. Antes de que `TEMPLATE_REV`
- * pase de 0, el informe y la ruta de etapa tienen que servir la de su etapa (`readStageTemplateRev`).
+ * lleva: vale 0, la de toda etapa corrida hasta hoy. Antes de que `TEMPLATE_REV` pase de 0, el informe
+ * tiene que servir la de su etapa (`readStageTemplateRev`), como la cabecera de `Watch`.
  */
 const MOMENTS_REV = 0
 

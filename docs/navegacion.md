@@ -378,9 +378,9 @@ Carrera **por etapas**:
   directo al acta de esa etapa (`/world/races/:raceId/stages/:day/report`), no a la etapa en su
   pestaña por defecto: un clic menos en cada una de las 21; **`Ready to watch`** con `Watch →` en las
   corridas sin ganador servido, que llevan a la etapa, que abre en `Watch`; y **`Not raced yet`** en
-  las demás. Con `Watch` apagado para quien mira, el enlace del ganador es `Read the story →`, a la
-  pestaña del acta de la etapa (`?tab=report`, que se llama `Story`), y el de la etapa por ver,
-  `Open stage →`.
+  las demás. Con `Watch` apagado para quien mira, el enlace del ganador es `Result →`, a la pestaña
+  `Result` de la etapa (hasta W4 era `Read the story →`, a la crónica de `Story`), y el de la etapa
+  por ver, `Open stage →`.
 - **Route**: ahí sí van las altimetrías, que es donde el jugador las busca. El recorrido de una etapa
   no destripa nada.
 
@@ -394,60 +394,60 @@ elemento** y, ya dentro de la etapa, pinchar `Story`. **Tres clics para lo únic
 La causa es de diseño: en una carrera de un día la carrera **y** la etapa son la misma cosa, y eran
 dos páginas. Se corrige metiendo el contenido de la etapa en la ficha de carrera:
 
-| Estado de la carrera                     | Pestañas                                                       | Por defecto |
-| ---------------------------------------- | -------------------------------------------------------------- | ----------- |
-| **Por correr**                           | `Route` · `Startlist` · `Roll of honour`                       | **Route**   |
-| **En curso**                             | `Route` · `Startlist`                                          | **Route**   |
-| **Terminada, sin verla**                 | `Watch` · `Route` · `Report` · `Race Radio` · `Roll of honour` | **Watch**   |
-| **Terminada, vista o revelada**          | `Report` · `Race Radio` · `Route` · `Roll of honour` · `Watch` | **Report**  |
-| **Terminada, sin `Watch` para su etapa** | `Report` · `Race Radio` · `Route` · `Roll of honour`           | **Report**  |
+| Estado de la carrera                     | Pestañas                                        | Por defecto |
+| ---------------------------------------- | ----------------------------------------------- | ----------- |
+| **Por correr**                           | `Route` · `Startlist` · `Roll of honour`        | **Route**   |
+| **En curso**                             | `Route` · `Startlist`                           | **Route**   |
+| **Terminada, sin verla**                 | `Watch` · `Route` · `Report` · `Roll of honour` | **Watch**   |
+| **Terminada, vista o revelada**          | `Report` · `Route` · `Roll of honour` · `Watch` | **Report**  |
+| **Terminada, sin `Watch` para su etapa** | `Report` · `Route` · `Roll of honour`           | **Report**  |
 
-- Sin pestaña `Stages` (sería una lista de un elemento) y sin salto intermedio: **el journal pasa de
+- Sin pestaña `Stages` (sería una lista de un elemento) y sin salto intermedio: **el acta pasa de
   tres clics a uno**.
-- **La ficha de una carrera de un día terminada ES la de su etapa**: `Watch`, el acta y la radio,
-  con la misma puerta que la página de etapa (§7.2). Abre en `Watch` para quien no la ha visto (sin
+- **La ficha de una carrera de un día terminada ES la de su etapa**: `Watch` y el acta, con la misma
+  puerta que la página de etapa (§7.2). Abre en `Watch` para quien no la ha visto (sin
   verla, o arrastrada o caducada sin verla) y en `Report` para quien la vio o la reveló
   (`docs/retransmision.md` 11-o). Antes abría en `Result`, porque «el desenlace es lo que se busca al
   abrir una clásica ya corrida»: con el sin destripe por defecto, el desenlace es justo lo que no se
-  enseña sin pedirlo. `Report` es una sola pestaña con el resultado y la crónica (decisión del dueño
-  del 8 de octubre de 2026); con la carrera sin ver, pinta la puerta:
+  enseña sin pedirlo. `Report` es una sola pestaña con el resultado (decisión del dueño del 8 de
+  octubre de 2026; hasta W4 llevaba la crónica debajo); con la carrera sin ver, pinta la puerta:
   `This page shows the result of Stage 1. Watch it instead?`. Si reparte puntos o montaña, salen como
   sub-pestañas del resultado; con clasificación por equipos, también (`Teams`). Una carrera sin
   `Watch` para su etapa (una crono sin línea grabada, una etapa con lápida) abre en `Report`.
-- Con `Watch` apagado para quien mira, las de antes: `Result` · `Story` · `Race Radio` · `Route` ·
-  `Roll of honour`, con `Result` por defecto y la crónica en `Story`.
+- Con `Watch` apagado para quien mira: `Result` · `Route` · `Roll of honour`, con `Result` por
+  defecto. Hasta W4 llevaba además `Story`, la crónica con el podio, y `Race Radio`.
 - La cabecera absorbe lo que daba la ficha de etapa: kilómetros, tipo de recorrido e ITT.
 - `/world/races/:raceId/stages/1` **sigue funcionando**: redirige a la ficha de carrera. Sin `?tab=`
   no elige pestaña: la ficha abre en la suya por defecto, `Watch` o `Report` según la haya visto quien
   mira, que es lo que promete el enlace de un marcador del feed. Con `?tab=`, la pestaña equivalente;
   el `?tab=story` de los enlaces ya compartidos abre `Report`, que con la etapa velada pinta la puerta.
-  Con `Watch` apagado sigue eligiendo la crónica, como antes: el "Full story →" de la portada no
-  cambia hasta el encendido.
+  Con `Watch` apagado tampoco elige (hasta W4 elegía la crónica): la ficha abre en `Result`, y
+  `?tab=story` también. `?tab=radio`, el de la radio que W4 retiró, abre la de por defecto.
 
 ### 7.2 Página de etapa (solo carreras por etapas)
 
 ```
 ← Race Catalonia · Stage 3 of 7          [ ‹ Prev ]  [ Next › ]
 ──────────────────────────────────────────────────────────────
-[ Watch ]  [ Profile ]  [ Report ]  [ Classifications ]  [ Race Radio ]      sin verla
-[ Report ]  [ Classifications ]  [ Race Radio ]  [ Profile ]  [ Watch ]      vista o revelada
+[ Watch ]  [ Profile ]  [ Report ]  [ Classifications ]      sin verla
+[ Report ]  [ Classifications ]  [ Profile ]  [ Watch ]      vista o revelada
 ```
 
 - **Cabecera con contexto**: a qué carrera pertenece y qué etapa es de cuántas. La pestaña del
   navegador dice la carrera y la etapa, nunca el resultado.
-- **Anterior / siguiente**: se pueden leer las 21 crónicas seguidas.
+- **Anterior / siguiente**: se pueden recorrer las 21 etapas seguidas.
 - **`Watch` por defecto para quien no ha visto la etapa**: la retransmisión, que es sentarse a verla
   (`docs/retransmision.md` §6), con el perfil, que no cuenta nada, detrás. **`Report` por defecto
   para quien la vio o la reveló**: el acta, con el resultado completo (truncado y "mostrar todos",
-  igual que en la carrera) y la crónica, que es la carga emocional de la etapa; `Watch` queda al
-  final, para volver a verla. Con la etapa sin ver, `Report`, `Classifications` y `Race Radio` pintan
-  la puerta en lugar de lo suyo. Una etapa sin `Watch` (una crono sin línea grabada, una lápida) abre
+  igual que en la carrera); hasta W4 llevaba la crónica debajo. `Watch` queda al final, para volver a
+  verla. Con la etapa sin ver, `Report` y `Classifications` pintan la puerta en lugar de lo suyo. Una etapa sin `Watch` (una crono sin línea grabada, una lápida) abre
   en `Report`.
 - **Classifications** lleva la sub-pestaña `Teams` con DOS tablas: la clasificación por equipos de
   esa etapa y la acumulada tras ella —"¿quién ganó hoy?" y "¿quién va ganando?" son dos preguntas
   distintas y las dos se responden sin salir de aquí—.
-- Con `Watch` apagado para quien mira, las de antes, con `Story` por defecto:
-  `[ Story ] [ Result ] [ Race Radio ] [ Classifications ] [ Profile ]`.
+- Con `Watch` apagado para quien mira, `Result` por defecto: `[ Result ] [ Classifications ] [ Profile ]`.
+  Hasta W4 abría en `Story`, la crónica, y llevaba `Race Radio`; el dueño retiró las dos
+  (`docs/retransmision.md`, D-16 revocada).
 
 **Carreras de un día: esta página ya no existe.** La etapa ES la carrera, así que su contenido vive
 en la ficha de carrera (§7.1) y esta URL redirige allí. Con ello desaparece también el problema

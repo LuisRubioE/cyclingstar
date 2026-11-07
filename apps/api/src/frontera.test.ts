@@ -355,6 +355,37 @@ describe('la frontera, hoja por hoja (§13.2, punto 3; PR 19a)', () => {
     }
   })
 
+  /**
+   * W4 (la revisión de `Watch` del dueño, su punto 8; D-16 revocada): fuera la pestaña `Race Radio` y la
+   * crónica bajo el resultado, y con ellas lo que las pintaba: la radio, la crónica, su aviso de que no se
+   * guardó, la revisión de plantillas con que se leía y si la etapa fue una crono, que solo leía ella. No cruzan por ninguna de las tres rutas que sirven
+   * la ficha de una etapa: la de etapa, el acta y el paquete de meta, que la lleva dentro (`report`).
+   */
+  it('lo que W4 saca, la radio y la crónica de la ficha de etapa, ya no cruza por ninguna de sus rutas (D-16 revocada)', () => {
+    const hojas = (route: string): string[] => {
+      const e = entries.find((x) => `${x.method} ${x.url}` === route)
+      return Object.values(e?.response ?? {}).flatMap((s) => leavesOf(s).map((l) => l.path))
+    }
+    const FICHAS: readonly (readonly [string, string])[] = [
+      ['GET /api/races/:raceId/stages/:day', ''],
+      ['GET /api/races/:raceId/stages/:day/report', ''],
+      ['POST /api/races/:raceId/stages/:day/broadcast/finish', 'report.'],
+    ]
+    for (const [route, base] of FICHAS) {
+      const h = hojas(route)
+      expect(h, route).toContain(`${base}results[].riderId`)
+      const fuera = h.filter(
+        (p) =>
+          p.startsWith(`${base}radio.`) ||
+          p.startsWith(`${base}chronicle[]`) ||
+          p === `${base}journalUnavailable` ||
+          p === `${base}tplRev` ||
+          p === `${base}timeTrial`,
+      )
+      expect(fuera, route).toEqual([])
+    }
+  })
+
   it('la semilla del maillot ya no cruza: los de estado llevan su maillot, y el rótulo, la de lo grabado antes de la traducción (§8.5, 8-f; 19e)', () => {
     const hojas = (route: string): string[] => {
       const e = entries.find((x) => `${x.method} ${x.url}` === route)

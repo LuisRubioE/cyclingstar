@@ -23,9 +23,8 @@ export function stageRowState(
 
 /**
  * El enlace de cada fila. `report`: el acta (`/stages/:day/report`, §11.10) con `Watch` encendido, y con él
- * apagado el de hoy, la ficha de la etapa en su pestaña `Story` (que desde el 9a se llama `report`): el
- * jugador no nota nada hasta el encendido (§20.5). `watch`: la página de la etapa, que abre en `Watch`.
- * `not_raced`: sin enlace.
+ * apagado la ficha de la etapa en su pestaña `Result` (hasta W4 iba a `Story`, la crónica, que el dueño
+ * retiró; D-16 revocada). `watch`: la página de la etapa, que abre en `Watch`. `not_raced`: sin enlace.
  */
 export function stageRowLink(
   raceId: string,
@@ -38,7 +37,7 @@ export function stageRowLink(
     case 'report':
       return watchOn
         ? { to: `${stage}/report`, label: 'Report →' }
-        : { to: `${stage}?tab=report`, label: 'Read the story →' }
+        : { to: `${stage}?tab=result`, label: 'Result →' }
     case 'watch':
       return { to: stage, label: watchOn ? 'Watch →' : 'Open stage →' }
     case 'not_raced':
