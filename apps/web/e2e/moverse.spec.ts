@@ -90,6 +90,8 @@ test('con los mandos escondidos, el primer toque en la barra solo los enseña; e
   const before = await km()
   await tap(bar, 0.8)
   await expect(controls).toHaveAttribute('data-state', 'shown')
+  // un salto tarda en aterrizar: se espera a que hubiera aterrizado, y no ha saltado
+  await page.waitForTimeout(2500)
   expect(await km()).toBeLessThan(0.8 * L - 5)
   expect(await km()).toBeLessThan(before + 5)
   // a la vista, el toque salta
