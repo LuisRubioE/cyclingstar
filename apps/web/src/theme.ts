@@ -1,6 +1,6 @@
 import type { Theme } from '@cyclingstar/shared'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { getTheme, putTheme } from './api/theme'
 import { useSessionState } from './auth/useSessionState'
 
@@ -115,15 +115,18 @@ export function useTheme(): {
   const { signedIn } = useSessionState()
   const account = useAccountTheme()
   const queryClient = useQueryClient()
-  const save = useMutation({
-    mutationFn: putTheme,
-    // si la cuenta no lo guarda, vuelve a mandar lo que dice ella
-    onError: () => void queryClient.invalidateQueries({ queryKey: THEME_QUERY_KEY }),
-  })
+  // sin useMutation: `ThemeSync` va en el arranque, y este módulo con él
+  const [saveFailed, setSaveFailed] = useState(false)
   const setTheme = (theme: Theme): void => {
     applyTheme(theme, document.documentElement, aparato())
     queryClient.setQueryData(THEME_QUERY_KEY, { theme })
-    if (signedIn) save.mutate(theme)
+    setSaveFailed(false)
+    if (signedIn)
+      putTheme(theme).catch(() => {
+        // si la cuenta no lo guarda, se dice, y vuelve a mandar lo que dice ella
+        setSaveFailed(true)
+        void queryClient.invalidateQueries({ queryKey: THEME_QUERY_KEY })
+      })
   }
-  return { theme: themeOf(account, storedTheme(aparato())), setTheme, saveFailed: save.isError }
+  return { theme: themeOf(account, storedTheme(aparato())), setTheme, saveFailed }
 }
