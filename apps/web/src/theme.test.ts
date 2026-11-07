@@ -1,16 +1,35 @@
 /// <reference types="node" />
-import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { readFileSync, readdirSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
-import { describe, expect, it } from 'vitest'
-import { THEME_STORAGE_KEY, applyTheme, storedTheme, themeFromSearch, themeOf } from './theme'
+import type { Theme } from '@cyclingstar/shared'
+import { QueryClient } from '@tanstack/react-query'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  THEME_QUERY_KEY,
+  THEME_STORAGE_KEY,
+  applyTheme,
+  storedTheme,
+  syncTheme,
+  themeChooser,
+  themeFromSearch,
+  themeOf,
+} from './theme'
 
 /**
  * EL MODO DEL JUGADOR (E3, docs/visual.md §3.3, D-00i; paso 23). Claro por defecto y oscuro en `/account`,
  * guardado en la cuenta para que siga al jugador de un aparato a otro y en `localStorage` (`cs-theme`) para
- * pintarlo antes de la primera pintura, con `public/theme.js`. La regla de `useTheme`, en funciones puras:
- * sin sesión vale lo del aparato; con sesión manda la cuenta y se escriben los dos; un `localStorage` que
- * falla da el claro. No sigue a `prefers-color-scheme`.
+ * pintarlo antes de la primera pintura, con el guion de `public/assets/theme-<huella>.js`. La regla, en
+ * funciones sin React: sin sesión vale lo del aparato; con sesión manda la cuenta y se escriben los dos;
+ * un `localStorage` que falla da el claro; y elegir en `Appearance` se ve al momento, no lo deshace una
+ * consulta en vuelo y se guarda en orden. No sigue a `prefers-color-scheme`.
  */
+
+/** El guion de antes de la primera pintura: uno, con la huella de su contenido en el nombre. */
+const ASSETS = new URL('../public/assets/', import.meta.url)
+const GUIONES = readdirSync(ASSETS).filter((f) => /^theme-.*\.js$/.test(f))
+const GUION = GUIONES[0] ?? 'theme-?.js'
+const CODIGO = GUIONES.length === 1 ? readFileSync(new URL(GUION, ASSETS), 'utf8') : ''
 
 /** Un `localStorage` de mentira: lo que guarda, o uno que lanza en todo. */
 function almacen(inicial: Record<string, string> = {}) {
@@ -37,11 +56,9 @@ const raiz = (theme?: string) =>
   }
 
 describe('la regla del modo (useTheme; D-00i)', () => {
-  it('la clave del aparato es cs-theme, la misma que lee theme.js', () => {
+  it('la clave del aparato es cs-theme, la misma que lee el guion', () => {
     expect(THEME_STORAGE_KEY).toBe('cs-theme')
-    expect(readFileSync(new URL('../public/theme.js', import.meta.url), 'utf8')).toContain(
-      `'${THEME_STORAGE_KEY}'`,
-    )
+    expect(CODIGO).toContain(`'${THEME_STORAGE_KEY}'`)
   })
 
   it('lo del aparato: dark si lo dice; nada, otra cosa o un almacenamiento que falla, light', () => {
@@ -80,6 +97,126 @@ describe('la regla del modo (useTheme; D-00i)', () => {
   })
 })
 
+describe('al llegar la cuenta (ThemeSync)', () => {
+  it('sin cuenta, nada; si dice otra cosa que el aparato o que <html>, manda ella y escribe los dos', () => {
+    const html = raiz()
+    const aparato = almacen({ 'cs-theme': 'light' })
+    expect(syncTheme(null, html, aparato)).toBe(false)
+    expect(html.dataset.theme).toBeUndefined()
+    expect(syncTheme('dark', html, aparato)).toBe(true)
+    expect(html.dataset.theme).toBe('dark')
+    expect(aparato.datos.get('cs-theme')).toBe('dark')
+    // ya igual: no escribe
+    expect(syncTheme('dark', html, aparato)).toBe(false)
+    // <html> distinto del aparato (otra pestaña lo cambió): manda la cuenta
+    delete html.dataset.theme
+    expect(syncTheme('dark', html, aparato)).toBe(true)
+    expect(html.dataset.theme).toBe('dark')
+  })
+})
+
+/** Una promesa que se resuelve o se rechaza desde fuera. */
+function diferida<T>() {
+  let resolver!: (v: T) => void
+  let rechazar!: (e: unknown) => void
+  const promesa = new Promise<T>((ok, ko) => {
+    resolver = ok
+    rechazar = ko
+  })
+  return { promesa, resolver, rechazar }
+}
+
+/** Un elector con sus dobles: el cliente de consultas de verdad, el `PUT` y lo que avisa. */
+function elector(put: (t: Theme) => Promise<unknown>) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const html = raiz()
+  const aparato = almacen()
+  const avisos: boolean[] = []
+  const errores: unknown[] = []
+  const elegir = themeChooser({
+    queryClient,
+    root: () => html,
+    storage: () => aparato,
+    put,
+    onSaved: (fallo) => avisos.push(fallo),
+    onError: (e) => errores.push(e),
+  })
+  return { queryClient, html, aparato, avisos, errores, elegir }
+}
+
+const espera = async () => {
+  for (let i = 0; i < 5; i++) await new Promise((ok) => setTimeout(ok, 0))
+}
+
+describe('elegir en Appearance (useTheme)', () => {
+  it('se ve al momento: <html>, el aparato y la consulta de la cuenta', () => {
+    const e = elector(async () => ({ theme: 'dark' }))
+    e.elegir('dark', false)
+    expect(e.html.dataset.theme).toBe('dark')
+    expect(e.aparato.datos.get('cs-theme')).toBe('dark')
+    expect(e.queryClient.getQueryData(THEME_QUERY_KEY)).toEqual({ theme: 'dark' })
+  })
+
+  it('una consulta de la cuenta en vuelo, que leyó lo de antes, no deshace la elección', async () => {
+    const e = elector(async () => ({ theme: 'dark' }))
+    const lectura = diferida<{ theme: Theme }>()
+    void e.queryClient.fetchQuery({ queryKey: THEME_QUERY_KEY, queryFn: () => lectura.promesa })
+    e.elegir('dark', true)
+    lectura.resolver({ theme: 'light' })
+    await espera()
+    expect(e.queryClient.getQueryData(THEME_QUERY_KEY)).toEqual({ theme: 'dark' })
+  })
+
+  it('sin sesión no guarda en la cuenta; con ella, los PUT van en orden y la cuenta se queda con el último', async () => {
+    const pedidos: { theme: Theme; fin: ReturnType<typeof diferida<unknown>> }[] = []
+    const e = elector((theme) => {
+      const fin = diferida<unknown>()
+      pedidos.push({ theme, fin })
+      return fin.promesa
+    })
+    e.elegir('dark', false)
+    await espera()
+    expect(pedidos).toEqual([])
+    e.elegir('dark', true)
+    e.elegir('light', true)
+    await espera()
+    // el segundo no sale hasta que vuelve el primero
+    expect(pedidos.map((x) => x.theme)).toEqual(['dark'])
+    pedidos[0]!.fin.resolver({ theme: 'dark' })
+    await espera()
+    expect(pedidos.map((x) => x.theme)).toEqual(['dark', 'light'])
+    pedidos[1]!.fin.resolver({ theme: 'light' })
+    await espera()
+    expect(e.avisos.at(-1)).toBe(false)
+  })
+
+  it('avisa solo si falla el último: uno viejo que falla no tapa al que fue bien', async () => {
+    let n = 0
+    const e = elector(async () => {
+      n++
+      if (n === 1) throw new Error('red')
+      return { theme: 'light' }
+    })
+    e.elegir('dark', true)
+    e.elegir('light', true)
+    await espera()
+    expect(e.avisos.at(-1)).toBe(false)
+  })
+
+  it('si falla el último: lo dice, pasa el error al manejador global (un 401 lleva a /login) y pide la cuenta otra vez', async () => {
+    const error = new Error('401')
+    const e = elector(async () => {
+      throw error
+    })
+    const invalidar = vi.spyOn(e.queryClient, 'invalidateQueries')
+    e.elegir('dark', true)
+    await espera()
+    expect(e.avisos.at(-1)).toBe(true)
+    expect(e.errores).toEqual([error])
+    expect(invalidar).toHaveBeenCalledWith({ queryKey: THEME_QUERY_KEY })
+  })
+})
+
 describe('/_ui en los dos modos (§5.4; 5-h)', () => {
   it('?theme=dark o light lo fija para la página; sin él, o con otra cosa, nada', () => {
     expect(themeFromSearch('?theme=dark')).toBe('dark')
@@ -98,8 +235,14 @@ describe('/_ui en los dos modos (§5.4; 5-h)', () => {
   })
 })
 
-describe('theme.js, antes de la primera pintura (3-h)', () => {
-  const codigo = readFileSync(new URL('../public/theme.js', import.meta.url), 'utf8')
+describe('el guion de antes de la primera pintura (3-h)', () => {
+  const codigo = CODIGO
+
+  it('es uno, en assets/, con la huella de su contenido: se sirve inmutable y no se revalida en cada carga', () => {
+    expect(GUIONES).toHaveLength(1)
+    const huella = createHash('sha256').update(CODIGO).digest('hex').slice(0, 8)
+    expect(GUION).toBe(`theme-${huella}.js`)
+  })
 
   /** Corre theme.js con un `localStorage` y un `<html>` de mentira, y da el `data-theme` que deja. */
   const corre = (localStorage: unknown): string | undefined => {
@@ -123,10 +266,10 @@ describe('theme.js, antes de la primera pintura (3-h)', () => {
   it('index.html lo carga en <head>, clásico, antes que todo lo demás: sin destello', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
     const head = html.slice(0, html.indexOf('</head>'))
-    const guion = head.indexOf('<script src="/theme.js"></script>')
+    const guion = head.indexOf(`<script src="/assets/${GUION}"></script>`)
     expect(guion).toBeGreaterThan(-1)
     // ni async, ni defer, ni módulo: tiene que correr antes de pintar
-    expect(head).not.toMatch(/<script[^>]*theme\.js[^>]*(async|defer|type="module")/)
+    expect(head).not.toMatch(/<script[^>]*theme-[^>]*(async|defer|type="module")/)
     // antes de la hoja de estilos y del guion de la app, que Vite pone detrás de lo que hay en <head>
     expect(head.slice(0, guion)).not.toMatch(/<link rel="stylesheet"|<script/)
   })

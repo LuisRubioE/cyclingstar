@@ -9,7 +9,7 @@ import {
   parseKit,
 } from '@cyclingstar/shared'
 import { legacyJerseyStyle } from '@cyclingstar/shared/legacyJersey'
-import { type ReactNode, useEffect, useId, useState } from 'react'
+import { type ReactNode, useId, useLayoutEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { CueCard } from '../../components/broadcast/CueCard'
 import { ActionBarView, type ActionBarState } from '../../components/ui/ActionBar'
@@ -1559,9 +1559,10 @@ function Rotulos() {
 
 export function UiPage() {
   // `?theme=dark` (o `light`) pinta la página en ese modo sin escribir la preferencia (§5.4; 5-h): así la
-  // ven el dueño y la prueba del teléfono en los dos modos sin tocar su cuenta ni su aparato.
+  // ven el dueño y la prueba del teléfono en los dos modos sin tocar su cuenta ni su aparato. Antes de
+  // pintar, para que no destelle el otro.
   const { search } = useLocation()
-  useEffect(() => {
+  useLayoutEffect(() => {
     const forzado = themeFromSearch(search)
     if (forzado === null) return
     const root = document.documentElement

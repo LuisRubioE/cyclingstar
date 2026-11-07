@@ -30,10 +30,10 @@ import {
  * petición.
  *
  * La tabla va en el orden de §11.3, por fichero, con la línea del registro de hoy (`app.get(` y, si
- * va en otra, la de la URL). Son 95 entradas: 94 rutas de nuestro código (con el salto del 10b), con el
- * comodín `GET, POST` de `/api/auth/*` contado una vez por método, porque el registro va por método. Las `HEAD` que Fastify
- * crea solas por cada `GET` (`exposeHeadRoutes`) no van en la tabla: heredan el `config` de su `GET`, y
- * el tercer caso lo comprueba sin fijar cuántas son (53 hoy).
+ * va en otra, la de la URL). Son 99 entradas desde el paso 23 de E3: 98 rutas de nuestro código (con el
+ * salto del 10b), con el comodín `GET, POST` de `/api/auth/*` contado una vez por método, porque el registro
+ * va por método. Las `HEAD` que Fastify crea solas, una por cada `GET` (`exposeHeadRoutes`), no van en la
+ * tabla: heredan el `config` de su `GET`, y el tercer caso lo comprueba sin fijar cuántas son.
  */
 
 /** N: ningún dato de juego (lo de toda `safe` que no dice otra cosa). */

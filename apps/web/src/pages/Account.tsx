@@ -27,11 +27,6 @@ import { useTheme } from '../theme'
 type Status =
   { kind: 'idle' } | { kind: 'saving' } | { kind: 'ok'; msg: string } | { kind: 'err'; msg: string }
 
-/**
- * Lo que contestó el servidor, debajo del formulario. La región de estado está desde el principio, vacía y
- * fuera de la vista (`sr-only`, y no `hidden`, que la sacaría también del lector): insertada ya llena, el lector
- * no siempre la lee (las revisiones del 21f y del 21j). Un fallo sí se oye al insertarse (`alert`).
- */
 /** Los dos modos, en pantalla (§3.3, D-00i). */
 const MODOS = [
   { key: 'light', label: 'Light' },
@@ -58,6 +53,11 @@ function Appearance() {
   )
 }
 
+/**
+ * Lo que contestó el servidor, debajo del formulario. La región de estado está desde el principio, vacía y
+ * fuera de la vista (`sr-only`, y no `hidden`, que la sacaría también del lector): insertada ya llena, el lector
+ * no siempre la lee (las revisiones del 21f y del 21j). Un fallo sí se oye al insertarse (`alert`).
+ */
 function Resultado({ status }: { status: Status }) {
   return (
     <>

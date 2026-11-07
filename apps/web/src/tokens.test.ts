@@ -26,7 +26,10 @@ const tokens = JSON.parse(
 ) as Tokens
 
 const claro = tokens.light.color
-/** En el ámbito, lo que no redefine es lo del claro: `navy`, `navy-dark`, `bad`, `gold`… (§3.3). */
+/**
+ * En el ámbito, lo que no redefine es lo del claro: `navy`, `navy-dark`, `gold`… (§3.3); y lo que el modo
+ * oscuro redefine (`bad`, los tonos, `canvas`…), el ámbito lo declara con su valor claro (3-j; paso 23).
+ */
 const ambito: Readonly<Record<string, string>> = { ...claro, ...tokens.darkScope.color }
 /** En el modo oscuro, lo que no redefine es lo del claro: `white`, `navy`, `navy-dark`, `gold`… (§3.3). */
 const oscuro: Readonly<Record<string, string>> = { ...claro, ...(tokens.dark?.color ?? {}) }

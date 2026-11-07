@@ -8,11 +8,13 @@ import { LegacyJersey } from './LegacyJersey'
 /**
  * `LegacyJersey` (E3, docs/visual.md §8.6; PR 9b): el dibujo de `Jersey` sin cambiar su aspecto. Mientras
  * `Jersey` exista (hasta el 17b), cada una de las 219 semillas de la génesis sale con el mismo marcado que
- * él, quitados los tres `data-*` del catálogo; y su `data-kit`, que cuenta la comprobación 10.
+ * él, quitados los tres `data-*` del catálogo y la clase del filete en el modo oscuro (paso 23); y su
+ * `data-kit`, que cuenta la comprobación 10.
  */
 
 const SEMILLAS = Object.keys(golden.semillas)
-const sinCatalogo = (s: string) => s.replace(/ data-(ui|variant|state)="[^"]*"/g, '')
+const sinCatalogo = (s: string) =>
+  s.replace(/ data-(ui|variant|state)="[^"]*"/g, '').replace(' class="dark:stroke-kit-edge"', '')
 
 describe('LegacyJersey', () => {
   it('el mismo dibujo que Jersey, semilla a semilla, a 28 y a 40', () => {
@@ -37,6 +39,13 @@ describe('LegacyJersey', () => {
     const seed = SEMILLAS[0] ?? ''
     expect(renderToStaticMarkup(<LegacyJersey seed={seed} size={28} />)).toContain(
       `data-variant="${legacyJerseyStyle(seed).pattern}"`,
+    )
+  })
+
+  it('en el modo oscuro, el filete sigue al token kit-edge; en el claro, el de siempre (paso 23)', () => {
+    const s = renderToStaticMarkup(<LegacyJersey seed={SEMILLAS[0]!} size={28} />)
+    expect(s).toMatch(
+      /<path d="[^"]+"[^>]*stroke="rgba\(0,0,0,0.18\)"[^>]*class="dark:stroke-kit-edge"/,
     )
   })
 

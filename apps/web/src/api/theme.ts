@@ -8,11 +8,12 @@ export async function getTheme(): Promise<ThemeResponse | null> {
   })
 }
 
-/** Guarda el modo en la cuenta, para que siga al jugador de un aparato a otro. */
+/** Guarda el modo en la cuenta, para que siga al jugador de un aparato a otro; una recarga no lo corta. */
 export async function putTheme(theme: Theme): Promise<ThemeResponse> {
   return request('/api/me/theme', themeResponseSchema, {
     method: 'PUT',
     json: { theme },
+    keepalive: true,
     errorMessage: 'Could not save your appearance.',
   })
 }
