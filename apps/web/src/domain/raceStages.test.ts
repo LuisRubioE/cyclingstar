@@ -57,14 +57,15 @@ describe('stageRowState (sup. C4)', () => {
 })
 
 describe('stageRowLink: a dónde lleva cada fila', () => {
-  it('report lleva al acta con Watch encendido y a la ficha de la etapa en Story con él apagado (§20.5)', () => {
+  // re-sellado en W4: con Watch apagado ya no hay `Story`; el enlace lleva al resultado
+  it('report lleva al acta con Watch encendido y a la ficha de la etapa en Result con él apagado (W4)', () => {
     expect(stageRowLink('race-france', 4, 'report', true)).toEqual({
       to: '/world/races/race-france/stages/4/report',
       label: 'Report →',
     })
     expect(stageRowLink('race-france', 4, 'report', false)).toEqual({
-      to: '/world/races/race-france/stages/4?tab=report',
-      label: 'Read the story →',
+      to: '/world/races/race-france/stages/4?tab=result',
+      label: 'Result →',
     })
   })
 

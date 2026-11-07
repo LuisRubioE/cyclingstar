@@ -1,9 +1,9 @@
 /**
- * El journal de una etapa: convierte los eventos del motor en la crónica que lee el jugador.
+ * El journal de una etapa: convierte los eventos del motor en las frases que lee el jugador.
  *
- * Estaba dentro de `pages/StageReplay.tsx`. Vive aquí porque ahora lo pintan DOS páginas: la ficha
- * de etapa de una carrera por etapas y la ficha de una carrera de UN DÍA, donde la carrera y la
- * etapa son la misma cosa y el journal es el contenido principal (docs/navegacion.md §7.1).
+ * Estaba dentro de `pages/StageReplay.tsx`. Hasta W4 lo pintaba la crónica bajo el resultado, en la
+ * ficha de etapa y en la de una carrera de UN DÍA; el dueño la retiró (D-16 revocada), y hoy lo leen la
+ * voz de `Watch` (`VoiceTicker`) y los momentos de `Your last race` (`ChronicleSentence`).
  *
  * Presentación pura: sin React ni HTTP, y por tanto probable sin DOM. Los textos son de interfaz,
  * así que van en inglés; el vocabulario de los eventos sigue en el idioma del motor.

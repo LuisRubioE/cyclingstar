@@ -18,8 +18,8 @@ import { StageReportView, raceKeyOf } from './stageView'
 
 /**
  * EL ACTA COMPARTIBLE, `/world/races/:raceId/stages/:day/report` (E2, docs/retransmision.md §11.10;
- * D-36, DD-12; paso 9a). La vista de espectador que se comparte y que indexa un buscador: el resultado y
- * la crónica de una etapa corrida (`GET …/report`), pública, también para el visitante. Solo deja de ser
+ * D-36, DD-12; paso 9a). La vista de espectador que se comparte y que indexa un buscador: el resultado de
+ * una etapa corrida (`GET …/report`; hasta W4, también la crónica), pública, también para el visitante. Solo deja de ser
  * lo primero que se ve: la página de la etapa abre en `Watch` a quien no la ha visto.
  *
  * A quien tiene la etapa en el velo, la puerta (`This page shows the result of Stage 7. Watch it

@@ -349,10 +349,14 @@ describe('la ficha de etapa sin ver: ?tab= no salta la puerta (sup. E9)', () => 
       )
     })
 
-    it(`Watch ${watch}: ?tab=radio (los enlaces de antes de W4) no lleva a ninguna radio`, () => {
+    it(`Watch ${watch}: ?tab=radio (los enlaces de antes de W4) abre la de por defecto, sin radio`, () => {
       const markup = page('/world/races/race-france/stages/7?tab=radio', watch)
       expect(markup).not.toContain('Race Radio')
       expect(markup).not.toContain('>Story</button>')
+      // la de por defecto de la etapa sin ver: Watch encendido, Watch; apagado, Result, con su puerta
+      expect(markup).toMatch(
+        new RegExp(`aria-selected="true"[^>]*>${watch === 'on' ? 'Watch' : 'Result'}<`),
+      )
     })
   }
 

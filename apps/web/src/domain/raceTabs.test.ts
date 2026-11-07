@@ -246,7 +246,18 @@ describe('W4: sin Race Radio (D-16 revocada)', () => {
       expect(raceTabs('finished', 1, seen, false)).not.toContain('report')
       expect(stagePageTabs(seen, false)).not.toContain('report')
     }
-    expect(Object.values(RACE_TAB_LABEL)).not.toContain('Story')
+    // ningún rótulo de ninguna pestaña, en ningún estado, dice `Story` (hasta W4 lo decía `report` con
+    // Watch apagado; la cuenta se hace con las funciones, que es de donde salía)
+    for (const status of ['upcoming', 'racing', 'finished'] as const)
+      for (const count of [1, 21])
+        for (const seen of [true, false])
+          for (const watchOn of [true, false])
+            for (const watchable of [true, false]) {
+              for (const tab of raceTabs(status, count, seen, watchOn, watchable))
+                expect(raceTabLabel(tab)).not.toBe('Story')
+              for (const tab of stagePageTabs(seen, watchOn, watchable))
+                expect(stageTabLabel(tab)).not.toBe('Story')
+            }
   })
 })
 

@@ -150,7 +150,7 @@ const clearLines = (): void => {
  * crónica, su aviso de que no se guardó y la revisión de plantillas con que se leía. Las claves de una
  * ficha tal como llega, sin pasarla por su esquema, que las quitaría igual.
  */
-const W4_GONE = ['radio', 'chronicle', 'journalUnavailable', 'tplRev'] as const
+const W4_GONE = ['radio', 'chronicle', 'journalUnavailable', 'tplRev', 'timeTrial'] as const
 const goneIn = (raw: unknown): string[] =>
   Object.keys(raw as object).filter((k) => (W4_GONE as readonly string[]).includes(k))
 

@@ -8,6 +8,8 @@
  */
 import {
   type BroadcastHead,
+  JERSEY_PRIORITY,
+  type RaceLeaders,
   type StageGate,
   type StageReplay as StageReplayData,
   currentSeason,
@@ -27,6 +29,7 @@ import { authClient } from '../auth/client'
 import { StageResultRankTable } from '../components/RaceRankTables'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { InfoButton } from '../components/ui/InfoButton'
 import { TextLink } from '../components/ui/TextLink'
 import type { TableIdentity } from '../domain/tableIdentity'
 import { diagOf, useHealth, useHorizonRev, useWatchOn } from '../queryClient'
@@ -55,6 +58,29 @@ const head = 'text-caption font-semibold uppercase tracking-caps text-ink-2'
  * `react-query` y su router para eso no prueba nada más y sí puede fallar por otra cosa.
  */
 export { StageResultRankTable as ResultTable } from '../components/RaceRankTables'
+
+/**
+ * EL TÍTULO DEL ORDEN DE LLEGADA, CON EL PORQUÉ DE SUS MAILLOTS: son los de la carretera
+ * (`leaders.onRoad`, ver arriba), y las tablas de `Classifications` enseñan los de después. Las dos cosas
+ * son ciertas y pueden no coincidir; el `InfoButton` lo explica (ui/4) en vez de dejar que el lector
+ * descubra la contradicción por su cuenta. Hasta W4 lo decía la crónica en su línea `On the road today`;
+ * la crónica se fue (D-16 revocada) y su explicación se queda aquí, sin prosa. Sin maillots en la
+ * carretera (la etapa 1, una carrera de un día), el título solo.
+ */
+export function StageResultHead({ onRoad }: { onRoad: RaceLeaders | undefined }) {
+  const worn = onRoad !== undefined && JERSEY_PRIORITY.some((k) => onRoad[k] !== null)
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <h2 className={head}>Stage result</h2>
+      {worn && (
+        <InfoButton label="About the jerseys on the road">
+          The jerseys as they were worn at the start of this stage — the standings after it are in
+          Classifications.
+        </InfoButton>
+      )}
+    </div>
+  )
+}
 
 // ------------------------------------------------------- el acta y revelar (E2, §11.10 y §11.11; 9a)
 
@@ -125,7 +151,7 @@ export function StageReportView({
       )}
       {results.length > 0 ? (
         <div id="stage-result" className={card}>
-          <h2 className={head}>Stage result</h2>
+          <StageResultHead onRoad={data.leaders?.onRoad} />
           {/* `onRoad`, no `afterStage`: ver la cabecera de `ResultTable`. */}
           <StageResultRankTable
             rows={results}
@@ -163,8 +189,8 @@ const gateKey = (g: StageGate | null): string =>
 
 /**
  * LO QUE LA PÁGINA SABE DE UNA ETAPA ANTES DE ELEGIR PESTAÑAS (9a). El 9b lo saca de la página para la
- * ficha de una carrera de un día, que es la de su etapa 1 y lleva desde el 9b `Watch`, `Report` y `Race
- * Radio` con la misma puerta (§11.17): la ficha de la etapa con su `watch`, si `Watch` está encendido para
+ * ficha de una carrera de un día, que es la de su etapa 1 y lleva desde el 9b `Watch` y `Report` (y `Race
+ * Radio` hasta W4) con la misma puerta (§11.17): la ficha de la etapa con su `watch`, si `Watch` está encendido para
  * quien mira, la cabecera de la retransmisión y si quien mira lee con `cs_viewer` sin sesión.
  */
 export interface StageFacts {
@@ -223,8 +249,8 @@ export function stageHeadQuery(f: {
 }
 
 /**
- * `enabled`: pedir ya la ficha (la de una carrera de un día con `Watch` apagado no se pide hasta que se
- * abre una pestaña que la enseña, como hoy). `oneDay`: la cabecera de `Watch` también para una carrera
+ * `enabled`: pedir ya la ficha (la de una carrera de un día con `Watch` apagado no se pide: desde W4
+ * ninguna de sus pestañas la enseña). `oneDay`: la cabecera de `Watch` también para una carrera
  * de un día, que la página de etapa no pide porque redirige a la ficha de carrera.
  */
 export function useStageFacts(

@@ -168,6 +168,45 @@ describe('revelar sin castigo (§11.11, DD-17)', () => {
     expect(text(<StageReportView data={data} />)).not.toContain('Watch anyway')
   })
 
+  // W4: el porqué de los maillots del orden de llegada, que vivía en la crónica (`On the road today`),
+  // pasa al título del resultado, y solo cuando en la carretera había maillots (no en la etapa 1).
+  it('el título del resultado explica sus maillots de la carretera, solo si los había (W4)', () => {
+    const base: StageReplay = {
+      day: 7,
+      name: 'Stage 7 · Summit finish',
+      km: 187,
+      run: true,
+      altimetry: '<svg/>',
+      champions: {},
+      results: [
+        {
+          riderId: 'r1',
+          name: 'Corredor r1',
+          country: 'ES',
+          dnf: false,
+          reason: null,
+          teamId: 'team-r1',
+          teamName: 'Equipo r1',
+          isBot: true,
+          puesto: 1,
+          tiempoS: 3601,
+          bonificacionS: 0,
+          puntosVolante: 0,
+          puntosMontana: 0,
+        },
+      ],
+    }
+    const leaders = (gc: string | null) => ({
+      onRoad: { gc, points: null, kom: null, team: null },
+      afterStage: { gc: null, points: null, kom: null, team: null },
+    })
+    const con = html(<StageReportView data={{ ...base, leaders: leaders('r1') }} />)
+    expect(con).toContain('About the jerseys on the road')
+    expect(con).toContain('the standings after it are in')
+    for (const data of [base, { ...base, leaders: leaders(null) }])
+      expect(html(<StageReportView data={data} />)).not.toContain('About the jerseys on the road')
+  })
+
   // Re-sellado en W4 (la revisión de `Watch` del dueño; D-16 revocada): sin la crónica, la fila de saltos
   // pierde `Chronicle`, y solo sale si hay adónde saltar fuera del resultado, las clasificaciones.
   it('el acta, con su fila de saltos: Result y Classifications, sin Chronicle desde W4 (E3, §14.6; 14-c)', () => {

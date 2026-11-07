@@ -32,6 +32,7 @@ import {
   RESULT_TABS,
   ResultTable,
   StageReportView,
+  StageResultHead,
   raceKeyOf,
   usePinnedHead,
   useStageFacts,
@@ -79,10 +80,10 @@ export {
  *
  * LOS MAILLOTS QUE SE PINTAN AQUÍ SON LOS DE DESPUÉS DE LA ETAPA (`leaders.afterStage`), porque es
  * el estado que estas tablas están mostrando: si el amarillo cambió de dueño en la meta de hoy, la
- * general de hoy tiene que enseñar al dueño nuevo. La crónica de la pestaña `Story` y el orden de
- * llegada de `Result` llevan los de ANTES —los que se llevaban puestos en la carretera ese día— y
- * la crónica lo dice además en su propia línea, para que la diferencia se lea como lo que es y no
- * como una contradicción.
+ * general de hoy tiene que enseñar al dueño nuevo. El orden de llegada (`Stage result`) lleva los de
+ * ANTES —los que se llevaban puestos en la carretera ese día— y su título lo dice en un `InfoButton`,
+ * para que la diferencia se lea como lo que es y no como una contradicción (hasta W4 lo decía la
+ * crónica, en su propia línea).
  */
 function StageClassifications({
   gc,
@@ -196,7 +197,7 @@ function hrefWith(path: string, params: URLSearchParams, patch: Record<string, s
 
 /**
  * Página de una etapa de una carrera POR ETAPAS. Ya no es un callejón sin salida: la cabecera dice a
- * qué carrera pertenece y qué etapa es de cuántas, hay anterior/siguiente para leer las 21 crónicas
+ * qué carrera pertenece y qué etapa es de cuántas, hay anterior/siguiente para recorrer las 21 etapas
  * seguidas, y el contenido va en pestañas.
  *
  * En una carrera de UN DÍA esta página ya no existe: la carrera y la etapa son la misma cosa y su
@@ -225,8 +226,9 @@ export function StageReplay() {
  * - Las pestañas (`stagePageTabs`): con `Watch` encendido para quien mira, `Watch` delante si no ha visto
  *   la etapa y `Report` (el acta, `Story` y `Result` juntas) si la vio o la reveló; sin `Watch` para esta
  *   etapa (una crono sin línea, una lápida), `Report` con `Broadcast unavailable for this stage`. Con
- *   `Watch` apagado (el jugador hasta el encendido), las de hoy, con `report` llamada `Story`. La pestaña
- *   por defecto se fija la primera vez: que la etapa pase a vista mientras se mira no cambia de pestaña.
+ *   `Watch` apagado (el interruptor de §20.5), `Result`, `Classifications` y `Profile` (hasta W4, con
+ *   `Story`, la crónica, delante). La pestaña por defecto se fija la primera vez: que la etapa pase a
+ *   vista mientras se mira no cambia de pestaña.
  * - La puerta (`StageGateCard`): con la etapa sin ver y en el velo (`watch.gate` de la ficha, o el 403 del
  *   acta), lo que enseñaría el resultado la pinta; `?tab=` no la salta (sup. E9). En `Watch`, la de la
  *   anterior sin ver (`previous_unseen`, D-37). Fuera del velo, lo que no sirvió la ficha lo trae el acta
@@ -285,12 +287,10 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
     return <QueryView query={f.stage} label="the stage" skeleton={{ kind: 'header' }} />
 
   // Carrera de un día: la ficha de carrera ya contiene todo esto. Se redirige sin dejar rastro en el
-  // historial, así que el botón "atrás" no rebota entre las dos páginas; sin pestaña pedida, a donde
-  // diga `Watch` para quien mira (9b), así que espera a saberlo (`settled`, que siempre llega).
-  if (isOneDay) {
-    if (!settled) return <LoadingState label="the race" skeleton={{ kind: 'header' }} />
-    return <Navigate to={oneDayStageTarget(raceId, params)} replace />
-  }
+  // historial, así que el botón "atrás" no rebota entre las dos páginas; sin pestaña pedida, sin `tab`,
+  // y la ficha abre en la suya por defecto. Hasta W4 esperaba a saber si `Watch` estaba encendido
+  // (9b), porque apagado elegía la crónica; ya no depende de eso y sale en cuanto llega la ficha.
+  if (isOneDay) return <Navigate to={oneDayStageTarget(raceId, params)} replace />
 
   const race = data.race
   const stageCount = race?.stageCount ?? 0
@@ -464,7 +464,7 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
               withResult((d) =>
                 d.results && d.results.length > 0 ? (
                   <div className={card}>
-                    <h2 className={head}>Stage result</h2>
+                    <StageResultHead onRoad={d.leaders?.onRoad} />
                     {/* `onRoad`, no `afterStage`: ver la cabecera de `ResultTable`. */}
                     <ResultTable
                       rows={d.results}

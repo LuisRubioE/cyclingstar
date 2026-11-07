@@ -100,8 +100,8 @@ import { parseRaceId, parseStageDay } from './params.js'
  * (§14.7).
  *
  * Desde el 6a sirven la línea grabada de las etapas que la tienen (`timelineForStage`, §14.4), con el
- * reloj exacto, la revisión de plantillas de su fila (`tplRev`, 12-c) en la cabecera, el acta y la
- * meta, y la preparación pública de la crono en la cabecera (`tt`); una lápida es 404
+ * reloj exacto, la revisión de plantillas de su fila (`tplRev`, 12-c) en la cabecera (hasta W4, también
+ * en el acta y la meta, para su crónica), y la preparación pública de la crono en la cabecera (`tt`); una lápida es 404
  * `broadcast_unavailable` (D-12), y una etapa sin fila sigue con el adaptador.
  */
 

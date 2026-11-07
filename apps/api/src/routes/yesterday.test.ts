@@ -70,10 +70,12 @@ const YESTERDAY = {
   // `champions`, del 17a de E3 (docs/visual.md §8.5, 4-l): los títulos que se llevan el día de sus tablas.
   // `tplRev`, del 3a (12-c), ya no está en el de hoy: lo saca W4 con la crónica, que era quien lo leía.
   // W4 saca también, con la pestaña `Race Radio` y la crónica (D-16 revocada), `journalUnavailable`,
-  // `chronicle` y `radio`. La web de ayer los lee, pero opcionales desde la base de E2: sin ellos, su
-  // esquema casa igual, y la pestaña abierta durante el despliegue enseña la radio y la crónica vacías
-  // hasta recargar. Vuelven aquí, opcionales, para que lo que se valida siga siendo su esquema.
+  // `chronicle`, `radio` y `timeTrial`. La web de ayer los lee, pero opcionales desde la base de E2: sin
+  // ellos, su esquema casa igual; la pestaña abierta durante el despliegue dice, hasta recargar, que la
+  // etapa se corrió antes de guardar la radio, y no pinta la crónica. Vuelven aquí, opcionales, para que
+  // lo que se valida siga siendo su esquema.
   stageReplay: stageReplaySchema.omit({ watch: true, champions: true }).extend({
+    timeTrial: z.boolean().optional(),
     journalUnavailable: z.boolean().optional(),
     chronicle: z.array(chronicleEntrySchema).optional(),
     radio: raceRadioSchema.optional(),
@@ -368,10 +370,12 @@ describe('la web de ayer: lo que la API manda hoy pasa por sus esquemas', () => 
     expect(stage.leaders?.onRoad.gc).not.toBeNull()
   })
 
+  // re-sellado en W4: sin `timeTrial`, que la web de ayer tiene opcional; la crono sigue siendo `cri`
   it('la crono corrida', async () => {
     const stage = yesterdayStage.parse(await get(`/api/races/${RACE_ID}/stages/1`))
     expect(stage.run).toBe(true)
-    expect(stage.timeTrial).toBe(true)
+    expect(stage.timeTrial).toBeUndefined()
+    expect(stage.kind).toBe('cri')
     expect(stage.results?.length).toBeGreaterThan(0)
   })
 

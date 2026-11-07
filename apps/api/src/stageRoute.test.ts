@@ -491,7 +491,6 @@ describe('la ruta de etapa cerrada sobre una etapa corrida (§14.1; 7b)', () => 
       'from',
       'to',
       'kind',
-      'timeTrial',
     ] as const)
       expect(veiled[key], key).toEqual(today[key])
     // la altimetría del recorrido corrido, sin marcas: la de hoy lleva las de los sucesos (sup. E7)
@@ -577,26 +576,25 @@ describe('la ruta de etapa cerrada sobre una etapa corrida (§14.1; 7b)', () => 
   })
 
   /**
-   * LA PESTAÑA `Race Radio` (§11.16, decisión 11-i): la ruta de etapa no manda `radio` de una etapa no
-   * conocida (desde el 11a, la web la construye hasta lo pintado con los tramos); la de una conocida es la
-   * de la ficha de hoy, entera, y con `?diag=1`, también. Del 7b al 10 era la radio guardada; desde el
-   * 11a, en una etapa con línea como la 2, la de la línea (`radioFromTimeline`, con los diez primeros de la
-   * etapa y los propios de quien pide, que aquí no tiene ninguno): las tres comparaciones no cambian.
-   */
-  /**
    * SIN RADIO NI CRÓNICA (W4, la revisión de `Watch` del dueño, su punto 8; D-16 revocada): la ficha de
-   * etapa ya no lleva la radio, la crónica, su aviso de que no se guardó ni la revisión de plantillas con
-   * que se leía, ni la de hoy, ni la vista, ni con `?diag=1`. El resto de la ficha, el de siempre.
+   * etapa ya no lleva la radio, la crónica, su aviso de que no se guardó, la revisión de plantillas con
+   * que se leía ni si la etapa fue una crono, ni la de hoy, ni la velada, ni la vista, ni con `?diag=1`.
+   * Hasta W4, aquí se probaba la pestaña `Race Radio` (§11.16, 11-i): sin radio en la velada, y la de la
+   * línea en la vista y con `?diag=1`. El resto de la ficha, el de siempre.
    */
-  it('W4: la ficha de etapa ya no lleva la radio ni la crónica, ni la de hoy, ni vista, ni con ?diag=1', async () => {
+  it('W4: la ficha de etapa ya no lleva la radio ni la crónica, ni la de hoy, ni velada, ni vista, ni con ?diag=1', async () => {
     const app = appWith('admins', 'admins')
-    const GONE = ['radio', 'chronicle', 'journalUnavailable', 'tplRev']
+    const GONE = ['radio', 'chronicle', 'journalUnavailable', 'tplRev', 'timeTrial']
     const keysOf = (body: string): string[] => Object.keys(JSON.parse(body) as object)
     const today = keysOf(await todayOf(2, ADMIN))
     expect(today).toEqual(expect.arrayContaining(['results', 'gc', 'leaders', 'altimetry']))
     expect(today.filter((k) => GONE.includes(k))).toEqual([])
     const diag = await get(app, `${STAGE_URL}/2?diag=1`, ADMIN)
     expect(keysOf(diag.body).filter((k) => GONE.includes(k))).toEqual([])
+    await setWatch(ADMIN, watchRow('W'))
+    const veiled = await get(app, `${STAGE_URL}/2`, ADMIN)
+    expect(keysOf(veiled.body)).not.toContain('results')
+    expect(keysOf(veiled.body).filter((k) => GONE.includes(k))).toEqual([])
     await setWatch(ADMIN, watchRow('WW'))
     const seen = await get(app, `${STAGE_URL}/2`, ADMIN)
     expect(keysOf(seen.body)).toContain('results')

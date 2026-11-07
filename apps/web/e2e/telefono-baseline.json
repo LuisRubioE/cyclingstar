@@ -42,8 +42,8 @@
       "360-barra": [0]
     },
     "10-stage-report": {
-      "320": [0, 0, 0, 0, 166, 0, null, null, null, 0],
-      "360": [0, 0, 0, 0, 166, 0, 0, null, null, 0]
+      "320": [0, 0, 0, 0, 0, 0, null, null, null, 0],
+      "360": [0, 0, 0, 0, 0, 0, 0, null, null, 0]
     },
     "11-world-rankings": {
       "320": [0, 0, 0, 0, 0, 0, null, null, null, 0],

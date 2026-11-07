@@ -3,7 +3,7 @@
  * B6 · LA LÍNEA BASE DEL PESO DE LA RUTA DE ETAPA (docs/retransmision.md §16.4 y §17.3; E2, paso 0).
  *
  * Lo que mide: cuánto pesa HOY `GET /api/races/:raceId/stages/:day` de una etapa corrida, la etapa
- * conocida entera (`StageReplay` con resultado, clasificaciones, acta y radio), tal como sale por la
+ * conocida entera (`StageReplay` con resultado y clasificaciones; hasta W4, también acta y radio), tal como sale por la
  * red con `@fastify/compress` puesto: en JSON, con gzip y con brotli. Es la cifra contra la que se
  * comparan el 6a (lo servido por la retransmisión) y el tope `BROADCAST.maxKnownStageGzipBytes`
  * (110 KB con gzip, el máximo medido por el mapa 07 §7 más un 10 %, §15.3), que B6 vigila desde el 6.
@@ -271,7 +271,6 @@ async function measureRun(run) {
       sizes[label] = res.rawPayload.length
       if (label === 'json') {
         const body = res.json()
-        sizes.radioKms = body.radio?.kms.length ?? 0
         sizes.riders = body.results?.length ?? 0
       }
     }
@@ -305,13 +304,11 @@ for (const run of RUNS) all.push(...(await measureRun(run)))
 console.log(
   `\nB6 · línea base de la ruta de etapa conocida · motor v${ENGINE_VERSION} · semillas ${RUNS.join(', ')}\n`,
 )
-console.log(
-  '| Etapa | Semilla | Corredores | Fotos de radio | JSON (KB) | gzip (KB) | brotli (KB) |',
-)
-console.log('| --- | --- | --- | --- | --- | --- | --- |')
+console.log('| Etapa | Semilla | Corredores | JSON (KB) | gzip (KB) | brotli (KB) |')
+console.log('| --- | --- | --- | --- | --- | --- |')
 for (const r of all) {
   console.log(
-    `| ${r.stage}${r.timeTrial ? ' (crono)' : ''} | ${r.run} | ${r.riders} | ${r.radioKms} | ${kb(r.json)} | ${kb(r.gzip)} | ${kb(r.br)} |`,
+    `| ${r.stage}${r.timeTrial ? ' (crono)' : ''} | ${r.run} | ${r.riders} | ${kb(r.json)} | ${kb(r.gzip)} | ${kb(r.br)} |`,
   )
 }
 const road = all.filter((r) => !r.timeTrial)

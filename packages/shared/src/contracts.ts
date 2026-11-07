@@ -1909,8 +1909,6 @@ export const stageReplaySchema = z.object({
   /** Salida y llegada de la etapa. Ausentes si la etapa no tiene ciudades. */
   from: z.string().nullish(),
   to: z.string().nullish(),
-  /** Contrarreloj: la etapa se corrió contra el reloj. */
-  timeTrial: z.boolean().optional(),
   altimetry: z.string(),
   results: z.array(stageResultEntrySchema).optional(),
   gc: z.array(stageGcEntrySchema).optional(),
@@ -1940,9 +1938,10 @@ export const stageReplaySchema = z.object({
   /** los títulos que se llevan el día de esta etapa, el de las tablas de esta ficha (E3, §8.5; 4-l) */
   champions: championsSchema,
   // Sin la radio de carrera (`radio`), la crónica (`chronicle`), su aviso de que no se guardó
-  // (`journalUnavailable`) ni la revisión de plantillas con que se leía (`tplRev`) desde W4: el dueño
-  // retiró la pestaña `Race Radio` y la crónica bajo el resultado (su revisión de `Watch`, punto 8;
-  // D-16 revocada). La web de ayer los tenía opcionales (`yesterday.test.ts`).
+  // (`journalUnavailable`), la revisión de plantillas con que se leía (`tplRev`) ni si la etapa fue una
+  // crono (`timeTrial`, que solo leía la crónica) desde W4: el dueño retiró la pestaña `Race Radio` y la
+  // crónica bajo el resultado (su revisión de `Watch`, punto 8; D-16 revocada). La web de ayer los tenía
+  // opcionales (`yesterday.test.ts`).
   /**
    * LO VISTO DE ESTA ETAPA para quien la pide (E2, docs/retransmision.md §14.1 y §14.2; paso 7b): si
    * la conoce (`W`, `S`, `R` o `A`; la `X` no, 10-e), si la vio (6-r), lo alcanzado si la dejó a medias y

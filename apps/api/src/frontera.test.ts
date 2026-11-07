@@ -358,7 +358,7 @@ describe('la frontera, hoja por hoja (§13.2, punto 3; PR 19a)', () => {
   /**
    * W4 (la revisión de `Watch` del dueño, su punto 8; D-16 revocada): fuera la pestaña `Race Radio` y la
    * crónica bajo el resultado, y con ellas lo que las pintaba: la radio, la crónica, su aviso de que no se
-   * guardó y la revisión de plantillas con que se leía. No cruzan por ninguna de las tres rutas que sirven
+   * guardó, la revisión de plantillas con que se leía y si la etapa fue una crono, que solo leía ella. No cruzan por ninguna de las tres rutas que sirven
    * la ficha de una etapa: la de etapa, el acta y el paquete de meta, que la lleva dentro (`report`).
    */
   it('lo que W4 saca, la radio y la crónica de la ficha de etapa, ya no cruza por ninguna de sus rutas (D-16 revocada)', () => {
@@ -379,7 +379,8 @@ describe('la frontera, hoja por hoja (§13.2, punto 3; PR 19a)', () => {
           p.startsWith(`${base}radio.`) ||
           p.startsWith(`${base}chronicle[]`) ||
           p === `${base}journalUnavailable` ||
-          p === `${base}tplRev`,
+          p === `${base}tplRev` ||
+          p === `${base}timeTrial`,
       )
       expect(fuera, route).toEqual([])
     }

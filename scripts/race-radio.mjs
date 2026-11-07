@@ -29,7 +29,7 @@
  *
  * …SALVO QUE LA ETAPA TENGA SU LÍNEA GRABADA (E2, docs/retransmision.md §12.10, decisión 12-p; paso
  * 11a). Con `--db`, si la versión no coincide y la etapa tiene fila en `stage_timelines`, la tabla sale
- * de la línea grabada (`radioFromTimeline`, la misma radio que sirve la API) y la cabecera lo dice:
+ * de la línea grabada (`radioFromTimeline`, la que servía la API hasta W4) y la cabecera lo dice:
  * `fuente: línea grabada · sin depósitos · una foto por km`. Es otra cosa que el replay: la línea no
  * guarda el depósito de nadie, tiene una foto por km diga lo que diga `--every` y nombra a los doce
  * primeros que tiran, no a todos. Por eso, con la versión de hoy, `--db` sigue re-simulando: es el
@@ -280,7 +280,7 @@ async function recordedLineOf(db, conn, raceKey) {
 }
 
 /**
- * LA RADIO DE LA LÍNEA GRABADA (12-p): la del contrato que sirve la API (`radioFromTimeline`), con la
+ * LA RADIO DE LA LÍNEA GRABADA (12-p): la del contrato que servía la API hasta W4 (`radioFromTimeline`), con la
  * cara de cada uno del roster de la carrera, en la forma que pinta `render`: el puesto de carretera, sin
  * depósito y los que tiran, en su orden. La crono no tiene radio, como en el replay.
  */

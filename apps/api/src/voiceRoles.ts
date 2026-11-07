@@ -16,8 +16,8 @@ import type { ChronicleEvent } from './chronicle.js'
 import { type ClusterClock, liveClusters } from './liveClusters.js'
 
 /**
- * LOS PAPELES DE GRUPO EN LA VOZ Y EN EL ACTA (E2, docs/retransmision.md §12.6 y §14.3; D-18, 12-b,
- * 12-n; paso 6b). Puro sobre la línea.
+ * LOS PAPELES DE GRUPO EN LA VOZ (E2, docs/retransmision.md §12.6 y §14.3; D-18, 12-b, 12-n; paso 6b), y
+ * hasta W4 también en la crónica del acta, que el dueño retiró (D-16 revocada). Puro sobre la línea.
  *
  * La voz no calcula el papel: el motor dice «the bunch» por el grupo que titula pelotón, y una de cada
  * cinco veces (`l8/rol.mjs`: 40 de 210 líneas) la barra llama a ese grupo `Chase group` en la misma

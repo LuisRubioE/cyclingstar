@@ -313,7 +313,8 @@ describe('el maillot de campeón en las tablas y en la ficha (docs/visual.md §8
 
     it('la crono: el de crono, y no el de ruta', async () => {
       const stage = stageReplaySchema.parse((await getFrom(app, stageUrl(1))).json)
-      expect(stage.timeTrial).toBe(true)
+      // la ficha dice la crono por su tipo (`timeTrial` se fue con la crónica en W4)
+      expect(stage.kind).toBe('cri')
       expect(stage.champions).toEqual({ [ITT]: ITT_ES, [BOTH]: ITT_FR })
     })
 

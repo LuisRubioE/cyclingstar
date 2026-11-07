@@ -42,7 +42,7 @@ const RACE_PANEL = 'race-section'
  * revocada).
  *
  * Vive en su propio fichero, que la ficha carga diferido (`lazy`) solo para una carrera de un día terminada:
- * así la de una vuelta no se descarga la etapa (`stageView.tsx`, su cliente y la crónica), y una carga
+ * así la de una vuelta no se descarga la etapa (`stageView.tsx` y su cliente), y una carga
  * completa de la ficha no pide más ficheros que antes del 9b (cuentan para el límite de 300 peticiones por
  * minuto e IP). Las pestañas que son de la ficha (`Result`, `Route` y `Roll of honour`) se las pasa
  * `Race.tsx` ya hechas.

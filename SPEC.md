@@ -605,9 +605,9 @@ protagonistas cuando la cabeza es pequeña, `gapS`, `chaseKind` y `toGo`. Lo vig
 
 **El vocabulario de grupos (v27; reescrito por la retransmisión, E2, con DD-04).** En la carretera
 hay CUATRO papeles, y cada uno tiene un solo nombre, el mismo en la barra de la retransmisión, la
-`Race Radio`, la voz y el acta (`GROUP_WORDS`, `packages/shared/src/broadcast/names.ts`; D-18 de
-`docs/retransmision.md` §6.3). La barra lo escribe con mayúscula y sin artículo; la voz y el acta,
-en minúscula y con él:
+voz y los momentos de `Last race` (`GROUP_WORDS`, `packages/shared/src/broadcast/names.ts`; D-18 de
+`docs/retransmision.md` §6.3), y hasta W4 también en la `Race Radio` y en la crónica del acta, que el
+dueño retiró. La barra lo escribe con mayúscula y sin artículo; la voz, en minúscula y con él:
 
 | Nombre            | En la barra   | Qué es                                                             |
 | ----------------- | ------------- | ------------------------------------------------------------------ |

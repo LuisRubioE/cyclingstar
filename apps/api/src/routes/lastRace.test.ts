@@ -32,7 +32,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { AppDeps } from '../app.js'
 import { buildApp } from '../app.js'
 import { clearAdaptedTimelineCache } from '../broadcastSource.js'
-import { namesOfTheDay, riderMomentsOf, stageActaOf, stageContextOf } from '../stageReplay.js'
+import { namesOfTheDay, riderMomentsOf, stageChronicleOf, stageContextOf } from '../stageReplay.js'
 
 /**
  * `GET /api/riders/me/last-race` CON LOS MOMENTOS DEL CORREDOR, Y LA IDENTIDAD DEL DÍA (E2,
@@ -42,7 +42,7 @@ import { namesOfTheDay, riderMomentsOf, stageActaOf, stageContextOf } from '../s
  * la tarjeta `Your last race` se quedaría sin los momentos del corredor. Aquí, sobre un mundo de PGlite
  * con tres etapas de `race-france` corridas por `runOneStage` como el tick (con su línea grabada):
  *
- * - con la etapa conocida, `report.moments` son las líneas del acta (`stageActaOf`, la que servía la
+ * - con la etapa conocida, `report.moments` son las líneas del acta (`stageChronicleOf`, la que servía la
  *   ruta de etapa hasta que W4 la sacó de la ficha; D-16 revocada) en que el corredor es protagonista o
  *   destinatario, en el orden del acta; y con la última corrida velada, el informe es el de la anterior
  *   conocida, con sus momentos, y `ready` lleva la velada;
@@ -131,12 +131,12 @@ describe('last-race con los momentos del corredor, y la identidad del día (§12
   }
 
   /**
-   * EL ACTA DE UNA ETAPA, la de la que salen los momentos (`stageActaOf`), por JSON como la sirve la API.
+   * EL ACTA DE UNA ETAPA, la de la que salen los momentos (`stageChronicleOf`), por JSON como la sirve la API.
    * Hasta W4 la servía la ruta de etapa (`chronicle`), y este test la pedía ahí.
    */
   const actaOf = async (day: number): Promise<ChronicleEntry[]> => {
     const ctx = await stageContextOf(t.db, RACE_ID, day, 0)
-    const acta = ctx === null ? null : await stageActaOf(t.db, worldHorizon, ctx)
+    const acta = ctx === null ? null : await stageChronicleOf(t.db, worldHorizon, ctx)
     return JSON.parse(JSON.stringify(acta ?? [])) as ChronicleEntry[]
   }
 
@@ -265,6 +265,21 @@ describe('last-race con los momentos del corredor, y la identidad del día (§12
       ),
     )
     expect(onlyMentioned.length).toBeGreaterThan(0)
+  })
+
+  /**
+   * EL ACTA DE LA CRONO VA POR EL RELOJ DE CARRERA (v18), no por el km: en una crono el primero en salir
+   * cruza la meta mientras el último aún no ha llegado al parcial. Hasta W4 lo cubría de paso la ruta de
+   * etapa, que servía la crónica; ahora es de `stageChronicleOf`, de la que salen los momentos.
+   */
+  it('el acta de la crono va por el reloj de carrera (v18), y por el km saldría en otro orden', async () => {
+    const acta = await actaOf(1)
+    expect(acta.length).toBeGreaterThan(1)
+    const tS = acta.map((e) => e.tS)
+    expect(tS).toEqual([...tS].sort((a, b) => a - b))
+    // en esta crono los km se cruzan con el reloj: ordenada por km, el acta sería otra
+    const km = acta.map((e) => e.km)
+    expect(km).not.toEqual([...km].sort((a, b) => a - b))
   })
 
   it('con la última corrida velada, el informe es el de la anterior conocida, con sus momentos, y ready lleva la velada', async () => {

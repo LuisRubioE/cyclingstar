@@ -179,7 +179,8 @@ export function PointsRankTable({
 /**
  * CÓMO SE DICE QUE ALGUIEN NO ACABÓ. `fuera_control` es su propia cosa (cruzó la meta, pero tarde) y la
  * hoja de una carrera de verdad no lo llama DNF; el resto se agrupa, porque para el lector «se bajó de la
- * bici» y «se cayó y no siguió» son la misma noticia y el porqué lo cuenta el journal.
+ * bici» y «se cayó y no siguió» son la misma noticia, y el porqué lo cuenta la voz de `Watch` (hasta W4,
+ * también la crónica).
  */
 export function dnfLabel(reason: string | null | undefined): string {
   return reason === 'fuera_control' ? 'OTL' : 'DNF'

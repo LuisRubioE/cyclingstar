@@ -76,7 +76,6 @@ function page(
       broadcastHeadKey(raceId, 1, undefined, false, REV),
       broadcastHeadWith(raceId, 1),
     )
-    client.setQueryData(['painted-radio', raceId, 1, 0], [])
   }
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>

@@ -173,7 +173,6 @@ function notRunReplayOf(ctx: StageContext) {
     ...citiesOf(ctx),
     label: spec.label,
     kind: spec.kind,
-    timeTrial: spec.timeTrial,
     altimetry: renderAltimetrySvg(stage.profile),
     // sin tablas, nadie a quien vestir de campeón (E3, §8.5; 17a)
     champions: {},
@@ -217,7 +216,6 @@ export function stageShellOf(ctx: StageContext, snapshot: StageSnapshotRow | nul
     race: raceInfoOf(ctx),
     ...citiesOf(ctx),
     kind: head.kind,
-    timeTrial: head.timeTrial,
     altimetry: renderAltimetrySvg(profile),
     champions: {},
   }
@@ -280,7 +278,7 @@ export async function stageReplayOf(
     day,
   )
   // LOS MAILLOTS, en dos juegos (ver `stageReplaySchema.leaders`): los de la carretera de ese
-  // día —la clasificación tras la N−1, que es lo que cuenta el journal— y los de después de la
+  // día —la clasificación tras la N−1, la del orden de llegada y los momentos— y los de después de la
   // etapa, que es lo que muestran las tablas de esta misma página. En una carrera de UN DÍA no
   // hay ninguno: no hay clasificación anterior que arrastrar ni día siguiente que defender.
   const oneDay = race.stages.length === 1
@@ -318,7 +316,6 @@ export async function stageReplayOf(
     race: raceInfo,
     ...ciudades,
     kind: head.kind,
-    timeTrial: head.timeTrial,
     altimetry,
     results,
     gc,
@@ -366,7 +363,7 @@ export async function namesOfTheDay(
  * dueño la retiró de la pantalla (D-16 revocada) y queda de ella lo que leen los momentos del corredor.
  * Null si la etapa no se corrió, no guardó sus sucesos (antes de la `0024`) o `h` la vela.
  */
-export async function stageActaOf(
+export async function stageChronicleOf(
   db: Database,
   h: Horizon,
   ctx: StageContext,
@@ -395,7 +392,7 @@ export async function stageActaOf(
 
 /**
  * LOS MOMENTOS DE UN CORREDOR EN UNA ETAPA (E2, docs/retransmision.md §12.9, 12-k, D-47; paso 12): las
- * líneas del acta de la etapa (`stageActaOf`) en que el corredor es protagonista o destinatario
+ * líneas del acta de la etapa (`stageChronicleOf`) en que el corredor es protagonista o destinatario
  * (`mentions`: el `forId` de los que tiran para él), en el orden del acta. El racimo de `groupRuns` en que
  * va cuenta como suyo: es la línea que dice que se descolgó. Los pinta la tarjeta `Your last race` en
  * lugar de `personalNarration`. Null como el acta (G: la ruta pide la última CONOCIDA, así que no
@@ -407,7 +404,7 @@ export async function riderMomentsOf(
   ctx: StageContext,
   riderId: string,
 ): Promise<ChronicleEntry[] | null> {
-  const acta = await stageActaOf(db, h, ctx)
+  const acta = await stageChronicleOf(db, h, ctx)
   const isMine = (r: { readonly id?: string | null }): boolean => r.id === riderId
   return (
     acta?.filter(

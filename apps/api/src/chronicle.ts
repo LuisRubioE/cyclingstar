@@ -1384,8 +1384,9 @@ export const storedRaceRadioSchema = z.object({
            *
            * Esto era `pullMotiveSchema.nullable()` a secas, y con eso **un solo valor que el
            * contrato no conociera tiraba abajo los ciento ochenta y siete kilómetros de la etapa**:
-           * `safeParse` falla, `buildRaceRadio` devuelve `null` y la pantalla dice «se corrió antes
-           * de que se grabara la radio», que además es mentira.
+           * `safeParse` falla, `buildRaceRadio` devuelve `null` y la pestaña `Race Radio` decía «se
+           * corrió antes de que se grabara la radio», que además era mentira (la pestaña se fue en W4;
+           * la regla se queda, porque la radio guardada la sigue leyendo el adaptador).
            *
            * Pasó de verdad: el paso 17c añadió cinco motivos al motor y no los añadió aquí. Se
            * arregla el enum, sí — pero el enum volverá a quedarse corto la próxima vez que el motor
