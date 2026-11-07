@@ -482,16 +482,7 @@ describe('la ruta de etapa cerrada sobre una etapa corrida (§14.1; 7b)', () => 
       seen: false,
     })
     // lo que no depende del desenlace, igual que en la ficha de hoy
-    for (const key of [
-      'day',
-      'name',
-      'km',
-      'run',
-      'race',
-      'from',
-      'to',
-      'kind',
-    ] as const)
+    for (const key of ['day', 'name', 'km', 'run', 'race', 'from', 'to', 'kind'] as const)
       expect(veiled[key], key).toEqual(today[key])
     // la altimetría del recorrido corrido, sin marcas: la de hoy lleva las de los sucesos (sup. E7)
     expect(veiled.altimetry).toBe(renderAltimetrySvg(specOf(2).profile))
