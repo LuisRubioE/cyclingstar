@@ -149,6 +149,11 @@ export interface PlayerState {
   readonly lastKm: boolean
   /** `Show result` aceptado: la meta se pidió tras revelar (§8.5). No estaba en §8.11 */
   readonly revealed: boolean
+  /**
+   * la meta llegó en esta reproducción, viéndola (W3): lo que siga es volver a verla, que ni informa nada
+   * nuevo ni ofrece `Show result`. No estaba en §8.11
+   */
+  readonly finishSeen: boolean
 }
 
 /**
@@ -432,6 +437,7 @@ export function playerInit(
     seekVia: null,
     lastKm: false,
     revealed: false,
+    finishSeen: false,
   })
 }
 
@@ -458,7 +464,8 @@ function frame(
   // La línea (§8.7): el último tramo dentro y la cabeza en su último bloque, o el reloj en el borde.
   // Se informa de lo alcanzado en el borde y se pide la meta con el modo de la curva (14-f).
   if (s.atFinish && (a.atLine || s.t >= cap)) {
-    const r = withReport(ticked, false)
+    // en una repetición (W3), lo alcanzado ya estaba informado: solo la meta
+    const r = s.finishSeen ? { next: ticked, effects: [] } : withReport(ticked, false)
     return {
       next: { ...r.next, phase: 'waiting', notice: 'loading', inFlight: true },
       effects: [...r.effects, { k: 'finish', mode: REPORT_MODE[s.view] }],
@@ -497,6 +504,22 @@ const canJump = (s: PlayerState): boolean =>
  * (§8.1). Los mandos lo leen para apagar los saltos de la hoja de `⋯`.
  */
 export const jumpable = (s: PlayerState): boolean => s.view !== 'digest' && canJump(s)
+
+/**
+ * TRAS LA META VISTA (W3, la revisión de `Watch` del dueño, su punto 6: «hoy no se puede ir para atrás»): en
+ * el cierre, con la meta a la que se llegó viéndola (ni tras `Show result` ni en el digest) y nada en vuelo,
+ * la línea entera está servida y se puede volver atrás, sin red ni cuenta nueva: una etapa conocida no
+ * registra nada (`recordProgress`), y al llegar otra vez a la línea se pide la meta como la primera vez. En
+ * la llegada, el cuadro del ganador, todavía no.
+ */
+const afterFinish = (s: PlayerState): boolean =>
+  s.phase === 'closing' && s.view !== 'digest' && !s.revealed && s.atFinish && !s.inFlight
+
+/**
+ * ¿Se puede tocar la barra de progreso o el perfil (§8.5; W3)? Lo de los saltos y, tras la meta vista, volver
+ * atrás: delante, como un salto a ese km; detrás, como `−5 km` a ese km.
+ */
+export const kmSeekable = (s: PlayerState): boolean => jumpable(s) || afterFinish(s)
 
 /**
  * POR QUÉ UN SALTO DE LA HOJA NO LLEVA A NINGÚN SITIO (8-j, 9-g; revisión del 21n), o null si lleva: lo oye el
@@ -606,10 +629,18 @@ function land(s: PlayerState, a: Extract<PlayerAction, { k: 'landed' }>): Player
   return chain({ next, effects }, fetchMore)
 }
 
-/** Volver atrás (§8.5): dentro de lo servido, sin red ni cuenta nueva; lo alcanzado no baja. */
+/**
+ * Volver atrás (§8.5): dentro de lo servido, sin red ni cuenta nueva; lo alcanzado no baja. Desde W3, también
+ * desde el cierre de la meta vista (`afterFinish`), y la carrera sigue desde ahí.
+ */
 function back(s: PlayerState, toS: RaceS): PlayerStep {
   // en el digest no hay saltos: sus mandos son la pausa y `Show results` (§8.1)
-  if (s.view === 'digest' || !canJump(s) || s.phase === 'preview' || !Number.isFinite(toS))
+  if (
+    s.view === 'digest' ||
+    !(canJump(s) || afterFinish(s)) ||
+    s.phase === 'preview' ||
+    !Number.isFinite(toS)
+  )
     return none(s)
   // dentro de lo servido: lo de antes está en la línea en memoria (§8.5)
   const t = Math.max(0, Math.min(toS, s.t, s.servedS))
@@ -625,6 +656,8 @@ function back(s: PlayerState, toS: RaceS): PlayerStep {
  * la pantalla. Lo que estuviera en vuelo responde antes y no cambia nada (el último tramo ya no se espera).
  */
 function showResult(s: PlayerState): PlayerStep {
+  // quien ya vio la meta no tiene nada que revelar: en la repetición (W3), nada
+  if (s.finishSeen) return none(s)
   if (!canJump(s) && !(s.phase === 'seeking' && !s.revealed)) return none(s)
   return {
     next: {
@@ -680,6 +713,7 @@ function chainDigest(s: PlayerState, nextDay: number): PlayerStep {
     loaded: [...keep, nextDay],
     lastKm: false,
     revealed: false,
+    finishSeen: false,
   }
   const r = fetchMore(start)
   return {
@@ -829,7 +863,13 @@ export function playerStep(s: PlayerState, a: PlayerAction, ctx: PlayerContext):
 
     case 'finished':
       if (!(s.inFlight && s.atFinish)) return none(s) // solo la meta que se pidió
-      return none({ ...s, inFlight: false, phase: 'arrival', notice: null })
+      return none({
+        ...s,
+        inFlight: false,
+        phase: 'arrival',
+        notice: null,
+        finishSeen: s.finishSeen || !s.revealed,
+      })
 
     case 'cardDone':
       if (s.phase === 'preview' || s.phase === 'recap') return fetchMore(resume(s))
@@ -1306,6 +1346,31 @@ export function recapOf(prev: Instant, next: Instant, ctx: CueDeckContext): Reca
 }
 
 // --------------------------------------------------------------- los destinos de los saltos (§8.5)
+
+/** Lo que hace un toque en la barra de progreso o en el perfil (§8.5; W3): un salto o volver atrás, a ese km. */
+export interface KmSeek {
+  readonly k: 'seek' | 'back'
+  readonly km: number
+}
+
+/** Lo que se queda sin hacer un toque: el mismo km de la cabeza, a menos de una décima. */
+const SAME_KM = 0.1
+
+/**
+ * UN TOQUE EN LA BARRA O EN EL PERFIL (§8.5; W3, la revisión de `Watch` del dueño, su punto 6): el sentido
+ * lo da el km tocado frente a la cabeza. Delante, un salto a ese km, que como todos no pasa del último km
+ * (8-j), así que desde el último km, o tras la meta, por delante no queda nada; detrás, volver atrás a ese
+ * km (desde la salida); a menos de una décima de la cabeza, nada.
+ */
+export function kmSeekOf(km: number, headKm: number, lengthKm: number): KmSeek | null {
+  if (!Number.isFinite(km) || !Number.isFinite(headKm)) return null
+  if (km > headKm + SAME_KM) {
+    const target = Math.min(km, Math.max(0, lengthKm - 1))
+    return target > headKm + SAME_KM ? { k: 'seek', km: target } : null
+  }
+  if (km < headKm - SAME_KM) return { k: 'back', km: Math.max(0, km) }
+  return null
+}
 
 /** Los saltos de recorrido de los mandos (§8.5; pantalla): `−5 km`, `+5 km`, `Next climb`, `Final 20 km`, `Last km`. */
 export type RoadJump = 'back5' | 'fwd5' | 'nextClimb' | 'final20' | 'lastKm'
