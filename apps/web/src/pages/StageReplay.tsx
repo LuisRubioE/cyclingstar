@@ -7,6 +7,7 @@ import {
 import { type ReactNode, useState } from 'react'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { StageClassEntry, StageGcEntry, TeamClassEntry } from '../api/results'
+import { Altimetry } from '../components/Altimetry'
 import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { ShareStage, ShareStageIcon } from '../components/ShareStage'
 import { DiagnosticStrip, StageGateCard, TwoDeviceNotice } from '../components/StageGate'
@@ -501,16 +502,12 @@ function StagePage({ raceId, day }: { raceId: string; day: number }) {
               <div className={card}>
                 <h2 className={head}>Profile</h2>
                 {/* sin ver la etapa, la de la ficha: sin las marcas de lo que pasó (sup. E7) */}
-                {(full ?? data).altimetry ? (
-                  <div
-                    className="mt-2 w-full overflow-x-auto"
-                    role="img"
-                    aria-label={`Elevation profile of stage ${data.day}, ${data.km} km`}
-                    dangerouslySetInnerHTML={{ __html: (full ?? data).altimetry }}
-                  />
-                ) : (
-                  <EmptyState text="No profile available for this stage." />
-                )}
+                <Altimetry
+                  className="mt-2"
+                  svg={(full ?? data).altimetry}
+                  label={`Elevation profile of stage ${data.day}, ${data.km} km`}
+                  fallback={<EmptyState text="No profile available for this stage." />}
+                />
                 {!data.run && (
                   <p className="mt-3 text-meta text-ink-2">
                     This stage hasn&apos;t been raced yet.

@@ -1,3 +1,4 @@
+import { renderAltimetrySvg, TEST_TOUR } from '@cyclingstar/engine'
 import type { RaceOrders as Hoja, RaceStage, StageOrder, UpcomingRace } from '@cyclingstar/shared'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -412,6 +413,21 @@ describe('la pantalla de órdenes (§17.21; PR 21i)', () => {
     const llegando = pinta({ sinVer: [1], hoja: false })
     expect(respuestas(llegando)).toBe(1)
     expect(llegando).not.toContain('data-ui="QueryView"')
+  })
+
+  it('la altimetría de la etapa, con el sistema (paso 24a): una imagen con su nombre, sus etiquetas a 12 px', () => {
+    const altimetry = renderAltimetrySvg(TEST_TOUR.find((s) => s.kind === 'reina')!.profile)
+    const html = pinta({
+      hoja: { ...UN_DIA, stages: [etapa(1, { altimetry })] },
+      race: 'race-var:s0',
+    })
+    const figura = /<figure[^>]*>[\s\S]*?<\/figure>/.exec(html)?.[0] ?? ''
+    expect(figura).toMatch(
+      /^<figure class="pt-6 pb-4" role="img" aria-label="Elevation profile of Stage 1, 180 km">/,
+    )
+    expect(figura).toMatch(/<text[^>]*data-label="climb"[^>]*class="[^"]*text-caption/)
+    expect(html).not.toContain('Altimetría')
+    expect(html).not.toContain('bg-surface-2 p-1')
   })
 
   it('sin carreras: su PageHeader y el vacío, que contesta', () => {

@@ -23,6 +23,7 @@ import {
 } from '../api/race'
 import { putFollow } from '../api/watch'
 import { authClient } from '../auth/client'
+import { Altimetry } from '../components/Altimetry'
 import { RiderName } from '../components/RiderName'
 import { GcRankTable, PointsRankTable } from '../components/RaceRankTables'
 import { DiagnosticStrip } from '../components/StageGate'
@@ -222,12 +223,10 @@ function RouteTab({ data }: { data: RaceView }) {
                 <StageLine stage={stage} oneDay={oneDay} />
               </div>
               <StageRouteNote stage={stage} />
-              {/* Altimetría del recorrido que el mundo corre (relieve + puertos). SVG del backend. */}
-              <div
-                className="w-full overflow-x-auto rounded-ui bg-surface-2 p-1"
-                role="img"
-                aria-label={`Elevation profile of ${stage.name}, ${stage.km} km`}
-                dangerouslySetInnerHTML={{ __html: stage.altimetry }}
+              {/* La altimetría del recorrido que el mundo corre (relieve y puertos), con el sistema (paso 24a). */}
+              <Altimetry
+                svg={stage.altimetry}
+                label={`Elevation profile of ${stage.name}, ${stage.km} km`}
               />
             </li>
             {data.restAfter.includes(stage.index) && <RestDay />}
