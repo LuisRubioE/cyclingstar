@@ -399,6 +399,12 @@ jobs:
         run: |
           pnpm --filter @cyclingstar/web exec playwright test --project=sinred --reporter=list \
             --output "$RUNNER_TEMP/resultados-sinred"
+      # W3: la barra de progreso en km y el perfil que se tocan, y volver a ver tras la meta
+      - name: Moverse por la etapa
+        if: ${{ !cancelled() && steps.mundo.outcome == 'success' }}
+        run: |
+          pnpm --filter @cyclingstar/web exec playwright test --project=moverse --reporter=list \
+            --output "$RUNNER_TEMP/resultados-moverse"
       - name: Lo medido, de la base y del PR
         if: always() && steps.toca.outputs.correr == 'si'
         uses: actions/upload-artifact@v4
@@ -408,6 +414,7 @@ jobs:
             ${{ runner.temp }}/base.json
             ${{ runner.temp }}/pr.json
             ${{ runner.temp }}/resultados-sinred/
+            ${{ runner.temp }}/resultados-moverse/
             apps/web/e2e/.resultados/
           retention-days: 14
           if-no-files-found: ignore

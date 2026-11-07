@@ -92,13 +92,16 @@ const POR_QUE_SALTO: Readonly<Record<JumpWhy, string>> = {
  *
  * Desde W3 (su punto 6), bajo la fila, la barra de progreso en km (`KmBar`, §8.5), que se esconde con los
  * mandos (8-p); nunca en el digest, cuyos mandos son la pausa y `Show results`, ni en la crono, cuya barra
- * tiene dos tramos (§9.4) y todavía no está.
+ * tiene dos tramos (§9.4) y todavía no está. En el cierre de la meta vista, la fila deja su sitio a
+ * `Watch again from any km` y la barra sigue en el suyo: es el mismo elemento, así que quien vuelve atrás
+ * con el teclado no pierde el foco.
  */
 export function PlayerControls({
   state,
   jumps,
   canShowResult,
   bar = null,
+  closingCaptionId,
   onPlay,
   onPause,
   onSpeed,
@@ -115,6 +118,8 @@ export function PlayerControls({
   canShowResult: boolean
   /** la barra de progreso en km, bajo la fila (W3); null en la crono */
   bar?: ReactNode
+  /** el id de la leyenda del cierre, que la barra nombra en su `aria-describedby` */
+  closingCaptionId?: string
   onPlay: () => void
   onPause: () => void
   onSpeed: (x: Speed) => void
@@ -139,78 +144,84 @@ export function PlayerControls({
         hidden ? 'opacity-0 focus-within:opacity-100' : 'opacity-100'
       }`}
     >
-      <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
-        <Button
-          variant="secondary"
-          icon={running ? 'pause' : 'play'}
-          ariaLabel={running ? 'Pause' : 'Play'}
-          onClick={running ? onPause : onPlay}
-        />
-        {digest ? (
-          canShowResult && (
-            <Button variant="quiet" onClick={onShowResult}>
-              Show results
-            </Button>
-          )
-        ) : (
-          <>
-            <span className="sm:hidden">
-              <Button
-                variant="quiet"
-                ariaLabel={`Speed ${speedLabel(state.speed)}, change to ${speedLabel(next)}`}
-                onClick={() => onSpeed(next)}
-              >
-                {speedLabel(state.speed)}
+      {state.phase === 'closing' ? (
+        <p id={closingCaptionId} className="px-1 text-caption text-ink-2">
+          Watch again from any km
+        </p>
+      ) : (
+        <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
+          <Button
+            variant="secondary"
+            icon={running ? 'pause' : 'play'}
+            ariaLabel={running ? 'Pause' : 'Play'}
+            onClick={running ? onPause : onPlay}
+          />
+          {digest ? (
+            canShowResult && (
+              <Button variant="quiet" onClick={onShowResult}>
+                Show results
               </Button>
-            </span>
-            <span
-              className="hidden items-center gap-0.5 sm:inline-flex"
-              role="group"
-              aria-label="Speed"
-            >
-              {speeds.map((x) => (
-                <Button
-                  key={x}
-                  variant="control"
-                  pressed={x === state.speed}
-                  onClick={() => onSpeed(x)}
-                >
-                  {speedLabel(x)}
-                </Button>
-              ))}
-            </span>
-            <Button
-              variant="control"
-              pressed={state.nextAction}
-              {...(state.lastKm && !state.nextAction
-                ? { disabledReason: EN_EL_ULTIMO_KM, reasonHidden: true }
-                : {})}
-              onClick={onNextAction}
-            >
-              Next action
-            </Button>
-            <Button
-              variant="control"
-              icon="more"
-              ariaLabel="More"
-              expanded={sheetOpen}
-              controls="player-sheet"
-              onClick={() => setSheetOpen((o) => !o)}
-            />
-          </>
-        )}
-        <span className="ml-auto text-caption text-ink-2" role="status">
-          {state.notice === 'loading' && 'Loading'}
-          {state.notice === 'offline' && (
+            )
+          ) : (
             <>
-              Connection lost ·{' '}
-              <Button variant="quiet" size="sm" onClick={onRetry}>
-                Retry
+              <span className="sm:hidden">
+                <Button
+                  variant="quiet"
+                  ariaLabel={`Speed ${speedLabel(state.speed)}, change to ${speedLabel(next)}`}
+                  onClick={() => onSpeed(next)}
+                >
+                  {speedLabel(state.speed)}
+                </Button>
+              </span>
+              <span
+                className="hidden items-center gap-0.5 sm:inline-flex"
+                role="group"
+                aria-label="Speed"
+              >
+                {speeds.map((x) => (
+                  <Button
+                    key={x}
+                    variant="control"
+                    pressed={x === state.speed}
+                    onClick={() => onSpeed(x)}
+                  >
+                    {speedLabel(x)}
+                  </Button>
+                ))}
+              </span>
+              <Button
+                variant="control"
+                pressed={state.nextAction}
+                {...(state.lastKm && !state.nextAction
+                  ? { disabledReason: EN_EL_ULTIMO_KM, reasonHidden: true }
+                  : {})}
+                onClick={onNextAction}
+              >
+                Next action
               </Button>
+              <Button
+                variant="control"
+                icon="more"
+                ariaLabel="More"
+                expanded={sheetOpen}
+                controls="player-sheet"
+                onClick={() => setSheetOpen((o) => !o)}
+              />
             </>
           )}
-        </span>
-      </div>
+          <span className="ml-auto text-caption text-ink-2" role="status">
+            {state.notice === 'loading' && 'Loading'}
+            {state.notice === 'offline' && (
+              <>
+                Connection lost ·{' '}
+                <Button variant="quiet" size="sm" onClick={onRetry}>
+                  Retry
+                </Button>
+              </>
+            )}
+          </span>
+        </div>
+      )}
       {!digest && bar}
       {!digest && sheetOpen && (
         <PlayerSheet

@@ -1,5 +1,5 @@
 import { BROADCAST } from '@cyclingstar/shared'
-import type { KeyboardEvent, MouseEvent } from 'react'
+import { type KeyboardEvent, type MouseEvent, useRef } from 'react'
 
 /**
  * LA BARRA DE PROGRESO EN KM (docs/retransmision.md §8.5, D-20; W3, la revisión de `Watch` del dueño, su
@@ -8,7 +8,12 @@ import type { KeyboardEvent, MouseEvent } from 'react'
  * `ProfileStrip`), la cabeza pintada y, más claro, lo alcanzado; nunca un suceso ni la duración, que dirían
  * dónde pasa algo o cuánto queda (D-17). Tocarla en un km lleva a él: delante, como un salto; detrás, como
  * `−5 km` a ese km (lo decide `kmSeekOf`, en el reproductor). Es un `slider` para el lector y el teclado:
- * las flechas mueven `seekStepKm`, Inicio va a la salida y Fin al último km, que ningún salto cruza (8-j).
+ * las flechas mueven `seekStepKm`, Inicio va a la salida y Fin al último km, que ningún salto cruza (8-j);
+ * desde el último km, o tras la meta, Fin se queda donde está.
+ *
+ * Con los mandos escondidos, el primer toque solo los enseña, como en el reproductor de vídeo de un
+ * teléfono (`tapSeeks`): la barra es el objetivo más ancho de esa zona y no salta sin verse. Tras un toque
+ * no se queda con el foco, para que los mandos se vuelvan a esconder (8-p habla del foco del teclado).
  *
  * Sin `style` (ui/9): un SVG sin `viewBox`, con los km en porcentaje en sus atributos, como las cotas del
  * perfil. Mide 44 px de alto para el dedo; la barra que se ve, 6.
@@ -20,7 +25,10 @@ export function kmAtRatio(ratio: number, lengthKm: number): number | null {
   return Math.min(Math.max(ratio, 0), 1) * lengthKm
 }
 
-/** El km de una tecla del slider (§8.5, 8-p): las flechas, `seekStepKm`; Inicio, 0; Fin, el último km. */
+/**
+ * El km de una tecla del slider (§8.5, 8-p): las flechas, `seekStepKm`; Inicio, 0; Fin, el último km, o
+ * donde está la cabeza si ya lo ha pasado: Fin nunca vuelve atrás.
+ */
 export function kmForKey(key: string, headKm: number, lengthKm: number): number | null {
   switch (key) {
     case 'ArrowRight':
@@ -32,10 +40,19 @@ export function kmForKey(key: string, headKm: number, lengthKm: number): number 
     case 'Home':
       return 0
     case 'End':
-      return Math.max(0, lengthKm - 1)
+      return Math.max(headKm, lengthKm - 1, 0)
     default:
       return null
   }
+}
+
+/**
+ * ¿Salta un toque? Con la barra encendida, con los mandos a la vista cuando el dedo bajó (si no, el toque
+ * solo los enseña) y con un puntero de verdad: un clic sin él (`detail` 0, el de un lector de pantalla o
+ * uno programado) caería en el centro de la barra, y el lector la mueve con sus propias acciones.
+ */
+export function tapSeeks(enabled: boolean, armedAtDown: boolean, detail: number): boolean {
+  return enabled && armedAtDown && detail > 0
 }
 
 export interface KmBarClimb {
@@ -50,6 +67,8 @@ export function KmBar({
   climbs,
   sprintsKm,
   enabled,
+  armed = true,
+  describedBy,
   onSeekKm,
 }: {
   lengthKm: number
@@ -63,6 +82,10 @@ export function KmBar({
   sprintsKm: readonly number[]
   /** se puede tocar (`kmSeekable`); apagada, se oye y no hace nada */
   enabled: boolean
+  /** los mandos a la vista: con ellos escondidos, el primer toque solo los enseña */
+  armed?: boolean
+  /** la leyenda que la explica, en el cierre */
+  describedBy?: string
   /** el km tocado o tecleado: el reproductor decide si es un salto, volver atrás o nada */
   onSeekKm: (km: number) => void
 }) {
@@ -71,11 +94,16 @@ export function KmBar({
   const pct = (km: number): string => `${(clamp(km) / length) * 100}%`
   const head = clamp(headKm)
   const reached = Math.max(head, clamp(reachedKm))
+  // cómo estaban los mandos cuando bajó el dedo: el toque que los enseña llega a la página antes del clic
+  const armedAtDown = useRef(true)
   const onClick = (e: MouseEvent<HTMLDivElement>): void => {
-    if (!enabled) return
+    const seeks = tapSeeks(enabled, armedAtDown.current, e.detail)
+    armedAtDown.current = true
+    if (!seeks) return
     const r = e.currentTarget.getBoundingClientRect()
     const km = kmAtRatio(r.width > 0 ? (e.clientX - r.left) / r.width : Number.NaN, length)
     if (km !== null) onSeekKm(km)
+    e.currentTarget.blur()
   }
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     if (e.altKey || e.ctrlKey || e.metaKey) return
@@ -96,10 +124,14 @@ export function KmBar({
       aria-valuenow={Math.round(head)}
       aria-valuetext={`${Math.round(head)} of ${Math.round(length)} km`}
       aria-disabled={enabled ? undefined : true}
+      aria-describedby={describedBy}
       data-bar="km"
       className={`relative block h-11 w-full rounded-ui focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
         enabled ? 'cursor-pointer' : 'cursor-default'
       }`}
+      onPointerDown={() => {
+        armedAtDown.current = armed
+      }}
       onClick={onClick}
       onKeyDown={onKeyDown}
     >

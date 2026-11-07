@@ -25,7 +25,7 @@ import {
   ttPaceAt,
 } from '@cyclingstar/shared'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   broadcastChunkKey,
   fetchBroadcastChunk,
@@ -249,9 +249,15 @@ export function StageWatch({
   const tt = head.stage.timeTrial ? head.tt : null
   const { phase } = w.controls
   // Show result: con sesión, fuera del modo diagnóstico, con la etapa sin conocer y antes de la meta
-  // (§8.5); la conocida tiene su acta en `Report`
+  // (§8.5); la conocida tiene su acta en `Report`. La cabecera no cambia al llegar a la meta, así que en
+  // la repetición (W3) lo dice la meta recibida
   const canShowResult =
-    reveal !== null && !diag && head.view !== null && !head.view.known && !w.controls.revealed
+    reveal !== null &&
+    !diag &&
+    head.view !== null &&
+    !head.view.known &&
+    !w.controls.revealed &&
+    w.finish === null
   const revealDay = digest?.last ?? day
   function askShowResult(): void {
     if (!canShowResult || reveal === null) return
@@ -260,6 +266,7 @@ export function StageWatch({
   }
   // E3, PR 20 (§14): las tarjetas con los tokens; lo de la tele va en el ámbito oscuro en cada pieza
   const card = 'rounded-ui border border-line bg-surface p-3 shadow-card'
+  const closingCaptionId = useId()
   // LA BARRA DE PROGRESO EN KM (§8.5; W3): en carretera, bajo la fila de los mandos y, tras la meta vista,
   // sola, para volver a ver; en la crono, todavía no (su barra tiene dos tramos, §9.4)
   const kmBar =
@@ -271,9 +278,14 @@ export function StageWatch({
         climbs={head.profile.climbs}
         sprintsKm={head.profile.sprintsKm}
         enabled={w.controls.seekable}
+        armed={!w.controls.hidden}
+        {...(phase === 'closing' ? { describedBy: closingCaptionId } : {})}
         onSeekKm={w.seekToKm}
       />
     ) : null
+  // en el cierre, los mismos mandos con la barra en su sitio: solo si se puede volver a ver
+  const showControls =
+    phase !== 'arrival' && (phase !== 'closing' || (kmBar !== null && w.controls.seekable))
   return (
     <div className="space-y-3">
       <ClockNotice clock={head.clock} />
@@ -297,7 +309,7 @@ export function StageWatch({
               clock={head.clock}
               reducedMotion={reducedMotion}
               cursors={w.cursors}
-              {...(tt === null ? { onSeekKm: w.seekToKm } : {})}
+              {...(tt === null && w.controls.seekable ? { onSeekKm: w.seekToKm } : {})}
             />
           </div>
           {phase === 'preview' && (
@@ -371,18 +383,13 @@ export function StageWatch({
           </div>
         </div>
       </div>
-      {phase === 'closing' && kmBar !== null && w.controls.seekable && (
-        <div data-surface="dark" className="rounded-ui bg-surface px-2 py-1.5 text-ink">
-          <p className="px-1 text-caption text-ink-2">Watch again from any km</p>
-          {kmBar}
-        </div>
-      )}
-      {phase !== 'arrival' && phase !== 'closing' && (
+      {showControls && (
         <PlayerControls
           state={w.controls}
           jumps={w.jumps}
           canShowResult={canShowResult}
           bar={kmBar}
+          closingCaptionId={closingCaptionId}
           onPlay={() => w.dispatch({ k: 'play' })}
           onPause={() => w.dispatch({ k: 'pause' })}
           onSpeed={(x) => w.dispatch({ k: 'speed', x })}
@@ -697,6 +704,7 @@ function useWatchPlayer(
     let seekingShown: string | null = null
     // lo alcanzado en km de la cabeza (W3): la hora de lo alcanzado y su km, y lo que enseña la barra
     let reachedFor = Number.NaN
+    let reachedLine: TimelineCore | null = null
     let reachedKmNow = 0
     let reachedKmShown = -1
 
@@ -755,7 +763,9 @@ function useWatchPlayer(
 
     /** Un salto de la hoja o del teclado (§8.5, 9-g): hacia atrás, sin red; hacia delante, el reductor. */
     function jump(id: JumpOption['id']): void {
-      if (chained || !jumpable(s)) return
+      // tras la meta vista (W3), `←` vuelve atrás como la barra; en la crono, todavía no
+      const backFromClosing = id === 'back5' && !timeTrial && kmSeekable(s)
+      if (chained || !(jumpable(s) || backFromClosing)) return
       if (timeTrial) {
         const toS = ttSeekTargetS(id as ClockJump, s.t, plan)
         if (toS === null) return
@@ -942,6 +952,7 @@ function useWatchPlayer(
             oneDay,
           })
           arrivalShown = -1
+          setArrival(null)
           setFinish(f)
         },
         dispatch,
@@ -1028,10 +1039,12 @@ function useWatchPlayer(
         }
         // lo alcanzado en km de la cabeza, para la barra (W3): casi siempre, el de la hora pintada; tras
         // volver atrás, por delante, y se busca una vez por cada lo alcanzado nuevo
+        // (al reanudar, los tramos llegan después: con la línea servida nueva, se busca otra vez)
         if (s.reachedS <= s.t) reachedKmNow = instant.headKm
-        else if (s.reachedS !== reachedFor) {
+        else if (s.reachedS !== reachedFor || served.core !== reachedLine) {
           reachedFor = s.reachedS
-          reachedKmNow = instantAt(served.core, s.reachedS, ctx).headKm
+          reachedLine = served.core
+          reachedKmNow = instantAt(served.core, Math.min(s.reachedS, s.servedS), ctx).headKm
         }
         const rk = Math.round(reachedKmNow * 10) / 10
         if (rk !== reachedKmShown) {

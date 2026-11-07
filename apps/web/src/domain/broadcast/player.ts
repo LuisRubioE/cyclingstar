@@ -1347,7 +1347,6 @@ export function recapOf(prev: Instant, next: Instant, ctx: CueDeckContext): Reca
 
 // --------------------------------------------------------------- los destinos de los saltos (§8.5)
 
-/** Los saltos de recorrido de los mandos (§8.5; pantalla): `−5 km`, `+5 km`, `Next climb`, `Final 20 km`, `Last km`. */
 /** Lo que hace un toque en la barra de progreso o en el perfil (§8.5; W3): un salto o volver atrás, a ese km. */
 export interface KmSeek {
   readonly k: 'seek' | 'back'
@@ -1373,6 +1372,7 @@ export function kmSeekOf(km: number, headKm: number, lengthKm: number): KmSeek |
   return null
 }
 
+/** Los saltos de recorrido de los mandos (§8.5; pantalla): `−5 km`, `+5 km`, `Next climb`, `Final 20 km`, `Last km`. */
 export type RoadJump = 'back5' | 'fwd5' | 'nextClimb' | 'final20' | 'lastKm'
 
 /**

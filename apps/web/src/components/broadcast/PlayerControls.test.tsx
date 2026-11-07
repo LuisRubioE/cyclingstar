@@ -110,6 +110,7 @@ function controls(
       jumps={ROAD}
       canShowResult={canShowResult}
       bar={bar}
+      closingCaptionId="w3-cierre"
       onPlay={noop}
       onPause={noop}
       onSpeed={noop}
@@ -246,6 +247,15 @@ describe('la barra de progreso en km, bajo la fila (W3; §8.5, 8-p)', () => {
 
   it('en el digest, nunca: sus mandos son la pausa y Show results (§8.1)', () => {
     expect(controls({ view: 'digest' }, true, bar)).not.toContain('data-bar')
+  })
+
+  it('en el cierre, la leyenda y la barra, sin la fila: volver a ver es lo único que queda', () => {
+    const s = controls({ phase: 'closing' }, true, bar)
+    expect(s).toMatch(/<p id="w3-cierre"[^>]*>Watch again from any km<\/p>/)
+    expect(s.indexOf('id="w3-cierre"')).toBeLessThan(s.indexOf('data-bar="km"'))
+    expect(buttonsOf(s)).toEqual([])
+    // y fuera del cierre, ni la leyenda
+    expect(controls({}, true, bar)).not.toContain('Watch again')
   })
 
   it('sin barra (la crono), la fila de siempre', () => {
