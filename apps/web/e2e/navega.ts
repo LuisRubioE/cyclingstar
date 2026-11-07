@@ -134,6 +134,12 @@ export async function abrePantalla(
   telefono: Telefono,
   world: MundoDePrueba,
   sesiones: Sesiones,
+  /**
+   * En el modo oscuro (§3.3, D-00i; paso 23): `cs-theme` en `dark` antes de cargar, como lo dejaría
+   * `Appearance`, y la cuenta diciendo lo mismo, porque con sesión manda la cuenta y las del mundo de la
+   * prueba están en `light`. `/_ui` no lo necesita: va con `?theme=dark` (5-h).
+   */
+  opciones: { readonly oscuro?: boolean } = {},
 ): Promise<{ context: BrowserContext; page: Page }> {
   const sesion = sesiones[p.account]
   const context = await browser.newContext({
@@ -157,6 +163,21 @@ export async function abrePantalla(
               contentType: 'application/json',
               body: '{"ok":false,"error":"interno"}',
             }),
+      )
+    }
+    if (opciones.oscuro === true) {
+      await context.addInitScript(() => {
+        try {
+          localStorage.setItem('cs-theme', 'dark')
+        } catch {
+          // sin almacenamiento, la cuenta lo dice igual
+        }
+      })
+      // detrás de `intercept`, para ganarle si la pantalla tumba toda la API
+      await page.route('**/api/me/theme', (route) =>
+        route.request().method() === 'GET'
+          ? route.fulfill({ json: { theme: 'dark' } })
+          : route.fallback(),
       )
     }
     await page.goto(rutaDe(p, world), { waitUntil: 'domcontentloaded' })

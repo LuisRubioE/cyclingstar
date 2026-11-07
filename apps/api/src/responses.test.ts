@@ -91,6 +91,7 @@ const ESCRITURAS: Readonly<Record<string, Escritura>> = {
     url: '/api/my-orders',
     body: { raceKey: RACE_KEY, orders: [] },
   },
+  'PUT /api/me/theme': { who: 'player', url: '/api/me/theme', body: { theme: 'dark' } },
   'POST /api/riders/me/offers/:id/accept': {
     who: 'player',
     url: `/api/riders/me/offers/${OFERTA}/accept`,

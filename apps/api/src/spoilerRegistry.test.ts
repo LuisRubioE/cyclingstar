@@ -30,7 +30,7 @@ import {
  * petición.
  *
  * La tabla va en el orden de §11.3, por fichero, con la línea del registro de hoy (`app.get(` y, si
- * va en otra, la de la URL). Son 93 entradas: 92 rutas de nuestro código (con el salto del 10b), con el
+ * va en otra, la de la URL). Son 95 entradas: 94 rutas de nuestro código (con el salto del 10b), con el
  * comodín `GET, POST` de `/api/auth/*` contado una vez por método, porque el registro va por método. Las `HEAD` que Fastify
  * crea solas por cada `GET` (`exposeHeadRoutes`) no van en la tabla: heredan el `config` de su `GET`, y
  * el tercer caso lo comprueba sin fijar cuántas son (53 hoy).
@@ -111,6 +111,9 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'POST /api/me/reveal/:raceKey/:day': ['watch', { by: ['G'] }], // l. 148-149
   'PUT /api/me/follow/:raceKey': ['safe', N], // l. 173-174
   'PUT /api/me/spoiler-scope': ['safe', N], // l. 195
+  // el modo del jugador (E3, docs/visual.md §3.3; paso 23): no nace de ninguna etapa
+  'GET /api/me/theme': ['safe', N],
+  'PUT /api/me/theme': ['safe', N],
   'GET /api/me/horizon': ['horizon', N], // l. 207-208
   // routes/rankings.ts
   'GET /api/rankings': ['horizon', { by: ['R'] }], // l. 32-33

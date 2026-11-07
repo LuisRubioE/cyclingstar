@@ -28,6 +28,8 @@ const tokens = JSON.parse(
 const claro = tokens.light.color
 /** En el ámbito, lo que no redefine es lo del claro: `navy`, `navy-dark`, `bad`, `gold`… (§3.3). */
 const ambito: Readonly<Record<string, string>> = { ...claro, ...tokens.darkScope.color }
+/** En el modo oscuro, lo que no redefine es lo del claro: `white`, `navy`, `navy-dark`, `gold`… (§3.3). */
+const oscuro: Readonly<Record<string, string>> = { ...claro, ...(tokens.dark?.color ?? {}) }
 
 const TEXTO = 4.5
 const GRAFICO = 3
@@ -110,6 +112,52 @@ const AMBITO: readonly Pareja[] = [
   ...sobre('logo-star', ['navy'], GRAFICO),
 ]
 
+/**
+ * §3.3, el modo oscuro (paso 23): las 57 parejas de `docs/diseno/e3-visual/medidas/oscuro.txt`, con los
+ * umbrales de §3.1 y SIN la exención del deshabilitado: `disabled-ink` sobre `disabled-bg`, a 4,5.
+ */
+const OSCURO: readonly Pareja[] = [
+  ...sobre(
+    'ink',
+    ['canvas', 'surface', 'surface-2', 'good-bg', 'warn-bg', 'bad-bg', 'info-bg', 'own-tint'],
+    TEXTO,
+  ),
+  ...sobre(
+    'ink-2',
+    ['canvas', 'surface', 'surface-2', 'good-bg', 'warn-bg', 'bad-bg', 'info-bg', 'own-tint'],
+    TEXTO,
+  ),
+  ...sobre('ink-3', ['surface', 'canvas', 'info-bg', 'own-tint'], TEXTO),
+  ...sobre('accent', ['surface', 'canvas', 'surface-2', 'info-bg'], TEXTO),
+  ...sobre('on-accent', ['accent', 'accent-strong'], TEXTO),
+  ...sobre('gold-ink', ['surface', 'surface-2'], TEXTO),
+  ...sobre('good', ['surface', 'good-bg'], TEXTO),
+  ...sobre('warn', ['surface', 'warn-bg'], TEXTO),
+  ...sobre('bad', ['surface', 'bad-bg'], TEXTO),
+  ['on-bad', 'bad', TEXTO],
+  ['disabled-ink', 'disabled-bg', TEXTO],
+  ...TRAMOS.map((t): Pareja => ['on-arrival', t, TEXTO]),
+  // los bordes, los controles, los tramos y los gráficos
+  ...sobre('line-strong', ['surface', 'canvas', 'surface-2'], GRAFICO),
+  ...sobre('focus', ['canvas', 'surface', 'surface-2'], GRAFICO),
+  ['accent', 'line', GRAFICO],
+  ['gold', 'surface', GRAFICO],
+  ...sobre('own', ['own-tint', 'surface'], GRAFICO),
+  ['good', 'good-bg', GRAFICO],
+  ...TRAMOS.map((t): Pareja => [t, 'surface', GRAFICO]),
+]
+
+/**
+ * Lo que el modo también redefine y la tabla de §3.3 mide aparte: el filete del maillot, claro sobre los
+ * fondos del modo (§9.10), y el logotipo, el de la cabecera también en la portada (PR 21n).
+ */
+const OSCURO_APARTE: readonly Pareja[] = [
+  ...sobre('kit-edge', ['canvas', 'surface', 'surface-2', 'own-tint'], GRAFICO),
+  ...sobre('kit-edge-strong', ['canvas', 'surface', 'surface-2', 'own-tint'], GRAFICO),
+  ...sobre('logo', ['canvas', 'surface'], GRAFICO),
+  ...sobre('logo-star', ['canvas', 'surface'], GRAFICO),
+]
+
 /** Las que bajan de su umbral, con su razón. */
 function bajan(tema: Readonly<Record<string, string>>, parejas: readonly Pareja[]): string[] {
   const fuera: string[] = []
@@ -152,9 +200,47 @@ describe('el ámbito oscuro (§3.3)', () => {
     expect(wcagContrast(ambito.accent!, ambito['surface-2']!)).toBeCloseTo(5.29, 2)
   })
 
-  it('el modo oscuro no declara nada que el ámbito no declare (3-j; el modo llega en el paso 23)', () => {
-    const oscuro = Object.keys(tokens.dark?.color ?? {})
-    expect(oscuro.filter((t) => !(t in tokens.darkScope.color))).toEqual([])
+  it('el modo oscuro no declara nada que el ámbito no declare (3-j)', () => {
+    const delModo = Object.keys(tokens.dark?.color ?? {})
+    expect(delModo.length).toBeGreaterThan(0)
+    expect(delModo.filter((t) => !(t in tokens.darkScope.color))).toEqual([])
+  })
+
+  it('dentro del ámbito, lo que el modo redefine vale lo del ámbito oscuro o lo del claro, nunca otra cosa (3-j)', () => {
+    const raros = Object.entries(tokens.dark?.color ?? {}).filter(
+      ([t, v]) => tokens.darkScope.color[t] !== v && tokens.darkScope.color[t] !== claro[t],
+    )
+    expect(raros).toEqual([])
+    // canvas, por ejemplo, vuelve al claro: el ámbito no lo pinta como el modo
+    expect(tokens.darkScope.color.canvas).toBe(claro.canvas)
+  })
+})
+
+describe('el modo oscuro (§3.3; paso 23)', () => {
+  it('tokens.json lo lleva: index.css tiene su bloque', () => {
+    expect(tokens.dark).toBeDefined()
+  })
+
+  it('las 57 parejas de oscuro.txt: ninguna baja de su umbral, y el deshabilitado sin su exención', () => {
+    expect(OSCURO).toHaveLength(57)
+    expect(OSCURO).toContainEqual(['disabled-ink', 'disabled-bg', TEXTO])
+    expect(bajan(oscuro, OSCURO)).toEqual([])
+  })
+
+  it('el filete del maillot y el logotipo, sobre los fondos del modo', () => {
+    expect(bajan(oscuro, OSCURO_APARTE)).toEqual([])
+  })
+
+  it('las cifras de §3.3 salen: ink sobre canvas 17,58; el deshabilitado 4,61; on-accent sobre accent-strong 9,21', () => {
+    expect(wcagContrast(oscuro.ink!, oscuro.canvas!)).toBeCloseTo(17.58, 2)
+    expect(wcagContrast(oscuro['disabled-ink']!, oscuro['disabled-bg']!)).toBeCloseTo(4.61, 2)
+    expect(wcagContrast(oscuro['on-accent']!, oscuro['accent-strong']!)).toBeCloseTo(9.21, 2)
+  })
+
+  it('no cambian white, navy, navy-dark, on-navy-2, cyan ni gold: la cabecera, la barra y las marcas, iguales', () => {
+    const delModo = tokens.dark?.color ?? {}
+    for (const t of ['white', 'navy', 'navy-dark', 'on-navy-2', 'cyan', 'gold'])
+      expect(delModo[t], t).toBeUndefined()
   })
 })
 
@@ -181,22 +267,35 @@ describe('el logotipo (§18.3; PR 21n)', () => {
   })
 })
 
+/** El ΔE00 entre los cuatro tonos de un tema, en las cuatro visiones y en grises, a una décima. */
+function tonosDE(tema: Readonly<Record<string, string>>): Record<string, Record<string, number>> {
+  const tono: Readonly<Record<string, string>> = {
+    good: tema.good!,
+    warn: tema.warn!,
+    bad: tema.bad!,
+    info: tema.accent!,
+  }
+  const vistas: readonly View[] = [...VISIONS, 'gray']
+  const filas: Record<string, Record<string, number>> = {}
+  const nombres = Object.keys(tono)
+  for (const [i, a] of nombres.entries())
+    for (const b of nombres.slice(i + 1))
+      filas[`${a}/${b}`] = Object.fromEntries(
+        vistas.map((v) => [v, Number(distance(tono[a]!, tono[b]!, v).toFixed(1))]),
+      )
+  return filas
+}
+
 describe('el ΔE00 de los tonos, informado (§3.2): lo que distingue es el icono y la palabra', () => {
+  it('en el oscuro, también (§3.3): good y bad a 3,6 en deuteranopía, bad e info a 0,2 en grises', () => {
+    const filas = tonosDE(oscuro)
+    console.table(filas)
+    expect(filas['good/bad']?.deutan).toBe(3.6)
+    expect(filas['bad/info']?.gray).toBe(0.2)
+  })
+
   it('se calcula en las cuatro visiones y en grises', () => {
-    const tono: Readonly<Record<string, string>> = {
-      good: claro.good!,
-      warn: claro.warn!,
-      bad: claro.bad!,
-      info: claro.accent!,
-    }
-    const vistas: readonly View[] = [...VISIONS, 'gray']
-    const filas: Record<string, Record<string, number>> = {}
-    const nombres = Object.keys(tono)
-    for (const [i, a] of nombres.entries())
-      for (const b of nombres.slice(i + 1))
-        filas[`${a}/${b}`] = Object.fromEntries(
-          vistas.map((v) => [v, Number(distance(tono[a]!, tono[b]!, v).toFixed(1))]),
-        )
+    const filas = tonosDE(claro)
     console.table(filas)
     // la cifra de §3.2 para good/warn, la primera de la tabla
     expect(filas['good/warn']).toEqual({
@@ -233,6 +332,13 @@ describe('cada color del tema tiene su pareja (§5.5; paso 22)', () => {
       (t) => !con.has(t) && !(t in PAREJA_APARTE) && !(t in SIN_PAREJA),
     )
     expect(sueltos).toEqual([])
+  })
+
+  it('en el modo oscuro, todo lo que redefine (paso 23)', () => {
+    const con = nombrados([...OSCURO, ...OSCURO_APARTE])
+    const delModo = Object.keys(tokens.dark?.color ?? {})
+    expect(delModo.length).toBeGreaterThan(0)
+    expect(delModo.filter((t) => !con.has(t))).toEqual([])
   })
 
   it('en el ámbito oscuro, todo lo que redefine', () => {
