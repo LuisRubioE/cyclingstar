@@ -25,7 +25,7 @@ import {
   ttPaceAt,
 } from '@cyclingstar/shared'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   broadcastChunkKey,
   fetchBroadcastChunk,
@@ -43,6 +43,7 @@ import { ClockNotice } from '../components/broadcast/ClockNotice'
 import { CueCard, type ShownCueCard } from '../components/broadcast/CueCard'
 import { FixedOverlay } from '../components/broadcast/FixedOverlay'
 import { GroupBar } from '../components/broadcast/GroupBar'
+import { KmBar } from '../components/broadcast/KmBar'
 import {
   CLOCK_JUMP_LABEL,
   type ControlsState,
@@ -88,6 +89,8 @@ import {
   headAtLine,
   jumpWhy,
   jumpable,
+  kmSeekOf,
+  kmSeekable,
   playerInit,
   playerStep,
   recapOf,
@@ -257,6 +260,20 @@ export function StageWatch({
   }
   // E3, PR 20 (§14): las tarjetas con los tokens; lo de la tele va en el ámbito oscuro en cada pieza
   const card = 'rounded-ui border border-line bg-surface p-3 shadow-card'
+  // LA BARRA DE PROGRESO EN KM (§8.5; W3): en carretera, bajo la fila de los mandos y, tras la meta vista,
+  // sola, para volver a ver; en la crono, todavía no (su barra tiene dos tramos, §9.4)
+  const kmBar =
+    tt === null ? (
+      <KmBar
+        lengthKm={head.stage.lengthKm}
+        headKm={w.overlay.headKm}
+        reachedKm={w.reachedKm}
+        climbs={head.profile.climbs}
+        sprintsKm={head.profile.sprintsKm}
+        enabled={w.controls.seekable}
+        onSeekKm={w.seekToKm}
+      />
+    ) : null
   return (
     <div className="space-y-3">
       <ClockNotice clock={head.clock} />
@@ -280,6 +297,7 @@ export function StageWatch({
               clock={head.clock}
               reducedMotion={reducedMotion}
               cursors={w.cursors}
+              {...(tt === null ? { onSeekKm: w.seekToKm } : {})}
             />
           </div>
           {phase === 'preview' && (
@@ -353,11 +371,18 @@ export function StageWatch({
           </div>
         </div>
       </div>
+      {phase === 'closing' && kmBar !== null && w.controls.seekable && (
+        <div data-surface="dark" className="rounded-ui bg-surface px-2 py-1.5 text-ink">
+          <p className="px-1 text-caption text-ink-2">Watch again from any km</p>
+          {kmBar}
+        </div>
+      )}
       {phase !== 'arrival' && phase !== 'closing' && (
         <PlayerControls
           state={w.controls}
           jumps={w.jumps}
           canShowResult={canShowResult}
+          bar={kmBar}
           onPlay={() => w.dispatch({ k: 'play' })}
           onPause={() => w.dispatch({ k: 'pause' })}
           onSpeed={(x) => w.dispatch({ k: 'speed', x })}
@@ -407,6 +432,8 @@ function usePrefersReducedMotion(): boolean {
 
 /** Lo que la pantalla lee del reproductor: los mandos y si la cabeza está en la línea. */
 interface Shown extends ControlsState {
+  /** se puede tocar la barra de progreso o el perfil (`kmSeekable`; W3) */
+  readonly seekable: boolean
   /** la meta pedida o recibida: la capa fija dice `0 m` (§8.7) */
   readonly atLine: boolean
   /** `Show result` aceptado: ya no se ofrece */
@@ -449,6 +476,10 @@ interface WatchScreen {
   readonly jumps: readonly JumpOption[]
   /** un salto de la hoja o del teclado */
   readonly jump: (id: JumpOption['id']) => void
+  /** el km de la cabeza en lo alcanzado, para la barra de progreso (W3) */
+  readonly reachedKm: number
+  /** un toque en la barra de progreso o en el perfil, en un km (W3): delante, un salto; detrás, volver */
+  readonly seekToKm: (km: number) => void
 }
 
 /** Un fotograma de pared nunca avanza más que esto: tras un tirón, el reloj no salta. */
@@ -470,6 +501,7 @@ const controlsOf = (s: PlayerState): Shown => ({
     s.phase === 'closing' ||
     (s.phase === 'waiting' && s.atFinish && s.inFlight),
   revealed: s.revealed,
+  seekable: kmSeekable(s),
 })
 const sameControls = (a: Shown, b: Shown): boolean =>
   a.phase === b.phase &&
@@ -480,7 +512,8 @@ const sameControls = (a: Shown, b: Shown): boolean =>
   a.notice === b.notice &&
   a.hidden === b.hidden &&
   a.atLine === b.atLine &&
-  a.revealed === b.revealed
+  a.revealed === b.revealed &&
+  a.seekable === b.seekable
 /** los mismos saltos, encendidos igual y, apagados, por lo mismo (el porqué cambia sin que cambie `enabled`) */
 const sameJumps = (a: readonly JumpOption[], b: readonly JumpOption[]): boolean =>
   a.length === b.length &&
@@ -596,6 +629,10 @@ function useWatchPlayer(
   const [jumps, setJumps] = useState<readonly JumpOption[]>([])
   const dispatchRef = useRef<(a: PlayerAction) => void>(() => {})
   const jumpRef = useRef<(id: JumpOption['id']) => void>(() => {})
+  const [reachedKm, setReachedKm] = useState(0)
+  const seekKmRef = useRef<(km: number) => void>(() => {})
+  // estable, para el perfil, que no se pinta otra vez sin cambios en sus props (10b)
+  const seekToKm = useCallback((km: number) => seekKmRef.current(km), [])
 
   useEffect(() => {
     const plan = { riders: head.cast.length, intervalS: head.tt?.intervalS ?? 60 }
@@ -658,6 +695,10 @@ function useWatchPlayer(
     let previouslyPending = s.phase === 'recap'
     let jumpsShown: readonly JumpOption[] = []
     let seekingShown: string | null = null
+    // lo alcanzado en km de la cabeza (W3): la hora de lo alcanzado y su km, y lo que enseña la barra
+    let reachedFor = Number.NaN
+    let reachedKmNow = 0
+    let reachedKmShown = -1
 
     const deckCtxOf = (line: TimelineCore): CueDeckContext => ({
       start: head.startState,
@@ -738,6 +779,25 @@ function useWatchPlayer(
       const before = s.t
       dispatch({ k: 'back', toS })
       if (s.t < before) seat(instantAt(served.core, s.t, ctx), [], false)
+    }
+
+    /**
+     * UN TOQUE EN LA BARRA DE PROGRESO O EN EL PERFIL (§8.5; W3, la revisión de `Watch` del dueño, su punto 6):
+     * delante de la cabeza, un salto a ese km, como los de la hoja; detrás, volver atrás a la primera hora en
+     * que la cabeza llegó a él, como `−5 km`, también desde el cierre de la meta vista (`kmSeekable`). En la
+     * crono no: sus saltos son de reloj y su barra, de dos tramos (§9.4).
+     */
+    function seekToKm(km: number): void {
+      if (chained || timeTrial || !kmSeekable(s)) return
+      const to = kmSeekOf(km, instant.headKm, head.stage.lengthKm)
+      if (to === null) return
+      if (to.k === 'back') back(fromDs(firstDsAtKm(served.core, to.km, 0, toDs(s.t), ctx)))
+      else
+        dispatch({
+          k: 'seek',
+          km: to.km,
+          headKmAtEnd: instantAt(served.core, s.servedS, ctx).headKm,
+        })
     }
 
     /**
@@ -889,6 +949,8 @@ function useWatchPlayer(
     )
     dispatchRef.current = dispatch
     jumpRef.current = jump
+    seekKmRef.current = seekToKm
+    setReachedKm(0)
     setControls(shown)
     setFinish(null)
     setLines([])
@@ -963,6 +1025,18 @@ function useWatchPlayer(
         if (delay !== delayShown) {
           delayShown = delay
           setNamesDelayS(delay)
+        }
+        // lo alcanzado en km de la cabeza, para la barra (W3): casi siempre, el de la hora pintada; tras
+        // volver atrás, por delante, y se busca una vez por cada lo alcanzado nuevo
+        if (s.reachedS <= s.t) reachedKmNow = instant.headKm
+        else if (s.reachedS !== reachedFor) {
+          reachedFor = s.reachedS
+          reachedKmNow = instantAt(served.core, s.reachedS, ctx).headKm
+        }
+        const rk = Math.round(reachedKmNow * 10) / 10
+        if (rk !== reachedKmShown) {
+          reachedKmShown = rk
+          setReachedKm(rk)
         }
         // los saltos que llevan a algún sitio (8-j, 9-g), y el aviso del salto en curso
         const ttLast = timeTrial ? ttLastKmFromS(served.core) : null
@@ -1125,6 +1199,7 @@ function useWatchPlayer(
       live = false
       dispatchRef.current = () => {}
       jumpRef.current = () => {}
+      seekKmRef.current = () => {}
     }
   }, [
     head,
@@ -1163,5 +1238,7 @@ function useWatchPlayer(
     seeking,
     jumps,
     jump: (id) => jumpRef.current(id),
+    reachedKm,
+    seekToKm,
   }
 }

@@ -1,5 +1,5 @@
 import { BROADCAST } from '@cyclingstar/shared'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import type {
   ClockJump,
   JumpWhy,
@@ -89,11 +89,16 @@ const POR_QUE_SALTO: Readonly<Record<JumpWhy, string>> = {
  *
  * Desde W2a (la revisión de `Watch` del dueño, su punto 7), sin `Commentary`: va bajo la línea de la voz
  * (`VoiceTicker`), porque aquí se escondía a los 3 s con los demás y el dueño no veía «lo de atrás».
+ *
+ * Desde W3 (su punto 6), bajo la fila, la barra de progreso en km (`KmBar`, §8.5), que se esconde con los
+ * mandos (8-p); nunca en el digest, cuyos mandos son la pausa y `Show results`, ni en la crono, cuya barra
+ * tiene dos tramos (§9.4) y todavía no está.
  */
 export function PlayerControls({
   state,
   jumps,
   canShowResult,
+  bar = null,
   onPlay,
   onPause,
   onSpeed,
@@ -108,6 +113,8 @@ export function PlayerControls({
   jumps: readonly JumpOption[]
   /** `Show result` (y `Show results` en el digest): con sesión, fuera del modo diagnóstico */
   canShowResult: boolean
+  /** la barra de progreso en km, bajo la fila (W3); null en la crono */
+  bar?: ReactNode
   onPlay: () => void
   onPause: () => void
   onSpeed: (x: Speed) => void
@@ -204,6 +211,7 @@ export function PlayerControls({
           )}
         </span>
       </div>
+      {!digest && bar}
       {!digest && sheetOpen && (
         <PlayerSheet
           view={state.view}
