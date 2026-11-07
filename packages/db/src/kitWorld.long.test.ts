@@ -27,9 +27,10 @@ import { runTick } from './tick.js'
  * DESDE EL 17d se mira cada carrera el día que sale y no al final: leídas al final, tras los fichajes y los
  * equipos nuevos del cambio de temporada, las listas mezclaban en cada carrera equipos que no la corrieron
  * (la escuadra no guarda el equipo de cada corredor), y el banco contaba 2.538 pares donde el día de la
- * salida había 12. Esos 12 eran de verdad: dos equipos que la previsión no veía como rivales, y desde el
- * 17d el NPC cede también ante ellos (`frozenFields`, `ensureKits`). Medido en el contenedor: 0, con 7 NPC
- * que ceden en la temporada.
+ * salida había 12. Esos 12 eran de verdad: cinco pares de equipos que la previsión no veía como rivales
+ * (Grom Kolo y Phénix Course, en 8 carreras), y desde el 17d el NPC cede también ante ellos
+ * (`frozenFields`, `ensureKits`). Medido en el contenedor, en una temporada entera (`KIT_WORLD_DIAS` por
+ * defecto): 0, con 5 noticias de cesión de 5 equipos y 0 ejecuciones del tick sin un libre.
  *
  * `KIT_WORLD_DIAS` acorta la temporada para probar el banco en el contenedor (por defecto, 364), y
  * `KIT_WORLD_OUT` escribe las cifras en un fichero.
