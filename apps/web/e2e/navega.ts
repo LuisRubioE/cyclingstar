@@ -134,6 +134,14 @@ export async function abrePantalla(
   telefono: Telefono,
   world: MundoDePrueba,
   sesiones: Sesiones,
+  /**
+   * En el modo oscuro (§3.3, D-00i; paso 23). Con sesión manda la cuenta, y las del mundo de la prueba
+   * están en `light`: así que la cuenta dice `dark` (`GET /api/me/theme`) y el aparato no dice nada, y lo
+   * pinta `ThemeSync` al llegar la cuenta, como en un aparato nuevo. Sin sesión, `cs-theme` en `dark` antes
+   * de cargar, como lo dejaría `Appearance`, y lo pinta el guion de `<head>`. `/_ui` no lo necesita: va
+   * con `?theme=dark` (5-h).
+   */
+  opciones: { readonly oscuro?: boolean } = {},
 ): Promise<{ context: BrowserContext; page: Page }> {
   const sesion = sesiones[p.account]
   const context = await browser.newContext({
@@ -159,6 +167,21 @@ export async function abrePantalla(
             }),
       )
     }
+    if (opciones.oscuro === true && sesion === undefined)
+      await context.addInitScript(() => {
+        try {
+          localStorage.setItem('cs-theme', 'dark')
+        } catch {
+          // sin almacenamiento no hay modo que medir: la prueba lo dirá
+        }
+      })
+    // detrás de `intercept`, para ganarle si la pantalla tumba toda la API
+    if (opciones.oscuro === true && sesion !== undefined)
+      await page.route('**/api/me/theme', (route) =>
+        route.request().method() === 'GET'
+          ? route.fulfill({ json: { theme: 'dark' } })
+          : route.fallback(),
+      )
     await page.goto(rutaDe(p, world), { waitUntil: 'domcontentloaded' })
     if (p.waitMs !== undefined) await page.waitForTimeout(p.waitMs)
     else await asienta(page, p.id)

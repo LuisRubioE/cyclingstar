@@ -88,6 +88,11 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    // Lo que el navegador carga tal cual, sin Vite: `theme.js`, el modo antes de la primera pintura (E3, D-00i).
+    files: ['apps/web/public/**/*.js'],
+    languageOptions: { sourceType: 'script', globals: globals.browser },
+  },
+  {
     // Pureza del motor (CLAUDE.md / SPEC 6.1): packages/engine es puro y determinista.
     // Todo azar viene del RNG sembrado (mulberry32); prohibido Date.now, Math.random y new Date().
     files: ['packages/engine/**/*.ts'],

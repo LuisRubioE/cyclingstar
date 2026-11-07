@@ -387,7 +387,7 @@ export function useWatchOn(needAdmin = false, needWatch = true): WatchSwitch {
 export { veilApplies } from './domain/veil'
 
 /** Un 401 inesperado significa sesión caducada: se avisa una sola vez, en el nivel global. */
-function handleGlobalError(error: unknown): void {
+export function handleGlobalError(error: unknown): void {
   if (isUnauthorized(error)) notifyUnauthorized()
 }
 

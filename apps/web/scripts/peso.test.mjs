@@ -56,14 +56,16 @@ test('la hoja que bloquea la primera pintura', () => {
   )
 })
 
-test('el JS de arranque: la entrada y sus modulepreload', () => {
+test('el JS de arranque: la entrada, sus modulepreload y los guiones clásicos de <head>', () => {
   const entrada = pide('script', 'src', /type="module"/)
   const precargas = pide('link', 'href', /rel="modulepreload"/)
+  // el del modo oscuro (E3, paso 23): bloquea el análisis, así que cuenta
+  const clasicos = pide('script', 'src', /^<script(?![^>]*type=)/)
   assert.equal(entrada.length, 1, 'index.html tiene que tener un módulo de entrada')
-  const peso = suma([...entrada, ...precargas])
+  const peso = suma([...entrada, ...precargas, ...clasicos])
   const barril = precargas.find((ruta) => /\/request-[^/]+\.js$/.test(ruta))
   console.log(
-    `el JS de arranque: ${kb(peso)} en ${entrada.length + precargas.length} ficheros` +
+    `el JS de arranque: ${kb(peso)} en ${entrada.length + precargas.length + clasicos.length} ficheros` +
       (barril === undefined ? '' : `; el de request.js, ${kb(gz(barril))}`),
   )
   assert.ok(peso <= ENTRY_JS_MAX_GZ, `${kb(peso)} con gzip, y el tope es ${kb(ENTRY_JS_MAX_GZ)}`)

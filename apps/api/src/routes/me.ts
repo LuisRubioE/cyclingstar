@@ -6,9 +6,11 @@ import {
   lastRunStages,
   raceExpired,
   readSpoilerPrefs,
+  readTheme,
   revealStage,
   setFollow,
   setSpoilerScope,
+  setTheme,
   stageGateOf,
   worldHorizon,
 } from '@cyclingstar/db'
@@ -22,6 +24,9 @@ import {
   revResponseSchema,
   revealBodySchema,
   spoilerScopeBodySchema,
+  type ThemeResponse,
+  themeBodySchema,
+  themeResponseSchema,
   visibilityOf,
   watchProgressBodySchema,
   watchResponseSchema,
@@ -52,6 +57,10 @@ import { parseRaceKey, parseStageDay } from './params.js'
  * apagado: lo visto tiene que estar ahí cuando el modo se encienda (§14.6). Devuelven el `rev` de
  * después de escribir (§14.2): `${currentDay}.${horizon_rev}` si el modo vale para quien pide, y
  * `'world'` si no, para que la web cambie sus claves de una vez (§10.9).
+ *
+ * Y, desde E3 (docs/visual.md §3.3, D-00i; paso 23), `GET` y `PUT /api/me/theme`: el modo del jugador, en
+ * la cuenta para que lo siga de un aparato a otro. No nace de ninguna etapa (`safe`) ni cambia lo
+ * conocido, así que no lleva `rev`; sin sesión, 401 los dos.
  */
 
 type WatchResponse = z.infer<typeof watchResponseSchema>
@@ -213,6 +222,32 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
       // exactOptionalPropertyTypes: ausente no es undefined, y setSpoilerScope recibe lo que llegó.
       const r = await setSpoilerScope(db, userId, body.data.scope, body.data.revealConfirm)
       return { rev: await revAfter(request, world, r.horizonRev) } satisfies RevResponse
+    },
+  )
+
+  app.get(
+    '/api/me/theme',
+    { config: { response: { 200: themeResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await sessionUser(request, reply)
+      if (userId === null) return reply
+      const theme = await readTheme(db, userId)
+      if (theme === null) return unauthorized(reply)
+      return { theme } satisfies ThemeResponse
+    },
+  )
+
+  app.put(
+    '/api/me/theme',
+    { config: { response: { 200: themeResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await sessionUser(request, reply)
+      if (userId === null) return reply
+      const body = themeBodySchema.safeParse(request.body)
+      if (!body.success) return badRequest(reply)
+      const theme = await setTheme(db, userId, body.data.theme)
+      if (theme === null) return unauthorized(reply)
+      return { theme } satisfies ThemeResponse
     },
   )
 

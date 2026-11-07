@@ -1,4 +1,4 @@
-import type { SpoilerScope } from '@cyclingstar/shared'
+import type { SpoilerScope, Theme } from '@cyclingstar/shared'
 import { getTableColumns, getTableName } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { BIB_STYLES } from '@cyclingstar/shared'
@@ -10,6 +10,7 @@ import {
   stageTimelines,
   teamKits,
   teams,
+  themeEnum,
   tickLog,
   users,
   worlds,
@@ -60,5 +61,21 @@ describe('db: esquema fundacional', () => {
     expect(delEnumAlTipo).toBe(delTipoAlEnum)
     const todos: Record<SpoilerScope, true> = { guarded: true, own_only: true, off: true }
     expect([...spoilerScopeEnum.enumValues].sort()).toEqual(Object.keys(todos).sort())
+  })
+
+  /**
+   * EL MODO DEL JUGADOR (E3, docs/visual.md §3.3, D-00i; paso 23): `users.theme` y `Theme` de `shared`, con
+   * el que la ruta y la web lo validan, atados en los dos sentidos como el alcance del velo; claro por
+   * defecto y nunca nulo.
+   */
+  it('themeEnum y Theme son el mismo conjunto de valores, y users.theme, no nula y light por defecto', () => {
+    type DelEnum = (typeof themeEnum.enumValues)[number]
+    const delEnumAlTipo: Theme = null as unknown as DelEnum
+    const delTipoAlEnum: DelEnum = null as unknown as Theme
+    expect(delEnumAlTipo).toBe(delTipoAlEnum)
+    const todos: Record<Theme, true> = { light: true, dark: true }
+    expect([...themeEnum.enumValues].sort()).toEqual(Object.keys(todos).sort())
+    expect(users.theme.notNull).toBe(true)
+    expect(users.theme.default).toBe('light')
   })
 })
