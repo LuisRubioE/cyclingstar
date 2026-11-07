@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { FLAG_CELL_PIXELS } from '../../../../../packages/db/src/flagCells.generated'
 import { FLAG_INK, FLAG_INK_SHA256 } from './flagInk.generated'
 import { FLAG_CELLS, FLAG_SPRITE } from './flagSprite.generated'
+import { tokensJson } from '../../../scripts/tokens-json.mjs'
 import { ICONS } from './icons'
 import type { IconName } from './types'
 
@@ -154,6 +155,20 @@ describe('los tokens para la app (generado)', () => {
         stdio: 'pipe',
       }),
     ).not.toThrow()
+  })
+
+  // desde la revisión del paso 22: lo que no sabe leer, lo dice, en lugar de dejar fuera unos tokens
+  it('falla con un segundo @theme o con un bloque dentro de uno: no deja tokens sin leer', () => {
+    const css = readFileSync(join(WEB, 'src', 'index.css'), 'utf8')
+    expect(() => tokensJson(css)).not.toThrow()
+    expect(() => tokensJson(`${css}\n@theme inline {\n  --color-otro: #123456;\n}\n`)).toThrow(
+      /@theme/,
+    )
+    const conKeyframes = css.replace(
+      '@theme {\n',
+      '@theme {\n  @keyframes sube {\n    to {\n      opacity: 1;\n    }\n  }\n',
+    )
+    expect(() => tokensJson(conKeyframes)).toThrow(/bloque dentro/)
   })
 })
 

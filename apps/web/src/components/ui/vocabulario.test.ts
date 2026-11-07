@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,10 +10,10 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { ARBITRARY_ALLOWED } from '../../../eslint-ui.mjs'
 
 /**
- * LA DEUDA, FICHERO A FICHERO (E3, docs/visual.md §5.1 y §5.2; PR 8, I-01). Carga dos sistemas de diseño
- * de Tailwind con `__unstable__loadDesignSystem`: el de `index.css` tal como está y el cerrado, el mismo
- * con las 17 líneas del cierre y sin los `brand-*` heredados, que es lo que hará el paso 22 (decisión 5-b:
- * la deuda es la que ese cierre va a exigir). Saca las clases de cada fichero de producción de
+ * EL TEMA CERRADO, FICHERO A FICHERO (E3, docs/visual.md §5.1 y §5.2; PR 8, I-01; paso 22). Carga dos
+ * sistemas de diseño de Tailwind con `__unstable__loadDesignSystem`: el cerrado, `index.css` tal como
+ * está, con las 17 líneas del cierre activas desde el paso 22, y el abierto, el mismo sin ellas, que es el
+ * tema por defecto de Tailwind más el nuestro. Saca las clases de cada fichero de producción de
  * `apps/web/src` (sin tests ni `__fixtures__`) con el `Scanner` de `@tailwindcss/oxide`, el del plugin de
  * Vite, y cuenta por fichero, entre las clases que resuelven con el abierto:
  *
@@ -22,11 +22,9 @@ import { ARBITRARY_ALLOWED } from '../../../eslint-ui.mjs'
  * 3. `espaciado`: las de relleno, margen y hueco con un paso que no está en `SPACING_STEPS` (5-d).
  * 4. `layout`: las de una prop `layout` que no son de margen, ancho, alto o sitio en la rejilla (4-a).
  *
- * Falla si una cifra de un fichero sube sobre la de `deuda.json`, si un fichero que no está tiene alguna,
- * y si una baja sin apuntarlo: la bajada se escribe en el PR que la consigue, con
- * `VOCABULARIO_DEUDA=escribe pnpm vitest run apps/web/src/components/ui/vocabulario.test.ts`. Dos sondas
- * lo paran si el instrumento deja de medir, porque la API es inestable (sistema §14) y Tailwind va a la
- * versión exacta. Desde el paso 22, con el tema cerrado y sin `deuda.json`, exige cero.
+ * Desde el paso 22 exige cero en todo, y `deuda.json`, donde del paso 8 al 21 se apuntaba lo que quedaba
+ * por migrar, ya no existe. Dos sondas lo paran si el instrumento deja de medir, porque la API es
+ * inestable (sistema §14) y Tailwind va a la versión exacta.
  */
 
 const UI = dirname(fileURLToPath(import.meta.url))
@@ -109,12 +107,18 @@ function fuentes(dir: string = SRC): string[] {
     .sort()
 }
 
-/** `index.css` con el tema cerrado: las 17 líneas al abrir `@theme` y sin los `brand-*` (§5.1). */
-function cerrar(css: string): string {
-  if (css.split('@theme {').length !== 2) throw new Error('index.css: no hay un solo bloque @theme')
-  return css
-    .replace('@theme {', `@theme {\n  ${CIERRE.join('\n  ')}`)
-    .replace(/^\s*--color-brand-[\w-]+\s*:[^;]*;\n/gm, '')
+/** El cierre tal como lo lleva `index.css` desde el paso 22: al abrir `@theme`, una línea por renglón (§5.1). */
+const CIERRE_EN_EL_TEMA = `@theme {\n  ${CIERRE.join('\n  ')}\n`
+
+/** `index.css` con el tema abierto: el mismo sin las 17 líneas, el tema por defecto de Tailwind más el nuestro. */
+function abrir(css: string): string {
+  const sinComentarios = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  // uno solo, de cualquier forma (`@theme inline`, `@theme static`): el abierto se arma quitándole el cierre
+  if (sinComentarios.match(/@theme\b/g)?.length !== 1)
+    throw new Error('index.css: no hay un solo bloque @theme')
+  if (!css.includes(CIERRE_EN_EL_TEMA))
+    throw new Error('index.css: el cierre no está al abrir @theme')
+  return css.replace(CIERRE_EN_EL_TEMA, '@theme {\n')
 }
 
 /** Las partes de una clase: las variantes y la utilidad, cortando por los `:` de fuera de corchetes. */
@@ -177,7 +181,7 @@ function clasesDeLayout(ruta: string, texto: string): string[] {
   return fuera
 }
 
-/** La deuda de hoy, medida. */
+/** La deuda de hoy, medida: desde el paso 22, cero. */
 function medir(abierto: Sistema, cerrado: Sistema): Deuda {
   const escaner = new Scanner({ sources: [] })
   const porFichero = fuentes().map((ruta) => {
@@ -212,41 +216,13 @@ function medir(abierto: Sistema, cerrado: Sistema): Deuda {
   return { tailwindcss: VERSION, total, ficheros }
 }
 
-/** Lo que separa la medida de lo apuntado, en frases. */
-function diferencias(medida: Deuda, apuntada: Deuda): string[] {
-  const fuera: string[] = []
-  if (apuntada.tailwindcss !== medida.tailwindcss)
-    fuera.push(
-      `deuda.json se midió con Tailwind ${apuntada.tailwindcss} y está la ${medida.tailwindcss}: la API es inestable, vuelve a medir`,
-    )
-  const rutas = new Set([...Object.keys(medida.ficheros), ...Object.keys(apuntada.ficheros)])
-  for (const ruta of [...rutas].sort()) {
-    const m = medida.ficheros[ruta] ?? CERO
-    const a = apuntada.ficheros[ruta]
-    if (a === undefined) {
-      fuera.push(`${ruta}: no está en deuda.json y tiene ${JSON.stringify(m)}`)
-      continue
-    }
-    if (CONTADORES.every((k) => a[k] === 0))
-      fuera.push(`${ruta}: un fichero sin deuda no aparece en deuda.json`)
-    for (const k of CONTADORES) {
-      if (m[k] > a[k]) fuera.push(`${ruta}: ${k} sube de ${a[k]} a ${m[k]}`)
-      if (m[k] < a[k]) fuera.push(`${ruta}: ${k} baja de ${a[k]} a ${m[k]}, y no está apuntado`)
-    }
-  }
-  for (const k of CONTADORES)
-    if (medida.total[k] !== apuntada.total[k])
-      fuera.push(`total: ${k} es ${medida.total[k]} y deuda.json dice ${apuntada.total[k]}`)
-  return fuera
-}
-
 let abierto: Sistema
 let cerrado: Sistema
 
 beforeAll(async () => {
   const css = readFileSync(join(SRC, 'index.css'), 'utf8')
-  abierto = await __unstable__loadDesignSystem(css, { base: SRC })
-  cerrado = await __unstable__loadDesignSystem(cerrar(css), { base: SRC })
+  abierto = await __unstable__loadDesignSystem(abrir(css), { base: SRC })
+  cerrado = await __unstable__loadDesignSystem(css, { base: SRC })
 })
 
 describe('el instrumento mide (§5.2): si deja de medir, falla', () => {
@@ -330,26 +306,35 @@ describe('los contadores', () => {
       expect(fueraDeLayout(fuera), fuera).toBe(true)
   })
 
-  it('el cierre activa las 17 líneas y quita los heredados', () => {
+  it('abrir() falla con un segundo @theme, también inline o static, y no con el nombre en un comentario', () => {
     const css = readFileSync(join(SRC, 'index.css'), 'utf8')
-    const c = cerrar(css)
-    expect(c).not.toMatch(/--color-brand-/)
-    // al abrir el bloque, y no en el comentario que las lleva hasta el paso 22
-    expect(c).toContain(`@theme {\n  ${CIERRE.join('\n  ')}\n`)
+    expect(() => abrir(`${css}\n@theme inline {\n  --color-otro: #123456;\n}\n`)).toThrow(
+      /un solo bloque/,
+    )
+    expect(() => abrir(`${css}\n@theme static {\n  --color-otro: #123456;\n}\n`)).toThrow(
+      /un solo bloque/,
+    )
+    expect(() => abrir(`/* el @theme de abajo */\n${css}`)).not.toThrow()
+  })
+
+  it('index.css lleva el cierre: las 17 líneas activas al abrir @theme, sin los brand-* (paso 22)', () => {
+    const css = readFileSync(join(SRC, 'index.css'), 'utf8')
+    // al abrir el bloque, una por renglón, y no en el comentario que las llevaba hasta el paso 22
+    expect(css).toContain(CIERRE_EN_EL_TEMA)
+    expect(css).not.toMatch(/--color-\*: initial; --font-\*/)
+    expect(css).not.toMatch(/--color-brand-/)
+    expect(abrir(css)).not.toContain('--color-*: initial;')
   })
 })
 
-describe('la deuda solo baja (§5.2)', () => {
-  it('ninguna cifra sube sobre deuda.json, ningún fichero nuevo tiene deuda y lo que baja se apunta', () => {
+describe('el tema cerrado, en cero (§5.1; paso 22)', () => {
+  it('ningún fichero tiene deuda: nada fuera del tema, ningún arbitrario, espaciado ni layout de más', () => {
     const medida = medir(abierto, cerrado)
-    if (process.env.VOCABULARIO_DEUDA === 'escribe') {
-      writeFileSync(DEUDA, `${JSON.stringify(medida, null, 2)}\n`)
-      return
-    }
-    // sin deuda.json (desde el paso 22), cero en todo
-    const apuntada: Deuda = existsSync(DEUDA)
-      ? (JSON.parse(readFileSync(DEUDA, 'utf8')) as Deuda)
-      : { tailwindcss: VERSION, total: CERO, ficheros: {} }
-    expect(diferencias(medida, apuntada)).toEqual([])
+    expect(medida.ficheros).toEqual({})
+    expect(medida.total).toEqual(CERO)
+  })
+
+  it('deuda.json ya no existe: lo que quedaba por migrar se apuntaba ahí del paso 8 al 21', () => {
+    expect(existsSync(DEUDA)).toBe(false)
   })
 })

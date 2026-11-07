@@ -1,11 +1,10 @@
 /**
  * LAS DIEZ REGLAS DEL SISTEMA (E3, docs/visual.md §5.3; PR 8). Diez prohibiciones como selectores de
  * `no-restricted-syntax`, cada una con un mensaje que empieza por su número, para que los avisos se
- * cuenten por regla. `eslint.config.js` las pone en dos bloques: en `error` para todo
- * `apps/web/src/**` (salvo los tests y sus `__fixtures__`, `components/ui/**`, que es el sistema, y los
- * `*.generated.ts`) y, detrás, en `warn` para los ficheros de `UI_HEREDADOS`, que hoy ya tienen alguno:
- * un fichero nuevo nace en `error` y uno heredado avisa sin parar el CI. `heredados.test.ts` falla si uno
- * de la lista ya no tiene ningún aviso, así que la lista solo encoge; el paso 22 la vacía.
+ * cuenten por regla. `eslint.config.js` las pone en `error` para todo `apps/web/src/**` (salvo los tests
+ * y sus `__fixtures__`, `components/ui/**`, que es el sistema, y los `*.generated.ts`). Del PR 8 al 21 un
+ * segundo bloque las bajaba a `warn` para los ficheros que ya tenían algún aviso, la lista de heredados, que
+ * solo encogía; el paso 22 borró la lista y el bloque, y `heredados.test.ts` comprueba que no vuelven.
  *
  * Los mensajes van en inglés, como los del lint de hoy (5-e). En los selectores, `esquery` no admite una
  * `/` suelta dentro de una expresión regular: por eso va como `\x2F`.
@@ -47,6 +46,12 @@ const DE_COLOR =
 
 /** `ui/6`: una utilidad de color de la paleta con su paso (`text-slate-500`, `hover:bg-amber-50/50`). */
 const COLOR = `(?:^|\\s|:)!?${DE_COLOR}-${PALETA}-\\d{2,3}`
+
+/**
+ * `ui/6` también: los seis `brand-*` heredados, que borró el paso 22 con el cierre. Su clase ya no resuelve
+ * con ningún tema, así que `vocabulario.test.ts` no la cuenta, y sin esto pasaría sin pintar nada.
+ */
+const BRAND = `(?:^|\\s|:)!?${DE_COLOR}-brand-`
 
 /**
  * `ui/7`: una clase con un valor arbitrario, que no es de `ARBITRARY_ALLOWED`. Cuatro formas: un valor
@@ -121,6 +126,8 @@ export const UI_RULES = [
   },
   { selector: `Literal[value=/${COLOR}/]`, message: MENSAJES[6] },
   { selector: `TemplateElement[value.cooked=/${COLOR}/]`, message: MENSAJES[6] },
+  { selector: `Literal[value=/${BRAND}/]`, message: MENSAJES[6] },
+  { selector: `TemplateElement[value.cooked=/${BRAND}/]`, message: MENSAJES[6] },
   { selector: `Literal[value=/${ARBITRARIO}/]`, message: MENSAJES[7] },
   { selector: `TemplateElement[value.cooked=/${ARBITRARIO}/]`, message: MENSAJES[7] },
   { selector: `Literal[value=/${HEX}/]`, message: MENSAJES[8] },
@@ -138,10 +145,3 @@ export const UI_IGNORES = [
   'apps/web/src/components/ui/**',
   '**/*.generated.ts',
 ]
-
-/**
- * LOS HEREDADOS: los ficheros que el día del PR 8 ya tenían algún aviso `ui/`, en `warn` hasta que su PR
- * los limpia (paso 21 y los de cada componente). La lista solo encoge (`heredados.test.ts`): vacía desde
- * W4, que se llevó el último, `RaceRadioPanel`, con la radio (D-16 revocada).
- */
-export const UI_HEREDADOS = []
