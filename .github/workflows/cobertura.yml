@@ -50,7 +50,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
       # Mismo camino que el job de tests del CI: `packages/db` compilado y esquema aplicado, para que
@@ -86,7 +86,7 @@ jobs:
 
       - name: Sube el informe de cobertura
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage/
@@ -110,7 +110,7 @@ jobs:
     name: Bancos de noche (E2)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Build de packages/db
         run: pnpm exec tsc -b packages/db
@@ -157,7 +157,7 @@ jobs:
       FONTCONFIG_FILE: ${{ github.workspace }}/apps/web/e2e/fonts.conf
       E2E_BASE: http://localhost:3005
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Build
         run: pnpm build
@@ -166,7 +166,7 @@ jobs:
         run: pnpm --filter @cyclingstar/web exec playwright test --project=nocturno
       - name: Sube el informe de la noche
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: telefono-noche
           path: apps/web/e2e/.resultados/
@@ -180,7 +180,7 @@ jobs:
     # quitar `continue-on-error`.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: pnpm audit
         run: pnpm audit --audit-level=high
