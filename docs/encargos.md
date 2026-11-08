@@ -180,7 +180,7 @@ el del equipo), y es exactamente el rótulo con el que la televisión presenta a
 
 **Fichero:** `docs/visual.md` · **Tamaño esperado:** mediano
 
-**Estado: EN IMPLEMENTACIÓN desde el 25 de octubre de 2026, sobre el motor v91.** El diseño está en
+**Estado: IMPLEMENTADO (del 25 de octubre al 8 de noviembre de 2026, motor v91).** El diseño está en
 `docs/visual.md`: veintiuna secciones, de la 0 a la 20, y 3.973 líneas, hechas con el
 método de `docs/diseno/README.md` escalado a un documento mediano: cinco mapas del código, de los
 documentos y de las pantallas (con 98 capturas a 360 y a 1.280 px), cuatro propuestas independientes,
@@ -239,6 +239,9 @@ app nativa (§4.15.1) lleva ahora una prueba en vez de una defensa: cuando la an
 entra desde el móvil, si la web instalable no está a la altura se revisa lo de la app nativa en lugar
 de defender lo que decidimos hoy. Su consejo de cierre toca también a este encargo y cambia su
 presupuesto realista: los maillots, los iconos y los elementos de interfaz son material generable.
+**Lo de la app nativa ya lo revisó el dueño el 22 de octubre de 2026** («pronto haremos app, así que
+quita la web instalable»; D-00p de `docs/visual.md`): habrá app y no web instalable, y el teléfono
+sigue siendo el criterio de aceptación de este documento.
 
 **Y una decisión ya tomada que este documento tiene que ejecutar: la aplicación INSTALABLE.** No hay
 app nativa de Android ni de iOS en el plan (el razonamiento está en §4.15.1 de `agenda.md`: un solo
@@ -246,7 +249,10 @@ código en vez de tres, sin revisión de tienda, y el aviso por notificación ya
 sí hay que hacer es que el juego se pueda **añadir a la pantalla de inicio y comportarse como una
 app**: sin barra de navegador, con su icono, arrancando rápido y sin romperse cuando la red va mal.
 Eso es trabajo de este documento, no de otro, y es además el requisito previo para que la
-notificación de E4 funcione en iPhone.
+notificación de E4 funcione en iPhone. **El dueño la retiró el 22 de octubre de 2026** («pronto
+haremos app, así que quita la web instalable»; D-00p de `docs/visual.md`): no hay web instalable,
+porque habrá app, y el aviso al teléfono de E4 llegará con ella. De este párrafo se queda lo que no
+depende de instalar: arrancar rápido y no romperse cuando la red va mal (§12 del documento).
 
 **Y el encargo lleva un examen práctico obligatorio: el cuadro de entrenamiento.** No como apéndice
 ni como «si da tiempo», sino como la pantalla sobre la que el documento tiene que demostrar que el
@@ -318,7 +324,8 @@ menos se puede permitir caer), y calentar el dominio de envío antes del lanzami
 estrenarlo con mil registros de golpe.
 
 **Dos añadidos que cierran huecos detectados en la segunda pasada.** El primero: la notificación no
-es solo correo, es también **aviso al teléfono** sobre la web instalable que define E3, y es lo que de
+es solo correo, es también **aviso al teléfono**, que llegará con la app (el dueño retiró la web
+instalable de E3, D-00p de `docs/visual.md`), y es lo que de
 verdad se pedía cuando se pidió una app. El segundo, pequeño y hoy inexistente: **por dónde se queja
 un jugador**. Sin correo de contacto, sin formulario y sin canal, alguien con un problema no tiene a
 dónde ir, y el primero que se quede fuera de su cuenta lo va a descubrir de la peor manera.
@@ -720,10 +727,10 @@ reparten entre dos épicas porque son dos cosas distintas:
 
 Y los dos que el dueño añadió en la segunda pasada:
 
-| Punto añadido                 | Dónde vive ahora                                                                                                                                                                         |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **App de Android y de Apple** | **Decidido que no, todavía**: web instalable en **E3**, aviso al teléfono en **E4**, y la advertencia de la comisión de tienda en **E8**. El razonamiento está en §4.15.1 de `agenda.md` |
-| **Amistades y enemistades**   | **E9**, pero ganadas en la carretera y cambiando el comportamiento, no como bonificación declarada (§4.15.2)                                                                             |
+| Punto añadido                 | Dónde vive ahora                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **App de Android y de Apple** | **Decidido que no, todavía**: web instalable en **E3**, aviso al teléfono en **E4**, y la advertencia de la comisión de tienda en **E8**. El razonamiento está en §4.15.1 de `agenda.md`. **El dueño lo cambió el 22 de octubre de 2026** («pronto haremos app, así que quita la web instalable»; D-00p de `docs/visual.md`): habrá app y no web instalable, y el aviso al teléfono de E4 llegará con ella |
+| **Amistades y enemistades**   | **E9**, pero ganadas en la carretera y cambiando el comportamiento, no como bonificación declarada (§4.15.2)                                                                                                                                                                                                                                                                                               |
 
 ---
 

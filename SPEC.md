@@ -71,11 +71,11 @@ El jugador jamás ve el valor interno. Toda magnitud expuesta se muestra en estr
 formStarsScale(x) = clamp( round(x / 10) / 2 , 0.5 , 5 )   // FORMA y FRESCURA
 // 85.64 -> round(8.564)=9 -> 4.5 estrellas
 
-attrStars(x)      // ATRIBUTOS: medias estrellas sobre las bandas del dominio
-// cortes enteros 22 / 42 / 58 / 74 / 92 ; medias en 11 / 32 / 50 / 66 / 83
+attrStars(x)      = clamp( ceil((x - 5) / 10) / 2 , 0 , 5 )   // ATRIBUTOS: media estrella cada diez puntos
+// 76.5 -> ceil(7.15)=8 -> 4 estrellas ; 90 -> 4.5 ; cinco, solo por encima de 95
 ```
 
-La forma es una magnitud continua de 0 a 100 sin umbrales de dominio, y su suelo de media estrella dice «siempre hay algo». Un atributo lleva sus propias bandas, «cinco estrellas» son 92 o más, y ahí el 0 existe: se puede no saber esprintar. Con el nombre genérico `stars()` las dos se confundían (`stars(92) = 4.5`, `attrStars(92) = 5`), y por eso la de la forma lleva ahora su apellido. Las bandas se recalibraron en octubre de 2026 (eran 17 / 34 / 51 / 67 / 84) para que un 90 se lea como cuatro y media y un 76,5 como cuatro; el banco de mundo conserva la escala vieja para sus listones (`docs/balance.md` «La escala de estrellas de los atributos, recalibrada»).
+La forma es una magnitud continua de 0 a 100 sin umbrales de dominio, y su suelo de media estrella dice «siempre hay algo». Un atributo lleva su propia escala, media estrella cada diez puntos y «cinco estrellas» solo por encima de 95, y ahí el 0 existe: se puede no saber esprintar. Con el nombre genérico `stars()` las dos se confundían (`stars(85) = 4.5`, `attrStars(85) = 4`), y por eso la de la forma lleva ahora su apellido. La escala la fijó el dueño el 2 de octubre de 2026 (eran las bandas 17 / 34 / 51 / 67 / 84, y las 22 / 42 / 58 / 74 / 92 de la recalibración anterior no llegaron a producción) para que un 90 se lea como cuatro y media y un 76,5 como cuatro; el banco de mundo conserva la escala vieja para sus listones (`docs/balance.md` «La escala de estrellas, otra vez: medias estrellas cada diez puntos (02/10/2026)»).
 
 - **Ciclista propio**: estrellas exactas, más una **marca de progreso de cuatro pasos** dentro de la banda (`attrProgress`) y una **flecha de tendencia**. La flecha usa una ventana de **28 días** y **cinco niveles** —`↑` ≥ +1,0 · `↗` ≥ +0,3 · `→` · `↘` ≤ −0,3 · `↓` ≤ −1,0—, no los 7 días y tres niveles que este SPEC pedía: a siete días manda el ruido de un solo bloque y con tres niveles no se distingue «no se mueve» de «sube despacio», que es justo lo que hace un atributo secundario (+0,3 en cuatro semanas). La fuente es `rider_attr_log`, que se purga a 60 días.
 - **Opinión del entrenador**, una por temporada y por atributo, **relativa al propio corredor y sin estrellas** (5.6): dice dónde tiene más margen y dónde menos, no a qué nivel llega. Enseñar el techo mata la exploración; no enseñar nada deja «no sé si mejoro».
@@ -87,7 +87,7 @@ La forma es una magnitud continua de 0 a 100 sin umbrales de dominio, y su suelo
 - `CTL` condición (carga crónica), `ATL` fatiga (carga aguda), `TSB = CTL_ayer - ATL_ayer` balance. Ver sección 4.
 - Forma (estrellas): derivada de CTL y TSB. Frescura (barra 0 a 100 en UI): derivada de TSB.
 - Moral `MOR` en `[0,100]`. Salud: `sano | molestias(dias) | enfermo(dias) | lesionado(tipo, dias)`.
-- Cerillos: esfuerzos supraumbral disponibles en carrera, visibles como iconos (2 a 5). Ver 6.6.
+- Cerillos: esfuerzos supraumbral disponibles en carrera, visibles como los segmentos de un `Meter` con `n of N` (2 a 5; decisión 4-c de `docs/visual.md`). Ver 6.6.
 
 ### 3.4 Atributos ocultos (nunca expuestos, ni en estrellas)
 
@@ -407,7 +407,7 @@ cerillos = 2 + (comp>=55) + (comp>=72) + (comp>=88)              // 2..5
 si TSB < -25: cerillos -= 1 (minimo 1)
 ```
 
-Gastar un cerillo cuesta 5 unidades de tanque y otorga +10 al atributo del terreno durante los 5 bloques siguientes (500 m). Usos: atacar, seguir, cerrar hueco, aguantar un ritmo superior. Sin recarga en v0 (v1: medio cerillo tras 25 km de valle a ritmo tempo). Visibles como iconos antes, durante y después de la etapa.
+Gastar un cerillo cuesta 5 unidades de tanque y otorga +10 al atributo del terreno durante los 5 bloques siguientes (500 m). Usos: atacar, seguir, cerrar hueco, aguantar un ritmo superior. Sin recarga en v0 (v1: medio cerillo tras 25 km de valle a ritmo tempo). Visibles como los segmentos de un `Meter` con `n of N` antes, durante y después de la etapa (decisión 4-c de `docs/visual.md`).
 
 Asimetría del vaciado profundo: quien termina con `E < 0.12 * E0` o sufre pájara arranca el día siguiente con un cerillo menos, acumulable con la resta por `TSB` (mínimo 1). Una noche no repone un vaciado total.
 
@@ -855,7 +855,7 @@ Disciplina: si la orden personal contradice el rol contractual (el gregario que 
 
 ### 7.1 Equipos de usuarios y equipos NPC
 
-- Cualquier usuario con reputación mínima (una temporada completada) puede fundar un equipo: elige nombre, colores y patrón de maillot (SVG paramétrico). Los equipos nuevos entran en división Continental.
+- Cualquier usuario con reputación mínima (una temporada completada) puede fundar un equipo: elige nombre y, con el editor del maillot (`KitPicker`, en `/team/identity`; `docs/visual.md` §8.7), su maillot: una de las siete figuras con los colores de un vocabulario de quince, sin repetir el de otro equipo. Los equipos nuevos entran en división Continental.
 - Moderación de nombres: filtro automático (lista de marcas registradas conocidas de ciclismo, groserías, homoglifos) + estado `pendiente | aprobado | rechazado` + botón de denuncia. Un nombre rechazado revierte a un nombre neutro generado. La responsabilidad por contenido de usuario obliga a moderación reactiva documentada.
 - Equipos NPC como andamiaje: el mundo nace con 18 World Tour, 15 Pro Series y 24 Continental generados proceduralmente. A medida que los equipos de usuarios ascienden, los NPC descienden y se disuelven de forma natural. Objetivo a largo plazo: cúpula humana, base NPC.
 - Gestión de equipo (v1 ligera): presupuesto, ofertas a corredores (humanos y NPC), inscripción a carreras, plantilla de 8 a 16, órdenes por defecto. Profundidad de manager real en v2.
@@ -877,7 +877,7 @@ El equipo (IA o manager humano) alinea por carrera. El corredor marca deseos de 
 
 ## 8. Calendario y nombres de competición
 
-Esquema legal adoptado: Race + Geografía. La marca protegida es el nombre comercial, no la geografía ni el formato. Prohibido imitar logotipos, tipografías o identidades visuales de las carreras reales (el amarillo con serifa característica, el rosa de la corsa, el arcoíris del campeón del mundo). Verificar cada nombre final contra EUIPO y USPTO antes del lanzamiento.
+Esquema legal adoptado: Race + Geografía. La marca protegida es el nombre comercial, no la geografía ni el formato. Prohibido imitar logotipos, tipografías o identidades visuales de las carreras reales (el amarillo con serifa característica, el rosa de la corsa, las cinco bandas de la UCI: azul, rojo, negro, amarillo y verde, en ese orden y en cualquier disposición). Verificar cada nombre final contra EUIPO y USPTO antes del lanzamiento.
 
 - Grandes vueltas (21 etapas + 2 descansos): Race Italy (mayo), Race France (julio), Race Spain (agosto y septiembre).
 - Monumentos: Race Sanremo, Race Flanders, Race Roubaix, Race Liège, Race Lombardy.

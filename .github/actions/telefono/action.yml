@@ -9,7 +9,7 @@ runs:
   steps:
     # LA LETRA SE FIJA (§7.6, decisión 7-k): con `e2e/fonts.conf`, que el trabajo pasa en
     # `FONTCONFIG_FILE`, Chromium solo ve los seis ficheros de `fonts-dejavu-core`, y toda pila de la web
-    # acaba en DejaVu Sans. Con la de la imagen del ejecutor, un cambio de imagen movería la línea base sin
+    # acaba en DejaVu Sans. Con la de la imagen del ejecutor, un cambio de imagen movería las cifras sin
     # tocar la web. Si `system-ui` no es DejaVu Sans, se para aquí; la comprobación de verdad, la de la
     # letra que pinta Chromium, la hace la prueba por CDP.
     - name: La letra de la prueba (DejaVu Sans)
