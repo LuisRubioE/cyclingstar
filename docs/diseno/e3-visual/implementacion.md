@@ -2690,11 +2690,11 @@ Bajo. Solo cambia la web; el motor y la API, no. Si el motor cambiara la forma d
 - **Que muerde**: con la web del 23 sobre el mismo mundo y la misma API, `25-me-orders` falla a 320 y a 360 con `3 · la letra: 2`; la de oscuro pasa.
 - **Los mutantes de la regla**: cuatro (tolerar hasta 2, contar `null` como falta, no mirar el largo y medir siempre diez), y mueren todos.
 - **Los documentos**: los diecisiete puntos de §17.24 y cinco pasajes más, cada uno contrastado con el código y el diseño (la escala de estrellas con `attrStars`, los cortes de la llegada con `arrivalLabel`, sus palabras con `ARRIVAL_WORD`, `tsbFactor`, `WornJerseyIcon`, `GroupBar`, el título del resultado y la cita de §17.24, letra a letra); ninguna raya a media frase.
-- **El trabajo `Teléfono`**: 76 líneas menos en `ci.yml`, las de la base; su duración, en el CI de este PR, frente a los 26 minutos del 24a.
+- **El trabajo `Teléfono`**: 76 líneas menos en `ci.yml`, las de la base. En el CI del PR, 28 min 30 s, de los que 12 min 54 s fueron reconstruir el mundo (el comentario de `rider.ts` cambia la clave de su caché); la prueba, una sola medida, 9 min 32 s, donde el 24a hacía dos. Con el mundo de la caché, unos 16 minutos, frente a los 26 del 24a. Cero también en el mundo del CI, `13-world-rider` incluida.
 
 ### Lo que ve el dueño
 
-Las diez tareas de §7.7, en su teléfono, a una mano: entrar, ver cómo llega a su próxima carrera, cambiar un bloque, poner órdenes, inscribirse, ver una etapa, abrir la general y una ficha, cambiar el maillot y el nombre, perder la red y, si los usa, VoiceOver o TalkBack. Apunta en el PR cada una (`sale a la primera`, `sale con ayuda` o `no sale`) con el modelo y la versión del sistema.
+Las diez tareas de §7.7, en su teléfono, a una mano: entrar, ver cómo llega a su próxima carrera, cambiar un bloque, poner órdenes, inscribirse, ver una etapa, abrir la general y una ficha, cambiar el maillot y el nombre, perder la red y, si los usa, VoiceOver o TalkBack. Apunta en el PR cada una (`sale a la primera`, `sale con ayuda` o `no sale`) con el modelo y la versión del sistema. Lo hizo el 8 de noviembre en un Honor 200 Pro con Android 16: la 1, la 3, la 5 y la 7, a la primera; la 9, con el aviso, al apagar también el wifi (en modo avión, Android lo deja encendido); la 6, con sus mandos, pero sin la experiencia que pidió, la del último km, que es W5; la 2 y la 4 no se pudieron probar (sin carrera en las próximas cuatro semanas), la 8 no aplica (sin equipo) y la 10 no la usa. Ninguna dio `no sale`, y el dueño cerró E3 ese día.
 
 ### El riesgo del despliegue
 
