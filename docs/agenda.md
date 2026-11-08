@@ -561,6 +561,12 @@ instalable y legible en móvil va en E3, el aviso por notificación va en E4, y 
 comisión va en E8. Se revisa cuando el juego esté acabado y haya datos de uso; si entonces la mitad
 de los jugadores entran desde el teléfono y piden app, se construye con criterio y no por corazonada.
 
+**Lo cambió el dueño el 22 de octubre de 2026**, durante el diseño de E3: «pronto haremos app, así
+que quita la web instalable» (D-00p de `docs/visual.md`). No hay web instalable, porque habrá app: E3
+no hace el manifiesto, el service worker ni el aviso de instalar, y se queda con lo que vale sin
+ellos (la conducta sin red, el peso y el teléfono como criterio de aceptación). El aviso al teléfono
+de E4 llegará con la app, y la comisión de las tiendas, la advertencia de E8, deja de ser hipotética.
+
 #### 4.15.2 Amistades y enemistades entre corredores: sí, pero NO como bonificación
 
 La otra idea del dueño, con sus dudas incluidas: que un ciclista se haga amigo de otro y entonces

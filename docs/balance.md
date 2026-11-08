@@ -18029,3 +18029,37 @@ Mientras la «Last race» re-simule, toda subida de `ENGINE_VERSION` cambia lo q
 **El salto de hasta 138 s (DD-23): ya no está.** `docs/retransmision.md` §3.6 lo midió sobre la v89: un ataque que salía de un grupo de descolgados, por detrás del pelotón, se daba por cazado en su mismo bloque con hueco negativo, y el corredor entraba en el pelotón con el reloj del pelotón; el mayor, `race-colombia` e5, semilla 0, km 183,25, 137,7 s. Es el «defecto abierto» de la v90 que **arregló la v91** («El puente desde atrás no hereda el reloj», arriba: 0 puentes cazados al nacer en los cuatro bancos donde la v90 tenía hasta 554), antes de que E2 abriera código. En las seis etapas congeladas de E2, corridas con la v91, los 24 puentes desde atrás (`attack_go` con `detras: 1`) no tienen ni un `attack_reeled` en su mismo km; el único puente cazado en su km es uno del pelotón, en `race-flanders` e1, cazado en 8 s, que es lo que tiene que pasar. DD-23 no tiene nada que decidir. Lo que E2 hizo para tolerarlo, el corredor en tránsito entre dos grupos (`docs/retransmision.md` §3.3, 3-b), se queda: no estorba y vale para cualquier salto de grupo.
 
 **`getBlockReport` cuenta siempre 0 días de carrera (DD-24): sigue.** Cuenta como días de carrera las sesiones con actividad `'carrera'` a secas (`packages/db/src/riders.ts` l. 664), y el tick escribe `carrera:<raceId>:e<n>` (`packages/db/src/stageRun.ts` l. 757 y 831). En producción el informe del bloque dice `0 race days` (`apps/web/src/components/BlockReport.tsx` l. 53-54) y cuenta los días de carrera como de entrenamiento. Su test no lo ve porque siembra `'carrera'` a secas (`packages/db/src/fichaCorredor.test.ts` l. 122); el 8b de E2 lo vela con tests sobre el formato del tick (l. 260-266) y no lo arregla, porque arreglarlo cambia lo que todo jugador ve hoy en su ficha (decisión 19-b). El arreglo es un PR propio que cuente como de carrera las actividades `carrera:*`, cuando el dueño quiera (DD-24, con ese valor por defecto: fuera de E2).
+
+## E3 · Las decisiones cerradas del sistema visual (paso 24, 08/11/2026)
+
+Sin tocar el motor ni subir `ENGINE_VERSION`, que sigue en 91 (`docs/visual.md` §17.1, regla 3). Es la nota que pide `docs/visual.md` §17.24 al cerrar el sistema visual (su D-58, H-12). Las únicas constantes del motor que trae E3 son las tres de la vista previa del plan, ya anotadas en la v91 (§4, «Las que no lee el motor»); lo demás son decisiones de pantalla y de producto, y están todas cerradas. Las del dueño (`docs/visual.md` §19; sus palabras, en `docs/diseno/e3-visual/00-encargo.md` §7):
+
+- **DD-01**, la paleta: A, «manager sobrio» (D-00a).
+- **DD-02**, la letra: la del sistema (D-00a).
+- **DD-03**, la señal de campeón: el nacional viste su bandera, sin estrella, y el mundial es blanco con la estrella del logotipo en arcoíris, en degradado (D-00d, D-00f y D-00m); por ella `SPEC.md` §8 nombra las cinco bandas de la UCI, y verificar la marca es tarea del dueño (§18.3).
+- **DD-04**, el vocabulario del maillot: quince colores y siete figuras, sin dos equipos con el mismo maillot ni uno que se confunda con la bandera de un campeón (D-00e, D-00h y D-00m).
+- **DD-05**, el modo oscuro: opcional y claro por defecto, en `/account` (D-00i; PR 23).
+- **DD-06**, la marca del equipo líder: ninguna (D-00j).
+- **DD-07**, los maillots de los 219 equipos: se traducen una vez, y lo grabado no se repinta (D-00l).
+- **DD-08**, el maillot de un humano que choca con el de un NPC: cede el NPC (D-00l).
+- **DD-09**, los cambios de maillot: uno por temporada, `KIT_CHANGES_PER_SEASON` = 1 (D-00k).
+- **DD-10**, las palabras de la llegada: `Undertrained` y los ejes `◀ Too much training` y `Too little training ▶`; los cortes de `arrivalLabel` y el motor no cambian (D-00n).
+- **DD-11**, el TSS: fuera de la pantalla y de la API (D-00o).
+- **DD-12**, la moral: en medias estrellas (D-00l).
+- **DD-13**, la barra inferior en `Watch`: se esconde mientras corre, propuesto a E6, que aún no lo ha hecho (D-00l).
+- **DD-14** y **DD-15**, la web instalable: no se hace, porque habrá app, y el aviso al teléfono de E4 pasa a ella (D-00p).
+- **DD-16**, la prueba del teléfono en el CI: sí (D-00q).
+- **DD-17**, los clones de producción: borrados en el PR 1 (D-00q).
+- **DD-18**, la línea `Your country: …`: se queda (D-00l).
+- **DD-19**, el nombre del patrocinador: de una lista cerrada, con su marca de pecho, para E8 (D-00l).
+- **DD-20**, la prueba del dueño en su teléfono: la puerta del cierre, con diez tareas (D-00l).
+- **DD-21**, el filo oscuro de la estrella: `CHAMPION_STAR_EDGE` (D-00l).
+- **DD-22**, el ribete del excampeón: ninguno (D-00l).
+- **DD-23**, las zonas del maillot que se venden: E3 da las cuatro y no vende ninguna; el resto, con E8 (D-00l).
+- **DD-24**, quitar un color o una figura: no se abrió, porque la puerta de D-00e pasó a la primera en el PR 16a.
+- Lo que añadió el orquestador y lo que cuesta lo decidido (`docs/visual.md` §19.5 y §19.6): aceptados el 25 de octubre, «Me parece bien todo».
+
+Y las dos que tomó durante la implementación (`docs/diseno/e3-visual/implementacion.md`, «Decisiones del dueño durante la implementación»):
+
+- **El código de E3 se abre el 25 de octubre de 2026**, en el modo autónomo, PR a PR.
+- **La revisión de `Watch`** (5 y 6 de noviembre): W1 a W4 antes del 22, con la D-16 de `docs/retransmision.md` revocada en W4 (fuera la `Race Radio` y la crónica), y los colores del logotipo, a elección del orquestador; W5, el último km simulado de verdad en el motor, que subirá `ENGINE_VERSION`, va en un encargo propio, «`Watch` como la tele».

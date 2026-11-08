@@ -154,7 +154,7 @@ pnpm --filter @cyclingstar/engine build
 node scripts/race-radio.mjs race-andalusia 1 --riders 119     # banco: la etapa se corre aquí
 DATABASE_URL=… node scripts/race-radio.mjs race-andalusia 1 --db   # producción: replay del snapshot
 ADMIN_TOKEN=… node scripts/race-radio.mjs race-andalusia 1 \
-  --api https://cyclingstar.up.railway.app                    # producción, sin DATABASE_URL
+  --api https://www.cyclingstar.app                           # producción, sin DATABASE_URL
 ```
 
 Con `--db` o `--api` la etapa se re-simula desde `stage_snapshots` (semilla y entrada congeladas) y
@@ -182,7 +182,7 @@ exacta, así que con los dos se puede predecir el desenlace de una etapa antes d
 
 ```sh
 curl -H "x-admin-token: $ADMIN_TOKEN" \
-  https://cyclingstar.up.railway.app/api/admin/stage-snapshot/race-andalusia/1
+  https://www.cyclingstar.app/api/admin/stage-snapshot/race-andalusia/1
 ```
 
 ### Cobertura de tests
