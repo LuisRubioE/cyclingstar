@@ -295,7 +295,7 @@ ciego a todo). Un solo reloj de edad para la misma persona (cierra 1.3.12).
 | 17-24 | 1   | 51-58 | 3   | 84+   | 5   |
 | 25-33 | 1½  | 59-66 | 3½  |       |     |
 
-> **Recalibrada en octubre de 2026.** Los cortes enteros pasan a 22 / 42 / 58 / 74 / 92 y las medias a 11 / 32 / 50 / 66 / 83, para que un 90 se lea como cuatro y media y un 76,5 como cuatro. El banco de mundo conserva la escala de esta tabla para sus listones (`BENCH_STAR_CUTS`). Detalle en `docs/balance.md` «La escala de estrellas de los atributos, recalibrada».
+> **Recalibrada en octubre de 2026.** El dueño fijó la escala el día 2: media estrella cada diez puntos, `ceil((x − 5) / 10) / 2` (`attrStars` en `packages/shared/src/rider.ts`), así que hasta 5 son cero estrellas, de más de 5 a 15 media, y así de diez en diez hasta cuatro y media, de más de 85 a 95; cinco, solo por encima de 95. Un 90 se lee como cuatro y media y un 76,5 como cuatro; los cortes 22 / 42 / 58 / 74 / 92 de la recalibración anterior no llegaron a producción. El banco de mundo conserva la escala de esta tabla para sus listones (`BENCH_STAR_CUTS`). Detalle en `docs/balance.md` «La escala de estrellas, otra vez: medias estrellas cada diez puntos (02/10/2026)».
 
 ```ts
 export function attrStars(x: number): number // 0..5 en pasos de 0,5 (CAMBIA de escala)
@@ -1090,13 +1090,17 @@ suelo de «hundido» es **−35 y no −25**: a −30 `tsbFactor` todavía vale 
 `tsbFactor` sino `STAGE.matchTsbPenaltyThreshold` (`constants.ts:1964`), el umbral de cerillos; se usa
 solo como matiz de copia dentro de «cargado».
 
-| Etiqueta | TSB       | UI      | Qué quiere decir                                      |
-| -------- | --------- | ------- | ----------------------------------------------------- |
-| pasado   | ≥ +18     | Stale   | descansado de más                                     |
-| a punto  | +5 … +18  | Peaking | el pico                                               |
-| fresco   | −10 … +5  | Fresh   | bien                                                  |
-| cargado  | −35 … −10 | Loaded  | por debajo de −25 el motor además te quita un cerillo |
-| hundido  | < −35     | Buried  | `tsbFactor` = 0: el motor no te da nada               |
+Lo que hay hoy (`arrivalLabel`, `projection.ts:75-81`, y `ARRIVAL_WORD` en la web): los cortes
+quedaron en +25, +5, −10 y −30, y el tramo más fresco se llama `Undertrained` desde E3 (antes
+`Rusty`; D-00n de `docs/visual.md`), con los ejes `◀ Too much training` y `Too little training ▶`:
+
+| Etiqueta | TSB       | UI           | Qué quiere decir                                      |
+| -------- | --------- | ------------ | ----------------------------------------------------- |
+| oxidado  | > +25     | Undertrained | descansado, pero sin forma: entrenó de menos          |
+| perfecto | +5 … +25  | Spot on      | el pico                                               |
+| bien     | −10 … +5  | Fine         | bien                                                  |
+| cargado  | −30 … −10 | Loaded       | por debajo de −25 el motor además te quita un cerillo |
+| fundido  | < −30     | Cooked       | `tsbFactor` de 0,11 a 0: el motor casi no te da nada  |
 
 **`raceRhythm` se define AQUÍ, y sale de Banister, no de un contador aparte.** `tactica.md` R08.4
 mete un segundo estado de forma —`raceRhythm ∈ [0,1]` «por días sin dorsal», que sube el coste de
@@ -1695,7 +1699,11 @@ de `db`; `Date.now()` y `Math.random()` siguen prohibidos.
 #### Estado de implementación (actualizado tras la v63)
 
 Las veintitrés recomendaciones están aceptadas por el dueño y **todas implementadas**, cada una con
-su medición en `docs/balance.md` «v59 §0-§12», «v62» y «v63». Dos quedaron rezagadas y se cerraron en
+su medición en `docs/balance.md` «v59 §0-§12», «v62» y «v63», **salvo lo que queda de la API y la
+web del entrenador** (§5.5, «API y web»): la razón del entrenador por día y la desviación del
+jugador informada («el entrenador proponía descanso: post-vuelta»), que piden a `coachPlan` un campo
+que hoy no da; E3 da los días resueltos (`days[]` en `GET /orders`) y deja esas dos a la línea de
+entrenamiento (`docs/visual.md` §11.1). Dos quedaron rezagadas y se cerraron en
 la v63 con su propia tanda y su propia medición, para no mezclar causas: la **25** (`SPRINTER_MIN`
 pasa al p75 del campo del día) y la **22** (offset RES del gregario −4 → −2).
 

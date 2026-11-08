@@ -180,7 +180,7 @@ export interface PublicRider {
  *
  * SE LLAMABA `stars` Y HABÍA QUE RENOMBRARLA (docs/entrenamiento.md §2.3). Con `attrStars` en
  * la casa conviven dos funciones de medias estrellas que dan números DISTINTOS para el mismo valor
- * —`stars(92) = 4.5`, `attrStars(92) = 5`— y con el nombre genérico era cuestión de tiempo que
+ * (`stars(85) = 4.5`, `attrStars(85) = 4`), y con el nombre genérico era cuestión de tiempo que
  * alguien pintara un atributo con la escala de la forma sin enterarse.
  *
  * No es un descuido que sean distintas: la forma es una magnitud continua de 0 a 100 sin umbrales

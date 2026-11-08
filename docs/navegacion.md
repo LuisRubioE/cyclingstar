@@ -467,11 +467,11 @@ volcar 176 filas.
 > y uno azul al que vaya primero en la montaña.» «Ah, falta la clasificación por equipos.»
 > — el dueño, agosto 2026.
 
-**Tres maillots y un dorsal.** Amarillo (general), verde (puntos) y azul (montaña) los lleva un
+**Tres maillots y ningún dorsal.** Amarillo (general), verde (puntos) y azul (montaña) los lleva un
 CORREDOR y son excluyentes entre sí, con prioridad amarillo > verde > azul. El equipo líder de la
-clasificación por equipos NO lleva maillot: sus corredores llevan **dorsal amarillo**, como en el
-Tour, así que se dibuja un dorsal y **no entra en la cadena de prioridad** —se puede ir de amarillo
-y llevar dorsal amarillo a la vez, y es lo normal—.
+clasificación por equipos NO lleva maillot ni otra marca: el **dorsal amarillo** del Tour que
+llevaban sus corredores lo mandó quitar el dueño el 15 de agosto de 2026 (en su teléfono se leía
+«Ill»), y no vuelve nada en su lugar (`docs/visual.md` §9.8, D-00j).
 
 **Cuando dos maillots caen en el mismo hombre, el segundo pasa al siguiente** de su clasificación
 (regla real: en carretera el maillot lo lleva alguien). Encadenado hasta donde haga falta. Toda esa
@@ -483,14 +483,17 @@ etapa 1 (se ganan el día anterior) y para quien abandonó (ya no está clasific
 
 **Qué clasificación manda, que es el detalle que hace que la frase sea verdad:**
 
-| Dónde                                                    | Qué maillot                                             |
-| -------------------------------------------------------- | ------------------------------------------------------- |
-| Crónica de la etapa N (`Report`) y rótulos de su `Watch` | El de tras la **N−1**: el que se llevaba puesto ESE día |
-| Tablas de la etapa N                                     | El de tras la **N**, que es lo que la tabla muestra     |
-| Tablas de la ficha de carrera                            | El de tras la última etapa que quien mira conoce        |
+| Dónde                                                                 | Qué maillot                                             |
+| --------------------------------------------------------------------- | ------------------------------------------------------- |
+| Resultado de la etapa N (`Report` y `Result`) y rótulos de su `Watch` | El de tras la **N−1**: el que se llevaba puesto ESE día |
+| Tablas de la etapa N                                                  | El de tras la **N**, que es lo que la tabla muestra     |
+| Tablas de la ficha de carrera                                         | El de tras la última etapa que quien mira conoce        |
 
-Las dos cosas son ciertas y pueden no coincidir, así que el acta (`Report`) abre con una línea —«On
-the road today»— que dice quién salió con cada maillot. La contradicción aparente se explica sola
+Las dos cosas son ciertas y pueden no coincidir, así que el título del resultado (`Stage result`, en
+`Report` y en `Result`) lleva un `InfoButton`, `About the jerseys on the road`, que dice que son los
+maillots con que se salió a la etapa y que la clasificación de después está en `Classifications`;
+sin maillots en la carretera (la etapa 1, una carrera de un día), el título va solo. Hasta W4 lo
+decía la crónica, en su línea «On the road today». La contradicción aparente se explica sola
 en vez de descubrirse. En `Watch` los maillots de salida van en el rótulo de cada corredor; si la
 N−1 está en el velo de quien mira, la etapa N pinta antes la puerta: su maillot diría quién ganó la
 anterior.
@@ -498,18 +501,21 @@ anterior.
 **En qué tablas se marca: en todas, y también el maillot de la clasificación que la propia tabla
 ordena.** Parece redundante y no lo es: por la regla del «pasa al siguiente», el verde no tiene por
 qué ser la fila 1 de la tabla de puntos. Una sola regla, sin excepciones que memorizar. En la de
-equipos, el dorsal marca al líder de la ACUMULADA en las dos vistas (en la de la etapa, la fila 1 es
-quien mejor lo hizo hoy, que no es quien lleva los dorsales mañana).
+equipos no se marca a nadie (D-00j): la general por equipos dice quién lidera por su orden, y en la
+de la etapa la fila 1 es quien mejor lo hizo hoy, que no es el líder de la ACUMULADA.
 
-**En la crónica, el maillot va dentro de la identidad del corredor** (`riderFull`), delante de la
-bandera: sale así en todas las menciones sin tocar ninguna de las cincuenta plantillas del journal.
+**En la crónica, el maillot va dentro de la identidad del corredor** (`riderFull`), tras el nombre
+(el orden de `docs/visual.md` D-00c: el dorsal, la bandera, el nombre y el maillot, y después el
+equipo): sale así en todas las menciones sin tocar ninguna de las cincuenta plantillas del journal.
 El dorsal del equipo líder **no** entra ahí: medido sobre Race Colombia, saldría de 4 a 13 veces por
 etapa —tanto como los tres maillots juntos— diciendo mucho menos.
+Desde W4 la crónica ya no se pinta en `Report`; la misma identidad sigue en la voz de `Watch` y en
+los momentos de `Your last race`, que redacta el mismo journal.
 
 **Accesibilidad.** El color no distingue por sí solo (amarillo/verde/azul es el trío que peor separa
 una deuteranopia), así que cada maillot lleva además marca de forma —liso, banda, lunares— y los
-cuatro iconos llevan `aria-label` y `<title>`: «Race leader», «Points leader», «Mountains leader»,
-«Leading team». Lo usan también los rótulos de `Watch`.
+tres iconos llevan `aria-label` y `<title>`: «Race leader», «Points leader» y «Mountains leader»
+(«Leading team» se fue con el dorsal). Lo usan también los rótulos de `Watch`.
 
 ---
 
