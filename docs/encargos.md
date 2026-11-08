@@ -180,7 +180,7 @@ el del equipo), y es exactamente el rótulo con el que la televisión presenta a
 
 **Fichero:** `docs/visual.md` · **Tamaño esperado:** mediano
 
-**Estado: EN IMPLEMENTACIÓN desde el 25 de octubre de 2026, sobre el motor v91.** El diseño está en
+**Estado: IMPLEMENTADO (del 25 de octubre al 8 de noviembre de 2026, motor v91).** El diseño está en
 `docs/visual.md`: veintiuna secciones, de la 0 a la 20, y 3.973 líneas, hechas con el
 método de `docs/diseno/README.md` escalado a un documento mediano: cinco mapas del código, de los
 documentos y de las pantallas (con 98 capturas a 360 y a 1.280 px), cuatro propuestas independientes,
