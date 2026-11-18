@@ -326,7 +326,7 @@ function chunksOf(bounds: readonly Ds[], tl: TimelineCore = FULL): BroadcastChun
   for (let i = 1; i < bounds.length; i++) {
     const from = bounds[i - 1]!
     const to = Math.min(bounds[i]!, finish)
-    out.push({ ...chunkOf(tl, from, to), lines: [lineAt(fromDs(to))] })
+    out.push({ ...chunkOf(tl, from, to), sprint: [], lines: [lineAt(fromDs(to))] })
     if (to >= finish) break
   }
   return out
@@ -448,6 +448,20 @@ describe('servedLine · la línea de la web con la cabecera y los tramos (nota 1
     expect(served.core.groups.filter((g) => g.origin === 'start')).toHaveLength(1)
   })
 
+  it('el final del primer grupo (W5b): los fotogramas de cada tramo, en su orden, sin rehacer la línea', () => {
+    const [a, b] = chunksOf([0, 3000, 6000])
+    const one = withChunk(HEAD, servedLineOf(HEAD), { ...a!, sprint: [100, 900, 1, 2, 0, 0] })
+    const two = withChunk(HEAD, one, { ...b!, sprint: [200, 800, 1, 2, 5, 2] })
+    expect(servedLineOf(HEAD).sprint).toEqual([])
+    expect(two.sprint).toEqual([
+      { atDs: 100, toGoM: 900, spots: [{ rider: 2, behindM: 0, role: 'bunch' }] },
+      { atDs: 200, toGoM: 800, spots: [{ rider: 2, behindM: 0.5, role: 'launched' }] },
+    ])
+    expect(shapeOf(two.core)).toEqual(
+      shapeOf(withChunk(HEAD, withChunk(HEAD, servedLineOf(HEAD), a!), b!).core),
+    )
+  })
+
   it('un tramo que no trae nada no cambia lo que se ve', () => {
     const first = withChunk(HEAD, servedLineOf(HEAD), chunksOf([0, 3000, 6000])[0]!)
     const empty: BroadcastChunk = {
@@ -455,6 +469,7 @@ describe('servedLine · la línea de la web con la cabecera y los tramos (nota 1
       fromDs: 3000,
       toDs: 3000,
       lines: [],
+      sprint: [],
     }
     const again = withChunk(HEAD, first, empty)
     expect(shapeOf(again.core)).toEqual(shapeOf(first.core))
@@ -466,6 +481,7 @@ describe('servedLine · la línea de la web con la cabecera y los tramos (nota 1
       fromDs: 0,
       toDs: 900,
       lines: [],
+      sprint: [],
       // [b, g, velocidad·10, pullingTotal, MISHAP_CODE, lostDs, n, (rider, PULL_MOTIVE_CODE, forRider)]
       details: [0, 0, 425, 1, 99, 30, 2, 3, 99, -1, 4, 0, 5],
     }

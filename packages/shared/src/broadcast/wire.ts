@@ -191,6 +191,13 @@ export interface BroadcastChunk {
   } | null
   /** el tramo llega al borde de la meta: lo siguiente es POST …/finish */
   readonly atFinish: boolean
+  /**
+   * EL FINAL DEL PRIMER GRUPO (W5b, `sprint.ts`): los fotogramas del último km con su hora en el tramo,
+   * en registros [atDs, toGoM, n, (rider, behindDm, SPRINT_ROLE_CODE) × n]; nunca el de la línea, que va
+   * con la meta (D-06). Vacío sin final (una línea del formato 1, la crono, el adaptador) y fuera del
+   * último km. La web de antes de W5b no lo lee, y la de después lo toma vacío de una API de antes.
+   */
+  readonly sprint: readonly number[]
 }
 
 /** POST …/broadcast/finish: el paquete de meta (D-06, I-15). */
@@ -205,6 +212,11 @@ export interface BroadcastFinish {
   readonly news: readonly NewsItem[]
   /** los que se cayeron dentro de STAGE.truce.threeKmRuleKm y llegan con el tiempo de su grupo (6-o) */
   readonly threeKmRule: readonly RiderIx[]
+  /**
+   * LA FOTO DE LA LÍNEA (W5b, `sprintPhoto`): los primeros del primer grupo, en el orden de llegada, con
+   * sus metros al ganador; vacía sin final, y de una API de antes de W5b
+   */
+  readonly photo: readonly { readonly rider: RiderIx; readonly behindM: number }[]
 }
 
 /**
@@ -459,6 +471,7 @@ export const broadcastChunkSchema = z.object({
   banners: ints,
   tt: z.object({ starts: ints, km: ints, checks: ints }).nullable(),
   atFinish: z.boolean(),
+  sprint: ints.default([]),
 }) satisfies z.ZodType<BroadcastChunk>
 export const broadcastFinishSchema = z.object({
   arrivals: z.array(z.object({ gapS: z.number().min(0), riders: z.array(ix) })),
@@ -467,6 +480,7 @@ export const broadcastFinishSchema = z.object({
   report: stageReplaySchema,
   news: z.array(newsItemSchema),
   threeKmRule: z.array(ix),
+  photo: z.array(z.object({ rider: ix, behindM: z.number().min(0) })).default([]),
 }) satisfies z.ZodType<BroadcastFinish>
 export const broadcastSeekSchema = z.object({
   chunk: broadcastChunkSchema,

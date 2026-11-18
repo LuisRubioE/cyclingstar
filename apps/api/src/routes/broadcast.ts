@@ -49,6 +49,8 @@ import {
   photoBlocksOf,
   playbackEstimateS,
   seekBodySchema,
+  sprintFramesWire,
+  sprintPhoto,
   stageQuerySchema,
   startStateOf,
   ttPlaybackEstimateS,
@@ -421,7 +423,12 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       // Un tramo no cambia nunca y solo se sirve dentro de lo permitido: el navegador lo guarda (§14.9).
       void reply.header('cache-control', `private, max-age=${BROADCAST.chunkCacheMaxAgeS}`)
       void reply.header('vary', 'Cookie')
-      return { ...chunkOf(tl, q.data.fromDs, toDs), lines } satisfies BroadcastChunk
+      // el final del primer grupo, cada fotograma por su hora y nunca el de la línea (W5b, D-06)
+      return {
+        ...chunkOf(tl, q.data.fromDs, toDs),
+        sprint: sprintFramesWire(tl, q.data.fromDs, toDs),
+        lines,
+      } satisfies BroadcastChunk
     },
   )
 
@@ -474,6 +481,8 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
         // las caídas de la línea grabada (sus `mishap` de estado); el tipo de final, por la etiqueta
         // (en alto, sin la regla), que es lo que la API sabe del `bunchFinish` del motor (6-o)
         threeKmRule: threeKmRuleRiders(tl, a.ctx.spec.label === 'Summit finish'),
+        // la foto de la línea del final del primer grupo (W5b): con la meta, nunca antes (D-06)
+        photo: sprintPhoto(tl).map((s) => ({ rider: s.rider, behindM: s.behindM })),
       } satisfies BroadcastFinish
     },
   )
@@ -536,7 +545,7 @@ export const broadcastRoutes: RoutePlugin = async (app, routeCtx) => {
       for (let b = from; b < toDs; b += CHUNK_DS)
         lines.push(...voice(fromDs(b), fromDs(Math.min(b + CHUNK_DS, toDs))))
       return {
-        chunk: { ...chunkOf(tl, from, toDs), lines },
+        chunk: { ...chunkOf(tl, from, toDs), sprint: sprintFramesWire(tl, from, toDs), lines },
         reachedS: fromDs(destDs),
         written: reached.written,
         rev: reached.rev,

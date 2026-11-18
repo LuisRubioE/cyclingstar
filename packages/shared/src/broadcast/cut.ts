@@ -374,7 +374,11 @@ const byTime = <T>(xs: Timed<T>[]): T[] =>
  * dice que el tramo llega al borde de la meta: después de él no queda nada que servir y lo siguiente es
  * `POST …/finish`.
  */
-export function chunkOf(tl: TimelineCore, fromDs: Ds, toDs: Ds): Omit<BroadcastChunk, 'lines'> {
+export function chunkOf(
+  tl: TimelineCore,
+  fromDs: Ds,
+  toDs: Ds,
+): Omit<BroadcastChunk, 'lines' | 'sprint'> {
   const vis = visibilityOf(tl)
   const inside = (d: Ds | null | undefined): boolean =>
     d !== null &&
