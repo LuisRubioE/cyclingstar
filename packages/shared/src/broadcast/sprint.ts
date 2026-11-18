@@ -7,6 +7,10 @@
  * el metro en que abre su sprint, el que abre más lejos de lo que aguanta sube y cede, el encerrado no
  * sale hasta el final, y entre los que llegan juntos el margen sale de su remate.
  *
+ * NADA DEL RESULTADO ANTES DE `revealFromM` (la revisión de W5b): hasta ahí cada uno va en su sitio de
+ * salida, que no depende de cómo llega, y la escena solo se acerca a la llegada en los últimos metros,
+ * donde la carrera de verdad ya lo está decidiendo. Un fotograma de antes no deja despejar el orden.
+ *
  * Es de la meta: lee `FinishRecord.sprint`, que nunca va en un tramo (D-06). A la web viajan los
  * fotogramas de antes de la línea, cada uno con su hora, la de la marca de reloj del grupo en ese bloque
  * (`sprintFrames`), y la foto de la línea solo con la meta (`sprintPhoto`, `POST …/broadcast/finish`).
@@ -89,16 +93,20 @@ export function startSpotsM(sprint: FinishSprint): number[] {
   return out
 }
 
-/** El metro en que abre de verdad: el encerrado no sale antes de `boxedLaunchM`; null, sin sprint. */
+/**
+ * El metro en que abre en la escena: el encerrado no sale antes de `boxedLaunchM`, y nadie antes de
+ * `revealFromM` (el que abre más lejos, ahí); null, sin sprint.
+ */
 function launchOf(r: FinishSprint['riders'][number]): number | null {
   if (r.launchM === null) return null
-  return Math.min(S.fromM, r.boxed ? Math.min(r.launchM, S.boxedLaunchM) : r.launchM)
+  return Math.min(S.revealFromM, r.boxed ? Math.min(r.launchM, S.boxedLaunchM) : r.launchM)
 }
 
 /**
  * EL FINAL EN UN METRO: dónde va cada uno del primer grupo cuando a su cabeza le quedan `toGoM` metros
  * (de `BROADCAST.sprint.fromM` a 0), en el orden de la carretera, con sus metros tras el primero. A 0 m
- * es la llegada exacta: el orden de `sprint.riders` y sus márgenes (`lineSpotsM`).
+ * es la llegada exacta: el orden de `sprint.riders` y sus márgenes (`lineSpotsM`). Desde `revealFromM`
+ * para arriba, el sitio de salida de cada uno (`startSpotsM`): nada del resultado.
  */
 export function sprintSpots(
   sprint: FinishSprint,
@@ -108,7 +116,6 @@ export function sprintSpots(
   const d = Math.max(0, Math.min(S.fromM, toGoM))
   const fin = lineSpotsM(sprint, lineSpeedMs)
   const start = startSpotsM(sprint)
-  const u = 1 - d / S.fromM
   const index = new Map(sprint.riders.map((r, i) => [r.rider, i] as const))
   const sprinterOf = new Map<RiderIx, number>()
   sprint.riders.forEach((r, i) => r.train.forEach((man) => sprinterOf.set(man, i)))
@@ -119,34 +126,42 @@ export function sprintSpots(
     const own = launchOf(r)
     const j = sprinterOf.get(r.rider)
     const boss = j === undefined ? null : launchOf(sprint.riders[j]!)
+    // el hombre de tren suelta cuando abre su velocista; los demás, en el metro en que abren
+    const release = j !== undefined && boss !== null ? boss : own
+    const hold = r.holdM ?? release
     let role: SprintRole = 'bunch'
+    if (release !== null)
+      role =
+        d > release
+          ? j !== undefined && boss !== null
+            ? 'leadOut'
+            : r.boxed
+              ? 'boxed'
+              : 'bunch'
+          : j === undefined
+            ? 'launched'
+            : 'bunch'
     let at: number
     if (d === 0) at = f
-    else if (own === null) at = s + (f - s) * u
-    else {
-      // el hombre de tren suelta cuando abre su velocista; los demás, en el metro en que abren
-      const release = j !== undefined && boss !== null ? boss : own
-      const atRelease = s + (f - s) * S.drift * (1 - release / S.fromM)
-      const hold = r.holdM ?? release
-      if (d >= release) {
-        at = s + (f - s) * S.drift * u
-        role = j !== undefined && boss !== null ? 'leadOut' : r.boxed ? 'boxed' : 'bunch'
-      } else if (j === undefined && release - hold >= S.fadeMinM) {
-        // abrió más lejos de lo que aguanta: sube hacia la cabeza hasta `hold` y cede después; cuánto
-        // sube, en proporción a lo que abrió de más
-        const reach = S.fadeReach * Math.min(1, (release - hold) / S.fadeFullM)
-        const peak = Math.min(atRelease, f) * (1 - reach)
-        if (d > hold) {
-          at = atRelease + (peak - atRelease) * smooth((release - d) / (release - hold))
-          role = 'launched'
-        } else {
-          at = peak + (f - peak) * smooth((hold - d) / hold)
-          role = 'fading'
-        }
-      } else {
-        at = atRelease + (f - atRelease) * smooth((release - d) / release)
-        role = j === undefined ? 'launched' : 'bunch'
+    else if (release !== null && hold !== null && j === undefined && release - hold >= S.fadeMinM) {
+      // abrió más lejos de lo que aguanta: en su sitio hasta abrir, sube hacia la cabeza hasta `hold` y
+      // cede después; cuánto sube, en proporción a lo que abrió de más
+      const reach = S.fadeReach * Math.min(1, (release - hold) / S.fadeFullM)
+      const peak = Math.min(s, f) * (1 - reach)
+      if (d >= release) at = s
+      else if (d > hold) at = s + (peak - s) * smooth((release - d) / (release - hold))
+      else {
+        at = peak + (f - peak) * smooth((hold - d) / hold)
+        role = 'fading'
       }
+    } else {
+      // hacia su sitio de llegada, con el camino que pide lo que se mueve (sin saltos) y nunca antes de
+      // `revealFromM` (nada del resultado); sin sprint, desde ahí
+      const from =
+        release === null
+          ? S.revealFromM
+          : Math.min(S.revealFromM, Math.max(release, S.smoothPerM * Math.abs(f - s)))
+      at = d >= from ? s : s + (f - s) * smooth((from - d) / from)
     }
     return { rider: r.rider, at, role, i: index.get(r.rider)! }
   })
@@ -167,7 +182,22 @@ interface SprintScene {
   readonly lineSpeedMs: number
   readonly blockM: number
   readonly last: Block
-  readonly marks: readonly (readonly [Block, Ds])[]
+  /** la hora en que se ve cada marca del grupo, por bloque: la de `visibilityOf`, la del corte (D-06) */
+  readonly seen: ReadonlyMap<Block, Ds>
+}
+
+/** La hora en que se ve cada marca de reloj de un grupo, por bloque (`visibilityOf`, como el corte de `chunkOf`). */
+function seenMarksOf(tl: StageTimeline, g: GroupIx): Map<Block, Ds> {
+  const vis = visibilityOf(tl)
+  const out = new Map<Block, Ds>()
+  tl.stateEvents.forEach((e, i) => {
+    if (e.t !== 'clock') return
+    e.marks.forEach(([mg], j) => {
+      const at = vis.clockMarkDs[i]?.[j]
+      if (mg === g && at !== null && at !== undefined) out.set(e.b, at)
+    })
+  })
+  return out
 }
 
 /** Lo que el final necesita de la línea: el grupo del ganador en la línea, sus marcas y la velocidad. */
@@ -181,11 +211,12 @@ function sceneOf(tl: StageTimeline): SprintScene | null {
   const blockM = Math.round(tl.dx * 1000)
   const tLast = markAt(marks, last)
   const tPrev = markAt(marks, last - 1)
-  const lineSpeedMs =
+  const measured =
     tLast !== null && tPrev !== null && tLast > tPrev
       ? blockM / ((tLast - tPrev) / 10)
       : S.lineSpeedMs
-  return { sprint, group, lineSpeedMs, blockM, last, marks }
+  const lineSpeedMs = Math.max(S.lineSpeedMinMs, Math.min(S.lineSpeedMaxMs, measured))
+  return { sprint, group, lineSpeedMs, blockM, last, seen: seenMarksOf(tl, group) }
 }
 
 const framesCache = new WeakMap<StageTimeline, readonly SprintFrame[]>()
@@ -193,9 +224,11 @@ const framesCache = new WeakMap<StageTimeline, readonly SprintFrame[]>()
 /**
  * LOS FOTOGRAMAS DEL FINAL, de `fromM` a la línea sin llegar a ella: uno en cada marca de reloj del grupo
  * del ganador en el último km (cada bloque, `TIMELINE.lastKmMarkBlocks`) y los de `frameExtraM`, con la
- * hora entre las dos marcas que los rodean. Cada uno con los de delante que van en ese grupo en ese
- * bloque (`photoAt`): un fugado al que cazan a 400 m entra en el fotograma de 300. La hora de cada uno es
- * su visibilidad, siempre antes de la línea; la línea, con la meta (`sprintPhoto`). Vacío sin final.
+ * hora entre las dos marcas que los rodean. Cada uno con los de delante que van en ese grupo en la última
+ * marca que ya se ve a su hora (`photoAt`): un fugado al que cazan a 400 m entra en el fotograma de 300, y
+ * el que enlaza en los últimos 100 m no sale en el de 50 (eso, con la meta). La hora de cada uno es la de
+ * su marca en el corte (`visibilityOf`), siempre antes de la línea; la línea, con la meta
+ * (`sprintPhoto`). Vacío sin final.
  */
 export function sprintFrames(tl: StageTimeline): readonly SprintFrame[] {
   const hit = framesCache.get(tl)
@@ -203,19 +236,20 @@ export function sprintFrames(tl: StageTimeline): readonly SprintFrame[] {
   const scene = sceneOf(tl)
   const frames: SprintFrame[] = []
   if (scene !== null) {
-    const { sprint, group, lineSpeedMs, blockM, last, marks } = scene
+    const { sprint, group, lineSpeedMs, blockM, last, seen } = scene
     const points: { toGoM: number; atDs: Ds; b: Block }[] = []
     for (let k = Math.floor(S.fromM / blockM); k >= 1; k--) {
-      const atDs = markAt(marks, last - k)
-      if (atDs !== null) points.push({ toGoM: k * blockM, atDs, b: last - k })
+      const atDs = seen.get(last - k)
+      if (atDs !== undefined) points.push({ toGoM: k * blockM, atDs, b: last - k })
     }
     for (const m of S.frameExtraM) {
       const k = Math.floor(m / blockM)
-      const t0 = markAt(marks, last - k - 1)
-      const t1 = k === 0 ? markAt(marks, last) : markAt(marks, last - k)
-      if (t0 === null || t1 === null || k * blockM === m) continue
+      const t0 = seen.get(last - k - 1)
+      const t1 = seen.get(last - k)
+      if (t0 === undefined || t1 === undefined || k * blockM === m) continue
       const share = ((k + 1) * blockM - m) / blockM
-      points.push({ toGoM: m, atDs: Math.round(t0 + (t1 - t0) * share), b: last - k })
+      // la composición, la de la marca de antes, la que ya se ve a su hora
+      points.push({ toGoM: m, atDs: Math.round(t0 + (t1 - t0) * share), b: last - k - 1 })
     }
     points.sort((a, b) => b.toGoM - a.toGoM)
     for (const p of points) {
@@ -252,13 +286,9 @@ export const SPRINT_ROLE_CODE = {
   fading: 3,
   boxed: 4,
 } as const satisfies Record<SprintRole, number>
-const SPRINT_ROLE_OF_CODE: readonly SprintRole[] = [
-  'bunch',
-  'leadOut',
-  'launched',
-  'fading',
-  'boxed',
-]
+const SPRINT_ROLE_OF_CODE: ReadonlyMap<number, SprintRole> = new Map(
+  (Object.entries(SPRINT_ROLE_CODE) as [SprintRole, number][]).map(([role, code]) => [code, role]),
+)
 
 /**
  * LOS FOTOGRAMAS DE UN TRAMO, en el contrato (`BroadcastChunk.sprint`): los que tienen su hora en
@@ -292,7 +322,7 @@ export function sprintFramesOfWire(flat: readonly number[]): SprintFrame[] {
       spots.push({
         rider: flat[i]!,
         behindM: flat[i + 1]! / 10,
-        role: SPRINT_ROLE_OF_CODE[flat[i + 2]!] ?? 'bunch',
+        role: SPRINT_ROLE_OF_CODE.get(flat[i + 2]!) ?? 'bunch',
       })
     out.push({ atDs, toGoM, spots })
   }

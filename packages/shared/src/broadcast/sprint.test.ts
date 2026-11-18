@@ -112,12 +112,19 @@ describe('el final en un metro (sprintSpots)', () => {
     }
   })
 
-  it('nadie salta: de 10 en 10 m, nadie se mueve más de lo que un sprint da', () => {
-    for (const sprint of [SPRINT, SUMMIT]) {
-      let prev = sprintSpots(sprint, S.fromM)
+  it('nadie salta: de 10 en 10 m, nadie gana ni pierde más de un tercio de lo que avanza la cabeza', () => {
+    // el sprint en llano a 16 m/s y la subida a 6 m/s, la velocidad de cada línea
+    for (const [sprint, speed] of [
+      [SPRINT, 16],
+      [SUMMIT, 6],
+    ] as const) {
+      let prev = sprintSpots(sprint, S.fromM, speed)
       for (let d = S.fromM - 10; d >= 0; d -= 10) {
-        const now = sprintSpots(sprint, d)
-        for (const s of now) expect(Math.abs(s.behindM - behindOf(prev, s.rider))).toBeLessThan(6)
+        const now = sprintSpots(sprint, d, speed)
+        for (const s of now)
+          expect(Math.abs(s.behindM - behindOf(prev, s.rider)), `${s.rider} a ${d} m`).toBeLessThan(
+            3.4,
+          )
         prev = now
       }
     }
@@ -165,11 +172,39 @@ describe('el final en un metro (sprintSpots)', () => {
     )
   })
 
-  it('sin sprint, se van separando hasta sus huecos', () => {
-    const near = sprintSpots(SUMMIT, 500, 6)
-    expect(behindOf(near, 2)).toBeGreaterThan(0)
+  it('sin sprint, en su sitio hasta revealFromM, y desde ahí se van separando hasta sus huecos', () => {
+    const start = startSpotsM(SUMMIT)
+    const at500 = sprintSpots(SUMMIT, 500, 6)
+    SUMMIT.riders.forEach((r, i) => expect(behindOf(at500, r.rider)).toBe(start[i]))
+    const near = sprintSpots(SUMMIT, 150, 6)
+    expect(behindOf(near, 2)).toBeGreaterThan(start[2]!)
     expect(behindOf(near, 2)).toBeLessThan(54)
     for (const s of near) expect(s.role).toBe('bunch')
+  })
+
+  it('NADA DEL RESULTADO ANTES DE revealFromM: dos finales con la misma salida y otra llegada, iguales', () => {
+    // el mismo grupo, los mismos sitios, trenes y lanzamientos; otro orden de llegada, otros remates y huecos
+    const otra: FinishSprint = {
+      ...SPRINT,
+      riders: [...SPRINT.riders]
+        .reverse()
+        .map((r, i) => ({ ...r, score: 1 - i / 50, gapDs: i * 10 })),
+    }
+    for (const d of [S.fromM, 900, 600, S.revealFromM])
+      for (const sprint of [SPRINT, SUMMIT]) {
+        const alt =
+          sprint === SPRINT
+            ? otra
+            : {
+                ...SUMMIT,
+                riders: [...SUMMIT.riders].reverse().map((r, i) => ({ ...r, gapDs: i * 99 })),
+              }
+        const key = (x: FinishSprint): string[] =>
+          sprintSpots(x, d)
+            .map((s) => `${s.rider}:${s.behindM}:${s.role}`)
+            .sort()
+        expect(key(alt), `${sprint.kind} a ${d} m`).toEqual(key(sprint))
+      }
   })
 
   it('determinista', () => {
@@ -181,14 +216,30 @@ describe('el final en un metro (sprintSpots)', () => {
  * La línea de juguete con un final del grupo de cabeza (r0, r1 y r2 van en `mov-1` al final); con
  * `joinAt`, r3 salta del pelotón a `mov-1` en ese bloque del último km.
  */
-function lineWithSprint(sprint: FinishSprint | null, joinAt: number | null = null): StageTimeline {
+function lineWithSprint(
+  sprint: FinishSprint | null,
+  joinAt: number | null = null,
+  lastBlockS: number | null = null,
+): StageTimeline {
   const toy = toyStage()
   const riderIds = toy.riderIds
-  const photos =
+  const joined =
     joinAt === null
       ? toy.photos
       : toy.photos.map((p, b) =>
           b < joinAt ? p : { ...p, groupOf: p.groupOf.map((g, r) => (r === 3 ? 'mov-1' : g)) },
+        )
+  // con `lastBlockS`, el último bloque de `mov-1` en esos segundos tras el de antes
+  const photos =
+    lastBlockS === null
+      ? joined
+      : joined.map((p, b) =>
+          b !== joined.length - 1
+            ? p
+            : {
+                ...p,
+                clockS: { ...p.clockS, 'mov-1': joined[b - 1]!.clockS['mov-1']! + lastBlockS },
+              },
         )
   const { tl } = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 20, lastBlocks: 10 })
   return {
@@ -227,7 +278,8 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
     for (const f of frames) {
       expect(f.spots[0]?.behindM).toBe(0)
       expect(f.spots.length).toBeLessThanOrEqual(S.frameRiders)
-      const groupOf = photoAt(tl, tl.blocks - 1 - Math.floor(f.toGoM / 100)).groupOf
+      // la composición, la de la marca que ya se ve a su hora: la de su bloque, o la de antes entre dos
+      const groupOf = photoAt(tl, tl.blocks - 1 - Math.ceil(f.toGoM / 100)).groupOf
       for (const s of f.spots) expect(groupOf[s.rider]).toBe(groupOf[0])
     }
   })
@@ -237,11 +289,23 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
       kind: 'sprint_reducido',
       riders: [...TOY.riders, rider(3, { launchM: 150, holdM: 200, place: 0, score: 0.8 })],
     }
-    const join = lineWithSprint(conR3, 55)
+    // enlaza en el bloque de los 200 m: el fotograma de 250, con la composición de los 300, aún no lo lleva
+    const join = lineWithSprint(conR3, 57)
     for (const f of sprintFrames(join)) {
       const dentro = f.spots.some((x) => x.rider === 3)
-      expect(dentro, `${f.toGoM} m`).toBe(join.blocks - 1 - Math.floor(f.toGoM / 100) >= 55)
+      expect(dentro, `${f.toGoM} m`).toBe(join.blocks - 1 - Math.ceil(f.toGoM / 100) >= 57)
     }
+  })
+
+  it('la velocidad de la línea, acotada: un último bloque de una décima no pone a nadie a cientos de metros', () => {
+    const conHueco: FinishSprint = {
+      ...TOY,
+      riders: [...TOY.riders.slice(0, 2), { ...TOY.riders[2]!, gapDs: 10 }],
+    }
+    const rapida = sprintPhoto(lineWithSprint(conHueco, null, 0.1))
+    expect(rapida.at(-1)!.behindM).toBeLessThanOrEqual(S.lineSpeedMaxMs * 1)
+    const normal = sprintPhoto(lineWithSprint(conHueco))
+    expect(normal.at(-1)!.behindM).toBeLessThan(S.lineSpeedMaxMs)
   })
 
   it('la foto, los `frameRiders` primeros de la llegada', () => {

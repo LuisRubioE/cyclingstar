@@ -167,12 +167,15 @@ export const BROADCAST = {
     marginPerScoreM: 50, // m de margen en la línea por unidad de remate de diferencia: un 1 %, medio metro
     minMarginM: 0.3, // m: el margen más corto entre dos que cruzan juntos (media rueda)
     maxMarginM: 4, // m: el más largo entre dos que cruzan juntos (dos bicicletas)
-    drift: 0.15, // parte del camino a su sitio de llegada que hace antes de abrir quien aún no abre
+    revealFromM: 300, // m a meta desde los que la escena se acerca a la llegada; antes, cada uno en su sitio, sin nada del resultado (D-06)
     boxedLaunchM: 60, // m a meta: el encerrado no sale antes
+    smoothPerM: 5, // m de camino por cada m que gana o pierde sobre la cabeza: en el pico, nadie se mueve más de un 30 % de lo que avanza
     fadeMinM: 30, // m abiertos de más sobre lo que aguanta desde los que se ve que cede (el motor cobra cada metro; lo pequeño apenas cuenta)
     fadeReach: 0.7, // parte del camino hacia la cabeza que hace, antes de ceder, el que abre `fadeFullM` o más de lo que aguanta
     fadeFullM: 150, // m de más desde los que sube todo `fadeReach`; por debajo, en proporción
     lineSpeedMs: 16, // m/s en la línea si la línea no da la velocidad de la cabeza
+    lineSpeedMinMs: 5, // m/s: la velocidad de la línea, entre esto…
+    lineSpeedMaxMs: 25, // …y esto (un cambio de cabeza en el último bloque no da 500 m/s)
     frameRiders: 12, // corredores de cada fotograma y de la foto de la línea: los de delante
     frameExtraM: [250, 150, 50], // m a meta de los fotogramas entre dos marcas de bloque
   },
