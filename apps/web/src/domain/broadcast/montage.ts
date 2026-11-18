@@ -33,6 +33,7 @@ import {
 } from '@cyclingstar/shared'
 import { formatTime } from '../format'
 import { climbCatText, cueText, raceClockText } from './screen'
+import { marginWords, sprintGapText } from './sprintView'
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
@@ -193,17 +194,20 @@ function jerseyRowsOf(head: BroadcastHead): { jersey: JerseyKind | null; text: s
 
 // ------------------------------------------------------------------------------ la llegada (§8.7)
 
-/** Un cuadro de la llegada (§8.7): el ganador, un grupo que llega o el fuera de control, con lo que dura. */
+/** Un cuadro de la llegada (§8.7): la foto de la línea (W5c), el ganador, un grupo que llega o el fuera de control, con lo que dura. */
 export interface ArrivalCard {
-  readonly k: 'winner' | 'group' | 'time_cut'
+  readonly k: 'photo' | 'winner' | 'group' | 'time_cut'
   readonly title: string
   readonly detail: string
-  /** s de pared: `finishFreezeS` el ganador, `cueHoldS[1]` un grupo, `cueHoldS[2]` el fuera de control */
+  /** s de pared: `finishFreezeS` la foto y el ganador, `cueHoldS[1]` un grupo, `cueHoldS[2]` el fuera de control */
   readonly holdS: number
 }
 
+/** Metros entre los dos primeros por debajo de los cuales la llegada lleva su foto (W5c): una bicicleta. */
+export const PHOTO_FINISH_MAX_M = 1.8
+
 /**
- * LA LLEGADA (§8.7, pasos 3 a 5): el ganador; los grupos que llegan detrás con un corredor del espectador,
+ * LA LLEGADA (§8.7, pasos 3 a 5): la foto de la línea, si es apretada (W5c); el ganador; los grupos que llegan detrás con un corredor del espectador,
  * un maillot de líder o uno de los `namedGcTop` primeros de la salida, en orden de llegada, cada uno con la
  * palabra del grupo que llevaba a la mayoría de los suyos en el último instante (`last`), o sus nombres si
  * son tres o menos (con `same time (3 km rule)`, 6-o); y el fuera de control, si lo hay. Tras `Show result`
@@ -218,6 +222,27 @@ export function arrivalCardsOf(
   const { cast } = head
   const byId = new Map(cast.map((c) => [c.id, c] as const))
   const cards: ArrivalCard[] = []
+  // LA FOTO DE LA LÍNEA (W5c): con menos de una bicicleta entre los dos primeros, antes del ganador, como
+  // la tele; con el margen en sus palabras y los tres primeros. En el digest, solo el ganador (§8.8)
+  const [first, second, third] = finish.photo
+  if (
+    !opts.digest &&
+    first !== undefined &&
+    second !== undefined &&
+    second.behindM < PHOTO_FINISH_MAX_M
+  ) {
+    const who = (r: RiderIx): string => cast[r]?.name ?? riderShort(cast, r)
+    cards.push({
+      k: 'photo',
+      title: 'PHOTO FINISH',
+      detail: [
+        `${who(first.rider)} ${marginWords(second.behindM)}`,
+        `2 ${who(second.rider)}`,
+        ...(third === undefined ? [] : [`3 ${who(third.rider)} ${sprintGapText(third.behindM)}`]),
+      ].join(' · '),
+      holdS: BROADCAST.finishFreezeS,
+    })
+  }
   const winner = finish.result.find((r) => !r.dnf && r.puesto === 1)
   if (winner !== undefined) {
     const bib = byId.get(winner.riderId)?.bib

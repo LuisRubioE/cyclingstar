@@ -51,7 +51,7 @@ export interface TelefonoPantalla {
   readonly waitMs?: number
 }
 
-/** La etapa en línea de `Watch` del mapa 05: las pantallas 08, 09, 10 y 36. */
+/** La etapa en línea de `Watch` del mapa 05: las pantallas 08, 09, 10 y 36; y la 48, su último km (W5c). */
 const ETAPA = '/world/races/race-valencia/stages/3'
 
 /**
@@ -67,6 +67,18 @@ const saltaYPara =
     await page.getByRole('button', { name: salto, exact: true }).first().click()
     await page.getByRole('button', { name: 'Pause', exact: true }).first().click()
   }
+
+/**
+ * EL ÚLTIMO KM COMO EN LA TELE (W5c): `Last km` y, cuando el panel del final ya está (sus fotogramas
+ * llegan con el tramo siguiente al salto), `Pause`: siempre el mismo panel, el de su primer fotograma.
+ */
+const alSprint = async (page: Page): Promise<void> => {
+  await page.getByRole('button', { name: 'Play', exact: true }).first().click()
+  await page.getByRole('button', { name: 'More', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Last km', exact: true }).first().click()
+  await page.locator('[data-ui="SprintBoard"]').first().waitFor({ timeout: 60_000 })
+  await page.getByRole('button', { name: 'Pause', exact: true }).first().click()
+}
 
 /** La 25: otro papel en la primera etapa de las órdenes, sin guardar. */
 async function cambiaElPapel(page: Page): Promise<void> {
@@ -169,6 +181,14 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
     tool: false,
     barra: true,
     prepare: saltaYPara('+5 km'),
+  },
+  {
+    id: '48-stage-watch-sprint',
+    path: ETAPA,
+    account: 'visitante',
+    answer: 'FixedOverlay',
+    tool: false,
+    prepare: alSprint,
   },
   {
     id: '10-stage-report',
