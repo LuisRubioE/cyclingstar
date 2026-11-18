@@ -309,9 +309,10 @@ describe('las rutas de la retransmisión (§14.2)', () => {
 
   it('el mundo: la 1 y la 2 tienen su línea grabada, y la 3 no tiene fila', async () => {
     const rows = await t.db.select().from(stageTimelines)
+    // el formato 2 desde W5: la meta lleva el final del primer grupo
     expect(rows.map((r) => [r.stageDay, r.format]).sort()).toEqual([
-      [1, 1],
-      [2, 1],
+      [1, 2],
+      [2, 2],
     ])
   })
 

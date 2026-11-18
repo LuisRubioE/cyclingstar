@@ -611,7 +611,8 @@ describe('B6 · la crono más larga de 176 corredores del calendario (15-i, 16-n
 
   it('las constantes de la línea son las de §15.2', () => {
     expect(TIMELINE).toEqual({
-      format: 1,
+      // el 2 desde W5: la meta lleva el final del primer grupo
+      format: 2,
       keyPhotoKm: 10,
       lastKmMarkBlocks: 10,
       gzipLevel: 9,

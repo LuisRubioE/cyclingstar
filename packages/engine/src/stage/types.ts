@@ -5,6 +5,7 @@
  *
  * Paso 21: andamiaje. La física (6.4-6.14) llega a partir del Paso 22.
  */
+import type { FinishType } from './finish.js'
 import type { Attribute } from '@cyclingstar/shared'
 import type { StageMaterial } from './weather.js'
 import type { RaceContext, StandingRow, TacticFlags } from './views.js'
@@ -655,6 +656,44 @@ export interface StageOutput {
    * movimiento nace; si vale veinte, la cuerda es una bombilla parpadeando. Banda: 0,5-4 por etapa.
    */
   customsRevisions: number
+  /** EL FINAL DEL GRUPO DE CABEZA (W5, paso 1): lo que la meta ya calcula, para que `Watch` lo enseñe. */
+  finalSprint?: FinalSprint
+}
+
+/** Un corredor del final del grupo de cabeza (W5, paso 1). No cambia ninguna cuenta: se lee de la meta. */
+export interface FinalSprintRider {
+  riderId: string
+  /** los hombres de su tren que cuentan en la meta (en el grupo y con trabajo reciente), por id; vacío, sin tren */
+  tren: string[]
+  /** a cuántos metros de la meta abre el sprint, redondeado; null si el final no es de sprint */
+  lanzaM: number | null
+  /** cuántos metros aguanta su sprint, redondeado; null si el final no es de sprint */
+  aguantaM: number | null
+  /**
+   * su sitio en el grupo al remate, de 0 (cabeza) a 1 (cola), a milésimas: su colocación (`placement`)
+   * con lo que le suman el maillot y el marcaje del favorito cuando la colocación cuenta en el remate
+   * (un grupo de más de `STAGE.finishBunchMinRiders`, con `STAGE.placement.enabled`); si no, su
+   * colocación sin más. Puede pasar de 1
+   */
+  sitio: number
+  /** sin hueco para sprintar: le resta (`STAGE.placement.boxedEffect`) */
+  encerrado: boolean
+  /**
+   * su remate sobre el del primero del grupo, a milésimas: lo que separa en la línea a los que llegan
+   * juntos (el primero, 1; puede pasar de 1 quien llega estirado, que entra por detrás por su hueco)
+   */
+  remate: number
+  /** su puesto en la etapa, el de `results` */
+  puesto: number
+  /** segundos tras el primero del grupo */
+  huecoS: number
+}
+
+/** El final del primer grupo que llega (W5, paso 1): su tipo, si es de sprint y sus corredores en orden. */
+export interface FinalSprint {
+  type: FinishType
+  sprint: boolean
+  riders: FinalSprintRider[]
 }
 
 /** Cómo terminó el tanque de un corredor (SPEC 6.6, 6.7). */
