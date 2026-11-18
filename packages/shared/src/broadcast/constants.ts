@@ -157,6 +157,30 @@ export const BROADCAST = {
   barHz: 4, // repintados por segundo de la capa fija y de la barra. S/E: la medida a mano del paso 10 puede bajar barHz
   decodedCacheEntries: 16, // entradas del LRU de líneas decodificadas por (raceKey, stageDay) en la API. M: de 8 a 30 MB (con 64, de 33 a 121: §5.6, 18-d)
   chunkCacheMaxAgeS: 3600, // s de Cache-Control: private, max-age de un tramo: el dato es inmutable y solo se sirve dentro de lo permitido
+
+  // EL ÚLTIMO KM COMO EN LA TELE (W5b, `sprint.ts`). Ponen en escena el final que decidió el motor: no cambian la carrera
+  // ni lo grabado, y en la línea siempre queda la llegada exacta. S/E: los ajusta W5d con el dueño delante.
+  sprint: {
+    fromM: 1000, // m a meta desde los que se pinta el final del primer grupo
+    lanes: 3, // corredores por fila del grupo al empezar el último km
+    rowM: 2, // m entre dos filas
+    jostleM: 1.2, // m: lo que va y viene cada uno (con su tren) en la aproximación; su fase sale de su RiderIx, nunca del resultado
+    jostleWavesM: [470, 290], // m de recorrido de las dos ondas de ese vaivén
+    marginPerScoreM: 50, // m de margen en la línea por unidad de remate de diferencia: un 1 %, medio metro
+    minMarginM: 0.3, // m: el margen más corto entre dos que cruzan juntos (media rueda)
+    maxMarginM: 4, // m: el más largo entre dos que cruzan juntos (dos bicicletas)
+    revealFromM: 300, // m a meta desde los que la escena se acerca a la llegada; antes, cada uno en su sitio, sin nada del resultado (D-06)
+    boxedLaunchM: 60, // m a meta: el encerrado no sale antes
+    smoothPerM: 5, // m de camino por cada m que gana o pierde sobre la cabeza: en el pico, nadie se mueve más de un 30 % de lo que avanza
+    fadeMinM: 30, // m abiertos de más sobre lo que aguanta desde los que se ve que cede (el motor cobra cada metro; lo pequeño apenas cuenta)
+    fadeReach: 0.7, // parte del camino hacia la cabeza que hace, antes de ceder, el que abre `fadeFullM` o más de lo que aguanta
+    fadeFullM: 150, // m de más desde los que sube todo `fadeReach`; por debajo, en proporción
+    lineSpeedMs: 16, // m/s en la línea si la línea no da la velocidad de la cabeza
+    lineSpeedMinMs: 5, // m/s: la velocidad de la línea, entre esto…
+    lineSpeedMaxMs: 25, // …y esto (un cambio de cabeza en el último bloque no da 500 m/s)
+    frameRiders: 12, // corredores de cada fotograma y de la foto de la línea: los de delante
+    frameExtraM: [250, 150, 50], // m a meta de los fotogramas entre dos marcas de bloque
+  },
 } as const
 
 /** El modo sin destripe (§10, §11). Los días de juego son cuatro por día real (el tick de 6 h). */

@@ -44,6 +44,7 @@ import {
   PULL_MOTIVE_CODE,
   type PullMotive,
   type RiderIx,
+  type SprintFrame,
   type StateEvent,
   type TimelineCore,
   type TimelineEvent,
@@ -51,6 +52,7 @@ import {
   fromDs,
   fromKm10,
   instantAt,
+  sprintFramesOfWire,
   visibilityOf,
 } from '@cyclingstar/shared'
 
@@ -83,6 +85,8 @@ export interface ServedLine {
   readonly core: TimelineCore
   /** la voz de los tramos, en su orden (cada tramo la trae por su `revealS`, §14.3) */
   readonly lines: readonly LiveLine[]
+  /** el final del primer grupo (W5b): los fotogramas de los tramos, en su orden, por su hora */
+  readonly sprint: readonly SprintFrame[]
   /** el `toDs` del último tramo juntado; 0 antes del primero */
   readonly toDs: Ds
   /** lo recibido, para rehacer la línea con el tramo siguiente */
@@ -106,7 +110,7 @@ const NO_PARTS: ServedParts = {
 
 /** La línea antes del primer tramo: solo la cabecera, y en ella el grupo de salida con todos (3-f). */
 export function servedLineOf(head: BroadcastHead): ServedLine {
-  return { core: coreOf(head, NO_PARTS), lines: [], toDs: 0, parts: NO_PARTS }
+  return { core: coreOf(head, NO_PARTS), lines: [], sprint: [], toDs: 0, parts: NO_PARTS }
 }
 
 /** La línea con un tramo más. Pura: devuelve otra y no toca la de entrada. */
@@ -133,6 +137,7 @@ export function withChunk(
   return {
     core: coreOf(head, parts),
     lines: [...line.lines, ...chunk.lines],
+    sprint: [...line.sprint, ...sprintFramesOfWire(chunk.sprint)],
     toDs: Math.max(line.toDs, chunk.toDs),
     parts,
   }

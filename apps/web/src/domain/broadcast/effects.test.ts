@@ -48,6 +48,7 @@ const chunkTo = (toDs: Ds, atFinish = false): BroadcastChunk => ({
   banners: [],
   tt: null,
   atFinish,
+  sprint: [],
 })
 const FINISH = { arrivals: [] } as unknown as BroadcastFinish
 

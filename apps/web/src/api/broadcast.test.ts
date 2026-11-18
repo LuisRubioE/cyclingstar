@@ -44,6 +44,7 @@ const emptyChunk: BroadcastChunk = {
   banners: [],
   tt: null,
   atFinish: false,
+  sprint: [],
 }
 
 afterEach(() => {
