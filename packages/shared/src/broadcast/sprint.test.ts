@@ -3,6 +3,7 @@ import { type SynthPhoto, synthLine, toyStage } from './__fixtures__/syntheticLi
 import { BROADCAST } from './constants.js'
 import { photoAt, visibilityOf } from './index.js'
 import {
+  approachKeyOf,
   approachOfM,
   approachSpotsM,
   lineSpotsM,
@@ -109,6 +110,43 @@ describe('el principio del último km (startSpotsM)', () => {
   })
 })
 
+describe('el orden público de la aproximación (approachKeyOf)', () => {
+  // doce en cuatro equipos de tres; favoritos de la etapa, el 7 y el 2; la general, el 10 y el 4
+  const riders = Array.from({ length: 12 }, (_, r) => ({
+    rider: r,
+    team: Math.floor(r / 3),
+    start: { gcRank: r === 10 ? 1 : r === 4 ? 2 : null },
+  }))
+  const cast = { riders, favourites: [{ rider: 7 }, { rider: 2 }] }
+  const sorted = (key: (r: number) => number, rs: readonly number[]): number[] =>
+    [...rs].sort((a, b) => key(a) - key(b) || a - b)
+
+  it('delante los favoritos, cada uno con dos de su equipo por delante; luego la general', () => {
+    const order = sorted(approachKeyOf(cast, 33), [...Array(12).keys()])
+    expect(order.slice(0, 3).sort()).toEqual([6, 7, 8])
+    expect(order[2]).toBe(7)
+    expect(order.slice(3, 6).sort()).toEqual([0, 1, 2])
+    expect(order[5]).toBe(2)
+    expect(order.slice(6, 8)).toEqual([10, 4])
+  })
+
+  it('los demás, por una tirada de la etapa: en otra etapa, otro orden', () => {
+    const muchos = {
+      riders: Array.from({ length: 40 }, (_, r) => ({
+        rider: r,
+        team: null,
+        start: { gcRank: null },
+      })),
+      favourites: [],
+    }
+    const todos = [...Array(40).keys()]
+    expect(sorted(approachKeyOf(muchos, 1), todos)).not.toEqual(
+      sorted(approachKeyOf(muchos, 2), todos),
+    )
+    expect(sorted(approachKeyOf(muchos, 1), todos)).toEqual(sorted(approachKeyOf(muchos, 1), todos))
+  })
+})
+
 describe('el final en un metro (sprintSpots)', () => {
   it('en la línea, la llegada exacta: el orden y los márgenes', () => {
     for (const [sprint, speed] of [
@@ -158,7 +196,10 @@ describe('el final en un metro (sprintSpots)', () => {
   })
 
   it('el que abre más lejos de lo que aguanta sube y cede', () => {
-    const at = (d: number): number => behindOf(sprintSpots(SPRINT, d), 1)
+    // el 1 sale de la última fila (la clave de la aproximación lo pone detrás de todos)
+    const atrás = (r: number): number => (r === 1 ? 99 : r)
+    const at = (d: number): number =>
+      behindOf(sprintSpots(SPRINT, d, S.lineSpeedMs, undefined, atrás), 1)
     expect(at(230)).toBeLessThan(at(320))
     expect(at(0)).toBeGreaterThan(at(230))
     expect(sprintSpots(SPRINT, 100).find((s) => s.rider === 1)!.role).toBe('fading')
@@ -278,6 +319,11 @@ describe('el final en un metro (sprintSpots)', () => {
     expect(sprintSpots(SPRINT, S.revealFromM).find((s) => s.rider === 2)!.role).toBe('boxed')
   })
 
+  it('el orden de la llegada se ve antes de la línea: desde settleM, cada uno en su sitio', () => {
+    for (const d of [S.settleM, 10, 1])
+      expect(order(sprintSpots(SPRINT, d)), `${d} m`).toEqual(SPRINT.riders.map((r) => r.rider))
+  })
+
   it('determinista', () => {
     expect(sprintSpots(SPRINT, 237)).toEqual(sprintSpots(SPRINT, 237))
   })
@@ -377,7 +423,7 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
 
   it('cada 100 m y los de entre medias, a la hora de la capa fija, hasta los 100 m y nunca en la línea', () => {
     expect(frames.map((f) => f.toGoM)).toEqual([
-      900, 800, 700, 600, 500, 400, 300, 250, 200, 150, 100,
+      900, 800, 700, 600, 500, 400, 300, 250, 200, 150, 100, 75,
     ])
     // la capa pone a la cabeza en el centro de su bloque: a 900 m, a mitad entre las marcas de 50 y 51
     const v = visibilityOf(tl)
@@ -390,10 +436,11 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
       return out
     }
     // `mov-1` hace 9 s por bloque: a 900 m, medio bloque tras su marca del 50, que ya se ve; a 250 m, en
-    // la del 57; a 100 m, medio bloque tras la del 58, sin la marca de la línea
+    // la del 57; a 100 m, medio bloque tras la del 58, y a 75 m, tres cuartos, sin la marca de la línea
     expect(frames[0]!.atDs).toBe(seen(50) + 45)
     expect(frames.find((f) => f.toGoM === 250)!.atDs).toBe(seen(57))
-    expect(frames.at(-1)!.atDs).toBe(seen(58) + 45)
+    expect(frames.find((f) => f.toGoM === 100)!.atDs).toBe(seen(58) + 45)
+    expect(frames.at(-1)!.atDs).toBe(Math.round(seen(58) + 67.5))
     // y cada uno, después de la marca de la que sale: nunca con una que aún no se ve
     for (const f of frames)
       expect(f.atDs).toBeGreaterThanOrEqual(seen(compositionBlock(tl, f.toGoM)))

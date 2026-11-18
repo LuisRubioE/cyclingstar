@@ -84,21 +84,76 @@ export function lineSpotsM(sprint: FinishSprint, lineSpeedMs: number): number[] 
   return out
 }
 
-/** La tirada fija de la salida: un número por RiderIx, que no sale del resultado. */
-const startKey = (rider: RiderIx): number => (rider * 0.7548776662) % 1
+/** Una tirada fija por RiderIx y etapa (`salt`), de 0 a 1: no sale del resultado. */
+function saltedKey(rider: RiderIx, salt: number): number {
+  let h = Math.imul(rider + 1, 0x9e3779b1) ^ Math.imul(salt + 1, 0x85ebca77)
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b)
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b)
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296
+}
+
+/** El orden de la salida de la aproximación: menor, más adelante. */
+export type ApproachKey = (rider: RiderIx) => number
+
+/** Sin reparto (las pruebas): la tirada fija de la etapa 0. */
+const plainKey: ApproachKey = (rider) => saltedKey(rider, 0)
+
+/** Lo que el orden de la aproximación lee del reparto: todo es de antes de correr (D-15). */
+export interface ApproachCast {
+  readonly riders: readonly {
+    readonly rider: RiderIx
+    readonly team: number | null
+    readonly start: { readonly gcRank: number | null }
+  }[]
+  readonly favourites: readonly { readonly rider: RiderIx }[]
+}
 
 /**
- * LAS FILAS DE UN GRUPO al empezar el último km, en m tras la de delante, de `lanes` en `lanes`: por un
- * orden que sale del RiderIx de cada uno, nunca del final (ni su sitio, ni su tren, ni su remate).
+ * EL ORDEN PÚBLICO DE LA APROXIMACIÓN, como lo pinta la tele sin saber cómo acaba: delante, los favoritos
+ * de la etapa (los de la previa, 8-g), cada uno con `approachMates` de su equipo por delante, como un
+ * tren; luego los de la general hasta `approachGc`; y los demás, por una tirada fija de la etapa (`salt`,
+ * sus bloques). Nada del final: ni el sitio, ni el tren del motor, ni el remate.
  */
-export function startRowsM(riders: readonly RiderIx[]): Map<RiderIx, number> {
-  const order = [...riders].sort((a, b) => startKey(a) - startKey(b) || a - b)
+export function approachKeyOf(cast: ApproachCast, salt: number): ApproachKey {
+  const key = new Map<RiderIx, number>()
+  const put = (r: RiderIx, k: number): void => {
+    const now = key.get(r)
+    if (now === undefined || k < now) key.set(r, k)
+  }
+  cast.favourites.forEach((f, i) => {
+    put(f.rider, i * 10 + 5)
+    const team = cast.riders[f.rider]?.team
+    if (team === null || team === undefined) return
+    cast.riders
+      .filter((c) => c.team === team && c.rider !== f.rider)
+      .sort((a, b) => saltedKey(a.rider, salt) - saltedKey(b.rider, salt) || a.rider - b.rider)
+      .slice(0, S.approachMates)
+      .forEach((c, k) => put(c.rider, i * 10 + 1 + k))
+  })
+  for (const c of cast.riders)
+    if (c.start.gcRank !== null && c.start.gcRank <= S.approachGc)
+      put(c.rider, 100 + c.start.gcRank)
+  return (rider) => key.get(rider) ?? 1000 + saltedKey(rider, salt)
+}
+
+/**
+ * LAS FILAS DE UN GRUPO al empezar el último km, en m tras la de delante, de `lanes` en `lanes`, por el
+ * orden público de la aproximación (`approachKeyOf`; sin él, una tirada fija): nunca por el final.
+ */
+export function startRowsM(
+  riders: readonly RiderIx[],
+  key: ApproachKey = plainKey,
+): Map<RiderIx, number> {
+  const order = [...riders].sort((a, b) => key(a) - key(b) || a - b)
   return new Map(order.map((r, rank) => [r, Math.floor(rank / S.lanes) * S.rowM] as const))
 }
 
 /** Las de los del final, en su orden de `riders`. */
-export function startSpotsM(sprint: FinishSprint): number[] {
-  const rows = startRowsM(sprint.riders.map((r) => r.rider))
+export function startSpotsM(sprint: FinishSprint, key: ApproachKey = plainKey): number[] {
+  const rows = startRowsM(
+    sprint.riders.map((r) => r.rider),
+    key,
+  )
   return sprint.riders.map((r) => rows.get(r.rider)!)
 }
 
@@ -120,8 +175,12 @@ function jostleOf(rider: RiderIx, toGoM: number): number {
  * igual para el grupo que gana que para una fuga a la que cazan. Por debajo de `revealFromM`, de aquí
  * parte el camino de cada uno del grupo que gana hacia la llegada.
  */
-export function approachOfM(riders: readonly RiderIx[], toGoM: number): Map<RiderIx, number> {
-  const rows = startRowsM(riders)
+export function approachOfM(
+  riders: readonly RiderIx[],
+  toGoM: number,
+  key: ApproachKey = plainKey,
+): Map<RiderIx, number> {
+  const rows = startRowsM(riders, key)
   const at = new Map(riders.map((r) => [r, rows.get(r)! + jostleOf(r, toGoM)] as const))
   const front = Math.min(...at.values())
   for (const [r, x] of at) at.set(r, x - front)
@@ -129,10 +188,15 @@ export function approachOfM(riders: readonly RiderIx[], toGoM: number): Map<Ride
 }
 
 /** La de los del final, en su orden de `riders`. */
-export function approachSpotsM(sprint: FinishSprint, toGoM: number): number[] {
+export function approachSpotsM(
+  sprint: FinishSprint,
+  toGoM: number,
+  key: ApproachKey = plainKey,
+): number[] {
   const at = approachOfM(
     sprint.riders.map((r) => r.rider),
     toGoM,
+    key,
   )
   return sprint.riders.map((r) => at.get(r.rider)!)
 }
@@ -159,12 +223,13 @@ export function sprintSpots(
   toGoM: number,
   lineSpeedMs: number = S.lineSpeedMs,
   among?: readonly RiderIx[],
+  key: ApproachKey = plainKey,
 ): SprintSpot[] {
   const d = Math.max(0, Math.min(S.fromM, toGoM))
   const fin = lineSpotsM(sprint, lineSpeedMs)
   const inFinal = new Map(sprint.riders.map((r, i) => [r.rider, i] as const))
   // la aproximación del grupo que se ve, desde su cabeza: de ahí sale cada uno, y hacia ella sube el que cede
-  const start = approachOfM(among ?? sprint.riders.map((r) => r.rider), d)
+  const start = approachOfM(among ?? sprint.riders.map((r) => r.rider), d, key)
   const sprinterOf = new Map<RiderIx, number>()
   sprint.riders.forEach((r, i) => r.train.forEach((man) => sprinterOf.set(man, i)))
   // adonde se va, en los últimos metros, quien va en el grupo y no llega con él: detrás del último
@@ -220,8 +285,9 @@ export function sprintSpots(
       const from =
         release === null
           ? S.revealFromM
-          : Math.min(S.revealFromM, Math.max(release, S.smoothPerM * Math.abs(f - s)))
-      at = d >= from ? s : s + (f - s) * smooth((from - d) / from)
+          : Math.min(S.revealFromM, Math.max(release, S.settleM + S.smoothPerM * Math.abs(f - s)))
+      const settle = Math.min(S.settleM, from / 2)
+      at = d >= from ? s : s + (f - s) * smooth((from - d) / (from - settle))
     }
     return { rider, at, role }
   })
@@ -301,8 +367,8 @@ function paceDsOf(tl: StageTimeline, g: GroupIx, b: Block, blockM: number): numb
 }
 
 /** Un grupo de cabeza que no es el que gana (una fuga a la que cazan): su aproximación, sin papeles. */
-function approachSpots(riders: readonly RiderIx[], toGoM: number): SprintSpot[] {
-  return [...approachOfM(riders, toGoM)]
+function approachSpots(riders: readonly RiderIx[], toGoM: number, key: ApproachKey): SprintSpot[] {
+  return [...approachOfM(riders, toGoM, key)]
     .sort((a, b) => a[1] - b[1] || a[0] - b[0])
     .map(([rider, x]) => ({ rider, behindM: round1(x), role: 'bunch' }))
 }
@@ -325,6 +391,7 @@ export function sprintFrames(tl: StageTimeline): readonly SprintFrame[] {
   const frames: SprintFrame[] = []
   if (scene !== null) {
     const { sprint, winner, lineSpeedMs, blockM, last, heads } = scene
+    const key = approachKeyOf(tl.cast, tl.blocks)
     const seenAt = (b: Block): Ds | undefined => heads.get(b)?.seenDs
     // desde el primer bloque con todas las marcas del último km
     const firstBlock = last - Math.floor(S.fromM / blockM) + 1
@@ -350,7 +417,9 @@ export function sprintFrames(tl: StageTimeline): readonly SprintFrame[] {
       )
       if (members.length === 0) continue
       const spots =
-        head.g === winner ? sprintSpots(sprint, d, lineSpeedMs, members) : approachSpots(members, d)
+        head.g === winner
+          ? sprintSpots(sprint, d, lineSpeedMs, members, key)
+          : approachSpots(members, d, key)
       const top = spots[0]?.behindM ?? 0
       frames.push({
         atDs: Math.round(t),
