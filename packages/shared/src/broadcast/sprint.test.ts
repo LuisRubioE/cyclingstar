@@ -14,7 +14,7 @@ import {
   sprintSpots,
   startSpotsM,
 } from './sprint.js'
-import type { SprintFrame } from './sprint.js'
+import type { SprintFrame, SprintSpot } from './sprint.js'
 import type { FinishSprint, FinishSprintRider, StageTimeline } from './timeline.js'
 
 /**
@@ -528,6 +528,10 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
     const antes = (tl2: StageTimeline): readonly SprintFrame[] =>
       sprintFrames(tl2).filter((f) => compositionBlock(tl2, f.toGoM) < 58)
     expect(antes(lineWithSprint(conHueco, null, 4))).toEqual(antes(lineWithSprint(conHueco)))
+    // y la del 58, la de su ritmo: el que llega a un segundo, a otros metros en el de 75
+    const at75 = (tl2: StageTimeline): readonly SprintSpot[] =>
+      sprintFrames(tl2).find((f) => f.toGoM === 75)!.spots
+    expect(at75(lineWithSprint(conHueco, null, 4))).not.toEqual(at75(lineWithSprint(conHueco)))
   })
 
   it('un grupo que nace en el último km sigue el ritmo de la cabeza de antes, no uno fijo', () => {
