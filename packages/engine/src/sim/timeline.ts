@@ -851,7 +851,9 @@ export function timelineRecorder(opts: TimelineRecorderOptions): TimelineRecorde
       cast: fin.cast,
       weather: fin.weather,
       tt,
-      finish: { finishS, arrivals },
+      // el final del primer grupo, en null hasta que el motor lo devuelva (W5a-2): la línea ya sabe
+      // leerlo y escribirlo (el formato 2, W5a-1), pero se graba en el formato de `TIMELINE.format`
+      finish: { finishS, arrivals, sprint: null },
     }
   }
 

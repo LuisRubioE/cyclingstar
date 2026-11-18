@@ -27,7 +27,10 @@ export type RiderIx = number
 /** Posición en `StageTimeline.groups`: orden de aparición (su marca de nacimiento); 0 = el pelotón de salida. */
 export type GroupIx = number
 
-/** Los únicos cuatro sitios donde un número del formato pierde precisión. Nadie redondea por su cuenta. */
+/**
+ * Los únicos cuatro sitios donde un número del formato pierde precisión. Nadie redondea por su cuenta,
+ * salvo el sitio y el remate del final del primer grupo (`FinishSprintRider`, W5), que van a milésimas.
+ */
 export const toDs = (s: RaceS): Ds => Math.round(s * 10)
 export const fromDs = (d: Ds): RaceS => d / 10
 export const toKm10 = (km: number): number => Math.round(km * 10)
@@ -299,18 +302,59 @@ export interface TimeTrialTrace {
   }[]
 }
 
+/**
+ * Un corredor del final del primer grupo que llega (W5, paso 1; formato 2). Lo calcula la meta del motor
+ * (`StageOutput.finalSprint`) y no cambia ninguna cuenta: aquí solo se guarda para enseñarlo.
+ */
+export interface FinishSprintRider {
+  readonly rider: RiderIx
+  /** existe: los hombres de su tren que cuentan en la meta (en el grupo y con trabajo reciente); vacío, sin tren */
+  readonly train: readonly RiderIx[]
+  /** existe: a cuántos metros de la meta abre el sprint; null si el final no es de sprint */
+  readonly launchM: number | null
+  /** existe: cuántos metros aguanta su sprint; null si el final no es de sprint */
+  readonly holdM: number | null
+  /** existe: su sitio en el grupo al remate, de 0 (cabeza) a 1 (cola), a milésimas; puede pasar de 1 */
+  readonly place: number
+  /** existe: encerrado, sin hueco para sprintar */
+  readonly boxed: boolean
+  /** existe: su remate sobre el del primero del grupo, a milésimas (el primero, 1) */
+  readonly score: number
+  /** existe: su hueco con el primero del grupo en la línea */
+  readonly gapDs: Ds
+}
+
+/**
+ * EL FINAL DEL PRIMER GRUPO QUE LLEGA (W5, paso 1; formato 2), para pintar el último km como en la tele.
+ * Es de la meta, y por eso va en `FinishRecord`, que nunca va en un tramo (D-06).
+ */
+export interface FinishSprint {
+  /** existe: el tipo de final del motor (`FinishType`: `sprint_masivo`, `alto`, …), como cadena */
+  readonly kind: string
+  /** existe: en el orden en que cruzan la línea */
+  readonly riders: readonly FinishSprintRider[]
+}
+
 /** SOLO para el paquete de meta (D-06): nunca va en un tramo. Se graba. */
 export interface FinishRecord {
   /** en línea, la última marca de reloj de la cabeza; en crono, la última LLEGADA (4-w) */
   readonly finishS: RaceS
   /** existe: results agrupados por tiempoS, en Ds de reloj de carrera, de menor a mayor */
   readonly arrivals: readonly (readonly [Ds, readonly RiderIx[]])[]
+  /** desde el formato 2 (W5): el final del primer grupo; null en el formato 1, en crono y sin final */
+  readonly sprint: FinishSprint | null
 }
 
-/** LA LÍNEA TEMPORAL decodificada, en memoria (D-02). La guarda StoredTimelineV1 (§4.3) y la lee todo lo demás. */
+/**
+ * LA LÍNEA TEMPORAL decodificada, en memoria (D-02). La guarda `StoredTimelineV1` o, desde W5,
+ * `StoredTimelineV2` (§4.3), y la lee todo lo demás.
+ */
 export interface StageTimeline {
-  /** TIMELINE.format: un decodificador por versión (§4.3) */
-  readonly format: 1
+  /**
+   * TIMELINE.format con que se grabó, un decodificador por versión (§4.3): 1, las líneas de antes de W5;
+   * 2, desde W5, con el final del primer grupo en la meta (`finish.sprint`)
+   */
+  readonly format: 1 | 2
   /** existe: ENGINE_VERSION con que corrió */
   readonly engineVersion: number
   /** existe: STAGE.dx con que se grabó, 0,1 */

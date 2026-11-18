@@ -182,7 +182,7 @@ export interface StageTimelineMeta {
   readonly tplRev: number
 }
 
-/** `format` de una LÁPIDA: la etapa se corrió con la grabación encendida y no dejó línea (5.5). Las líneas llevan `TIMELINE.format` (1). */
+/** `format` de una LÁPIDA: la etapa se corrió con la grabación encendida y no dejó línea (5.5). Las líneas llevan `TIMELINE.format` (1; el 2 desde W5a-2). */
 export const TIMELINE_TOMBSTONE_FORMAT = 0
 
 export type TimelineFailureReason = 'I1' | 'I5' | 'format' | 'error'
