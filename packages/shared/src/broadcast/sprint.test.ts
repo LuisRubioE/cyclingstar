@@ -15,7 +15,13 @@ import {
   startSpotsM,
 } from './sprint.js'
 import type { SprintFrame, SprintSpot } from './sprint.js'
-import type { FinishSprint, FinishSprintRider, StageTimeline } from './timeline.js'
+import type {
+  CastRider,
+  FinishSprint,
+  FinishSprintRider,
+  StageTimeline,
+  TimelineCast,
+} from './timeline.js'
 
 /**
  * EL ÚLTIMO KM COMO EN LA TELE (W5b): la puesta en escena del final que decidió el motor. La regla que
@@ -553,6 +559,47 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
     const raw = (b: number, id: string): number => Math.round(photos[b]!.clockS[id]! * 10)
     const seen56 = raw(56, 'mov-3')
     expect(f300.atDs).toBe(Math.round(seen56 + (seen56 - raw(55, 'mov-1')) / 2))
+  })
+
+  it('la aproximación de los fotogramas, por el orden público del reparto: el favorito y su tren delante', () => {
+    // la fuga de cinco; el 7, favorito de la etapa, con el 5 y el 6 de su equipo
+    const castRider = (r: number): CastRider => ({
+      rider: r,
+      riderId: `r${r}`,
+      bib: r + 1,
+      team: r >= 5 ? 1 : 0,
+      country: 'ES',
+      gender: 'M',
+      start: { gcRank: null, gcDeficitS: null, from: null },
+      worn: { kind: 'team' },
+      distinctions: [],
+      knownWins: 0,
+    })
+    const cast: TimelineCast = {
+      riders: Array.from({ length: 8 }, (_, r) => castRider(r)),
+      teams: [],
+      favourites: [{ rider: 7, why: 'sprint' }],
+    }
+    const tl2: StageTimeline = { ...lineWithBreak(true, [3, 4, 5, 6, 7], 59, TOY), cast }
+    const f = sprintFrames(tl2).find((x) => x.toGoM === 900)!
+    const at = approachOfM([3, 4, 5, 6, 7], 900, approachKeyOf(cast, tl2.blocks))
+    for (const x of f.spots) expect(x.behindM).toBe(Math.round(at.get(x.rider)! * 10) / 10 + 0)
+    const sinReparto = approachOfM(
+      [3, 4, 5, 6, 7],
+      900,
+      approachKeyOf({ riders: [], favourites: [] }, tl2.blocks),
+    )
+    expect([...sinReparto]).not.toEqual([...at])
+  })
+
+  it('la foto, a la velocidad de la que venía, la del último fotograma: sin la marca de la línea', () => {
+    const conHueco: FinishSprint = {
+      ...TOY,
+      riders: [...TOY.riders.slice(0, 2), { ...TOY.riders[2]!, gapDs: 10 }],
+    }
+    expect(sprintPhoto(lineWithSprint(conHueco, null, null, 2))).toEqual(
+      sprintPhoto(lineWithSprint(conHueco)),
+    )
   })
 
   it('quien entra en el grupo dentro del último km no sale en los fotogramas de antes', () => {
