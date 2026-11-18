@@ -887,9 +887,9 @@ export const stageSnapshots = pgTable(
  * LA LÍNEA TEMPORAL DE UNA ETAPA (E2, docs/retransmision.md §4.2, §5.6 y §13.3; la 0047): lo único que
  * se lee para retransmitirla. 1:1 con `stage_snapshots`, que NO gana columnas (tactica.md l.
  * 7589-7591), y escrita en su misma transacción del día, por `flush` al acabar las carreras del día
- * (5-l). `body` es el gzip 9 del JSON de `StoredTimelineV1` (§4.3): así lo que ocupa no depende de la
- * compresión del servidor (C8). Lo guardado no se reescribe: un formato nuevo es otro `format` con su
- * decodificador. Sin fila: etapa corrida antes del paso 5 o con `TIMELINE_RECORD=off`, y se sirve con
+ * (5-l). `body` es el gzip 9 del JSON de `StoredTimelineV1` o, desde W5, `StoredTimelineV2` (§4.3):
+ * así lo que ocupa no depende de la compresión del servidor (C8). Lo guardado no se reescribe: un
+ * formato nuevo es otro `format` con su decodificador. Sin fila: etapa corrida antes del paso 5 o con `TIMELINE_RECORD=off`, y se sirve con
  * el adaptador de la radio (D-07). Sin `world_id`, como toda tabla de etapa: el reinicio la vacía con
  * `stage_snapshots` (§13.9, `docs/ops.md`).
  */
@@ -902,7 +902,10 @@ export const stageTimelines = pgTable(
     stageDay: integer('stage_day').notNull(),
     /** El día de juego en que se corrió: ninguna otra tabla de etapa lo guarda. */
     gameDay: integer('game_day').notNull(),
-    /** 1 = `StoredTimelineV1` (`TIMELINE.format`); 0 = lápida: la grabación falló y la etapa abre solo en `Report`. */
+    /**
+     * 1 = `StoredTimelineV1`, 2 = `StoredTimelineV2` (desde W5, con el final del primer grupo); el que
+     * pone `TIMELINE.format`. 0 = lápida: la grabación falló y la etapa abre solo en `Report`.
+     */
     format: smallint('format').notNull(),
     engineVersion: integer('engine_version').notNull(),
     /**

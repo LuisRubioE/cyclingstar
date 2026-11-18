@@ -6525,8 +6525,10 @@ export const STAGE = {
 export const TIMELINE = {
   /**
    * Versión del formato guardado (§4.3): un decodificador por versión, y lo guardado no se reescribe.
-   * El grabador la escribe en un campo de tipo literal 1: subirla sin escribir el formato 2 y su
-   * decodificador no compila.
+   * El grabador escribe la línea en este formato. Desde W5a-1, `packages/shared` sabe leer y escribir
+   * el 2 (el 1 con el final del primer grupo en la meta); pasa a 2 en W5a-2, cuando el motor devuelve el
+   * final, después de desplegado el que lo lee, como una migración: un despliegue revertido nunca deja
+   * una fila que no se sepa leer.
    */
   format: 1,
   /**

@@ -1033,6 +1033,8 @@ export function adaptRadioStage(stage: RadioStage): StageTimeline | null {
       arrivals: [...arrivalsByDs]
         .sort((x, y) => x[0] - y[0])
         .map(([ds, rs]) => [ds, rs.sort((x, y) => x - y)] as const),
+      // el adaptador no sabe del final del primer grupo: eso lo graba la línea desde el formato 2 (W5)
+      sprint: null,
     },
   }
   adaptedSources.set(tl, {

@@ -441,9 +441,11 @@ describe('adaptRadioStage · la línea degradada de una etapa sin línea (§3.8)
   })
 
   it('la meta: las llegadas por tiempo, sin el que se bajó; sin reloj de cabeza no hay línea', () => {
+    // sin el final del primer grupo (W5): el adaptador no lo sabe
     expect(tl.finish).toEqual({
       finishS: 290,
       arrivals: [[2900, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15]]],
+      sprint: null,
     })
     const stage = adapterStage()
     const sinVelocidad = {
