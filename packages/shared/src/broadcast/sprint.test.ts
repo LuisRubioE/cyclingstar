@@ -3,6 +3,7 @@ import { type SynthPhoto, synthLine, toyStage } from './__fixtures__/syntheticLi
 import { BROADCAST } from './constants.js'
 import { photoAt, visibilityOf } from './index.js'
 import {
+  approachOfM,
   approachSpotsM,
   lineSpotsM,
   sprintFrames,
@@ -319,25 +320,30 @@ function lineWithSprint(
 }
 
 /**
- * La de juguete con una fuga: r4 se va sola en el bloque 45, 5 s por delante de `mov-1`; con `caught`, la
- * caza `mov-1` en el 56 y gana r0; si no, llega sola y gana ella.
+ * La de juguete con una fuga: `breakers` (r4, por defecto) se van en el bloque 45, 5 s por delante de
+ * `mov-1`; con `caught`, los caza `mov-1` en `catchAt` y gana con `ifCaught`; si no, gana la fuga.
  */
-function lineWithBreak(caught: boolean): StageTimeline {
+function lineWithBreak(
+  caught: boolean,
+  breakers: readonly number[] = [4],
+  catchAt = 56,
+  ifCaught: FinishSprint = TOY,
+): StageTimeline {
   const toy = toyStage()
   const photos = toy.photos.map((p, b) => {
     if (b < 45) return p
     const groupOf = [...p.groupOf]
     const clockS: Record<string, number> = { ...p.clockS }
-    if (caught && b >= 56) groupOf[4] = 'mov-1'
-    else {
-      groupOf[4] = 'mov-2'
-      clockS['mov-2'] = p.clockS['mov-1']! - 5
-    }
+    for (const r of breakers) groupOf[r] = caught && b >= catchAt ? 'mov-1' : 'mov-2'
+    if (!(caught && b >= catchAt)) clockS['mov-2'] = p.clockS['mov-1']! - 5
     return { ...p, groupOf, clockS }
   })
   const sprint: FinishSprint = caught
-    ? TOY
-    : { kind: 'solitario', riders: [rider(4, { launchM: null, holdM: null, place: 0 })] }
+    ? ifCaught
+    : {
+        kind: breakers.length > 1 ? 'sprint_reducido' : 'solitario',
+        riders: breakers.map((r, i) => rider(r, { launchM: null, holdM: null, place: i / 10 })),
+      }
   return lineOf(photos, toy.riderIds, sprint)
 }
 
@@ -409,6 +415,34 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
   it('ningún fotograma usa la marca de la línea: con otra hora de meta, los mismos (D-06)', () => {
     expect(sprintFrames(lineWithSprint(TOY, null, null, 2))).toEqual(frames)
     expect(sprintFrames(lineWithSprint(TOY, null, null, 30))).toEqual(frames)
+    // tampoco la velocidad de la línea, que pone a su hueco al primero de un hueco mayor
+    const conHueco: FinishSprint = {
+      ...TOY,
+      riders: [...TOY.riders.slice(0, 2), { ...TOY.riders[2]!, gapDs: 10 }],
+    }
+    const base = sprintFrames(lineWithSprint(conHueco))
+    expect(sprintFrames(lineWithSprint(conHueco, null, null, 2))).toEqual(base)
+  })
+
+  it('una fuga de dos a la que cazan dentro de los 300 m: hasta que la cazan, sin puesta en escena', () => {
+    // r3 y r4 se van en el 45 y los cazan en el 58; r3 llega con el grupo que gana, con su sprint
+    const conR3: FinishSprint = {
+      ...TOY,
+      riders: [...TOY.riders, rider(3, { launchM: 280, holdM: 200, place: 0, score: 0.8 })],
+    }
+    const tl2 = lineWithBreak(true, [3, 4], 58, conR3)
+    const antes = sprintFrames(tl2).filter((f) => compositionBlock(tl2, f.toGoM) < 58)
+    expect(antes.some((f) => f.toGoM <= 250)).toBe(true)
+    for (const f of antes) {
+      expect(order(f.spots).sort()).toEqual([3, 4])
+      const ap = approachOfM([3, 4], f.toGoM)
+      for (const x of f.spots) {
+        expect(x.role, `${x.rider} a ${f.toGoM} m`).toBe('bunch')
+        expect(x.behindM, `${x.rider} a ${f.toGoM} m`).toBe(
+          Math.round(ap.get(x.rider)! * 10) / 10 + 0,
+        )
+      }
+    }
   })
 
   it('a una fuga que cazan dentro del último km se la ve, sin nada del final, hasta que la cazan', () => {
