@@ -311,14 +311,21 @@ interface SprintScene {
   readonly blockM: number
   readonly last: Block
   /** por bloque: el grupo de cabeza (el primero en cruzarlo) y la hora en que se ve su marca (D-06) */
-  readonly heads: ReadonlyMap<Block, { readonly g: GroupIx; readonly seenDs: Ds }>
+  readonly heads: ReadonlyMap<Block, Head>
 }
 
 /**
  * El grupo de cabeza de cada bloque con marcas, el que lo cruza primero, y la hora en que se ve su marca
  * (`visibilityOf`, como el corte de `chunkOf`). En el último km cada grupo lleva marca en cada bloque.
  */
-function headsOf(tl: StageTimeline): Map<Block, { g: GroupIx; seenDs: Ds }> {
+/** La cabeza de un bloque: su grupo, su marca y la hora en que se ve. */
+interface Head {
+  readonly g: GroupIx
+  readonly ds: Ds
+  readonly seenDs: Ds
+}
+
+function headsOf(tl: StageTimeline): Map<Block, Head> {
   const vis = visibilityOf(tl)
   const best = new Map<Block, { g: GroupIx; ds: Ds; seenDs: Ds }>()
   tl.stateEvents.forEach((e, i) => {
@@ -331,7 +338,7 @@ function headsOf(tl: StageTimeline): Map<Block, { g: GroupIx; seenDs: Ds }> {
         best.set(e.b, { g, ds, seenDs })
     })
   })
-  return new Map([...best].map(([b, x]) => [b, { g: x.g, seenDs: x.seenDs }] as const))
+  return best
 }
 
 /**
@@ -348,29 +355,58 @@ function sceneOf(tl: StageTimeline): SprintScene | null {
   const blockM = Math.round(tl.dx * 1000)
   const t1 = markAt(marks, last - 1)
   const t0 = markAt(marks, last - 2)
-  const measured = t1 !== null && t0 !== null && t1 > t0 ? blockM / ((t1 - t0) / 10) : S.lineSpeedMs
-  const lineSpeedMs = Math.max(S.lineSpeedMinMs, Math.min(S.lineSpeedMaxMs, measured))
+  const lineSpeedMs =
+    t1 !== null && t0 !== null && t1 > t0 ? speedOf(t1 - t0, blockM) : S.lineSpeedMs
   return { sprint, winner, lineSpeedMs, blockM, last, heads: headsOf(tl) }
 }
 
 /**
- * El ritmo de un grupo al llegar al bloque `b`, en Ds por bloque: el de sus marcas de antes (la última
- * anterior a `b`), que ya se ven; sin ninguna, el de `lineSpeedMs`.
+ * El ritmo de la cabeza al llegar al bloque `b`, en Ds por bloque, de marcas que ya se ven: el de su
+ * grupo (su última marca anterior a `b`); si el grupo nace ahí, el de la cabeza de la carrera en el bloque
+ * de antes (el grupo del que sale, que la capa fija sigue, 3-a); sin nada, el de `lineSpeedMs`.
  */
-function paceDsOf(tl: StageTimeline, g: GroupIx, b: Block, blockM: number): number {
-  const marks = clockMarksOf(tl, g)
-  const now = markAt(marks, b)
+function paceDsOf(
+  tl: StageTimeline,
+  heads: ReadonlyMap<Block, Head>,
+  b: Block,
+  blockM: number,
+): number {
+  const head = heads.get(b)
+  if (head === undefined) return (blockM / S.lineSpeedMs) * 10
   let prev: readonly [Block, Ds] | undefined
-  for (const m of marks) if (m[0] < b && (prev === undefined || m[0] > prev[0])) prev = m
-  if (now === null || prev === undefined || now <= prev[1]) return (blockM / S.lineSpeedMs) * 10
-  return (now - prev[1]) / (b - prev[0])
+  for (const m of clockMarksOf(tl, head.g))
+    if (m[0] < b && (prev === undefined || m[0] > prev[0])) prev = m
+  if (prev !== undefined && head.ds > prev[1]) return (head.ds - prev[1]) / (b - prev[0])
+  const before = heads.get(b - 1)
+  if (before !== undefined && head.ds > before.ds) return head.ds - before.ds
+  return (blockM / S.lineSpeedMs) * 10
 }
 
-/** Un grupo de cabeza que no es el que gana (una fuga a la que cazan): su aproximación, sin papeles. */
-function approachSpots(riders: readonly RiderIx[], toGoM: number, key: ApproachKey): SprintSpot[] {
+/** La velocidad de la línea que da un ritmo, en m/s y acotada. */
+const speedOf = (paceDs: number, blockM: number): number =>
+  Math.max(S.lineSpeedMinMs, Math.min(S.lineSpeedMaxMs, blockM / (paceDs / 10)))
+
+/**
+ * Un grupo de cabeza que no es el que gana (una fuga a la que cazan): su aproximación y, desde
+ * `revealFromM`, como el que gana, unos lanzados, cada uno en un metro de una tirada fija de la etapa: la
+ * fuga también se ve sprintar, y ni el título ni los papeles dicen que no llega (la segunda revisión de W5c).
+ */
+function approachSpots(
+  riders: readonly RiderIx[],
+  toGoM: number,
+  key: ApproachKey,
+  salt: number,
+): SprintSpot[] {
   return [...approachOfM(riders, toGoM, key)]
     .sort((a, b) => a[1] - b[1] || a[0] - b[0])
-    .map(([rider, x]) => ({ rider, behindM: round1(x), role: 'bunch' }))
+    .map(([rider, x]) => {
+      const opens = saltedKey(rider, salt + 1) < S.decoyLaunchShare
+      const atM =
+        S.decoyLaunchM[0] + (S.decoyLaunchM[1] - S.decoyLaunchM[0]) * saltedKey(rider, salt + 2)
+      const role: SprintRole =
+        opens && toGoM <= S.revealFromM && toGoM <= atM ? 'launched' : 'bunch'
+      return { rider, behindM: round1(x), role }
+    })
 }
 
 const framesCache = new WeakMap<StageTimeline, readonly SprintFrame[]>()
@@ -390,7 +426,7 @@ export function sprintFrames(tl: StageTimeline): readonly SprintFrame[] {
   const scene = sceneOf(tl)
   const frames: SprintFrame[] = []
   if (scene !== null) {
-    const { sprint, winner, lineSpeedMs, blockM, last, heads } = scene
+    const { sprint, winner, blockM, last, heads } = scene
     const key = approachKeyOf(tl.cast, tl.blocks)
     const seenAt = (b: Block): Ds | undefined => heads.get(b)?.seenDs
     // desde el primer bloque con todas las marcas del último km
@@ -411,15 +447,16 @@ export function sprintFrames(tl: StageTimeline): readonly SprintFrame[] {
       const head = heads.get(cb)
       const t0 = seenAt(cb)
       if (head === undefined || t0 === undefined) continue
-      const t = t0 + share * paceDsOf(tl, head.g, cb, blockM)
+      const pace = paceDsOf(tl, heads, cb, blockM)
+      const t = t0 + share * pace
       const members = Array.from(photoAt(tl, cb).groupOf).flatMap((g, r) =>
         g === head.g ? [r] : [],
       )
       if (members.length === 0) continue
       const spots =
         head.g === winner
-          ? sprintSpots(sprint, d, lineSpeedMs, members, key)
-          : approachSpots(members, d, key)
+          ? sprintSpots(sprint, d, speedOf(pace, blockM), members, key)
+          : approachSpots(members, d, key, tl.blocks)
       const top = spots[0]?.behindM ?? 0
       frames.push({
         atDs: Math.round(t),

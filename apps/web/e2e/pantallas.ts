@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 
 /**
- * LAS 48 PANTALLAS DE LA PRUEBA DEL TELÉFONO (E3, docs/visual.md §7.3; PR 2b, O-27). Una por cada fila con
+ * LAS 47 PANTALLAS DE LA PRUEBA DEL TELÉFONO (E3, docs/visual.md §7.3; PR 2b, O-27). Una por cada fila con
  * medidas del mapa 05 (`docs/diseno/e3-visual/capturas/README.md`, de la 01 a la 37 y de la 40 a la 47),
  * la 38, la contrarreloj, que no tiene captura (Ruso-018; 7-i), y la 48, el último km (W5c). Cada una dice su ruta, la cuenta que la
  * abre, el `data-ui` del elemento que contesta la pantalla (`data-answer`, la comprobación 7), si es una

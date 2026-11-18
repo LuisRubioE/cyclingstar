@@ -471,7 +471,7 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
     expect(sprintFrames(lineWithSprint(conHueco, null, null, 2))).toEqual(base)
   })
 
-  it('una fuga de dos a la que cazan dentro de los 300 m: hasta que la cazan, sin puesta en escena', () => {
+  it('una fuga de dos a la que cazan dentro de los 300 m: hasta que la cazan, en su aproximación', () => {
     // r3 y r4 se van en el 45 y los cazan en el 58; r3 llega con el grupo que gana, con su sprint
     const conR3: FinishSprint = {
       ...TOY,
@@ -484,7 +484,8 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
       expect(order(f.spots).sort()).toEqual([3, 4])
       const ap = approachOfM([3, 4], f.toGoM)
       for (const x of f.spots) {
-        expect(x.role, `${x.rider} a ${f.toGoM} m`).toBe('bunch')
+        if (f.toGoM > S.revealFromM) expect(x.role, `${x.rider} a ${f.toGoM} m`).toBe('bunch')
+        else expect(['bunch', 'launched']).toContain(x.role)
         expect(x.behindM, `${x.rider} a ${f.toGoM} m`).toBe(
           Math.round(ap.get(x.rider)! * 10) / 10 + 0,
         )
@@ -507,6 +508,47 @@ describe('los fotogramas del final (sprintFrames) y la foto de la línea (sprint
     const despues = sprintFrames(cazada).filter((f) => compositionBlock(cazada, f.toGoM) >= 56)
     expect(despues.length).toBeGreaterThan(0)
     for (const f of despues) expect(order(f.spots)).toContain(4)
+  })
+
+  it('una fuga a la que cazan en la línea también se ve sprintar: el panel no dice que no llega', () => {
+    // r3 a r7 se van en el 45 y los cazan en el 59, el último bloque: todos los fotogramas son de la fuga
+    const tl2 = lineWithBreak(true, [3, 4, 5, 6, 7], 59, TOY)
+    const fs = sprintFrames(tl2)
+    for (const f of fs) expect(order(f.spots).sort()).toEqual([3, 4, 5, 6, 7])
+    for (const f of fs.filter((x) => x.toGoM > S.revealFromM))
+      for (const x of f.spots) expect(x.role).toBe('bunch')
+    expect(fs.find((f) => f.toGoM === 75)!.spots.some((x) => x.role === 'launched')).toBe(true)
+  })
+
+  it('la velocidad de la línea de cada fotograma, con sus marcas ya vistas: sin la del bloque 58, los de antes', () => {
+    const conHueco: FinishSprint = {
+      ...TOY,
+      riders: [...TOY.riders.slice(0, 2), { ...TOY.riders[2]!, gapDs: 10 }],
+    }
+    const antes = (tl2: StageTimeline): readonly SprintFrame[] =>
+      sprintFrames(tl2).filter((f) => compositionBlock(tl2, f.toGoM) < 58)
+    expect(antes(lineWithSprint(conHueco, null, 4))).toEqual(antes(lineWithSprint(conHueco)))
+  })
+
+  it('un grupo que nace en el último km sigue el ritmo de la cabeza de antes, no uno fijo', () => {
+    // r0 y r2 saltan de `mov-1` en el 56, un segundo por delante: `mov-3`, sin marcas de antes
+    const toy = toyStage()
+    const photos = toy.photos.map((p, b) => {
+      if (b < 56) return p
+      const groupOf = p.groupOf.map((g, r) => (r === 0 || r === 2 ? 'mov-3' : g))
+      return { ...p, groupOf, clockS: { ...p.clockS, 'mov-3': p.clockS['mov-1']! - 1 } }
+    })
+    const sprint: FinishSprint = {
+      kind: 'sprint_reducido',
+      riders: [rider(0, { launchM: 200 }), rider(2, { launchM: 150, score: 0.95 })],
+    }
+    const tl2 = lineOf(photos, toy.riderIds, sprint)
+    const f300 = sprintFrames(tl2).find((f) => f.toGoM === 300)!
+    expect(compositionBlock(tl2, 300)).toBe(56)
+    // la cabeza: `mov-1` en el 55 y `mov-3` en el 56, que ya se ven; medio bloque a ese ritmo
+    const raw = (b: number, id: string): number => Math.round(photos[b]!.clockS[id]! * 10)
+    const seen56 = raw(56, 'mov-3')
+    expect(f300.atDs).toBe(Math.round(seen56 + (seen56 - raw(55, 'mov-1')) / 2))
   })
 
   it('quien entra en el grupo dentro del último km no sale en los fotogramas de antes', () => {

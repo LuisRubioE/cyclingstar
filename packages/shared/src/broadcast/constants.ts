@@ -181,6 +181,8 @@ export const BROADCAST = {
     lineSpeedMs: 16, // m/s en la línea si la línea no da la velocidad de la cabeza
     lineSpeedMinMs: 5, // m/s: la velocidad de la línea, entre esto…
     lineSpeedMaxMs: 25, // …y esto (un cambio de cabeza en el último bloque no da 500 m/s)
+    decoyLaunchShare: 0.6, // parte de una fuga a la que cazan en los últimos 300 m que se ve lanzada, por una tirada fija
+    decoyLaunchM: [100, 280], // m a meta entre los que abre cada uno de ellos
     frameRiders: 12, // corredores de cada fotograma y de la foto de la línea: los de delante
     frameExtraM: [250, 150, 75], // m a meta de los fotogramas de entre medias de los de cada 100 m (el último, a 75: a 50 m la capa fija ya está en la línea)
   },
