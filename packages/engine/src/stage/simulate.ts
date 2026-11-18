@@ -182,6 +182,7 @@ import type {
   StageResult,
   StageRider,
   TankState,
+  FinalSprint,
 } from './types.js'
 
 const PELOTON = 'peloton'
@@ -9181,7 +9182,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
   const allGroups: Group[] = [peloton, ...moves.map((m) => m.g), ...shed]
   const moveGroupIds = new Set(moves.map((m) => m.g.id))
-  finishStage(
+  const finalSprint = finishStage(
     sims,
     allGroups,
     log,
@@ -9221,6 +9222,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const outOfTime = applyStageTimeCut(sims, blocks, abandonBudget - abandoned.length, totalKm, log)
 
   const results = buildResults(sims, abandoned, outOfTime)
+  if (finalSprint !== undefined) {
+    const puestoDe = new Map(results.map((r) => [r.riderId, r.puesto]))
+    for (const r of finalSprint.riders) r.puesto = puestoDe.get(r.riderId) ?? 0
+  }
   const workUnits = new Map<string, number>()
   const tank = new Map<string, TankState>()
   const efforts = new Map<string, StageEffort>()
@@ -9240,6 +9245,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     efforts,
     engineVersion: ENGINE_VERSION,
     customsRevisions,
+    ...(finalSprint === undefined ? {} : { finalSprint }),
   }
 }
 
@@ -9558,7 +9564,7 @@ function finishStage(
    * lanzador ha LANZADO se mide contra el ritmo del día y no contra una constante. Ver abajo.
    */
   humorDelPeloton = 1,
-): void {
+): FinalSprint | undefined {
   const withMembers = groups
     .map((group) => ({
       group,
@@ -9571,6 +9577,8 @@ function finishStage(
   // Contador del orden de llegada. Los grupos ya van ordenados por reloj, así que basta con ir
   // repartiéndolo grupo a grupo y, dentro de cada uno, por el ranking del remate.
   let order = 0
+  // el final del grupo de cabeza (W5, paso 1): se lee de lo que esta meta ya calcula, sin tiradas nuevas
+  let final: FinalSprint | undefined
   // EL MAILLOT EN LA LÍNEA (v90, `stage/maillot.ts`): quién lo lleva hoy, si es que hay maillot.
   const hayLider = hayMaillot([...sims.values()].map((s) => s.input))
 
@@ -9590,16 +9598,19 @@ function finishStage(
      * en una fuga, donde puede haber un momento en el que todos se miran y de repente uno se lanza».
      */
     const listónTren = STAGE.leadOutMinWork * Math.max(0.1, humorDelPeloton)
-    const trenDe = (m: RiderSim): number => {
+    // Los hombres de su tren que cuentan: en el grupo y con trabajo reciente. Desde W5 (paso 1) se
+    // devuelven por id para enseñarlos; la cuenta es la de siempre, su número.
+    const trenDe = (m: RiderSim): string[] => {
       const train = leadOutFor.get(m.input.riderId)
-      if (train === undefined) return 0
-      return train.reduce((c, id) => {
-        if (!idSet.has(id)) return c
+      if (train === undefined) return []
+      return train.filter((id) => {
+        if (!idSet.has(id)) return false
         const l = sims.get(id)
-        return c + (l != null && l.pullWindow >= listónTren ? 1 : 0)
-      }, 0)
+        return l != null && l.pullWindow >= listónTren
+      })
     }
-    const trenes = members.map(trenDe)
+    const trenesIds = members.map(trenDe)
+    const trenes = trenesIds.map((t) => t.length)
     const nadieLanza = trenes.every((t) => t === 0)
     /**
      * A cuántos metros abre cada uno. El punto que conviene es EXACTAMENTE lo que aguantas, y a
@@ -9705,6 +9716,7 @@ function finishStage(
               Math.max(0, mejorConRol - segundoConRol - STAGE.favoritoMarcado.margenLibre),
           )
         : 0
+    const vista = new Map<RiderSim, { sitio: number; encerrado: boolean }>()
     const ranked = members
       .map((m, i) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
@@ -9838,7 +9850,9 @@ function finishStage(
               sitioDe(o) < sitio &&
               (STAGE.finishRoleWeight[o.input.orders.role] ?? 1) >= 1,
           ).length
-          if (sprintFinish && isBoxed(sitio, delante, STAGE.placement.lanes)) {
+          const encerrado = sprintFinish && isBoxed(sitio, delante, STAGE.placement.lanes)
+          vista.set(m, { sitio, encerrado })
+          if (encerrado) {
             score *= STAGE.placement.boxedEffect
           }
         } else {
@@ -9869,6 +9883,31 @@ function finishStage(
       m.finishOrder = order + idx
     })
     order += strungOut.length
+    if (gi === 0) {
+      const primero = strungOut[0]?.m.finishTs ?? 0
+      const mejor = strungOut[0]?.score ?? 0
+      const milesimas = (x: number): number => Math.round(x * 1000) / 1000
+      final = {
+        type,
+        sprint: sprintFinish,
+        riders: strungOut.map(({ m, score }) => {
+          const i = members.indexOf(m)
+          const l = lanzamientos[i]!
+          const v = vista.get(m)
+          return {
+            riderId: m.input.riderId,
+            tren: trenesIds[i]!,
+            lanzaM: sprintFinish ? Math.round(l.metros) : null,
+            aguantaM: sprintFinish ? Math.round(l.aguanta) : null,
+            sitio: milesimas(v?.sitio ?? m.placement),
+            encerrado: v?.encerrado ?? false,
+            remate: mejor > 0 ? milesimas(score / mejor) : 0,
+            puesto: 0,
+            huecoS: (m.finishTs ?? primero) - primero,
+          }
+        }),
+      }
+    }
     if (gi === 0 && strungOut[0]) {
       const field = strungOut.length
       /**
@@ -9949,6 +9988,7 @@ function finishStage(
       })
     }
   })
+  return final
 }
 
 /**

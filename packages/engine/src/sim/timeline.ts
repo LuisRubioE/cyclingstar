@@ -27,6 +27,7 @@ import type {
   GroupDetail,
   GroupIx,
   GroupOrigin,
+  FinishSprint,
   KeyPhoto,
   MishapKind,
   ProfileStrip,
@@ -642,6 +643,25 @@ export function timelineRecorder(opts: TimelineRecorderOptions): TimelineRecorde
     const arrivals = [...byArrival]
       .sort((x, y) => x[0] - y[0])
       .map(([d, riders]) => [d, riders.sort((x, y) => x - y)] as const)
+    // El final del primer grupo (W5, paso 1; formato 2): lo que la meta del motor ya calcula, por RiderIx
+    // y redondeado como se guarda (I3). En crono no hay: cada uno llega solo.
+    const final = output.finalSprint
+    const sprint: FinishSprint | null =
+      tt !== null || final === undefined
+        ? null
+        : {
+            kind: final.type,
+            riders: final.riders.map((x) => ({
+              rider: riderOf(x.riderId, 'final'),
+              train: x.tren.map((id) => riderOf(id, 'tren del final')),
+              launchM: x.lanzaM === null ? null : Math.max(0, Math.round(x.lanzaM)),
+              holdM: x.aguantaM === null ? null : Math.max(0, Math.round(x.aguantaM)),
+              place: Math.max(0, Math.round(x.sitio * 1000)) / 1000,
+              boxed: x.encerrado,
+              score: Math.max(0, Math.round(x.remate * 1000)) / 1000,
+              gapDs: toDs(Math.max(0, x.huecoS)),
+            })),
+          }
 
     // 4. Las pancartas, con el nombre del puerto del recorrido congelado si su cima cae a menos de un bloque.
     const bannerResults: { readonly probeKm: number; readonly result: BannerResult }[] = banners
@@ -851,9 +871,7 @@ export function timelineRecorder(opts: TimelineRecorderOptions): TimelineRecorde
       cast: fin.cast,
       weather: fin.weather,
       tt,
-      // el final del primer grupo, en null hasta que el motor lo devuelva (W5a-2): la línea ya sabe
-      // leerlo y escribirlo (el formato 2, W5a-1), pero se graba en el formato de `TIMELINE.format`
-      finish: { finishS, arrivals, sprint: null },
+      finish: { finishS, arrivals, sprint },
     }
   }
 

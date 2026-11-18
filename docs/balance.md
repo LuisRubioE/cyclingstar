@@ -18063,3 +18063,13 @@ Y las dos que tomó durante la implementación (`docs/diseno/e3-visual/implement
 
 - **El código de E3 se abre el 25 de octubre de 2026**, en el modo autónomo, PR a PR.
 - **La revisión de `Watch`** (5 y 6 de noviembre): W1 a W4 antes del 22, con la D-16 de `docs/retransmision.md` revocada en W4 (fuera la `Race Radio` y la crónica), y los colores del logotipo, a elección del orquestador; W5, el último km simulado de verdad en el motor, que subirá `ENGINE_VERSION`, va en un encargo propio, «`Watch` como la tele».
+
+## W5a · El final del primer grupo se guarda para verlo, y `ENGINE_VERSION` no sube (18/11/2026)
+
+`ENGINE_VERSION` no sube, sigue en 91, y es una decisión, no un olvido. La meta del motor devuelve en su salida lo que ya calculaba del primer grupo que llega (`StageOutput.finalSprint`), sin una tirada nueva ni una cuenta distinta: ninguna carrera cambia un segundo, y la huella de `attribution.test.ts` no se mueve. Subirla marcaría como no reproducibles todas las etapas corridas a cambio de nada (`checkReplay`), como dice la nota de la radio que cuenta mejor lo que ya pasaba. El plan de W5 decía 92, y aquí se corrige; con 92, además, la semilla de cada etapa cambia, porque la lleva.
+
+**Lo que se guarda**, por cada corredor del primer grupo y en el orden en que cruza la línea: los hombres de su tren que cuentan en la meta (en el grupo y con trabajo reciente, los mismos que suman al remate), dónde abre el sprint y cuánto aguanta (solo en un final al sprint), su sitio en el grupo al remate, si queda encerrado, su remate sobre el del primero y su hueco en la línea; y el tipo de final. Es para que `Watch` pinte el último km como en la tele (W5, paso 1, que el dueño aprobó: el ganador y el orden, los de la fórmula de hoy).
+
+**La constante que cambia: `TIMELINE.format`, de 1 a 2** (`docs/retransmision.md` §4.3; D-09 y 15-h: se anota aquí y no sube la versión). El formato 1 está cerrado, porque lo guardado no se reescribe, así que el final va en un formato 2: el 1 y, en la meta, `finish.sprint`. Lo sabe leer W5a-1, desplegado antes; lo escribe W5a-2. Las filas del 1 se siguen leyendo con el suyo, sin final.
+
+**Medido** sobre las 24 etapas del banco de la línea por dos semillas (las 44 líneas en línea; las cuatro de crono no llevan final), con gzip 9 y los ids de producción: el final añade una mediana de 223 B a cada línea, y como mucho 1.861 B (un primer grupo de 171 corredores); la línea entera queda en una mediana de 33,3 KB y un máximo de 53,8 KB, con su tope en 96 KB (`TIMELINE.maxStoredBytes`). El primer grupo tiene una mediana de 19 corredores y hasta 175; 26 de los 44 finales son al sprint; uno solo trae un encerrado; ninguno trae tren, porque el campo del banco no pone lanzadores.
