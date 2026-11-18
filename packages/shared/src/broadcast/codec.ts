@@ -12,6 +12,12 @@
  * y con eso el formato 1 queda cerrado (regla 10 de §17.1, 17-a): lo que se guarde después de la
  * primera línea grabada es un `format` 2 con su decodificador, porque lo guardado no se reescribe.
  *
+ * El formato 2 nace en W5 (W5a-1): el 1 y, en la meta, el final del primer grupo que llega
+ * (`finish.sprint`). `encodeTimeline` escribe el formato de la línea, que el grabador toma de
+ * `TIMELINE.format`; las filas del 1 se siguen leyendo con el suyo, sin final. Se lee antes de que se
+ * escriba (W5a-1 y W5a-2, como una migración): un despliegue revertido nunca deja una fila que no se
+ * sepa leer.
+ *
  * Sin Node: `shared` lo carga también la web, así que el base64 de las fotos clave se hace aquí a
  * mano. El gzip y el `bytea` los pone `packages/db` (§5.6).
  *
@@ -33,6 +39,7 @@ import type {
   Block,
   CastRider,
   Ds,
+  FinishSprint,
   GroupCatalogEntry,
   GroupDetail,
   GroupIx,
@@ -115,6 +122,23 @@ export interface StoredTimelineV1 {
     readonly finishDs: Ds
     readonly arrivals: readonly (readonly [Ds, readonly RiderIx[]])[]
   }
+}
+
+/**
+ * El final del primer grupo, tal como se guarda (formato 2, W5): [tipo de final, filas en el orden en que
+ * cruzan la línea]; cada fila, [corredor, su tren, lanza en m o −1, aguanta en m o −1, sitio en milésimas,
+ * encerrado (1) o no (0), remate en milésimas, hueco en Ds].
+ */
+export type StoredFinishSprint = readonly [
+  string,
+  readonly (readonly [RiderIx, readonly RiderIx[], number, number, number, 0 | 1, number, Ds])[],
+]
+
+/** El formato 2 (W5): el 1 con el final del primer grupo en la meta, o null (en crono y sin final). */
+export interface StoredTimelineV2 extends Omit<StoredTimelineV1, 'format' | 'finish'> {
+  /** igual a stage_timelines.format de su fila */
+  readonly format: 2
+  readonly finish: StoredTimelineV1['finish'] & { readonly sprint: StoredFinishSprint | null }
 }
 
 /** Los dos únicos códigos numéricos del formato: cerrados y atados a su unión (un valor nuevo no compila). */
@@ -340,6 +364,25 @@ export const storedTimelineV1Schema = z.object({
 export const STORED_MATCH: SchemaMatches<typeof storedTimelineV1Schema, StoredTimelineV1> = true
 
 /**
+ * EL FORMATO 2 AL LEERLO (W5): el del 1 con `format` 2 y el final del primer grupo en la meta. Que cada
+ * corredor del final esté en la línea lo comprueba `fromStoredV2`.
+ */
+export const storedTimelineV2Schema = storedTimelineV1Schema.extend({
+  format: z.literal(2),
+  finish: z.object({
+    finishDs: ds,
+    arrivals: z.array(z.tuple([ds, z.array(ix)])),
+    sprint: z
+      .tuple([
+        z.string(),
+        z.array(z.tuple([ix, z.array(ix), orNone, orNone, ix, z.literal([0, 1]), ix, ds])),
+      ])
+      .nullable(),
+  }),
+}) satisfies z.ZodType<StoredTimelineV2>
+export const STORED_MATCH_V2: SchemaMatches<typeof storedTimelineV2Schema, StoredTimelineV2> = true
+
+/**
  * Lo que no es una línea del formato: un `format` que no se sabe leer, unas listas que no cruzan, o
  * una línea que no cabe en él (más de 255 grupos). El grabador lo trata como una autocomprobación
  * fallida (D-12): la etapa se queda sin línea, con su lápida y su nota.
@@ -405,17 +448,24 @@ const ORIGIN_OF_CODE: readonly GroupOrigin[] = ['start', 'attack', 'shed']
 const BANNER_OF_CODE: readonly BannerResult['kind'][] = ['meta_volante', 'cima']
 
 /**
- * Siempre escribe el formato vigente. Puro. Lanza `TimelineFormatError` si la línea no es del formato
- * 1, si no cabe en él (más de 255 grupos, porque la foto clave guarda un byte por corredor: 4-i) o si
- * sus sucesos de estado no van por bloque; el grabador lo trata como una autocomprobación fallida
- * (D-12). Todo número de la línea sale ya redondeado (§4.1), así que los redondeos de aquí no cambian
- * nada y `decodeTimeline` devuelve la misma línea (I3).
+ * Escribe la línea en su formato (`tl.format`, que el grabador toma de `TIMELINE.format`): el 1, o el 2
+ * con el final del primer grupo en la meta (W5). Puro. Lanza `TimelineFormatError` si la línea no es de
+ * un formato que se sepa escribir, si es del 1 y trae un final (el 1 no lo guarda), si no cabe en él
+ * (más de 255 grupos, porque la foto clave guarda un byte por corredor: 4-i) o si sus sucesos de estado
+ * no van por bloque; el grabador lo trata como una autocomprobación fallida (D-12). Todo número de la
+ * línea sale ya redondeado (§4.1; el sitio y el remate del final, a milésimas), así que los redondeos de
+ * aquí no cambian nada y `decodeTimeline` devuelve la misma línea (I3).
  */
-export function encodeTimeline(tl: StageTimeline): StoredTimelineV1 {
-  if (tl.format !== 1) throw new TimelineFormatError(`encodeTimeline: formato ${String(tl.format)}`)
+export function encodeTimeline(tl: StageTimeline): StoredTimelineV1 | StoredTimelineV2 {
+  if (tl.format !== 1 && tl.format !== 2)
+    throw new TimelineFormatError(`encodeTimeline: formato ${String(tl.format)}`)
+  if (tl.format === 1 && tl.finish.sprint !== null)
+    throw new TimelineFormatError(
+      'encodeTimeline: el formato 1 no guarda el final del primer grupo',
+    )
   if (tl.groups.length > 255)
     throw new TimelineFormatError(
-      `encodeTimeline: ${tl.groups.length} grupos, y el formato 1 admite 255`,
+      `encodeTimeline: ${tl.groups.length} grupos, y el formato admite 255`,
     )
   const keys = tl.keys.map((k): readonly [Block, string] => {
     const bytes = new Uint8Array(k.groupOf.length)
@@ -460,8 +510,7 @@ export function encodeTimeline(tl: StageTimeline): StoredTimelineV1 {
         break
     }
   }
-  return {
-    format: tl.format,
+  const common: Omit<StoredTimelineV1, 'format' | 'finish'> = {
     engineVersion: tl.engineVersion,
     dx: tl.dx,
     blocks: tl.blocks,
@@ -516,11 +565,35 @@ export function encodeTimeline(tl: StageTimeline): StoredTimelineV1 {
     cast: tl.cast,
     weather: tl.weather,
     tt: tl.tt,
-    finish: {
-      finishDs: toDs(tl.finish.finishS),
-      arrivals: tl.finish.arrivals.map(([d, riders]) => [d, [...riders]] as const),
-    },
   }
+  const finish: StoredTimelineV1['finish'] = {
+    finishDs: toDs(tl.finish.finishS),
+    arrivals: tl.finish.arrivals.map(([d, riders]) => [d, [...riders]] as const),
+  }
+  return tl.format === 1
+    ? { format: 1, ...common, finish }
+    : { format: 2, ...common, finish: { ...finish, sprint: storedSprintOf(tl.finish.sprint) } }
+}
+
+/** El final del primer grupo en su forma guardada (formato 2); null sin él. */
+function storedSprintOf(sprint: FinishSprint | null): StoredFinishSprint | null {
+  if (sprint === null) return null
+  return [
+    sprint.kind,
+    sprint.riders.map(
+      (x) =>
+        [
+          x.rider,
+          [...x.train],
+          x.launchM ?? -1,
+          x.holdM ?? -1,
+          Math.round(x.place * 1000),
+          x.boxed ? 1 : 0,
+          Math.round(x.score * 1000),
+          x.gapDs,
+        ] as const,
+    ),
+  ]
 }
 
 /**
@@ -530,9 +603,12 @@ export function encodeTimeline(tl: StageTimeline): StoredTimelineV1 {
  * de `moves` acumulan `Δb`, los de `to + 1 = 0` son `out` y los seguidos con el mismo `b` y el mismo
  * `to` se juntan en un `move`; los tríos de `clocks` con el mismo `b` son un `clock`; y todo se ordena
  * por `b` y por el orden de `StateEvent`. Lanza `TimelineFormatError` si las listas no cruzan.
- * Privada: se entra por `decodeTimeline`.
+ * Privada: se entra por `decodeTimeline`. Lee también lo común del formato 2, sin su final (`sprint`
+ * null), que añade `fromStoredV2`.
  */
-function fromStoredV1(s: z.output<typeof storedTimelineV1Schema>): StageTimeline {
+function fromStoredV1(
+  s: z.output<typeof storedTimelineV1Schema> | z.output<typeof storedTimelineV2Schema>,
+): StageTimeline {
   const riderCount = s.riderIds.length
   const groupCount = s.groupIds.length
   const fail = (what: string): never => {
@@ -711,18 +787,53 @@ function fromStoredV1(s: z.output<typeof storedTimelineV1Schema>): StageTimeline
         d,
         riders.map((r) => rider(r, 'llegadas')),
       ]),
+      sprint: null,
     },
   }
 }
 
 /**
+ * LA INVERSA EXACTA DEL FORMATO 2 (W5): lo común, con `fromStoredV1`, y el final del primer grupo; −1
+ * vuelve a null y las milésimas, a su número. Lanza `TimelineFormatError` si un corredor del final no
+ * está en la línea. Privada: se entra por `decodeTimeline`.
+ */
+function fromStoredV2(s: z.output<typeof storedTimelineV2Schema>): StageTimeline {
+  const tl = fromStoredV1(s)
+  if (s.finish.sprint === null) return tl
+  const riderCount = s.riderIds.length
+  const rider = (r: number): RiderIx => {
+    if (r >= riderCount)
+      throw new TimelineFormatError(
+        `stage_timelines: final: el corredor ${r} no está entre los ${riderCount}`,
+      )
+    return r
+  }
+  const [kind, rows] = s.finish.sprint
+  const sprint: FinishSprint = {
+    kind,
+    riders: rows.map(([r, train, launchM, holdM, placeMil, boxed, scoreMil, gapDs]) => ({
+      rider: rider(r),
+      train: train.map(rider),
+      launchM: launchM < 0 ? null : launchM,
+      holdM: holdM < 0 ? null : holdM,
+      place: placeMil / 1000,
+      boxed: boxed === 1,
+      score: scoreMil / 1000,
+      gapDs,
+    })),
+  }
+  return { ...tl, format: 2, finish: { ...tl.finish, sprint } }
+}
+
+/**
  * EL DESPACHO POR VERSIÓN (H-13): valida con Zod, porque el cuerpo llega de la base, y convierte. Un
  * `format` que no se sabe leer lanza `TimelineFormatError` sin intentarlo; una forma que no es la del
- * formato lanza el error de Zod, y unas listas que no cruzan, `TimelineFormatError`. Un formato 2, el
- * día que haga falta, es un `case 2` con su `fromStoredV2`: las filas del 1 se siguen leyendo con el suyo.
+ * formato lanza el error de Zod, y unas listas que no cruzan, `TimelineFormatError`. El formato 2 (W5)
+ * es su `case 2` con su `fromStoredV2`: las filas del 1 se siguen leyendo con el suyo, sin final.
  */
 export function decodeTimeline(s: unknown): StageTimeline {
   const format = typeof s === 'object' && s !== null && 'format' in s ? s.format : undefined
   if (format === 1) return fromStoredV1(storedTimelineV1Schema.parse(s))
+  if (format === 2) return fromStoredV2(storedTimelineV2Schema.parse(s))
   throw new TimelineFormatError(`stage_timelines: formato ${String(format)} desconocido`)
 }
