@@ -51,8 +51,13 @@ export interface TelefonoPantalla {
   readonly waitMs?: number
 }
 
-/** La etapa en línea de `Watch` del mapa 05: las pantallas 08, 09, 10 y 36; y la 48, su último km (W5c). */
+/** La etapa en línea de `Watch` del mapa 05: las pantallas 08, 09, 10 y 36. */
 const ETAPA = '/world/races/race-valencia/stages/3'
+/**
+ * La 48, el último km (W5c), en otra: la 3 la gana uno solo en alto, y sin dos delante no hay panel (la
+ * barra lo cuenta mejor). En la 5, llana, cuatro escapados llegan juntos y se lo juegan al sprint.
+ */
+const ETAPA_SPRINT = '/world/races/race-valencia/stages/5'
 
 /**
  * `Play`, un salto de la hoja `⋯` y `Pause` (7-j): la pantalla se mide en pausa, siempre en el mismo
@@ -184,7 +189,7 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
   },
   {
     id: '48-stage-watch-sprint',
-    path: ETAPA,
+    path: ETAPA_SPRINT,
     account: 'visitante',
     answer: 'FixedOverlay',
     tool: false,

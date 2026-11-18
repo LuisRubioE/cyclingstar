@@ -22,6 +22,7 @@ const now: SprintNow = {
     { rider: 2, behindM: 3.4, role: 'bunch' },
     { rider: 6, behindM: 4.1, role: 'bunch' },
   ],
+  sprint: true,
 }
 
 const textOf = (m: string): string =>
@@ -37,12 +38,24 @@ describe('SprintBoard · el último km (W5c)', () => {
   it('la distancia, y cada uno en su orden con su nombre, lo que hace y sus metros', () => {
     const text = textOf(html)
     expect(text).toContain('Final sprint 180 m to go')
-    // el maillot de líder dice su nombre (su título accesible)
-    expect(text).toContain(`1 ${cast[3]!.name} Points leader Sprinting`)
-    expect(text).toContain(`2 ${cast[5]!.name} Lead-out +0.6 m`)
-    expect(text).toContain(`3 ${cast[1]!.name} Boxed in +1.3 m`)
-    expect(text).toContain(`4 ${cast[4]!.name} Fading +2.2 m`)
+    // lo que hace, bajo el nombre y antes del maillot (el de líder dice su nombre, su título accesible)
+    expect(text).toContain(`1 ${cast[3]!.name} Sprinting Points leader`)
+    expect(text).toContain(`2 ${cast[5]!.name} Lead-out`)
+    expect(text).toContain(`3 ${cast[1]!.name} Boxed in`)
+    expect(text).toContain(`4 ${cast[4]!.name} Fading`)
+    for (const g of ['+0.6 m', '+1.3 m', '+2.2 m']) expect(text).toContain(g)
     expect(text).toContain(`5 ${cast[0]!.name} +3.0 m`)
+  })
+
+  it('sin un sprint a la vista, el último km a secas', () => {
+    const quieto: SprintNow = {
+      toGoM: 900,
+      rows: now.rows.map((r) => ({ ...r, role: 'bunch' })),
+      sprint: false,
+    }
+    const text = textOf(renderToStaticMarkup(<SprintBoard now={quieto} cast={cast} />))
+    expect(text).toContain('Final kilometre 900 m to go')
+    expect(text).not.toContain('Final sprint')
   })
 
   it('una fila por corredor, con su papel; en el teléfono, las seis primeras', () => {

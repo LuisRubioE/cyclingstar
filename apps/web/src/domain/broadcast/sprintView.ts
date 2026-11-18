@@ -19,16 +19,22 @@ export interface SprintNow {
   /** a la decena hacia abajo, como la capa fija (§6.2) */
   readonly toGoM: number
   readonly rows: readonly SprintRow[]
+  /**
+   * alguien tira de su velocista, lanza, cede o va encerrado: un sprint, y el panel lo dice. Sale de lo
+   * que se ve, no del tipo de final, que diría antes de tiempo si cazan a la fuga (D-06)
+   */
+  readonly sprint: boolean
 }
+
+/** ¿Se ve un sprint? Alguien que no va sin más en el grupo. */
+const sprinting = (rows: readonly SprintRow[]): boolean => rows.some((r) => r.role !== 'bunch')
 
 const round1 = (x: number): number => Math.round(x * 10) / 10 + 0
 
 /** Un fotograma tal cual, en filas. */
 function rowsOf(f: SprintFrame): SprintNow {
-  return {
-    toGoM: Math.floor(f.toGoM / 10) * 10,
-    rows: f.spots.map((s) => ({ rider: s.rider, behindM: s.behindM, role: s.role })),
-  }
+  const rows = f.spots.map((s) => ({ rider: s.rider, behindM: s.behindM, role: s.role }))
+  return { toGoM: Math.floor(f.toGoM / 10) * 10, rows, sprint: sprinting(rows) }
 }
 
 /**
@@ -65,6 +71,7 @@ export function sprintNowAt(frames: readonly SprintFrame[], tS: RaceS): SprintNo
   return {
     toGoM: Math.floor((a.toGoM + (b.toGoM - a.toGoM) * w) / 10) * 10,
     rows: rows.map((r) => ({ ...r, behindM: round1(r.behindM - head) })),
+    sprint: sprinting(rows),
   }
 }
 
@@ -73,12 +80,22 @@ export interface SprintPanelAt {
   readonly lastKm: boolean
   readonly phase: string
   readonly timeTrial: boolean
+  /** los km a meta de la capa fija a esa hora (`Instant.toGoKm`): el panel dice la misma distancia */
+  readonly toGoKm: number
 }
 
 /**
+ * Los metros a meta como los escribe la capa fija (`toGoText`: a la decena hacia abajo). La capa pone la
+ * cabeza en el centro de su bloque y los fotogramas, en la marca de su final, así que sus metros no
+ * casan: el panel dice los de la capa, que se leen arriba en grande.
+ */
+const overlayMetres = (toGoKm: number): number => Math.floor(Math.max(0, toGoKm) * 100 + 1e-9) * 10
+
+/**
  * EL PANEL DEL FINAL, SI SALE (W5c): en el último km de una etapa en línea, antes de la llegada y del
- * cierre (allí manda la meta), y solo con fotogramas, los de una etapa grabada con su final (W5a-2); en
- * otro caso, null, y la barra de grupos como siempre.
+ * cierre (allí manda la meta), y solo con fotogramas, los de una etapa grabada con su final (W5a-2), y
+ * con dos o más delante: el que llega solo se ve mejor en la barra de grupos, con lo que les saca a los
+ * de detrás. En otro caso, null, y la barra de grupos como siempre.
  */
 export function sprintPanelAt(
   frames: readonly SprintFrame[],
@@ -86,7 +103,8 @@ export function sprintPanelAt(
   at: SprintPanelAt,
 ): SprintNow | null {
   if (at.timeTrial || !at.lastKm || at.phase === 'arrival' || at.phase === 'closing') return null
-  return sprintNowAt(frames, tS)
+  const now = sprintNowAt(frames, tS)
+  return now !== null && now.rows.length >= 2 ? { ...now, toGoM: overlayMetres(at.toGoKm) } : null
 }
 
 /** Lo que hace cada uno, en la pantalla; en el grupo, nada. */
@@ -120,6 +138,7 @@ export function sameSprint(a: SprintNow | null, b: SprintNow | null): boolean {
   if (a === null || b === null) return a === b
   return (
     a.toGoM === b.toGoM &&
+    a.sprint === b.sprint &&
     a.rows.length === b.rows.length &&
     a.rows.every((r, i) => {
       const o = b.rows[i]!

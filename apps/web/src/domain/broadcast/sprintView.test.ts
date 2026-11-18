@@ -92,10 +92,10 @@ describe('lo mismo en pantalla (sameSprint)', () => {
 })
 
 describe('si sale el panel (sprintPanelAt)', () => {
-  const at = { lastKm: true, phase: 'playing', timeTrial: false }
+  const at = { lastKm: true, phase: 'playing', timeTrial: false, toGoKm: 0.234 }
 
   it('en el último km, jugando o en pausa, con fotogramas', () => {
-    expect(sprintPanelAt(frames, 105, at)).toEqual(sprintNowAt(frames, 105))
+    expect(sprintPanelAt(frames, 105, at)).toEqual({ ...sprintNowAt(frames, 105), toGoM: 230 })
     expect(sprintPanelAt(frames, 105, { ...at, phase: 'paused' })).not.toBeNull()
   })
 
@@ -105,5 +105,48 @@ describe('si sale el panel (sprintPanelAt)', () => {
     expect(sprintPanelAt(frames, 105, { ...at, phase: 'closing' })).toBeNull()
     expect(sprintPanelAt(frames, 105, { ...at, timeTrial: true })).toBeNull()
     expect(sprintPanelAt([], 105, at)).toBeNull()
+  })
+
+  it('la distancia, la de la capa fija y como la escribe ella (a la decena hacia abajo)', () => {
+    for (const [km, m] of [
+      [0.999, 990],
+      [0.234, 230],
+      [0.05, 50],
+      [0.0099, 0],
+      [-0.01, 0],
+    ] as const)
+      expect(sprintPanelAt(frames, 105, { ...at, toGoKm: km })?.toGoM, `${km}`).toBe(m)
+  })
+
+  it('el que llega solo, sin panel: la barra, con lo que les saca a los de detrás', () => {
+    const solo: SprintFrame[] = frames.map((f) => ({ ...f, spots: f.spots.slice(0, 1) }))
+    expect(sprintNowAt(solo, 105)?.rows).toHaveLength(1)
+    expect(sprintPanelAt(solo, 105, at)).toBeNull()
+    // si le cazan, el panel sale desde que van dos
+    const cazado = [solo[0]!, frames[1]!]
+    expect(sprintPanelAt(cazado, 100, at)).toBeNull()
+    expect(sprintPanelAt(cazado, 110, at)).not.toBeNull()
+  })
+})
+
+describe('el título: un sprint cuando se ve', () => {
+  it('alguien tira, lanza, cede o va encerrado: un sprint; todos en el grupo, el último km', () => {
+    expect(sprintNowAt(frames, 100)!.sprint).toBe(true)
+    expect(sprintNowAt(frames, 110)!.sprint).toBe(true)
+    const quietos: SprintFrame[] = frames.map((f) => ({
+      ...f,
+      spots: f.spots.map((s) => ({ ...s, role: 'bunch' as const })),
+    }))
+    expect(sprintNowAt(quietos, 100)!.sprint).toBe(false)
+    expect(sprintNowAt(quietos, 105)!.sprint).toBe(false)
+    for (const role of ['leadOut', 'launched', 'fading', 'boxed'] as const) {
+      const uno: SprintFrame[] = [
+        { ...quietos[0]!, spots: quietos[0]!.spots.map((s, i) => (i === 2 ? { ...s, role } : s)) },
+      ]
+      expect(sprintNowAt(uno, 100)!.sprint, role).toBe(true)
+    }
+    expect(
+      sameSprint(sprintNowAt(frames, 100), { ...sprintNowAt(frames, 100)!, sprint: false }),
+    ).toBe(false)
   })
 })

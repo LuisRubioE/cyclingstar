@@ -15,7 +15,8 @@ const ROAD_MIN_M = 12
 /**
  * EL ÚLTIMO KM COMO EN LA TELE (W5c, la revisión de `Watch`; docs/diseno/e3-visual/implementacion.md).
  * Sustituye a la barra de grupos en el último km de una etapa grabada con su final (W5a-2), como la crono
- * cambia la barra por su tabla: arriba, la carretera, con el grupo de cabeza hacia la línea (el primero,
+ * cambia la barra por su tabla, si van dos o más delante. Se titula `Final sprint` cuando se ve uno
+ * (alguien tira, lanza, cede o va encerrado) y `Final kilometre` mientras no: arriba, la carretera, con el grupo de cabeza hacia la línea (el primero,
  * en el acento, y los del espectador, en oro); debajo, los de delante en su orden, cada uno con su
  * bandera, su nombre, su maillot (el de líder, el de campeón o el de su equipo, D-00c), lo que hace
  * (tirando de su velocista, lanzado, cediendo o encerrado) y sus metros al primero. No es una región viva:
@@ -34,7 +35,7 @@ export const SprintBoard = memo(function SprintBoard({
     <div data-ui="SprintBoard" className="space-y-2 text-meta text-ink" aria-live="off">
       <p className="flex items-baseline justify-between gap-2">
         <span data-caps="" className="font-semibold uppercase tracking-caps">
-          Final sprint
+          {now.sprint ? 'Final sprint' : 'Final kilometre'}
         </span>
         <span
           data-sprint-to-go=""
@@ -75,14 +76,17 @@ export const SprintBoard = memo(function SprintBoard({
                 {i + 1}
               </span>
               {card !== undefined && <Flag country={card.country} />}
-              <span className="min-w-0 flex-1 break-words">{card?.name ?? `#${r.rider + 1}`}</span>
+              {/* el nombre entero (7-a) y, debajo, lo que hace: en el teléfono no cabe al lado */}
+              <span className="min-w-0 flex-1">
+                <span className="block break-words">{card?.name ?? `#${r.rider + 1}`}</span>
+                {word !== null && (
+                  <span className="block text-caption font-semibold uppercase tracking-caps text-accent">
+                    {word}
+                  </span>
+                )}
+              </span>
               {card !== undefined && (
                 <WornJerseyIcon worn={card.worn} team={wornTeamOf(card)} size={28} />
-              )}
-              {word !== null && (
-                <span className="shrink-0 text-caption font-semibold uppercase tracking-caps text-accent">
-                  {word}
-                </span>
               )}
               <span className="w-16 shrink-0 text-right tabular-nums text-ink-2">
                 {sprintGapText(r.behindM)}

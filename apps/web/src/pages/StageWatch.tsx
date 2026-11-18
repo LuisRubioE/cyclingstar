@@ -1029,6 +1029,7 @@ function useWatchPlayer(
           lastKm: s.lastKm,
           phase: s.phase,
           timeTrial,
+          toGoKm: instant.toGoKm,
         })
         if (!sameSprint(nextSprint, sprintShown)) {
           sprintShown = nextSprint
