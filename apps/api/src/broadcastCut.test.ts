@@ -57,7 +57,7 @@ const REVEAL = 5 // revealDs en la tupla de un suceso (StoredTimelineV1, §4.3)
 const since = (d: number, from: number): boolean => (from === 0 ? d >= 0 : d > from)
 
 /** Los registros de un tramo, lista a lista y cada uno en JSON (los de longitud variable, partidos). */
-function recordsOf(c: Omit<BroadcastChunk, 'lines'>): Record<string, string[]> {
+function recordsOf(c: Omit<BroadcastChunk, 'lines' | 'sprint'>): Record<string, string[]> {
   const split = (xs: readonly number[], len: (at: number) => number): string[] => {
     const out: string[] = []
     for (let i = 0; i < xs.length; i += len(i)) out.push(JSON.stringify(xs.slice(i, i + len(i))))

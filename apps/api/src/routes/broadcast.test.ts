@@ -41,6 +41,9 @@ import {
   horizonSummarySchema,
   instantAt,
   photoBlocksOf,
+  sprintFrames,
+  sprintFramesOfWire,
+  sprintPhoto,
   stageGateErrorSchema,
   stageReplaySchema,
   stageWeatherViewSchema,
@@ -412,6 +415,23 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         const blocks = chunks.flatMap((c) => c.clocks.filter((_, i) => i % 3 === 0))
         expect(blocks.some((b) => !calendar.has(b))).toBe(true)
         for (const b of blocks) expect(b).toBeLessThan(head.stage.blocks)
+        // el final del primer grupo (W5b): cada fotograma una vez, en el tramo de su hora, y todos los de
+        // la línea grabada; ninguno en la línea, y ninguno fuera del último km
+        const tl = await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2)
+        const { finishDs } = visibilityOf(tl!)
+        const served = chunks.flatMap((c) => {
+          const frames = sprintFramesOfWire(c.sprint)
+          for (const f of frames) {
+            expect(f.atDs).toBeGreaterThan(c.fromDs === 0 ? -1 : c.fromDs)
+            expect(f.atDs).toBeLessThanOrEqual(c.toDs)
+            expect(f.atDs).toBeLessThan(finishDs)
+            expect(f.toGoM).toBeLessThanOrEqual(BROADCAST.sprint.fromM)
+          }
+          return frames
+        })
+        expect(served.length).toBeGreaterThan(0)
+        expect(served).toEqual(sprintFrames(tl!))
+        expect(chunks[0]!.sprint).toEqual([])
       })
 
       /**
@@ -463,6 +483,19 @@ describe('las rutas de la retransmisión (§14.2)', () => {
         expect([threeKmRuleRiders(tl!, false), threeKmRuleRiders(tl!, true)]).toContainEqual(
           finish.threeKmRule,
         )
+        // la foto de la línea (W5b): la de la línea grabada, con el ganador a 0 y en el orden del resultado
+        expect(finish.photo).toEqual(
+          sprintPhoto(tl!).map((s) => ({ rider: s.rider, behindM: s.behindM })),
+        )
+        expect(finish.photo.length).toBeGreaterThan(0)
+        expect(finish.photo.length).toBeLessThanOrEqual(BROADCAST.sprint.frameRiders)
+        expect(finish.photo[0]!.behindM).toBe(0)
+        const byPlace = [...finish.result]
+          .filter((r) => r.puesto > 0)
+          .sort((a, b) => a.puesto - b.puesto)
+          .slice(0, finish.photo.length)
+          .map((r) => r.riderId)
+        expect(finish.photo.map((p) => tl!.riderIds[p.rider])).toEqual(byPlace)
         expect(await readWatch(t.db, key)).toEqual({
           follow: 1,
           knownThrough: 2,
@@ -1036,10 +1069,13 @@ describe('las rutas de la retransmisión (§14.2)', () => {
       }
       const tl = await readStageTimeline(t.db, worldHorizon, RACE_KEY, 2)
       const { finishDs } = visibilityOf(tl!)
-      // el borde: recortado a la meta, sin nada que se vea en ella (las llegadas, el ganador)
+      // el borde: recortado a la meta, sin nada que se vea en ella (las llegadas, el ganador, la foto)
       expect(last!.toDs).toBe(finishDs)
       expect(last!.events.every((e) => e[5] < finishDs)).toBe(true)
       expect(last!.events.map((e) => e[1])).not.toContain('stage_win')
+      expect(sprintFramesOfWire(last!.sprint).every((f) => f.atDs < finishDs && f.toGoM > 0)).toBe(
+        true,
+      )
       expect(await readWatch(t.db, { userId: FINISHER, worldId, raceKey: RACE_KEY })).toMatchObject(
         { knownThrough: 1, how: 'W', watchingStage: 2 },
       )

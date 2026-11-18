@@ -4,6 +4,7 @@ import {
   type BroadcastChunk,
   type BroadcastHead,
   type Instant,
+  broadcastChunkSchema,
   instantAt,
   mainGapText,
   photoBlocksOf,
@@ -34,9 +35,10 @@ const served = JSON.parse(
   ).toString('utf8'),
 ) as Served
 
+/** Los tramos, leídos como los lee la web (`broadcastChunkSchema`): los de antes de W5b no traen `sprint`. */
 function lineOf({ head, chunks }: Served): ServedLine {
   let line = servedLineOf(head)
-  for (const c of chunks) line = withChunk(head, line, c)
+  for (const c of chunks) line = withChunk(head, line, broadcastChunkSchema.parse(c))
   return line
 }
 

@@ -178,6 +178,7 @@ const finish: BroadcastFinish = {
   report: {} as BroadcastFinish['report'],
   news: [],
   threeKmRule: [12],
+  photo: [],
 }
 
 describe('la previa (§8.6): cuatro cuadros de previewCardS', () => {
