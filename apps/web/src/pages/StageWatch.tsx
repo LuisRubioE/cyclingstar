@@ -969,6 +969,7 @@ function useWatchPlayer(
     setArrival(null)
     setRecap(null)
     setSeeking(null)
+    setSprint(null)
     runner.push(init.effects)
 
     let raf = 0
@@ -1030,6 +1031,7 @@ function useWatchPlayer(
           phase: s.phase,
           timeTrial,
           toGoKm: instant.toGoKm,
+          atLine: shown.atLine,
         })
         if (!sameSprint(nextSprint, sprintShown)) {
           sprintShown = nextSprint

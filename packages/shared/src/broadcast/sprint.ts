@@ -7,10 +7,16 @@
  * el metro en que abre su sprint, el que abre más lejos de lo que aguanta sube y cede, el encerrado no
  * sale hasta el final, y entre los que llegan juntos el margen sale de su remate.
  *
- * NADA DEL RESULTADO ANTES DE `revealFromM` (la revisión de W5b): hasta ahí cada uno va en su sitio de
- * salida, que no depende de cómo llega, con un vaivén que tampoco (`approachSpotsM`), y la escena solo se
- * acerca a la llegada en los últimos metros, donde la carrera de verdad ya lo está decidiendo. Un
- * fotograma de antes no deja despejar el orden, ni el de la lista: los empates van por RiderIx.
+ * NADA DEL RESULTADO ANTES DE `revealFromM` (las revisiones de W5b y W5c): hasta ahí cada uno va en una
+ * fila que sale de su RiderIx, con un vaivén que tampoco sale de cómo llega (`approachOfM`): ni su sitio
+ * en el final, ni su tren, ni su remate; nadie tira, abre, cede ni va encerrado, y los empates van por
+ * RiderIx. La escena solo se acerca a la llegada en los últimos metros, donde la carrera de verdad ya lo
+ * está decidiendo.
+ *
+ * EL GRUPO DE CABEZA DE LA CARRETERA (la revisión de W5c): cada fotograma lleva a los del grupo que va
+ * delante en ese bloque, el que ve la barra, y no a los del que llegará primero. A una fuga que cazan
+ * dentro del último km se la ve, con su aproximación, hasta que la cazan; solo el grupo que gana tiene
+ * puesta en escena. Así, ni que salga el panel ni quién va en él dicen si la cazan.
  *
  * Es de la meta: lee `FinishRecord.sprint`, que nunca va en un tramo (D-06). A la web viajan los
  * fotogramas de antes de la línea, cada uno con su hora, la de la marca de reloj del grupo en ese bloque
@@ -34,12 +40,15 @@ export interface SprintSpot {
   readonly role: SprintRole
 }
 
-/** Un fotograma del final: la hora en que la cabeza del grupo pasa a `toGoM` de la línea, y los de delante. */
+/** Un fotograma del final: la hora en que la capa fija pone a la cabeza a `toGoM` de la línea, y los de delante. */
 export interface SprintFrame {
-  /** la marca de reloj del grupo en ese punto: su hora de visibilidad (D-06) */
+  /**
+   * la hora de las marcas de reloj de la cabeza en ese punto, ya vistas (D-06): la capa la pone en el
+   * centro de su bloque, y en el último bloque se sigue a la velocidad de antes, sin la marca de la línea
+   */
   readonly atDs: Ds
   readonly toGoM: number
-  /** los `BROADCAST.sprint.frameRiders` de delante del grupo, en el orden de la carretera */
+  /** los `BROADCAST.sprint.frameRiders` de delante del grupo de cabeza, en el orden de la carretera */
   readonly spots: readonly SprintSpot[]
 }
 
@@ -75,26 +84,22 @@ export function lineSpotsM(sprint: FinishSprint, lineSpeedMs: number): number[] 
   return out
 }
 
+/** La tirada fija de la salida: un número por RiderIx, que no sale del resultado. */
+const startKey = (rider: RiderIx): number => (rider * 0.7548776662) % 1
+
 /**
- * Dónde va cada uno al empezar el último km, en m tras la cabeza: por su sitio en el grupo, con los
- * hombres de su tren justo delante de su velocista, en filas de `lanes`.
+ * LAS FILAS DE UN GRUPO al empezar el último km, en m tras la de delante, de `lanes` en `lanes`: por un
+ * orden que sale del RiderIx de cada uno, nunca del final (ni su sitio, ni su tren, ni su remate).
  */
+export function startRowsM(riders: readonly RiderIx[]): Map<RiderIx, number> {
+  const order = [...riders].sort((a, b) => startKey(a) - startKey(b) || a - b)
+  return new Map(order.map((r, rank) => [r, Math.floor(rank / S.lanes) * S.rowM] as const))
+}
+
+/** Las de los del final, en su orden de `riders`. */
 export function startSpotsM(sprint: FinishSprint): number[] {
-  const key = sprint.riders.map((r) => r.place)
-  const index = new Map(sprint.riders.map((r, i) => [r.rider, i] as const))
-  for (const r of sprint.riders)
-    r.train.forEach((man, k) => {
-      const j = index.get(man)
-      // por delante de su velocista, el primero de su lista el más adelantado; menos que una milésima
-      if (j !== undefined) key[j] = r.place - (r.train.length - k) * 1e-4
-    })
-  // los empates, por RiderIx: el índice de `riders` es el orden de llegada
-  const order = key
-    .map((_, i) => i)
-    .sort((a, b) => key[a]! - key[b]! || sprint.riders[a]!.rider - sprint.riders[b]!.rider)
-  const out = sprint.riders.map(() => 0)
-  order.forEach((i, rank) => (out[i] = Math.floor(rank / S.lanes) * S.rowM))
-  return out
+  const rows = startRowsM(sprint.riders.map((r) => r.rider))
+  return sprint.riders.map((r) => rows.get(r.rider)!)
 }
 
 /** El vaivén de un corredor en la aproximación: dos ondas, con la fase de su RiderIx (nada del resultado). */
@@ -110,16 +115,26 @@ function jostleOf(rider: RiderIx, toGoM: number): number {
 }
 
 /**
- * LA APROXIMACIÓN: dónde va cada uno cuando a la cabeza le quedan `toGoM` metros, en m desde la fila de
- * delante, antes de nada del resultado: su sitio de salida (`startSpotsM`) y un vaivén que no sale de cómo
- * llega (la fase, de su RiderIx); el hombre de tren va y viene con su velocista. Por debajo de
- * `revealFromM`, de aquí parte el camino de cada uno hacia la llegada.
+ * LA APROXIMACIÓN DE UN GRUPO: dónde va cada uno cuando a su cabeza le quedan `toGoM` metros, en m tras
+ * el de delante: su fila (`startRowsM`) y un vaivén con la fase de su RiderIx. Nada del resultado: vale
+ * igual para el grupo que gana que para una fuga a la que cazan. Por debajo de `revealFromM`, de aquí
+ * parte el camino de cada uno del grupo que gana hacia la llegada.
  */
+export function approachOfM(riders: readonly RiderIx[], toGoM: number): Map<RiderIx, number> {
+  const rows = startRowsM(riders)
+  const at = new Map(riders.map((r) => [r, rows.get(r)! + jostleOf(r, toGoM)] as const))
+  const front = Math.min(...at.values())
+  for (const [r, x] of at) at.set(r, x - front)
+  return at
+}
+
+/** La de los del final, en su orden de `riders`. */
 export function approachSpotsM(sprint: FinishSprint, toGoM: number): number[] {
-  const start = startSpotsM(sprint)
-  const unitOf = new Map<RiderIx, RiderIx>()
-  for (const r of sprint.riders) for (const man of r.train) unitOf.set(man, r.rider)
-  return sprint.riders.map((r, i) => start[i]! + jostleOf(unitOf.get(r.rider) ?? r.rider, toGoM))
+  const at = approachOfM(
+    sprint.riders.map((r) => r.rider),
+    toGoM,
+  )
+  return sprint.riders.map((r) => at.get(r.rider)!)
 }
 
 /**
@@ -132,27 +147,37 @@ function launchOf(r: FinishSprint['riders'][number]): number | null {
 }
 
 /**
- * EL FINAL EN UN METRO: dónde va cada uno del primer grupo cuando a su cabeza le quedan `toGoM` metros
+ * EL FINAL EN UN METRO: dónde va cada uno del grupo que gana cuando a su cabeza le quedan `toGoM` metros
  * (de `BROADCAST.sprint.fromM` a 0), en el orden de la carretera, con sus metros tras el primero. A 0 m
  * es la llegada exacta: el orden de `sprint.riders` y sus márgenes (`lineSpotsM`). Desde `revealFromM`
- * para arriba, la aproximación (`approachSpotsM`): nada del resultado, tampoco en el orden de la lista.
+ * para arriba, la aproximación (`approachOfM`): nada del resultado, tampoco en el orden de la lista ni
+ * en los papeles. `among`, los que van en el grupo a esa hora (por defecto, los de la llegada): quien va
+ * y no llega con él se queda, desde `revealFromM`, detrás del último; quien aún no va, no sale.
  */
 export function sprintSpots(
   sprint: FinishSprint,
   toGoM: number,
   lineSpeedMs: number = S.lineSpeedMs,
+  among?: readonly RiderIx[],
 ): SprintSpot[] {
   const d = Math.max(0, Math.min(S.fromM, toGoM))
   const fin = lineSpotsM(sprint, lineSpeedMs)
-  // la aproximación, desde su cabeza: de ahí sale cada uno, y hacia ella sube el que cede
-  const approach = approachSpotsM(sprint, d)
-  const front = Math.min(...approach)
-  const start = approach.map((x) => x - front)
+  const inFinal = new Map(sprint.riders.map((r, i) => [r.rider, i] as const))
+  // la aproximación del grupo que se ve, desde su cabeza: de ahí sale cada uno, y hacia ella sube el que cede
+  const start = approachOfM(among ?? sprint.riders.map((r) => r.rider), d)
   const sprinterOf = new Map<RiderIx, number>()
   sprint.riders.forEach((r, i) => r.train.forEach((man) => sprinterOf.set(man, i)))
+  // adonde se va, en los últimos metros, quien va en el grupo y no llega con él: detrás del último
+  const tail = Math.max(0, ...fin) + S.rowM
 
-  const placed = sprint.riders.map((r, i) => {
-    const s = start[i]!
+  const placed = [...start].map(([rider, s]) => {
+    const i = inFinal.get(rider)
+    if (i === undefined) {
+      const at =
+        d >= S.revealFromM ? s : s + (tail - s) * smooth((S.revealFromM - d) / S.revealFromM)
+      return { rider, at, role: 'bunch' as SprintRole }
+    }
+    const r = sprint.riders[i]!
     const f = fin[i]!
     const own = launchOf(r)
     const j = sprinterOf.get(r.rider)
@@ -163,13 +188,16 @@ export function sprintSpots(
     const hold = r.holdM ?? release
     let role: SprintRole = 'bunch'
     if (release !== null)
+      // nadie tira ni va encerrado antes de `revealFromM`: el tren también es del final
       role =
         d > release
-          ? j !== undefined && boss !== null
-            ? 'leadOut'
-            : r.boxed && d <= S.revealFromM
-              ? 'boxed'
-              : 'bunch'
+          ? d > S.revealFromM
+            ? 'bunch'
+            : j !== undefined && boss !== null
+              ? 'leadOut'
+              : r.boxed
+                ? 'boxed'
+                : 'bunch'
           : j === undefined
             ? 'launched'
             : 'bunch'
@@ -195,7 +223,7 @@ export function sprintSpots(
           : Math.min(S.revealFromM, Math.max(release, S.smoothPerM * Math.abs(f - s)))
       at = d >= from ? s : s + (f - s) * smooth((from - d) / from)
     }
-    return { rider: r.rider, at, role }
+    return { rider, at, role }
   })
   // los empates, por RiderIx, nunca por el orden de llegada
   placed.sort((a, b) => a.at - b.at || a.rider - b.rider)
@@ -211,57 +239,84 @@ function markAt(marks: readonly (readonly [Block, Ds])[], b: Block): Ds | null {
 
 interface SprintScene {
   readonly sprint: FinishSprint
-  readonly group: GroupIx
+  /** el grupo que gana: el del primero en la línea */
+  readonly winner: GroupIx
   readonly lineSpeedMs: number
   readonly blockM: number
   readonly last: Block
-  /** la hora en que se ve cada marca del grupo, por bloque: la de `visibilityOf`, la del corte (D-06) */
-  readonly seen: ReadonlyMap<Block, Ds>
+  /** por bloque: el grupo de cabeza (el primero en cruzarlo) y la hora en que se ve su marca (D-06) */
+  readonly heads: ReadonlyMap<Block, { readonly g: GroupIx; readonly seenDs: Ds }>
 }
 
-/** La hora en que se ve cada marca de reloj de un grupo, por bloque (`visibilityOf`, como el corte de `chunkOf`). */
-function seenMarksOf(tl: StageTimeline, g: GroupIx): Map<Block, Ds> {
+/**
+ * El grupo de cabeza de cada bloque con marcas, el que lo cruza primero, y la hora en que se ve su marca
+ * (`visibilityOf`, como el corte de `chunkOf`). En el último km cada grupo lleva marca en cada bloque.
+ */
+function headsOf(tl: StageTimeline): Map<Block, { g: GroupIx; seenDs: Ds }> {
   const vis = visibilityOf(tl)
-  const out = new Map<Block, Ds>()
+  const best = new Map<Block, { g: GroupIx; ds: Ds; seenDs: Ds }>()
   tl.stateEvents.forEach((e, i) => {
     if (e.t !== 'clock') return
-    e.marks.forEach(([mg], j) => {
-      const at = vis.clockMarkDs[i]?.[j]
-      if (mg === g && at !== null && at !== undefined) out.set(e.b, at)
+    e.marks.forEach(([g, ds], j) => {
+      const seenDs = vis.clockMarkDs[i]?.[j]
+      if (seenDs === null || seenDs === undefined) return
+      const now = best.get(e.b)
+      if (now === undefined || ds < now.ds || (ds === now.ds && g < now.g))
+        best.set(e.b, { g, ds, seenDs })
     })
   })
-  return out
+  return new Map([...best].map(([b, x]) => [b, { g: x.g, seenDs: x.seenDs }] as const))
 }
 
-/** Lo que el final necesita de la línea: el grupo del ganador en la línea, sus marcas y la velocidad. */
+/**
+ * Lo que el final necesita de la línea: el grupo que gana, la cabeza de cada bloque y la velocidad de la
+ * línea, medida en el bloque de antes del último: la marca de la línea es de la meta (D-06).
+ */
 function sceneOf(tl: StageTimeline): SprintScene | null {
   const sprint = tl.finish.sprint
   if (sprint === null || tl.timeTrial || sprint.riders.length === 0) return null
   const last = tl.blocks - 1
-  const group = photoAt(tl, last).groupOf[sprint.riders[0]!.rider]
-  if (group === undefined || group < 0) return null
-  const marks = clockMarksOf(tl, group)
+  const winner = photoAt(tl, last).groupOf[sprint.riders[0]!.rider]
+  if (winner === undefined || winner < 0) return null
+  const marks = clockMarksOf(tl, winner)
   const blockM = Math.round(tl.dx * 1000)
-  const tLast = markAt(marks, last)
-  const tPrev = markAt(marks, last - 1)
-  const measured =
-    tLast !== null && tPrev !== null && tLast > tPrev
-      ? blockM / ((tLast - tPrev) / 10)
-      : S.lineSpeedMs
+  const t1 = markAt(marks, last - 1)
+  const t0 = markAt(marks, last - 2)
+  const measured = t1 !== null && t0 !== null && t1 > t0 ? blockM / ((t1 - t0) / 10) : S.lineSpeedMs
   const lineSpeedMs = Math.max(S.lineSpeedMinMs, Math.min(S.lineSpeedMaxMs, measured))
-  return { sprint, group, lineSpeedMs, blockM, last, seen: seenMarksOf(tl, group) }
+  return { sprint, winner, lineSpeedMs, blockM, last, heads: headsOf(tl) }
+}
+
+/**
+ * El ritmo de un grupo al llegar al bloque `b`, en Ds por bloque: el de sus marcas de antes (la última
+ * anterior a `b`), que ya se ven; sin ninguna, el de `lineSpeedMs`.
+ */
+function paceDsOf(tl: StageTimeline, g: GroupIx, b: Block, blockM: number): number {
+  const marks = clockMarksOf(tl, g)
+  const now = markAt(marks, b)
+  let prev: readonly [Block, Ds] | undefined
+  for (const m of marks) if (m[0] < b && (prev === undefined || m[0] > prev[0])) prev = m
+  if (now === null || prev === undefined || now <= prev[1]) return (blockM / S.lineSpeedMs) * 10
+  return (now - prev[1]) / (b - prev[0])
+}
+
+/** Un grupo de cabeza que no es el que gana (una fuga a la que cazan): su aproximación, sin papeles. */
+function approachSpots(riders: readonly RiderIx[], toGoM: number): SprintSpot[] {
+  return [...approachOfM(riders, toGoM)]
+    .sort((a, b) => a[1] - b[1] || a[0] - b[0])
+    .map(([rider, x]) => ({ rider, behindM: round1(x), role: 'bunch' }))
 }
 
 const framesCache = new WeakMap<StageTimeline, readonly SprintFrame[]>()
 
 /**
- * LOS FOTOGRAMAS DEL FINAL, de `fromM` a la línea sin llegar a ella: uno en cada marca de reloj del grupo
- * del ganador en el último km (cada bloque, `TIMELINE.lastKmMarkBlocks`) y los de `frameExtraM`, con la
- * hora entre las dos marcas que los rodean. Cada uno con los de delante que van en ese grupo en la última
- * marca que ya se ve a su hora (`photoAt`): un fugado al que cazan a 400 m entra en el fotograma de 300, y
- * el que enlaza en los últimos 100 m no sale en el de 50 (eso, con la meta). La hora de cada uno es la de
- * su marca en el corte (`visibilityOf`), siempre antes de la línea; la línea, con la meta
- * (`sprintPhoto`). Vacío sin final.
+ * LOS FOTOGRAMAS DEL FINAL, de `fromM` a la línea sin llegar a ella: uno cada 100 m y los de
+ * `frameExtraM`, cada uno con los `frameRiders` de delante del GRUPO DE CABEZA de la carretera en la
+ * última marca que ya se ve a su hora (`photoAt`), el que ve la barra: el grupo que gana, con su puesta
+ * en escena (`sprintSpots`); otro (una fuga a la que cazan), con su aproximación y nada más. Su hora, la
+ * de la capa fija: la cabeza en el centro de su bloque, entre las marcas que la rodean, y en el último
+ * bloque a la velocidad del de antes, porque la marca de la línea es de la meta y ningún fotograma deja
+ * calcularla (D-06). La línea, con la meta (`sprintPhoto`). Vacío sin final.
  */
 export function sprintFrames(tl: StageTimeline): readonly SprintFrame[] {
   const hit = framesCache.get(tl)
@@ -269,34 +324,40 @@ export function sprintFrames(tl: StageTimeline): readonly SprintFrame[] {
   const scene = sceneOf(tl)
   const frames: SprintFrame[] = []
   if (scene !== null) {
-    const { sprint, group, lineSpeedMs, blockM, last, seen } = scene
-    const points: { toGoM: number; atDs: Ds; b: Block }[] = []
-    for (let k = Math.floor(S.fromM / blockM); k >= 1; k--) {
-      const atDs = seen.get(last - k)
-      if (atDs !== undefined) points.push({ toGoM: k * blockM, atDs, b: last - k })
-    }
-    for (const m of S.frameExtraM) {
-      const k = Math.floor(m / blockM)
-      const t0 = seen.get(last - k - 1)
-      const t1 = seen.get(last - k)
-      if (t0 === undefined || t1 === undefined || k * blockM === m) continue
-      const share = ((k + 1) * blockM - m) / blockM
-      // la composición, la de la marca de antes, la que ya se ve a su hora
-      points.push({ toGoM: m, atDs: Math.round(t0 + (t1 - t0) * share), b: last - k - 1 })
-    }
-    points.sort((a, b) => b.toGoM - a.toGoM)
-    for (const p of points) {
-      const groupOf = photoAt(tl, p.b).groupOf
-      const inGroup = sprintSpots(sprint, p.toGoM, lineSpeedMs).filter(
-        (s) => groupOf[s.rider] === group,
+    const { sprint, winner, lineSpeedMs, blockM, last, heads } = scene
+    const seenAt = (b: Block): Ds | undefined => heads.get(b)?.seenDs
+    // desde el primer bloque con todas las marcas del último km
+    const firstBlock = last - Math.floor(S.fromM / blockM) + 1
+    const metres = new Set<number>(S.frameExtraM)
+    for (let k = Math.floor(S.fromM / blockM); k >= 1; k--) metres.add(k * blockM)
+    for (const d of [...metres].sort((a, b) => b - a)) {
+      // la capa fija pone a la cabeza en el centro de su bloque: `x`, el bloque (con decimales) en que la ve a `d`
+      const x = last + 0.5 - d / blockM
+      const k0 = Math.floor(x + 1e-9)
+      const share = Math.max(0, x - k0)
+      // a menos de medio bloque la capa ya está en la línea: eso es la meta
+      if (k0 < firstBlock || x >= last - 1e-9) continue
+      // la composición y la hora, de la última marca de la cabeza que ya se ve (la de `k0`, nunca la
+      // de la línea): desde ella, a su ritmo de antes; con la marca de después, el fotograma diría antes
+      // de tiempo cuándo pasa la cabeza por el bloque siguiente, y quién es (una fuga a la que cazan)
+      const cb = k0
+      const head = heads.get(cb)
+      const t0 = seenAt(cb)
+      if (head === undefined || t0 === undefined) continue
+      const t = t0 + share * paceDsOf(tl, head.g, cb, blockM)
+      const members = Array.from(photoAt(tl, cb).groupOf).flatMap((g, r) =>
+        g === head.g ? [r] : [],
       )
-      const head = inGroup[0]?.behindM ?? 0
+      if (members.length === 0) continue
+      const spots =
+        head.g === winner ? sprintSpots(sprint, d, lineSpeedMs, members) : approachSpots(members, d)
+      const top = spots[0]?.behindM ?? 0
       frames.push({
-        atDs: p.atDs,
-        toGoM: p.toGoM,
-        spots: inGroup
+        atDs: Math.round(t),
+        toGoM: d,
+        spots: spots
           .slice(0, S.frameRiders)
-          .map((s) => ({ ...s, behindM: round1(s.behindM - head) })),
+          .map((x2) => ({ ...x2, behindM: round1(x2.behindM - top) })),
       })
     }
   }

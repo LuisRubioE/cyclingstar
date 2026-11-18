@@ -1,4 +1,4 @@
-import type { SprintFrame } from '@cyclingstar/shared'
+import { type SprintFrame, toGoText } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import { marginWords, sameSprint, sprintGapText, sprintNowAt, sprintPanelAt } from './sprintView'
 
@@ -29,10 +29,10 @@ const frames: SprintFrame[] = [
 ]
 
 describe('el final a la hora del reloj (sprintNowAt)', () => {
-  it('sin fotogramas, nada; antes del primero, el primero; después del último, el último', () => {
+  it('sin fotogramas, nada; antes del primero, nada (aún no se ve); después del último, el último', () => {
     expect(sprintNowAt([], 50)).toBeNull()
-    expect(sprintNowAt(frames, 90)!.rows.map((r) => r.rider)).toEqual([5, 1, 2])
-    expect(sprintNowAt(frames, 90)!.toGoM).toBe(300)
+    expect(sprintNowAt(frames, 90)).toBeNull()
+    expect(sprintNowAt(frames, 99.9)).toBeNull()
     expect(sprintNowAt(frames, 200)!.rows.map((r) => r.rider)).toEqual([1, 5, 3])
   })
 
@@ -40,17 +40,20 @@ describe('el final a la hora del reloj (sprintNowAt)', () => {
     expect(sprintNowAt(frames, 100)!.rows).toEqual(frames[0]!.spots)
   })
 
-  it('a mitad de camino, a mitad de metros, en el orden que dan, con el papel del más cercano', () => {
+  it('entre dos, los del ya pasado con su papel, cada uno a sus metros por la hora hacia el siguiente', () => {
     const mid = sprintNowAt(frames, 105)!
     expect(mid.toGoM).toBe(250)
-    // el 5 de 0 a 1 (0,5) y el 1 de 2 a 0 (1): el 5 sigue delante; el 2 solo está en el primero (4)
+    // el 5 de 0 a 1 (0,5) y el 1 de 2 a 0 (1); el 2 no está en el siguiente: quieto, a 4; el 3, aún no
     expect(mid.rows.map((r) => [r.rider, r.behindM])).toEqual([
       [5, 0],
       [1, 0.5],
-      [3, 2.5],
+      [2, 3.5],
     ])
-    expect(mid.rows.find((r) => r.rider === 1)!.role).toBe('launched')
-    expect(sprintNowAt(frames, 104)!.rows.find((r) => r.rider === 1)!.role).toBe('bunch')
+    // el papel, el del ya pasado hasta la hora del siguiente: el 1 no se ve lanzado antes de tiempo
+    for (const t of [101, 105, 109.9])
+      expect(sprintNowAt(frames, t)!.rows.find((r) => r.rider === 1)!.role).toBe('bunch')
+    expect(sprintNowAt(frames, 110)!.rows.find((r) => r.rider === 1)!.role).toBe('launched')
+    expect(sprintNowAt(frames, 109.9)!.rows.some((r) => r.rider === 3)).toBe(false)
   })
 
   it('no desordena los fotogramas: da igual el orden en que lleguen', () => {
@@ -92,7 +95,7 @@ describe('lo mismo en pantalla (sameSprint)', () => {
 })
 
 describe('si sale el panel (sprintPanelAt)', () => {
-  const at = { lastKm: true, phase: 'playing', timeTrial: false, toGoKm: 0.234 }
+  const at = { lastKm: true, phase: 'playing', timeTrial: false, toGoKm: 0.234, atLine: false }
 
   it('en el último km, jugando o en pausa, con fotogramas', () => {
     expect(sprintPanelAt(frames, 105, at)).toEqual({ ...sprintNowAt(frames, 105), toGoM: 230 })
@@ -107,15 +110,21 @@ describe('si sale el panel (sprintPanelAt)', () => {
     expect(sprintPanelAt([], 105, at)).toBeNull()
   })
 
-  it('la distancia, la de la capa fija y como la escribe ella (a la decena hacia abajo)', () => {
-    for (const [km, m] of [
-      [0.999, 990],
-      [0.234, 230],
-      [0.05, 50],
-      [0.0099, 0],
-      [-0.01, 0],
-    ] as const)
-      expect(sprintPanelAt(frames, 105, { ...at, toGoKm: km })?.toGoM, `${km}`).toBe(m)
+  it('con la meta pedida, la capa en la línea: sin panel (allí manda la meta)', () => {
+    expect(sprintPanelAt(frames, 105, { ...at, atLine: true })).toBeNull()
+  })
+
+  it('de la capa fija y no del reproductor: a un km o más (un salto atrás), sin panel', () => {
+    expect(sprintPanelAt(frames, 105, { ...at, toGoKm: 1 })).toBeNull()
+    expect(sprintPanelAt(frames, 105, { ...at, toGoKm: 5.5 })).toBeNull()
+    expect(sprintPanelAt(frames, 105, { ...at, toGoKm: 0.999 })).not.toBeNull()
+  })
+
+  it('la distancia, la de la capa fija y como la escribe ella (`toGoText`)', () => {
+    for (const km of [0.999, 0.234, 0.2299999, 0.05, 0.0099, 0])
+      expect(`${sprintPanelAt(frames, 105, { ...at, toGoKm: km })?.toGoM} m to go`, `${km}`).toBe(
+        toGoText(km, null),
+      )
   })
 
   it('el que llega solo, sin panel: la barra, con lo que les saca a los de detrás', () => {

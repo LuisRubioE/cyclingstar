@@ -179,7 +179,7 @@ export const BROADCAST = {
     lineSpeedMinMs: 5, // m/s: la velocidad de la línea, entre esto…
     lineSpeedMaxMs: 25, // …y esto (un cambio de cabeza en el último bloque no da 500 m/s)
     frameRiders: 12, // corredores de cada fotograma y de la foto de la línea: los de delante
-    frameExtraM: [250, 150, 50], // m a meta de los fotogramas entre dos marcas de bloque
+    frameExtraM: [250, 150], // m a meta de los fotogramas de entre medias de los de cada 100 m (los últimos, a 100: a 50 m la capa fija ya está en la línea)
   },
 } as const
 

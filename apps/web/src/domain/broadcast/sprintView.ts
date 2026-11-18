@@ -2,9 +2,10 @@ import type { RaceS, RiderIx, SprintFrame, SprintRole } from '@cyclingstar/share
 
 /**
  * EL ÚLTIMO KM EN PANTALLA (W5c, la revisión de `Watch`; docs/diseno/e3-visual/implementacion.md): los
- * fotogramas del final del primer grupo (W5b, `ServedLine.sprint`) a la hora del reloj de `Watch`, y sus
- * palabras. Entre dos fotogramas, cada uno se mueve en línea recta por la hora; antes del primero, el
- * primero, y después del último, el último: la línea la trae la meta (D-06). Puro.
+ * fotogramas del final del grupo de cabeza (W5b, `ServedLine.sprint`) a la hora del reloj de `Watch`, y
+ * sus palabras. Quién sale y qué hace, lo dice el fotograma ya pasado, el que ya se ve (D-06); entre dos,
+ * cada uno se mueve en línea recta por la hora hacia el siguiente; antes del primero, nada, y después del
+ * último, el último: la línea la trae la meta. Puro.
  */
 
 /** Un corredor del panel: sus metros tras el primero, a décimas, y lo que hace. */
@@ -38,33 +39,26 @@ function rowsOf(f: SprintFrame): SprintNow {
 }
 
 /**
- * EL FINAL A LA HORA `tS` (s de carrera): entre los dos fotogramas que la rodean, los del más cercano,
- * cada uno a sus metros por la hora (el que solo sale en uno, con los de ese) y con el papel del más
- * cercano; en el orden de la carretera. Justo en la hora de un fotograma, el fotograma. Null sin
- * fotogramas.
+ * EL FINAL A LA HORA `tS` (s de carrera): los del fotograma ya pasado, con su papel, cada uno a sus
+ * metros por la hora hacia el siguiente (el que no sale en él, quieto); en el orden de la carretera. Justo
+ * en la hora de un fotograma, el fotograma. Null antes del primero y sin fotogramas.
  */
 export function sprintNowAt(frames: readonly SprintFrame[], tS: RaceS): SprintNow | null {
   if (frames.length === 0) return null
   const sorted = [...frames].sort((a, b) => a.atDs - b.atDs)
   const tDs = tS * 10
   const next = sorted.findIndex((f) => f.atDs > tDs)
-  if (next === 0) return rowsOf(sorted[0]!)
+  if (next === 0) return null
   if (next === -1) return rowsOf(sorted.at(-1)!)
   const a = sorted[next - 1]!
   const b = sorted[next]!
   const w = (tDs - a.atDs) / (b.atDs - a.atDs)
-  const before = new Map(a.spots.map((s) => [s.rider, s] as const))
   const after = new Map(b.spots.map((s) => [s.rider, s] as const))
-  // quién sale, lo dice el fotograma más cercano: nadie entra antes de tiempo ni se queda de más
-  const riders = (w < 0.5 ? a : b).spots.map((s) => s.rider)
-  const rows = riders
-    .map((rider): SprintRow => {
-      const x = before.get(rider)
-      const y = after.get(rider)
-      const from = (x ?? y)!.behindM
-      const to = (y ?? x)!.behindM
-      const role = (w < 0.5 ? (x ?? y) : (y ?? x))!.role
-      return { rider, behindM: round1(from + (to - from) * w), role }
+  // quién sale y qué hace, lo dice el fotograma que ya se ve: nadie entra ni cambia antes de tiempo
+  const rows = a.spots
+    .map((x): SprintRow => {
+      const to = after.get(x.rider)?.behindM ?? x.behindM
+      return { rider: x.rider, behindM: round1(x.behindM + (to - x.behindM) * w), role: x.role }
     })
     .sort((p, q) => p.behindM - q.behindM || p.rider - q.rider)
   const head = rows[0]?.behindM ?? 0
@@ -82,6 +76,8 @@ export interface SprintPanelAt {
   readonly timeTrial: boolean
   /** los km a meta de la capa fija a esa hora (`Instant.toGoKm`): el panel dice la misma distancia */
   readonly toGoKm: number
+  /** la capa fija ya está en la línea (`Shown.atLine`: la meta, pedida o en pantalla) */
+  readonly atLine: boolean
 }
 
 /**
@@ -92,17 +88,18 @@ export interface SprintPanelAt {
 const overlayMetres = (toGoKm: number): number => Math.floor(Math.max(0, toGoKm) * 100 + 1e-9) * 10
 
 /**
- * EL PANEL DEL FINAL, SI SALE (W5c): en el último km de una etapa en línea, antes de la llegada y del
- * cierre (allí manda la meta), y solo con fotogramas, los de una etapa grabada con su final (W5a-2), y
- * con dos o más delante: el que llega solo se ve mejor en la barra de grupos, con lo que les saca a los
- * de detrás. En otro caso, null, y la barra de grupos como siempre.
+ * EL PANEL DEL FINAL, SI SALE (W5c): en el último km de una etapa en línea (la capa fija, por debajo del
+ * km), antes de la llegada, del cierre y de la meta pedida (allí manda la meta), solo con fotogramas, los
+ * de una etapa grabada con su final (W5a-2), y con dos o más en el grupo de cabeza: el que va solo se ve
+ * mejor en la barra de grupos, con lo que les saca a los de detrás. En otro caso, null, y la barra.
  */
 export function sprintPanelAt(
   frames: readonly SprintFrame[],
   tS: RaceS,
   at: SprintPanelAt,
 ): SprintNow | null {
-  if (at.timeTrial || !at.lastKm || at.phase === 'arrival' || at.phase === 'closing') return null
+  if (at.timeTrial || !at.lastKm || at.toGoKm >= 1 || at.atLine) return null
+  if (at.phase === 'arrival' || at.phase === 'closing') return null
   const now = sprintNowAt(frames, tS)
   return now !== null && now.rows.length >= 2 ? { ...now, toGoM: overlayMetres(at.toGoKm) } : null
 }

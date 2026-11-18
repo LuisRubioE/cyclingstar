@@ -11,6 +11,8 @@ const ROAD_W = 300
 const LINE_X = 292
 /** Los metros que caben en la carretera dibujada como mínimo: un grupo compacto no se pinta encima de la línea. */
 const ROAD_MIN_M = 12
+/** El carril de cada uno en la carretera dibujada, fijo: al adelantar, el punto no salta de carril. */
+const laneOf = (rider: number): number => rider % 3
 
 /**
  * EL ÚLTIMO KM COMO EN LA TELE (W5c, la revisión de `Watch`; docs/diseno/e3-visual/implementacion.md).
@@ -54,7 +56,7 @@ export const SprintBoard = memo(function SprintBoard({
             key={r.rider}
             data-dot={r.rider}
             cx={xOf(r.behindM)}
-            cy={6 + (i % 3) * 6}
+            cy={6 + laneOf(r.rider) * 6}
             r="3"
             className={
               i === 0 ? 'fill-accent' : cast[r.rider]?.own ? 'fill-gold-ink' : 'fill-ink-3'

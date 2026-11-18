@@ -81,6 +81,22 @@ describe('SprintBoard · el último km (W5c)', () => {
 
   it('el maillot de líder del primero, con su nombre, y no es una región viva', () => {
     expect(html).toMatch(/^<div[^>]*data-ui="SprintBoard"[^>]*aria-live="off"/)
-    expect(html).toContain('data-kit')
+    // en la fila del 3, y solo en ella, el de líder de la regularidad
+    const fila3 = html.slice(html.indexOf(cast[3]!.name), html.indexOf(cast[5]!.name))
+    expect(fila3).toContain('Points leader')
+    expect(html.split('Points leader').length).toBe(fila3.split('Points leader').length)
+  })
+
+  it('cada uno en su carril de la carretera, fijo: al adelantar no salta de carril', () => {
+    const cy = (m: string, r: number): string | undefined =>
+      new RegExp(
+        `<circle[^>]*cy="([^"]+)"[^>]*data-dot="${r}"|<circle[^>]*data-dot="${r}"[^>]*cy="([^"]+)"`,
+      )
+        .exec(m)
+        ?.slice(1)
+        .find((x) => x !== undefined)
+    const otroOrden: SprintNow = { ...now, rows: [...now.rows].reverse() }
+    const html2 = renderToStaticMarkup(<SprintBoard now={otroOrden} cast={cast} />)
+    for (const r of now.rows) expect(cy(html2, r.rider), `${r.rider}`).toBe(cy(html, r.rider))
   })
 })
