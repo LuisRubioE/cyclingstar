@@ -140,7 +140,8 @@ async function runStage(t: TestDb, worldId: string, stageDay: number, seed: stri
   const [row] = await t.client<
     { format: number }[]
   >`select format from stage_timelines where race_id = ${RACE_KEY} and stage_day = ${stageDay}`
-  if (row?.format !== 1)
+  // una línea del formato de hoy, el 2 desde W5; 0 sería una lápida
+  if (row?.format !== 2)
     throw new Error(`el mundo de B1: la etapa ${stageDay} quedó sin línea grabada (5-l)`)
 }
 
