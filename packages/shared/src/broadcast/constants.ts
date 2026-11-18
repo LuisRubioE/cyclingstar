@@ -164,6 +164,8 @@ export const BROADCAST = {
     fromM: 1000, // m a meta desde los que se pinta el final del primer grupo
     lanes: 3, // corredores por fila del grupo al empezar el último km
     rowM: 2, // m entre dos filas
+    jostleM: 1.2, // m: lo que va y viene cada uno (con su tren) en la aproximación; su fase sale de su RiderIx, nunca del resultado
+    jostleWavesM: [470, 290], // m de recorrido de las dos ondas de ese vaivén
     marginPerScoreM: 50, // m de margen en la línea por unidad de remate de diferencia: un 1 %, medio metro
     minMarginM: 0.3, // m: el margen más corto entre dos que cruzan juntos (media rueda)
     maxMarginM: 4, // m: el más largo entre dos que cruzan juntos (dos bicicletas)

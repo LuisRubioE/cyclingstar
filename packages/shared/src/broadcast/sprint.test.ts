@@ -3,6 +3,7 @@ import { synthLine, toyStage } from './__fixtures__/syntheticLine.js'
 import { BROADCAST } from './constants.js'
 import { photoAt, visibilityOf } from './index.js'
 import {
+  approachSpotsM,
   lineSpotsM,
   sprintFrames,
   sprintFramesOfWire,
@@ -175,36 +176,95 @@ describe('el final en un metro (sprintSpots)', () => {
   it('sin sprint, en su sitio hasta revealFromM, y desde ahí se van separando hasta sus huecos', () => {
     const start = startSpotsM(SUMMIT)
     const at500 = sprintSpots(SUMMIT, 500, 6)
-    SUMMIT.riders.forEach((r, i) => expect(behindOf(at500, r.rider)).toBe(start[i]))
+    const appr = approachSpotsM(SUMMIT, 500)
+    SUMMIT.riders.forEach((r, i) =>
+      expect(behindOf(at500, r.rider)).toBe(
+        Math.round((appr[i]! - Math.min(...appr)) * 10) / 10 + 0,
+      ),
+    )
     const near = sprintSpots(SUMMIT, 150, 6)
-    expect(behindOf(near, 2)).toBeGreaterThan(start[2]!)
+    expect(behindOf(near, 2)).toBeGreaterThan(start[2]! + S.jostleM)
     expect(behindOf(near, 2)).toBeLessThan(54)
     for (const s of near) expect(s.role).toBe('bunch')
   })
 
-  it('NADA DEL RESULTADO ANTES DE revealFromM: dos finales con la misma salida y otra llegada, iguales', () => {
-    // el mismo grupo, los mismos sitios, trenes y lanzamientos; otro orden de llegada, otros remates y huecos
+  it('NADA DEL RESULTADO ANTES DE revealFromM: dos finales con la misma salida y otra llegada, iguales y en el mismo orden', () => {
+    // el mismo grupo, los mismos sitios y trenes; otro orden de llegada, otros remates, huecos, aperturas,
+    // lo que aguanta cada uno y otro encerrado
     const otra: FinishSprint = {
       ...SPRINT,
-      riders: [...SPRINT.riders]
-        .reverse()
-        .map((r, i) => ({ ...r, score: 1 - i / 50, gapDs: i * 10 })),
+      riders: [...SPRINT.riders].reverse().map((r, i, all) => ({
+        ...r,
+        score: 1 - i / 50,
+        gapDs: i * 10,
+        launchM: all[(i + 3) % all.length]!.launchM,
+        holdM: all[(i + 5) % all.length]!.holdM,
+        boxed: i === 0,
+      })),
     }
-    for (const d of [S.fromM, 900, 600, S.revealFromM])
-      for (const sprint of [SPRINT, SUMMIT]) {
-        const alt =
-          sprint === SPRINT
-            ? otra
-            : {
-                ...SUMMIT,
-                riders: [...SUMMIT.riders].reverse().map((r, i) => ({ ...r, gapDs: i * 99 })),
-              }
-        const key = (x: FinishSprint): string[] =>
-          sprintSpots(x, d)
-            .map((s) => `${s.rider}:${s.behindM}:${s.role}`)
-            .sort()
-        expect(key(alt), `${sprint.kind} a ${d} m`).toEqual(key(sprint))
-      }
+    const summitAlt: FinishSprint = {
+      ...SUMMIT,
+      riders: [...SUMMIT.riders].reverse().map((r, i) => ({ ...r, gapDs: i * 99 })),
+    }
+    // seis en el mismo sitio y sin tren: los empates de la salida, por RiderIx y no por la llegada
+    const empate: FinishSprint = {
+      kind: 'sprint_reducido',
+      riders: [0, 1, 2, 3, 4, 5].map((r) => rider(r, { score: 1 - r / 100 })),
+    }
+    const empateAlt: FinishSprint = {
+      ...empate,
+      riders: [...empate.riders].reverse().map((r, i) => ({ ...r, score: 1 - i / 100 })),
+    }
+    const pairs = [
+      [SPRINT, otra],
+      [SUMMIT, summitAlt],
+      [empate, empateAlt],
+    ] as const
+    const key = (x: FinishSprint, d: number, roles: boolean): string[] =>
+      sprintSpots(x, d).map((s) => `${s.rider}:${s.behindM}${roles ? `:${s.role}` : ''}`)
+    for (const d of [S.fromM, 900, 600, 450, 320, S.revealFromM + 1])
+      for (const [a, b] of pairs)
+        expect(key(b, d, true), `${a.kind} a ${d} m`).toEqual(key(a, d, true))
+    // en revealFromM, los sitios aún (los papeles ya no: abre quien abre de lejos)
+    for (const [a, b] of pairs)
+      expect(key(b, S.revealFromM, false), a.kind).toEqual(key(a, S.revealFromM, false))
+  })
+
+  it('en la aproximación el grupo va y viene sin el resultado, y el tren con su velocista', () => {
+    const orders = new Set<string>()
+    const start = startSpotsM(SPRINT)
+    for (let d = S.fromM; d > S.revealFromM; d -= 25) {
+      const spots = sprintSpots(SPRINT, d)
+      orders.add(order(spots).join(','))
+      // el 5 y el 6, los hombres del 0, a la misma distancia de él que al salir
+      for (const man of [5, 6])
+        expect(behindOf(spots, 0) - behindOf(spots, man), `${man} a ${d} m`).toBeCloseTo(
+          start[0]! - start[man]!,
+          0.5,
+        )
+    }
+    // la lista cambia de orden en el camino, y nadie se va más allá de su vaivén
+    expect(orders.size).toBeGreaterThan(2)
+    for (const d of [900, 600, 400])
+      approachSpotsM(SPRINT, d).forEach((s, i) =>
+        expect(Math.abs(s - start[i]!)).toBeLessThanOrEqual(S.jostleM + 1e-9),
+      )
+  })
+
+  it('antes de revealFromM nadie abre, cede ni va encerrado: cada uno en su sitio de la aproximación', () => {
+    // el 1 abre a 320 y el 2 va encerrado: ni lo uno ni lo otro se ve hasta revealFromM
+    for (const d of [S.fromM, 700, 450, 320, S.revealFromM + 1]) {
+      const spots = sprintSpots(SPRINT, d)
+      const at = approachSpotsM(SPRINT, d)
+      const head = Math.min(...at)
+      SPRINT.riders.forEach((r, i) =>
+        expect(behindOf(spots, r.rider), `${r.rider} a ${d} m`).toBe(
+          Math.round((at[i]! - head) * 10) / 10 + 0,
+        ),
+      )
+      for (const s of spots) expect(['bunch', 'leadOut'], `${s.rider} a ${d} m`).toContain(s.role)
+    }
+    expect(sprintSpots(SPRINT, S.revealFromM).find((s) => s.rider === 2)!.role).toBe('boxed')
   })
 
   it('determinista', () => {

@@ -8,8 +8,9 @@
  * sale hasta el final, y entre los que llegan juntos el margen sale de su remate.
  *
  * NADA DEL RESULTADO ANTES DE `revealFromM` (la revisión de W5b): hasta ahí cada uno va en su sitio de
- * salida, que no depende de cómo llega, y la escena solo se acerca a la llegada en los últimos metros,
- * donde la carrera de verdad ya lo está decidiendo. Un fotograma de antes no deja despejar el orden.
+ * salida, que no depende de cómo llega, con un vaivén que tampoco (`approachSpotsM`), y la escena solo se
+ * acerca a la llegada en los últimos metros, donde la carrera de verdad ya lo está decidiendo. Un
+ * fotograma de antes no deja despejar el orden, ni el de la lista: los empates van por RiderIx.
  *
  * Es de la meta: lee `FinishRecord.sprint`, que nunca va en un tramo (D-06). A la web viajan los
  * fotogramas de antes de la línea, cada uno con su hora, la de la marca de reloj del grupo en ese bloque
@@ -87,10 +88,38 @@ export function startSpotsM(sprint: FinishSprint): number[] {
       // por delante de su velocista, el primero de su lista el más adelantado; menos que una milésima
       if (j !== undefined) key[j] = r.place - (r.train.length - k) * 1e-4
     })
-  const order = key.map((_, i) => i).sort((a, b) => key[a]! - key[b]! || a - b)
+  // los empates, por RiderIx: el índice de `riders` es el orden de llegada
+  const order = key
+    .map((_, i) => i)
+    .sort((a, b) => key[a]! - key[b]! || sprint.riders[a]!.rider - sprint.riders[b]!.rider)
   const out = sprint.riders.map(() => 0)
   order.forEach((i, rank) => (out[i] = Math.floor(rank / S.lanes) * S.rowM))
   return out
+}
+
+/** El vaivén de un corredor en la aproximación: dos ondas, con la fase de su RiderIx (nada del resultado). */
+function jostleOf(rider: RiderIx, toGoM: number): number {
+  const [w1, w2] = S.jostleWavesM
+  const p1 = ((rider * 0.618034) % 1) * 2 * Math.PI
+  const p2 = ((rider * 0.414214) % 1) * 2 * Math.PI
+  return (
+    (S.jostleM *
+      (Math.sin((2 * Math.PI * toGoM) / w1 + p1) + Math.sin((2 * Math.PI * toGoM) / w2 + p2))) /
+    2
+  )
+}
+
+/**
+ * LA APROXIMACIÓN: dónde va cada uno cuando a la cabeza le quedan `toGoM` metros, en m desde la fila de
+ * delante, antes de nada del resultado: su sitio de salida (`startSpotsM`) y un vaivén que no sale de cómo
+ * llega (la fase, de su RiderIx); el hombre de tren va y viene con su velocista. Por debajo de
+ * `revealFromM`, de aquí parte el camino de cada uno hacia la llegada.
+ */
+export function approachSpotsM(sprint: FinishSprint, toGoM: number): number[] {
+  const start = startSpotsM(sprint)
+  const unitOf = new Map<RiderIx, RiderIx>()
+  for (const r of sprint.riders) for (const man of r.train) unitOf.set(man, r.rider)
+  return sprint.riders.map((r, i) => start[i]! + jostleOf(unitOf.get(r.rider) ?? r.rider, toGoM))
 }
 
 /**
@@ -106,7 +135,7 @@ function launchOf(r: FinishSprint['riders'][number]): number | null {
  * EL FINAL EN UN METRO: dónde va cada uno del primer grupo cuando a su cabeza le quedan `toGoM` metros
  * (de `BROADCAST.sprint.fromM` a 0), en el orden de la carretera, con sus metros tras el primero. A 0 m
  * es la llegada exacta: el orden de `sprint.riders` y sus márgenes (`lineSpotsM`). Desde `revealFromM`
- * para arriba, el sitio de salida de cada uno (`startSpotsM`): nada del resultado.
+ * para arriba, la aproximación (`approachSpotsM`): nada del resultado, tampoco en el orden de la lista.
  */
 export function sprintSpots(
   sprint: FinishSprint,
@@ -115,8 +144,10 @@ export function sprintSpots(
 ): SprintSpot[] {
   const d = Math.max(0, Math.min(S.fromM, toGoM))
   const fin = lineSpotsM(sprint, lineSpeedMs)
-  const start = startSpotsM(sprint)
-  const index = new Map(sprint.riders.map((r, i) => [r.rider, i] as const))
+  // la aproximación, desde su cabeza: de ahí sale cada uno, y hacia ella sube el que cede
+  const approach = approachSpotsM(sprint, d)
+  const front = Math.min(...approach)
+  const start = approach.map((x) => x - front)
   const sprinterOf = new Map<RiderIx, number>()
   sprint.riders.forEach((r, i) => r.train.forEach((man) => sprinterOf.set(man, i)))
 
@@ -126,7 +157,8 @@ export function sprintSpots(
     const own = launchOf(r)
     const j = sprinterOf.get(r.rider)
     const boss = j === undefined ? null : launchOf(sprint.riders[j]!)
-    // el hombre de tren suelta cuando abre su velocista; los demás, en el metro en que abren
+    // el hombre de tren suelta cuando abre su velocista; los demás, en el metro en que abren; y el
+    // encerrado no se ve encerrado antes de `revealFromM`, que también es del resultado
     const release = j !== undefined && boss !== null ? boss : own
     const hold = r.holdM ?? release
     let role: SprintRole = 'bunch'
@@ -135,7 +167,7 @@ export function sprintSpots(
         d > release
           ? j !== undefined && boss !== null
             ? 'leadOut'
-            : r.boxed
+            : r.boxed && d <= S.revealFromM
               ? 'boxed'
               : 'bunch'
           : j === undefined
@@ -163,9 +195,10 @@ export function sprintSpots(
           : Math.min(S.revealFromM, Math.max(release, S.smoothPerM * Math.abs(f - s)))
       at = d >= from ? s : s + (f - s) * smooth((from - d) / from)
     }
-    return { rider: r.rider, at, role, i: index.get(r.rider)! }
+    return { rider: r.rider, at, role }
   })
-  placed.sort((a, b) => a.at - b.at || a.i - b.i)
+  // los empates, por RiderIx, nunca por el orden de llegada
+  placed.sort((a, b) => a.at - b.at || a.rider - b.rider)
   const head = placed[0]?.at ?? 0
   return placed.map((p) => ({ rider: p.rider, behindM: round1(p.at - head), role: p.role }))
 }
