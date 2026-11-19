@@ -154,6 +154,17 @@ export const BROADCAST = {
   liveClusterWindowKm: 5,
   liveClusterMin: 3, // la ventana de groupRuns en km y los descuelgues de corredores sin rótulo que hacen un racimo
 
+  // LA CAPA ENTRE DOS MARCAS (W5d-1, `instant.ts`). Antes del último km cada grupo deja una marca por km de foto, y la
+  // capa lo pinta entre una y la siguiente estirando su velocidad, sin pasar de la foto siguiente. Con la velocidad de
+  // las dos últimas marcas y sin mirar la pendiente se congelaba y saltaba: en las 44 líneas del banco, 1.094 paradas
+  // de más de 6 s (37.886 s de carrera) y saltos de hasta 650 m (docs/balance.md, W5d-1). M.
+  overlaySpeed: {
+    baseKm: 1, // la velocidad vista sale de la marca más reciente que queda al menos a este tramo por detrás (y ya se
+    // veía): una caza le pone al grupo el reloj del de delante, y dos marcas a 100 m daban 115 km/h
+    maxSpeedUp: 1.15, // con la pendiente, el tramo siguiente va como mucho estas veces más rápido que el visto: frenar
+    // de más solo retrasa la capa, y pasarse la obligaría a volver atrás cuando el grupo muere
+  },
+
   // RELOJ ESTIMADO (§3, §14; D-07)
   estimatedClockMaxErrKm: 1, // km: si el p99 del error de la cabeza del adaptador pasa de esto (B22, paso 6), las etapas sin línea abren solo en Report. S/E
 
