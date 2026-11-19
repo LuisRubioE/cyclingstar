@@ -204,14 +204,10 @@ async function teclado(page, name, campo, boton) {
     { campo, boton, alto: TECLADO },
   )
   await page.waitForTimeout(200)
-  datos.navOculta = await page.evaluate(() => {
-    const nav = [...document.querySelectorAll('nav')].find((n) => getComputedStyle(n).position === 'fixed')
-    if (!nav) return 'sin barra fija'
-    const r = nav.getBoundingClientRect()
-    return getComputedStyle(nav).visibility === 'hidden' || r.top >= window.innerHeight || nav.hidden
-      ? 'oculta'
-      : `visible (top ${Math.round(r.top)})`
-  })
+  // la barra inferior (`BottomNav`, `data-state` hidden o ready) y lo que queda fijo arriba
+  datos.barraInferior = await page.evaluate(
+    () => document.querySelector('nav[data-state]')?.getAttribute('data-state') ?? 'no está',
+  )
   const file = `${name}-360.png`
   medidas[file] = { teclado: TECLADO, ...datos, ...(await medir(page)) }
   await page.screenshot({ path: resolve(OUT, file), clip: { x: 0, y: 0, width: 360, height: TECLADO } })
@@ -237,9 +233,11 @@ async function entrar(p, email, password = PASSWORD) {
   })
   if (!res.ok()) throw new Error(`sign-in ${email}: ${res.status()} ${await res.text()}`)
 }
+/** Los toques, con `tap` y no con `click`: tras un `click` (ratón) Chromium pasa a `pointer: fine` y los
+ * campos bajan de 48 a 40 px (`fine:min-h-10`, Field.tsx l. 137), que no es lo que ve un dedo. */
 async function rellenaYEnvia(page, valores, boton) {
   for (const [sel, v] of Object.entries(valores)) await page.fill(sel, v)
-  await page.click(boton)
+  await page.tap(boton)
   await page.waitForTimeout(400)
 }
 
@@ -271,17 +269,17 @@ const NUEVO = 'nueva@example.com'
   const { context, page } = await persona()
   await page.goto('/register')
   await quieto(page)
-  await page.click('button[type=submit]')
+  await page.tap('button[type=submit]')
   await shot(page, '11-register-sin-correo')
   await page.fill('#register-email', 'no-es-un-correo')
   await page.fill('#register-password', 'larga-de-sobra')
-  await page.click('button[type=submit]')
+  await page.tap('button[type=submit]')
   medidas['11b-register-correo-malformado.validationMessage'] = await page.evaluate(
     () => document.querySelector('#register-email').validationMessage,
   )
   await page.fill('#register-email', NUEVO)
   await page.fill('#register-password', 'corta')
-  await page.click('button[type=submit]')
+  await page.tap('button[type=submit]')
   await shot(page, '12-register-corta')
   await teclado(page, '13-register-teclado', '#register-password', 'button[type=submit]')
   await page.reload()
@@ -291,7 +289,7 @@ const NUEVO = 'nueva@example.com'
   await shot(page, '14-checkinbox')
   apunta('registro', await esperaCorreo(NUEVO, t0))
   const t1 = Date.now()
-  await page.getByRole('button', { name: 'Send it again' }).click()
+  await page.getByRole('button', { name: 'Send it again' }).tap()
   await page.waitForTimeout(600)
   await shot(page, '15-checkinbox-reenviado')
   const reenvio = await esperaCorreo(NUEVO, t1)
@@ -299,7 +297,7 @@ const NUEVO = 'nueva@example.com'
   // la sexta vez ya no: el límite de Fastify de diez cada cinco minutos por IP y ruta (mapa 01 §4)
   let fallo = null
   for (let i = 0; i < 12 && fallo === null; i += 1) {
-    await page.getByRole('button', { name: 'Send it again' }).click()
+    await page.getByRole('button', { name: 'Send it again' }).tap()
     await page.waitForTimeout(300)
     const alerta = await page.locator('[role=alert]').allInnerTexts()
     if (alerta.length > 0) fallo = { intento: i + 2, texto: alerta.join(' | ') }
@@ -313,7 +311,7 @@ const NUEVO = 'nueva@example.com'
   await tel.page.goto(enlace(reenvio))
   await shot(tel.page, '20-verify-ok')
   medidas['20-verify-ok.sesion'] = await (await tel.context.request.get('/api/auth/get-session')).json()
-  await tel.page.getByRole('link', { name: 'Continue' }).click()
+  await tel.page.getByRole('link', { name: 'Continue' }).tap()
   await shot(tel.page, '21-verify-continue')
   await tel.context.close()
   // el mismo enlace, abierto otra vez en un navegador sin sesión
@@ -373,7 +371,7 @@ const SINCONF = 'sinconfirmar@example.com'
   const { context, page } = await persona()
   await page.goto('/login')
   await quieto(page)
-  await page.click('button[type=submit]')
+  await page.tap('button[type=submit]')
   await shot(page, '31-login-sin-correo')
   await rellenaYEnvia(page, { '#login-email': NUEVO, '#login-password': 'mala-mala-mala' }, 'button[type=submit]')
   await shot(page, '32-login-contrasena-mala')
@@ -450,7 +448,7 @@ log('E. Recuperar la contraseña')
   const { context, page } = await persona()
   await page.goto('/forgot-password')
   await quieto(page)
-  await page.click('button[type=submit]')
+  await page.tap('button[type=submit]')
   await shot(page, '41-forgot-sin-correo')
   const t0 = Date.now()
   await rellenaYEnvia(page, { '#forgot-email': NUEVO }, 'button[type=submit]')
@@ -473,7 +471,7 @@ log('E. Recuperar la contraseña')
   const tel = await persona()
   await tel.page.goto(enlace(mail))
   await shot(tel.page, '43-reset')
-  await tel.page.click('button[type=submit]')
+  await tel.page.tap('button[type=submit]')
   await shot(tel.page, '44-reset-corta')
   await rellenaYEnvia(tel.page, { '#reset-password': 'nueva-contrasena-1', '#reset-confirm': 'nueva-contrasena-2' }, 'button[type=submit]')
   await shot(tel.page, '45-reset-no-coinciden')
@@ -527,7 +525,7 @@ const CTA = 'cuenta@example.com'
   await a.page.goto('/account')
   await shot(a.page, '51-account-sin-confirmar')
   const t0 = Date.now()
-  await a.page.getByRole('button', { name: 'Send me a confirmation link' }).click()
+  await a.page.getByRole('button', { name: 'Send me a confirmation link' }).tap()
   await a.page.waitForTimeout(600)
   await shot(a.page, '52-account-sin-confirmar-enviado')
   apunta('cuenta antigua sin confirmar', await esperaCorreo(ANT, t0))
@@ -545,7 +543,7 @@ const CTA = 'cuenta@example.com'
   await c.page.goto('/account')
   await quieto(c.page)
   const formMail = 'form:has(#new-email) button[type=submit]'
-  await c.page.click(formMail)
+  await c.page.tap(formMail)
   await shot(c.page, '53-account-correo-vacio')
   await rellenaYEnvia(c.page, { '#new-email': CTA }, formMail)
   medidas['53b-account-correo-igual'] = await c.page.locator('form:has(#new-email)').innerText()
@@ -598,25 +596,25 @@ const CTA = 'cuenta@example.com'
   await otra.context.close()
 
   // borrar la cuenta
-  await c.page.getByRole('button', { name: 'Delete my account…' }).click()
+  await c.page.getByRole('button', { name: 'Delete my account…' }).tap()
   await c.page.waitForTimeout(200)
   await c.page.locator('#delete-pw').scrollIntoViewIfNeeded()
   await shot(c.page, '62-account-borrar-abierto', { full: false })
-  await c.page.getByRole('button', { name: 'Delete my account for good' }).click()
+  await c.page.getByRole('button', { name: 'Delete my account for good' }).tap()
   await c.page.waitForTimeout(300)
   medidas['63-account-borrar-vacio'] = await c.page.locator('#delete-pw').evaluate((el) => el.closest('form').innerText)
   await c.page.fill('#delete-pw', 'mala-mala-mala')
-  await c.page.getByRole('button', { name: 'Delete my account for good' }).click()
+  await c.page.getByRole('button', { name: 'Delete my account for good' }).tap()
   await c.page.waitForTimeout(500)
   await c.page.locator('#delete-pw').scrollIntoViewIfNeeded()
   await shot(c.page, '63-account-borrar-mala', { full: false })
   await teclado(c.page, '64-account-borrar-teclado', '#delete-pw', 'form:has(#delete-pw) button[type=submit]')
   await c.page.reload()
   await quieto(c.page)
-  await c.page.getByRole('button', { name: 'Delete my account…' }).click()
+  await c.page.getByRole('button', { name: 'Delete my account…' }).tap()
   await c.page.fill('#delete-pw', 'nueva-contrasena-1')
   const tDel = Date.now()
-  await c.page.getByRole('button', { name: 'Delete my account for good' }).click()
+  await c.page.getByRole('button', { name: 'Delete my account for good' }).tap()
   await c.page.waitForURL((u) => new URL(u).pathname === '/', { timeout: 8000 }).catch(() => {})
   await shot(c.page, '65-account-borrada')
   await c.page.waitForTimeout(500)
@@ -628,7 +626,7 @@ const CTA = 'cuenta@example.com'
   await entrar(so, 'salir@example.com')
   await so.page.goto('/account')
   await quieto(so.page)
-  await so.page.getByRole('button', { name: 'Sign out' }).click()
+  await so.page.getByRole('button', { name: 'Sign out' }).tap()
   await so.page.waitForTimeout(800)
   medidas['66-sign-out'] = { url: so.page.url() }
   await so.context.close()
@@ -636,7 +634,9 @@ const CTA = 'cuenta@example.com'
 
 log('G. Los correos, pintados a 360')
 {
-  const { context, page } = await persona()
+  // sin `isMobile`: con él, un HTML sin `<meta viewport>` se pinta a 980 px y se encoge
+  const context = await browser.newContext({ viewport: { width: 360, height: 800 }, deviceScaleFactor: 1 })
+  const page = await context.newPage()
   const vistos = new Set()
   let n = 0
   for (const c of correosVistos) {
