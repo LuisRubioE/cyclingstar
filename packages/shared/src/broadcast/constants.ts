@@ -19,20 +19,26 @@ import type { CueClass, PaceZone } from './timeline.js' // los dos se declaran e
 export const BROADCAST = {
   // RITMO (§8.2, §9.4; D-19). Iniciales: B17 los mide en los pasos 0 y 10 y la prueba de lectura los acepta (D-60).
   /** Watch, sin pausas: s de carrera por s de pared mientras la cabeza tiene más de aboveKm km a meta.
-   *  M: 7:39-19:59 por etapa en línea (ejecutabilidad §2.1, juez-ejec/ritmo.mjs, 5 etapas × semillas 0 y 1). */
+   *  M: 7:39-19:59 por etapa en línea (ejecutabilidad §2.1, juez-ejec/ritmo.mjs, 5 etapas × semillas 0 y 1).
+   *  EL ÚLTIMO KM, EN DOS (W5d-2, decisión del dueño del 19-11-2026, «×2 y el sprint a ×1»): hasta los
+   *  200 m, ×2; los últimos 200 m, en tiempo real, para ver el sprint. Era ×1,5 entero. Medido en las 44
+   *  líneas del banco, el último km pasa de 57 a 52 s de pantalla de mediana (docs/balance.md, W5d). */
   pace: [
     { aboveKm: 50, x: 60 },
     { aboveKm: 20, x: 30 },
     { aboveKm: 5, x: 12 },
     { aboveKm: 1, x: 4 },
-    { aboveKm: 0, x: 1.5 },
+    { aboveKm: 0.2, x: 2 },
+    { aboveKm: 0, x: 1 },
   ] as const satisfies readonly PaceZone[],
-  /** Highlights, la misma forma. M: 2:12-6:37 (el mismo script). */
+  /** Highlights, la misma forma, y por eso con la zona de los 200 m (W5d-2), al ×3 de todo su último km:
+   *  Highlights no cambia. M: 2:12-6:37 (el mismo script). */
   summaryPace: [
     { aboveKm: 50, x: 300 },
     { aboveKm: 20, x: 120 },
     { aboveKm: 5, x: 40 },
     { aboveKm: 1, x: 10 },
+    { aboveKm: 0.2, x: 3 },
     { aboveKm: 0, x: 3 },
   ] as const satisfies readonly PaceZone[],
   /** s de pared por etapa en el digest de While you were away, por tipo de etapa: fijo, no mira lo que pasó. E (§15.3). */
