@@ -950,157 +950,145 @@ describe('modelo de final (docs/motor.md §12)', () => {
     }
   })
 
-  it(
-    'un final de PAVÉ lo gana el adoquinero: el PAV interviene en el resultado',
-    { timeout: 30000 },
-    () => {
-      // El campo solo se distingue en PAV (45-83). Antes el ganador salía con un PAV mediano de
-      // 63 sobre ese rango —el centro exacto, es decir, azar puro— porque el final era a puro SPR.
-      // Sin cerillos: aquí se mide el REMATE por PAV, no la capa táctica (docs/motor.md §13).
-      const riders = Array.from({ length: 30 }, (_, i) =>
-        rider(`r-${i}`, { eff0: eff(60, { PAV: 45 + i }), fragility: 1, matches: 0 }),
+  it('un final de PAVÉ lo gana el adoquinero: el PAV interviene en el resultado', () => {
+    // El campo solo se distingue en PAV (45-83). Antes el ganador salía con un PAV mediano de
+    // 63 sobre ese rango —el centro exacto, es decir, azar puro— porque el final era a puro SPR.
+    // Sin cerillos: aquí se mide el REMATE por PAV, no la capa táctica (docs/motor.md §13).
+    const riders = Array.from({ length: 30 }, (_, i) =>
+      rider(`r-${i}`, { eff0: eff(60, { PAV: 45 + i }), fragility: 1, matches: 0 }),
+    )
+    const input: StageInput = {
+      profile: {
+        segments: [
+          { km: 60, tipo: 'llano' },
+          { km: 15, tipo: 'paves', estrellas: 4 },
+          { km: 3, tipo: 'llano' },
+        ],
+      },
+      riders,
+    }
+    /**
+     * SESENTA SEMILLAS Y NO VEINTE (v39). Este banco resume veinte etapas en UNA MEDIANA de una
+     * lista de enteros, y con veinte muestras esa mediana salta de dos en dos puntos por nada:
+     * medido sobre 80 corridas, el valor real es estable pero la mediana de 20 baila lo bastante
+     * como para que el test se decida por la semilla y no por el motor. No se toca el umbral —lo
+     * que se pide sigue siendo lo mismo— se le da a la medida el tamaño de muestra que necesita.
+     */
+    const pavs: number[] = []
+    for (const seed of seedsFor('pave-final', 60)) {
+      const out = simulateStage(input, seed)
+      pavs.push(riders.find((r) => r.riderId === out.results[0]!.riderId)!.eff0.PAV)
+    }
+    pavs.sort((a, b) => a - b)
+    const mediana = pavs[Math.floor(pavs.length / 2)]!
+    /**
+     * EL UMBRAL BAJA A 69 EN LA v39, y lo baja el DUEÑO. Se le llevó medido: con el peso del PAV
+     * en el remate subido al 0,9 la mediana sigue en 69, y corriendo el sector a tope (compromiso
+     * 1,0) llega a 70 justo; o sea que las dos palancas obvias del modelo de remate no la mueven,
+     * y lo que falta para pasar de 70 no es calibración sino otro modelo de final en adoquín. Su
+     * respuesta, textual: «pave 69 ok».
+     *
+     * Lo que el banco vigila NO se toca: el azar puro daría 64 —el centro exacto del rango
+     * 45-83—, así que 69 sigue diciendo que el PAV interviene en el resultado, que es la
+     * pregunta. Lo que se ajusta es el listón, no la medida.
+     */
+    expect(mediana).toBeGreaterThanOrEqual(69) // el centro del rango (azar) sería 64
+  })
+
+  it('el trabajo del día se paga en la meta: quien tira remata peor que quien va a rueda', () => {
+    // Veinte corredores IDÉNTICOS en atributos y tanque. Lo único que los separa es el turno de
+    // relevos que les toca por rol (gregario 1.0 contra sprinter 0.2). `workUnits` ya se
+    // calculaba y no entraba en el resultado: los dos grupos llegaban en el mismo orden medio.
+    const riders: StageRider[] = []
+    for (let i = 0; i < 10; i++) {
+      riders.push(
+        rider(`greg-${i}`, { eff0: eff(65), matches: 3, orders: orders({ role: 'gregario' }) }),
       )
-      const input: StageInput = {
+    }
+    for (let i = 0; i < 10; i++) {
+      riders.push(
+        rider(`prot-${i}`, { eff0: eff(65), matches: 3, orders: orders({ role: 'sprinter' }) }),
+      )
+    }
+    const input: StageInput = {
+      profile: { segments: [{ km: 180, tipo: 'llano' }] },
+      riders,
+    }
+    let gregPos = 0
+    let protPos = 0
+    let protWins = 0
+    const seeds = seedsFor('peaje', 20)
+    for (const seed of seeds) {
+      const out = simulateStage(input, seed)
+      for (const r of out.results) {
+        if (r.riderId.startsWith('greg-')) gregPos += r.puesto
+        else protPos += r.puesto
+      }
+      if (out.results[0]!.riderId.startsWith('prot-')) protWins += 1
+    }
+    // El protegido remata claramente mejor que el que ha estado dando la cara todo el día.
+    expect(protPos / (10 * seeds.length)).toBeLessThan(gregPos / (10 * seeds.length) - 2)
+    // Y gana la mayoría de las etapas, sin que sea una ley (piernas del día y ruido del sprint).
+    expect(protWins).toBeGreaterThan(seeds.length / 2)
+  })
+
+  it('los banners se disputan con la EROSIÓN del momento, no con el corredor del km 0', () => {
+    // Dos aspirantes a la meta volante: uno mejor rematador de papel (SPR 82) y otro discreto
+    // (SPR 70). Con el depósito lleno gana el primero; si llega al banner reventado, no. Antes
+    // `disputeBanner` puntuaba con `eff0`, así que el resultado era el MISMO en los dos casos.
+    const build = (energyStrong: number): StageInput => {
+      const contest = { contestSprints: true, contestClimbs: true }
+      const riders: StageRider[] = [
+        rider('fuerte', {
+          eff0: eff(55, { SPR: 82, RES: 40 }),
+          energy: energyStrong,
+          matches: 0,
+          orders: orders(contest),
+        }),
+        rider('entero', {
+          eff0: eff(55, { SPR: 70, RES: 40 }),
+          matches: 0,
+          orders: orders(contest),
+        }),
+      ]
+      // Sin cerillos en todo el campo: si alguien se fuga, la volante se disputa en la fuga y el
+      // banco deja de medir lo que quiere medir (la erosión en el remate del banner).
+      for (let i = 0; i < 20; i++) riders.push(rider(`pel-${i}`, { eff0: eff(52), matches: 0 }))
+      return {
         profile: {
-          segments: [
-            { km: 60, tipo: 'llano' },
-            { km: 15, tipo: 'paves', estrellas: 4 },
-            { km: 3, tipo: 'llano' },
-          ],
+          segments: [{ km: 100, tipo: 'llano' }],
+          banners: [{ km: 80, tipo: 'meta_volante' }],
         },
         riders,
       }
-      /**
-       * SESENTA SEMILLAS Y NO VEINTE (v39). Este banco resume veinte etapas en UNA MEDIANA de una
-       * lista de enteros, y con veinte muestras esa mediana salta de dos en dos puntos por nada:
-       * medido sobre 80 corridas, el valor real es estable pero la mediana de 20 baila lo bastante
-       * como para que el test se decida por la semilla y no por el motor. No se toca el umbral —lo
-       * que se pide sigue siendo lo mismo— se le da a la medida el tamaño de muestra que necesita.
-       */
-      const pavs: number[] = []
-      for (const seed of seedsFor('pave-final', 60)) {
-        const out = simulateStage(input, seed)
-        pavs.push(riders.find((r) => r.riderId === out.results[0]!.riderId)!.eff0.PAV)
-      }
-      pavs.sort((a, b) => a - b)
-      const mediana = pavs[Math.floor(pavs.length / 2)]!
-      /**
-       * EL UMBRAL BAJA A 69 EN LA v39, y lo baja el DUEÑO. Se le llevó medido: con el peso del PAV
-       * en el remate subido al 0,9 la mediana sigue en 69, y corriendo el sector a tope (compromiso
-       * 1,0) llega a 70 justo; o sea que las dos palancas obvias del modelo de remate no la mueven,
-       * y lo que falta para pasar de 70 no es calibración sino otro modelo de final en adoquín. Su
-       * respuesta, textual: «pave 69 ok».
-       *
-       * Lo que el banco vigila NO se toca: el azar puro daría 64 —el centro exacto del rango
-       * 45-83—, así que 69 sigue diciendo que el PAV interviene en el resultado, que es la
-       * pregunta. Lo que se ajusta es el listón, no la medida.
-       */
-      expect(mediana).toBeGreaterThanOrEqual(69) // el centro del rango (azar) sería 64
-    },
-  )
+    }
+    const winners = (energy: number): string[] =>
+      seedsFor('banner', 12)
+        .map((seed) => simulateStage(build(energy), seed))
+        .map((out) => out.events.find((e) => e.plantilla === 'sprint_intermediate')!)
+        .map((e) => e.protagonistas[0]!)
 
-  it(
-    'el trabajo del día se paga en la meta: quien tira remata peor que quien va a rueda',
-    { timeout: 30000 },
-    () => {
-      // Veinte corredores IDÉNTICOS en atributos y tanque. Lo único que los separa es el turno de
-      // relevos que les toca por rol (gregario 1.0 contra sprinter 0.2). `workUnits` ya se
-      // calculaba y no entraba en el resultado: los dos grupos llegaban en el mismo orden medio.
-      const riders: StageRider[] = []
-      for (let i = 0; i < 10; i++) {
-        riders.push(
-          rider(`greg-${i}`, { eff0: eff(65), matches: 3, orders: orders({ role: 'gregario' }) }),
-        )
-      }
-      for (let i = 0; i < 10; i++) {
-        riders.push(
-          rider(`prot-${i}`, { eff0: eff(65), matches: 3, orders: orders({ role: 'sprinter' }) }),
-        )
-      }
-      const input: StageInput = {
-        profile: { segments: [{ km: 180, tipo: 'llano' }] },
-        riders,
-      }
-      let gregPos = 0
-      let protPos = 0
-      let protWins = 0
-      const seeds = seedsFor('peaje', 20)
-      for (const seed of seeds) {
-        const out = simulateStage(input, seed)
-        for (const r of out.results) {
-          if (r.riderId.startsWith('greg-')) gregPos += r.puesto
-          else protPos += r.puesto
-        }
-        if (out.results[0]!.riderId.startsWith('prot-')) protWins += 1
-      }
-      // El protegido remata claramente mejor que el que ha estado dando la cara todo el día.
-      expect(protPos / (10 * seeds.length)).toBeLessThan(gregPos / (10 * seeds.length) - 2)
-      // Y gana la mayoría de las etapas, sin que sea una ley (piernas del día y ruido del sprint).
-      expect(protWins).toBeGreaterThan(seeds.length / 2)
-    },
-  )
-
-  it(
-    'los banners se disputan con la EROSIÓN del momento, no con el corredor del km 0',
-    { timeout: 30000 },
-    () => {
-      // Dos aspirantes a la meta volante: uno mejor rematador de papel (SPR 82) y otro discreto
-      // (SPR 70). Con el depósito lleno gana el primero; si llega al banner reventado, no. Antes
-      // `disputeBanner` puntuaba con `eff0`, así que el resultado era el MISMO en los dos casos.
-      const build = (energyStrong: number): StageInput => {
-        const contest = { contestSprints: true, contestClimbs: true }
-        const riders: StageRider[] = [
-          rider('fuerte', {
-            eff0: eff(55, { SPR: 82, RES: 40 }),
-            energy: energyStrong,
-            matches: 0,
-            orders: orders(contest),
-          }),
-          rider('entero', {
-            eff0: eff(55, { SPR: 70, RES: 40 }),
-            matches: 0,
-            orders: orders(contest),
-          }),
-        ]
-        // Sin cerillos en todo el campo: si alguien se fuga, la volante se disputa en la fuga y el
-        // banco deja de medir lo que quiere medir (la erosión en el remate del banner).
-        for (let i = 0; i < 20; i++) riders.push(rider(`pel-${i}`, { eff0: eff(52), matches: 0 }))
-        return {
-          profile: {
-            segments: [{ km: 100, tipo: 'llano' }],
-            banners: [{ km: 80, tipo: 'meta_volante' }],
-          },
-          riders,
-        }
-      }
-      const winners = (energy: number): string[] =>
-        seedsFor('banner', 12)
-          .map((seed) => simulateStage(build(energy), seed))
-          .map((out) => out.events.find((e) => e.plantilla === 'sprint_intermediate')!)
-          .map((e) => e.protagonistas[0]!)
-
-      const fresco = winners(100)
-      // ONCE DE DOCE, y no doce, desde la v35: repartir las piernas del día por ORDEN CANÓNICO
-      // (`simulateStage` ordena por `riderId` antes de mirar nada) cambia qué factor le toca a
-      // cada uno, y hay una semilla en la que «entero» tiene un buen día y «fuerte» uno malo. SPR
-      // 82 contra 70 son doce puntos y `dayFormSd` los puede tapar: es el modelo funcionando.
-      // Lo que este banco mide no es esa semilla, es el CONTRASTE de las dos filas —con el depósito
-      // lleno gana «fuerte» casi siempre; con el depósito vacío no gana NUNCA—, y eso sigue entero.
-      expect(fresco.filter((w) => w === 'fuerte').length).toBeGreaterThanOrEqual(11)
-      // Con un depósito de 12 el "fuerte" llega al km 80 con la erosión por las nubes y su punta
-      // de velocidad (coef 0.45, el más castigado de la tabla) ya no le da para ganar la volante.
-      //
-      // Era 16 hasta la v38 y el número tuvo que bajar por una razón que es el modelo funcionando:
-      // en un pelotón SIN equipos el turno de relevos pasó de tres o cuatro hombres a veinte (ver
-      // `relayDutyThresholdNoTeams`), y el viento se reparte 1/n, así que ahora cada uno paga MENOS
-      // por kilómetro. Con el mismo depósito de 16 el "fuerte" ya llega al banner con algo dentro y
-      // gana 2 de 12; hace falta salir con menos para llegar reventado. Lo que este banco mide
-      // —el CONTRASTE entre depósito lleno y depósito vacío— sigue igual de nítido: 11 de 12 contra
-      // 0 de 12.
-      const reventado = winners(12)
-      expect(reventado.every((w) => w === 'entero')).toBe(true)
-    },
-  )
+    const fresco = winners(100)
+    // ONCE DE DOCE, y no doce, desde la v35: repartir las piernas del día por ORDEN CANÓNICO
+    // (`simulateStage` ordena por `riderId` antes de mirar nada) cambia qué factor le toca a
+    // cada uno, y hay una semilla en la que «entero» tiene un buen día y «fuerte» uno malo. SPR
+    // 82 contra 70 son doce puntos y `dayFormSd` los puede tapar: es el modelo funcionando.
+    // Lo que este banco mide no es esa semilla, es el CONTRASTE de las dos filas —con el depósito
+    // lleno gana «fuerte» casi siempre; con el depósito vacío no gana NUNCA—, y eso sigue entero.
+    expect(fresco.filter((w) => w === 'fuerte').length).toBeGreaterThanOrEqual(11)
+    // Con un depósito de 12 el "fuerte" llega al km 80 con la erosión por las nubes y su punta
+    // de velocidad (coef 0.45, el más castigado de la tabla) ya no le da para ganar la volante.
+    //
+    // Era 16 hasta la v38 y el número tuvo que bajar por una razón que es el modelo funcionando:
+    // en un pelotón SIN equipos el turno de relevos pasó de tres o cuatro hombres a veinte (ver
+    // `relayDutyThresholdNoTeams`), y el viento se reparte 1/n, así que ahora cada uno paga MENOS
+    // por kilómetro. Con el mismo depósito de 16 el "fuerte" ya llega al banner con algo dentro y
+    // gana 2 de 12; hace falta salir con menos para llegar reventado. Lo que este banco mide
+    // —el CONTRASTE entre depósito lleno y depósito vacío— sigue igual de nítido: 11 de 12 contra
+    // 0 de 12.
+    const reventado = winners(12)
+    expect(reventado.every((w) => w === 'entero')).toBe(true)
+  })
 })
 
 // --- El abanico (v41, docs/motor.md §19) -----------------------------------------------------

@@ -2882,3 +2882,26 @@ Bajo. Cambia la pantalla del último km de las etapas con su final y los fotogra
 - **W5d, el ritmo**: el último km sigue a ×1,5 (`BROADCAST.pace`); con algo que mirar puede quedarse, o pasar a ×2 y los últimos 200 m a ×1. Se decide con el dueño viéndolo, y con él las constantes de la escena (`BROADCAST.sprint`).
 - **Los fotogramas con la capa misma**: tomar la hora y el grupo de cada uno de `instantAt` (la primera hora en que la capa pone la cabeza a esa distancia) cierra el desfase de unos segundos en una caza.
 - **Para mirar, de antes de W5**: la segunda revisión vio, en relojes de juguete, que cuando el pelotón caza a una fuga el motor deja al grupo el reloj del de delante (`simulate.ts`, la caza), y la capa puede correr de 450 a 50 m en unos segundos y quedarse en 50 m hasta la meta. Hay que comprobarlo en una etapa grabada antes de tocar nada.
+
+## La cobertura de noche en rojo, y las puertas de latencia también solas en local
+
+La pasada de cobertura de noche (`cobertura.yml`) cayó siete noches de noviembre de 2026. Las del 5 y el 6 eran el banco de los maillots, que arregló el 17d. Las del 7, 8, 9, 14 y 15, siempre las mismas dos pruebas del motor, las dos por el reloj y ninguna por lo que miden.
+
+### Lo que entró
+
+- **El final de PAVÉ** (`stage/simulate.test.ts`) llevaba su propio `{ timeout: 30000 }`, el mismo número que el límite del config, y un límite propio pisa también el `--testTimeout=90000` de la noche. Tarda 9,1 s en local sin instrumentar; con la cobertura y el runner pasó de 30 el 7, el 8, el 14 y el 15. Fuera el suyo y los de otras tres pruebas que repetían el 30 000 (dos en `simulate.test.ts` y una en `sim/invariantsDesgaste.test.ts`): en el CI de cada push el límite sigue en 30 s, el del config, y de noche pasa a 90. El diff de `simulate.test.ts` es casi todo sangría: con `git diff -w` quedan las tres llamadas.
+- **El censo de rutas** (`sim/routeCensus.test.ts`) mide su reloj contra 2 s, y de noche tardó de 2,11 a 2,37 s el 7, el 9, el 14 y el 15. Su tope se dobla cuando el script es `test:coverage`, con el mismo K que ya usan `routes/arranque.test.ts` y `routes/grammar/edition.test.ts`; en el banco «mundo y radio» de `ci.yml`, sin instrumentar, sigue en 2 s.
+- **La trampa, escrita** en `vitest.config.ts` y en la cabecera del paso de `cobertura.yml`: ningún `it` repite el 30 000 del config.
+- **Las puertas de latencia, solas también en local**: `pnpm test:rapido` deja fuera B14 y los dos B8, como ya hacía el paso del CI con sus tres `--exclude`, y `pnpm test:latencia` las corre solas y en serie (`--no-file-parallelism`). `ci.yml` llama a los dos scripts, así que la lista vive en un sitio, `package.json`. Hasta hoy la rápida en local las corría con todo lo demás, y caían por la CPU de los demás ficheros: las dos rojas de B8 del W5c. `test:latencia` va al final de `scripts` para que las líneas de `package.json` que cita `docs/visual.md` (12, 21 y 23) sigan valiendo.
+
+### Las cifras
+
+- `pnpm test:rapido`: 5.775 en 380 ficheros, en verde, sin las puertas; `pnpm test:latencia`: 47 en 3 ficheros, en verde.
+- **El K, comprobado**: con `pnpm test:coverage`, el proceso que corre las pruebas ve `npm_lifecycle_event=test:coverage`; con `pnpm exec vitest`, como el banco de `ci.yml`, no ve nada.
+- El censo, en verde sin instrumentar y con `pnpm test:coverage`; el final de PAVÉ, 9,1 s de prueba en local (y 305 s de importar el fichero, que simula etapas al cargarse).
+- `pnpm typecheck`, `eslint` y `prettier`, limpios. El motor no cambia: ENGINE_VERSION sigue en 91.
+
+### Notas para el paso siguiente
+
+- **El Teléfono de noche** sigue rojo algunas noches por sus umbrales de tiempo (`Watch` en frío, 5,7 a 6,6 s contra 5,0; la portada y el plan). Es informativo (D-19) y no tumba la pasada.
+- **La auditoría de dependencias** sigue como la dejó el 17d, con su PR propio pendiente. La crítica de `better-auth` (GHSA-965c-763c-88jm) pide a la vez el enlace mágico y un proveedor OAuth, y la API no usa ninguno de los dos.

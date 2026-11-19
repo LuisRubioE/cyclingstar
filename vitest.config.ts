@@ -21,6 +21,11 @@ export default defineConfig({
      *
      * Compuestos, un test que aquí tarda 1,5 s puede tardar 6 en el nocturno. Por eso el suelo son
      * 30 s: un test de simulación tiene sitio y uno colgado de verdad sigue muriendo pronto.
+     *
+     * UN `{ timeout }` PROPIO EN UN `it` PISA ESTE VALOR Y TAMBIÉN EL `--testTimeout=90000` DEL
+     * NOCTURNO, así que ninguno repite el 30 000 de aquí: quien lo necesite más largo pone el suyo, y
+     * quien no, ninguno. El del final de PAVÉ (`stage/simulate.test.ts`) lo repetía: tarda 9 s en
+     * local, pasó de 30 bajo la instrumentación y tumbó la cobertura cuatro noches de noviembre.
      */
     testTimeout: 30_000,
     coverage: {

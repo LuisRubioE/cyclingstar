@@ -226,7 +226,7 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
     },
   )
 
-  it('el que releva todo el día se desgasta más que el que va a rueda', { timeout: 30000 }, () => {
+  it('el que releva todo el día se desgasta más que el que va a rueda', () => {
     // El turno de relevo lo reparte el ROL (`STAGE.relayDutyByRole`), no la posición en el array
     // (eso era el bug de la v1). Se compara el caso que describe docs/motor.md §VI.1: el GREGARIO
     // que tira todo el día (deber 1.0) contra el SPRINTER que se guarda para la meta (0.2).
