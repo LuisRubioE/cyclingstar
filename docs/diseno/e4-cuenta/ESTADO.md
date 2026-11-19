@@ -40,6 +40,11 @@ sesión se corta.
   equipo, su maillot y el plan; `last_seen_at` solo la escriben las rutas del espectador y nadie la
   lee; en 28 días de juego sin entrar, el corredor entrena y corre solo, y un agente libre se queda
   parado.
+- `mapas/02-correo-y-avisos.md` (295 l.): el DNS real (DKIM de 1.024 bits, el return path ya en dos
+  CNAME, DMARC `p=none` sin `rua`; `docs/ops.md` l. 106 desfasado); la supresión de Resend es de todo
+  el equipo; ningún iPhone recibe avisos de una pestaña, y desde iOS 26 cualquier web en la pantalla de
+  inicio se abre como app; un `sw.js` solo de avisos cabe en la CSP de hoy sin manifiesto (medido en
+  Chromium); `web-push` 4.0.0; a `stageReadyNotice` le faltan la URL y la etiqueta.
 
 ## Siguiente
 
