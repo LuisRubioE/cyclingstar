@@ -1,9 +1,9 @@
 import type { Page } from '@playwright/test'
 
 /**
- * LAS 46 PANTALLAS DE LA PRUEBA DEL TELÉFONO (E3, docs/visual.md §7.3; PR 2b, O-27). Una por cada fila con
- * medidas del mapa 05 (`docs/diseno/e3-visual/capturas/README.md`, de la 01 a la 37 y de la 40 a la 47) y
- * la 38, la contrarreloj, que no tiene captura (Ruso-018; 7-i). Cada una dice su ruta, la cuenta que la
+ * LAS 47 PANTALLAS DE LA PRUEBA DEL TELÉFONO (E3, docs/visual.md §7.3; PR 2b, O-27). Una por cada fila con
+ * medidas del mapa 05 (`docs/diseno/e3-visual/capturas/README.md`, de la 01 a la 37 y de la 40 a la 47),
+ * la 38, la contrarreloj, que no tiene captura (Ruso-018; 7-i), y la 48, el último km (W5c). Cada una dice su ruta, la cuenta que la
  * abre, el `data-ui` del elemento que contesta la pantalla (`data-answer`, la comprobación 7), si es una
  * herramienta (la 9), si la tiene, su edición (la 8) y, en la 09, la comprobación propia de la barra de
  * grupos (§7.3; desde el PR 17a).
@@ -53,6 +53,11 @@ export interface TelefonoPantalla {
 
 /** La etapa en línea de `Watch` del mapa 05: las pantallas 08, 09, 10 y 36. */
 const ETAPA = '/world/races/race-valencia/stages/3'
+/**
+ * La 48, el último km (W5c), en otra: la 3 la gana uno solo en alto, y sin dos delante no hay panel (la
+ * barra lo cuenta mejor). En la 5, llana, cuatro escapados llegan juntos y se lo juegan al sprint.
+ */
+const ETAPA_SPRINT = '/world/races/race-valencia/stages/5'
 
 /**
  * `Play`, un salto de la hoja `⋯` y `Pause` (7-j): la pantalla se mide en pausa, siempre en el mismo
@@ -67,6 +72,18 @@ const saltaYPara =
     await page.getByRole('button', { name: salto, exact: true }).first().click()
     await page.getByRole('button', { name: 'Pause', exact: true }).first().click()
   }
+
+/**
+ * EL ÚLTIMO KM COMO EN LA TELE (W5c): `Last km` y, cuando el panel del final ya está (sus fotogramas
+ * llegan con el tramo siguiente al salto), `Pause`: siempre el mismo panel, el de su primer fotograma.
+ */
+const alSprint = async (page: Page): Promise<void> => {
+  await page.getByRole('button', { name: 'Play', exact: true }).first().click()
+  await page.getByRole('button', { name: 'More', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Last km', exact: true }).first().click()
+  await page.locator('[data-ui="SprintBoard"]').first().waitFor({ timeout: 60_000 })
+  await page.getByRole('button', { name: 'Pause', exact: true }).first().click()
+}
 
 /** La 25: otro papel en la primera etapa de las órdenes, sin guardar. */
 async function cambiaElPapel(page: Page): Promise<void> {
@@ -169,6 +186,14 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
     tool: false,
     barra: true,
     prepare: saltaYPara('+5 km'),
+  },
+  {
+    id: '48-stage-watch-sprint',
+    path: ETAPA_SPRINT,
+    account: 'visitante',
+    answer: 'FixedOverlay',
+    tool: false,
+    prepare: alSprint,
   },
   {
     id: '10-stage-report',

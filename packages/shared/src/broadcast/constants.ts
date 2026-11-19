@@ -166,11 +166,14 @@ export const BROADCAST = {
     rowM: 2, // m entre dos filas
     jostleM: 1.2, // m: lo que va y viene cada uno (con su tren) en la aproximación; su fase sale de su RiderIx, nunca del resultado
     jostleWavesM: [470, 290], // m de recorrido de las dos ondas de ese vaivén
+    approachMates: 2, // compañeros de equipo que van delante de cada favorito de la etapa en la aproximación, como un tren
+    approachGc: 10, // los de la general hasta este puesto, detrás de los favoritos y antes de los demás
     marginPerScoreM: 50, // m de margen en la línea por unidad de remate de diferencia: un 1 %, medio metro
     minMarginM: 0.3, // m: el margen más corto entre dos que cruzan juntos (media rueda)
     maxMarginM: 4, // m: el más largo entre dos que cruzan juntos (dos bicicletas)
     revealFromM: 300, // m a meta desde los que la escena se acerca a la llegada; antes, cada uno en su sitio, sin nada del resultado (D-06)
     boxedLaunchM: 60, // m a meta: el encerrado no sale antes
+    settleM: 25, // m a meta desde los que cada uno ya va en su sitio de llegada: el orden se ve antes de la línea
     smoothPerM: 5, // m de camino por cada m que gana o pierde sobre la cabeza: en el pico, nadie se mueve más de un 30 % de lo que avanza
     fadeMinM: 30, // m abiertos de más sobre lo que aguanta desde los que se ve que cede (el motor cobra cada metro; lo pequeño apenas cuenta)
     fadeReach: 0.7, // parte del camino hacia la cabeza que hace, antes de ceder, el que abre `fadeFullM` o más de lo que aguanta
@@ -178,8 +181,10 @@ export const BROADCAST = {
     lineSpeedMs: 16, // m/s en la línea si la línea no da la velocidad de la cabeza
     lineSpeedMinMs: 5, // m/s: la velocidad de la línea, entre esto…
     lineSpeedMaxMs: 25, // …y esto (un cambio de cabeza en el último bloque no da 500 m/s)
+    decoyLaunchShare: 0.6, // parte de una fuga a la que cazan en los últimos 300 m que se ve lanzada, por una tirada fija
+    decoyLaunchM: [100, 280], // m a meta entre los que abre cada uno de ellos
     frameRiders: 12, // corredores de cada fotograma y de la foto de la línea: los de delante
-    frameExtraM: [250, 150, 50], // m a meta de los fotogramas entre dos marcas de bloque
+    frameExtraM: [250, 150, 75], // m a meta de los fotogramas de entre medias de los de cada 100 m (el último, a 75: a 50 m la capa fija ya está en la línea)
   },
 } as const
 

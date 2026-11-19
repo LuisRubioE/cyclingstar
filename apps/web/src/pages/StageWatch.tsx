@@ -58,6 +58,7 @@ import {
   StageClosingCards,
   StagePreviewCards,
 } from '../components/broadcast/StageCards'
+import { SprintBoard } from '../components/broadcast/SprintBoard'
 import { TimeTrialBoard, TimeTrialOverlay } from '../components/broadcast/TimeTrialBoard'
 import { VoiceTicker } from '../components/broadcast/VoiceTicker'
 import { type RevealActions, RevealConfirm } from '../components/StageGate'
@@ -108,6 +109,7 @@ import {
 } from '../domain/broadcast/screen'
 import { readCommentaryOpen, writeCommentaryOpen } from '../domain/broadcast/commentary'
 import { servedLineOf, withChunkSpread } from '../domain/broadcast/servedLine'
+import { type SprintNow, sameSprint, sprintPanelAt } from '../domain/broadcast/sprintView'
 import { raceRevealQuestion, stageRange } from '../domain/stageGate'
 import {
   GAP_TREND_INIT,
@@ -321,6 +323,8 @@ export function StageWatch({
           <div className={card}>
             {tt !== null && w.tti !== null ? (
               <TimeTrialBoard tti={w.tti} cast={head.cast} tt={tt} />
+            ) : w.sprint !== null ? (
+              <SprintBoard now={w.sprint} cast={head.cast} />
             ) : (
               <GroupBar
                 instant={w.bar}
@@ -458,6 +462,11 @@ interface WatchScreen {
   readonly ctx: InstantContext
   /** la crono: su estado a `overlayHz` (§9.3); null en línea */
   readonly tti: TimeTrialInstant | null
+  /**
+   * el último km como en la tele (W5c): el final del primer grupo a `overlayHz`, a la hora del reloj; null
+   * fuera del último km, en crono y en una etapa sin su final (grabada antes de W5a-2)
+   */
+  readonly sprint: SprintNow | null
   /** las líneas de la tendencia del hueco (§12.5) */
   readonly trend: GapTrendVoice['lines']
   /** s de carrera entre una caída y sus nombres, al ritmo de ahora (`crashNamesDelayS` de pared) */
@@ -617,6 +626,7 @@ function useWatchPlayer(
     timeTrial ? timeTrialInstantAt(servedLineOf(head).core, 0, ctx) : null,
   )
   const [trend, setTrend] = useState<GapTrendVoice['lines']>([])
+  const [sprint, setSprint] = useState<SprintNow | null>(null)
   const [namesDelayS, setNamesDelayS] = useState(0)
   const [previewIndex, setPreviewIndex] = useState(0)
   const [arrival, setArrival] = useState<ArrivalCard | null>(null)
@@ -691,6 +701,7 @@ function useWatchPlayer(
     let previouslyPending = s.phase === 'recap'
     let jumpsShown: readonly JumpOption[] = []
     let seekingShown: string | null = null
+    let sprintShown: SprintNow | null = null
     // lo alcanzado en km de la cabeza (W3): la hora de lo alcanzado y su km, y lo que enseña la barra
     let reachedFor = Number.NaN
     let reachedLine: TimelineCore | null = null
@@ -958,6 +969,7 @@ function useWatchPlayer(
     setArrival(null)
     setRecap(null)
     setSeeking(null)
+    setSprint(null)
     runner.push(init.effects)
 
     let raf = 0
@@ -1013,6 +1025,18 @@ function useWatchPlayer(
           painted = { line: served.core, t: s.t }
         } else if (timeTrial) setTti(ttNow)
         setOverlay(instant)
+        // el último km como en la tele (W5c): los fotogramas del final a la hora del reloj
+        const nextSprint = sprintPanelAt(served.sprint, s.t, {
+          lastKm: s.lastKm,
+          phase: s.phase,
+          timeTrial,
+          toGoKm: instant.toGoKm,
+          atLine: shown.atLine,
+        })
+        if (!sameSprint(nextSprint, sprintShown)) {
+          sprintShown = nextSprint
+          setSprint(nextSprint)
+        }
         // los nombres de una caída, crashNamesDelayS de pared después, en s de carrera al ritmo de ahora
         const x = pctx.baseX(s.view, s.t, instant.toGoKm) * s.speed
         const delay = Math.round(BROADCAST.crashNamesDelayS * (Number.isFinite(x) ? x : 1))
@@ -1225,6 +1249,7 @@ function useWatchPlayer(
     core,
     ctx,
     tti,
+    sprint,
     trend,
     namesDelayS,
     preview,
