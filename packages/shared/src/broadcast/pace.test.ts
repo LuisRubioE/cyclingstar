@@ -41,14 +41,22 @@ describe('paceAt · la curva por zonas de km a meta (§8.2)', () => {
     expect(paceAt(5.01, BROADCAST.pace)).toBe(12)
     expect(paceAt(5, BROADCAST.pace)).toBe(4)
     expect(paceAt(1.01, BROADCAST.pace)).toBe(4)
-    expect(paceAt(1, BROADCAST.pace)).toBe(1.5)
-    expect(paceAt(0.3, BROADCAST.pace)).toBe(1.5)
+    // el último km, en dos (W5d-2): ×2 hasta los 200 m y el sprint en tiempo real
+    expect(paceAt(1, BROADCAST.pace)).toBe(2)
+    expect(paceAt(0.3, BROADCAST.pace)).toBe(2)
+    expect(paceAt(0.21, BROADCAST.pace)).toBe(2)
+    expect(paceAt(0.2, BROADCAST.pace)).toBe(1)
+    expect(paceAt(0.05, BROADCAST.pace)).toBe(1)
   })
 
-  it('en la línea, y más allá, la del último km', () => {
-    expect(paceAt(0, BROADCAST.pace)).toBe(1.5)
-    expect(paceAt(-0.4, BROADCAST.pace)).toBe(1.5)
+  it('en la línea, y más allá, la de los últimos 200 m', () => {
+    expect(paceAt(0, BROADCAST.pace)).toBe(1)
+    expect(paceAt(-0.4, BROADCAST.pace)).toBe(1)
     expect(paceAt(0, BROADCAST.summaryPace)).toBe(3)
+  })
+
+  it('Highlights no cambia con la zona de los 200 m (W5d-2): todo su último km sigue a ×3', () => {
+    for (const km of [1, 0.5, 0.21, 0.2, 0.05, 0]) expect(paceAt(km, BROADCAST.summaryPace)).toBe(3)
   })
 
   it('pace y summaryPace bajan por aboveKm hasta 0, y Highlights va siempre más deprisa', () => {
@@ -80,13 +88,17 @@ describe('playbackEstimateS · la duración que anuncia la ficha (§8.2)', () =>
    * de más del 4 % por encima de 1.000 m tardan más. La e18 (hasta 1.615 m) pasa de 11:40 a 12:07 y
    * Colombia e5 (hasta 2.274 m), de 15:14 a 16:57; las otras tres no suben por encima de 1.000 m y no se
    * mueven. Con la línea grabada, la e18 dura en `Watch` de 12:30 a 13:37 y Colombia, de 19:13 a 20:22.
+   *
+   * RE-SELLADO EN EL W5d-2, por el último km en dos (×2 hasta los 200 m y el sprint a ×1; era ×1,5
+   * entero, decisión del dueño del 19-11-2026): 8:11 → 8:06, 9:11 → 9:05, 12:07 → 11:55, 11:05 → 11:00 y
+   * 16:57 → 16:39. Las llegadas en subida bajan más porque su último km dura más.
    */
   it.each([
-    ['race-france-e7', '8:11'],
-    ['race-france-e13', '9:11'],
-    ['race-france-e18', '12:07'],
-    ['race-flanders-e1', '11:05'],
-    ['race-colombia-e5', '16:57'],
+    ['race-france-e7', '8:06'],
+    ['race-france-e13', '9:05'],
+    ['race-france-e18', '11:55'],
+    ['race-flanders-e1', '11:00'],
+    ['race-colombia-e5', '16:39'],
   ] as const)('%s: Watch anuncia %s', (name, expected) => {
     expect(mmss(playbackEstimateS(strip(PACE_PROFILES[name]), BROADCAST.pace))).toBe(expected)
   })
