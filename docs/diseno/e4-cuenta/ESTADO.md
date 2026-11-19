@@ -1,6 +1,6 @@
 # E4 · Estado del proceso de diseño
 
-Estado: **fase 3a, el arquitecto, en marcha**.
+Estado: **EN PAUSA por orden del dueño** (19 de noviembre de 2026, 15:40 UTC), a mitad de la fase 3a. El arquitecto se paró tras escribir `juicios/veredicto.json` (sin revisar) y antes del glosario, las decisiones y el esqueleto. Para seguir: relanzarlo o reanudarlo con el encargo de `03-fase-sintesis.md` §3a, que lea el veredicto ya escrito y escriba los otros tres ficheros.
 Empezado el 19 de noviembre de 2026 sobre `2a29e6d` (`main`, con E2 en producción, E3 en
 implementación y el motor v91). El documento final será `docs/cuenta.md`. Se actualiza este fichero
 al terminar cada fase, con commit y push en la rama de desarrollo, para poder retomar el trabajo si la
