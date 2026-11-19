@@ -34,6 +34,12 @@ sesión se corta.
   registro, la recuperación y el cambio de correo; ningún límite mira la cuenta; `verify-password`
   responde por HTTP con el límite flojo; la subida a `better-auth` 1.7.26 y `fastify` 5.12.8 compila
   y pasa 1.126 tests sin migración, y ningún aviso nos alcanza hoy.
+- `mapas/03-datos-y-ausencia.md` (299 l.): la IP sí se guarda en `sessions.ip_address`, y los logs de
+  Fastify registran la URL entera con los tokens de verificación y recuperación; cuatro frases de
+  `Privacy.tsx` son falsas; el borrado de autoservicio no es atómico y deja el corredor, el nombre del
+  equipo, su maillot y el plan; `last_seen_at` solo la escriben las rutas del espectador y nadie la
+  lee; en 28 días de juego sin entrar, el corredor entrena y corre solo, y un agente libre se queda
+  parado.
 
 ## Siguiente
 
