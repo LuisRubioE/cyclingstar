@@ -1,0 +1,30 @@
+{
+ "url": "https://www.cyclingstar.app/login",
+ "fecha": "2026-11-19T11:02:48.957Z",
+ "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+ "peticiones": [
+  "GET https://www.cyclingstar.app/login",
+  "GET https://www.cyclingstar.app/assets/theme-12588923.js",
+  "GET https://www.cyclingstar.app/health",
+  "GET https://www.cyclingstar.app/assets/index-BJsMoxa8.js",
+  "GET https://www.cyclingstar.app/assets/Skeleton-84yFPM9G.js",
+  "GET https://www.cyclingstar.app/assets/request-CCU19x9J.js",
+  "GET https://www.cyclingstar.app/assets/Button-ClHcYk2E.js",
+  "GET https://www.cyclingstar.app/assets/QueryView-DWFxlZ4d.js",
+  "GET https://www.cyclingstar.app/assets/client-C_eftpsN.js",
+  "GET https://www.cyclingstar.app/assets/queryClient-CXAcZ8_J.js",
+  "GET https://www.cyclingstar.app/assets/countries-BjIH4yeQ.js",
+  "GET https://www.cyclingstar.app/assets/useSessionState-COIGmGgk.js",
+  "GET https://www.cyclingstar.app/assets/words-BcMKEs88.js",
+  "GET https://www.cyclingstar.app/assets/index-BohgZXKY.css",
+  "GET https://www.cyclingstar.app/assets/Login-DE__SOxL.js",
+  "GET https://www.cyclingstar.app/assets/Panel-zji_FX_5.js",
+  "GET https://www.cyclingstar.app/assets/Field-DmlJ_yyk.js",
+  "GET https://www.cyclingstar.app/assets/Notice-BzzA2vKS.js",
+  "GET https://www.cyclingstar.app/assets/PageHeader-B4krQ2S9.js",
+  "GET https://www.cyclingstar.app/assets/TextLink-DGpDptFL.js",
+  "GET https://www.cyclingstar.app/assets/entryForms-oSg56iRw.js",
+  "GET https://www.cyclingstar.app/api/auth/get-session",
+  "GET https://www.cyclingstar.app/api/me/horizon"
+ ]
+}

@@ -1,0 +1,1752 @@
+{
+ "01-portada-visitante-360.png": {
+  "url": "/",
+  "punteroFino": false,
+  "main": "Race. Train. Rise.\n\nA persistent cycling world where your rider trains, gets called up, races a full season, signs contracts and builds a palmarès — and the world keeps moving without you.\n\nCreate account\nHow to play\nSystem status\nServer\nOnline\nEngine version\n91\nGame day\nthe game has not started yet\nDatabase\nready",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 981
+ },
+ "02-privacy-360.png": {
+  "url": "/privacy",
+  "punteroFino": false,
+  "main": "Privacy\n\nCycling Star is a personal, non-commercial project. We keep data collection to the minimum needed to run the game.\n\nWhat we store\n\nYour email address and an encrypted password (for your account), and your in-game data (your rider, training orders, results). That's it.\n\nYour IP address\n\nWhen you create a rider we may look up your country from your IP to pre-select a flag. Our server asks a public IP-to-country service (ipapi.co, ipinfo.io or ipwho.is) for the two-letter country code. The lookup is transient — your IP address is not stored, and the country we guess is always yours to change.\n\nCookies\n\nOnly a session cookie to keep you logged in. No third-party tracking or ad cookies.\n\nDeleting your data\n\nAsk and your account and rider data will be removed. Backups roll off on their retention window.\n\nThis notice is informational and will be reviewed against applicable law before public launch.",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 1314
+ },
+ "03-account-sin-sesion-360.url": "http://localhost:3005/login",
+ "01-portada-visitante-1280.png": {
+  "url": "/",
+  "punteroFino": true,
+  "main": "Race. Train. Rise.\n\nA persistent cycling world where your rider trains, gets called up, races a full season, signs contracts and builds a palmarès — and the world keeps moving without you.\n\nCreate account\nHow to play\nSystem status\nServer\nOnline\nEngine version\n91\nGame day\nthe game has not started yet\nDatabase\nready",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 832
+ },
+ "02-privacy-1280.png": {
+  "url": "/privacy",
+  "punteroFino": true,
+  "main": "Privacy\n\nCycling Star is a personal, non-commercial project. We keep data collection to the minimum needed to run the game.\n\nWhat we store\n\nYour email address and an encrypted password (for your account), and your in-game data (your rider, training orders, results). That's it.\n\nYour IP address\n\nWhen you create a rider we may look up your country from your IP to pre-select a flag. Our server asks a public IP-to-country service (ipapi.co, ipinfo.io or ipwho.is) for the two-letter country code. The lookup is transient — your IP address is not stored, and the country we guess is always yours to change.\n\nCookies\n\nOnly a session cookie to keep you logged in. No third-party tracking or ad cookies.\n\nDeleting your data\n\nAsk and your account and rider data will be removed. Backups roll off on their retention window.\n\nThis notice is informational and will be reviewed against applicable law before public launch.",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 1113
+ },
+ "03-account-sin-sesion-1280.url": "http://localhost:3005/login",
+ "10-register-360.png": {
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Create your account\n\nStart building your rider.\n\nEmail\nPassword\n\nAt least 8 characters.\n\nCreate account\n\nAlready have an account? Log in",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "register-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "register-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "10-register-1280.png": {
+  "url": "/register",
+  "punteroFino": true,
+  "main": "Create your account\n\nStart building your rider.\n\nEmail\nPassword\n\nAt least 8 characters.\n\nCreate account\n\nAlready have an account? Log in",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   },
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   },
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "register-email",
+    "type": "email",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "email"
+   },
+   {
+    "id": "register-password",
+    "type": "password",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "11-register-sin-correo-360.png": {
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Create your account\n\nStart building your rider.\n\nEmail\n\nEnter your email.\n\nPassword\n\nAt least 8 characters.\n\nCreate account\n\nAlready have an account? Log in",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "register-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "register-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "11b-register-correo-malformado.validationMessage": "Please include an '@' in the email address. 'no-es-un-correo' is missing an '@'.",
+ "12-register-corta-360.png": {
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Create your account\n\nStart building your rider.\n\nEmail\nPassword\n\nAt least 8 characters.\n\nYour password must be at least 8 characters.\n\nCreate account\n\nAlready have an account? Log in",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "register-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "register-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "13-register-teclado-360.png": {
+  "teclado": 470,
+  "campo": {
+   "top": 257,
+   "bottom": 305
+  },
+  "boton": {
+   "top": 385,
+   "bottom": 429
+  },
+  "botonVisible": true,
+  "scrollY": 0,
+  "barraInferior": "hidden",
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Create your account\n\nStart building your rider.\n\nEmail\nPassword\n\nAt least 8 characters.\n\nYour password must be at least 8 characters.\n\nCreate account\n\nAlready have an account? Log in",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "register-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "register-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "14-checkinbox-360.png": {
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Check your inbox\n\nWe have sent a link to nueva@example.com. Open it to confirm your email and start playing. It expires in one hour.\n\nNothing there? Check the spam folder, or make sure the address above is right.\n\nSend it again\n\nAlready confirmed? Log in",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [],
+  "alto": 800
+ },
+ "15-checkinbox-reenviado-360.png": {
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Check your inbox\n\nWe have sent a link to nueva@example.com. Open it to confirm your email and start playing. It expires in one hour.\n\nNothing there? Check the spam folder, or make sure the address above is right.\n\nSend it again\n\nSent again. Give it a minute to arrive.\n\nAlready confirmed? Log in",
+  "alertas": [
+   "Sent again. Give it a minute to arrive."
+  ],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [],
+  "alto": 800
+ },
+ "16-checkinbox-limite": {
+  "intento": 11,
+  "texto": "Could not send it again. Try again in a few minutes."
+ },
+ "16-checkinbox-limite-360.png": {
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Check your inbox\n\nWe have sent a link to nueva@example.com. Open it to confirm your email and start playing. It expires in one hour.\n\nNothing there? Check the spam folder, or make sure the address above is right.\n\nSend it again\n\nCould not send it again. Try again in a few minutes.\n\nAlready confirmed? Log in",
+  "alertas": [
+   "Could not send it again. Try again in a few minutes."
+  ],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [],
+  "alto": 800
+ },
+ "20-verify-ok-360.png": {
+  "url": "/verify-email",
+  "punteroFino": false,
+  "main": "Email confirmed\n\nYour address is verified and you are signed in.\n\nContinue\nAccount",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "20-verify-ok.sesion": {
+  "session": {
+   "expiresAt": "2026-11-26T10:54:46.328Z",
+   "token": "lxVEBJ7QxgmlDTfw96RNE5zZbzydbcLW",
+   "createdAt": "2026-11-19T10:54:46.329Z",
+   "updatedAt": "2026-11-19T10:54:46.329Z",
+   "ipAddress": "10.9.0.7",
+   "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+   "userId": "a5308ffb-ad80-4fa7-ba40-02af7d7412f0",
+   "id": "0f3b6a18-ab53-4d47-bf62-c3c40edf45b3"
+  },
+  "user": {
+   "name": "nueva",
+   "email": "nueva@example.com",
+   "emailVerified": true,
+   "image": null,
+   "createdAt": "2026-11-19T10:54:31.860Z",
+   "updatedAt": "2026-11-19T10:54:46.326Z",
+   "id": "a5308ffb-ad80-4fa7-ba40-02af7d7412f0"
+  }
+ },
+ "21-verify-continue-360.png": {
+  "url": "/me/profile",
+  "punteroFino": false,
+  "main": "No rider yet\n\nCreate your rider to enter the world.\n\nCreate your rider",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "22-verify-otra-vez-360.png": {
+  "url": "/verify-email",
+  "punteroFino": false,
+  "main": "Email confirmed\n\nYour address is verified and you are signed in.\n\nContinue\nAccount",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "22-verify-otra-vez.sesion": null,
+ "22b-verify-primer-enlace": {
+  "url": "/verify-email",
+  "punteroFino": false,
+  "main": "Email confirmed\n\nYour address is verified and you are signed in.\n\nContinue\nAccount",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "23-verify-caducado-360.png": {
+  "url": "/verify-email?error=TOKEN_EXPIRED",
+  "punteroFino": false,
+  "main": "That did not work\n\nThat link has expired — they are only valid for one hour. Ask for a new one.\n\nLogging in with an unconfirmed email sends you a fresh link.\n\nLog in\nAccount",
+  "alertas": [
+   "That link has expired — they are only valid for one hour. Ask for a new one."
+  ],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "24-verify-malo-360.png": {
+  "url": "/verify-email?error=INVALID_TOKEN",
+  "punteroFino": false,
+  "main": "That did not work\n\nThat link is not valid any more. Ask for a new one.\n\nLogging in with an unconfirmed email sends you a fresh link.\n\nLog in\nAccount",
+  "alertas": [
+   "That link is not valid any more. Ask for a new one."
+  ],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "25-verify-approved-360.png": {
+  "url": "/verify-email?step=approved",
+  "punteroFino": false,
+  "main": "Change approved\n\nOne step left: we have sent a link to your new address. Your email changes only when you open it.\n\nContinue\nAccount",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "17-register-correo-usado-360.png": {
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Check your inbox\n\nWe have sent a link to nueva@example.com. Open it to confirm your email and start playing. It expires in one hour.\n\nNothing there? Check the spam folder, or make sure the address above is right.\n\nSend it again\n\nAlready confirmed? Log in",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [],
+  "alto": 800
+ },
+ "17-register-correo-usado.correos": [],
+ "18-register-demasiado-larga-360.png": {
+  "url": "/register",
+  "punteroFino": false,
+  "main": "Create your account\n\nStart building your rider.\n\nEmail\nPassword\n\nAt least 8 characters.\n\nPassword too long\n\nCreate account\n\nAlready have an account? Log in",
+  "alertas": [
+   "Password too long"
+  ],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Log in",
+    "w": 41,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "register-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "register-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "30-login-360.png": {
+  "url": "/login",
+  "punteroFino": false,
+  "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 800
+ },
+ "30-login-1280.png": {
+  "url": "/login",
+  "punteroFino": true,
+  "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   },
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   },
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 800
+ },
+ "31-login-sin-correo-360.png": {
+  "url": "/login",
+  "punteroFino": false,
+  "main": "Log in\n\nWelcome back.\n\nEmail\n\nEnter your email.\n\nPassword\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 812
+ },
+ "32-login-contrasena-mala-360.png": {
+  "url": "/login",
+  "punteroFino": false,
+  "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\n\nInvalid email or password\n\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [
+   "Invalid email or password"
+  ],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 820
+ },
+ "32b-login-correo-inexistente": [
+  "Invalid email or password"
+ ],
+ "33-login-teclado-360.png": {
+  "teclado": 470,
+  "campo": {
+   "top": 257,
+   "bottom": 305
+  },
+  "boton": {
+   "top": 405,
+   "bottom": 449
+  },
+  "botonVisible": true,
+  "scrollY": 0,
+  "barraInferior": "hidden",
+  "url": "/login",
+  "punteroFino": false,
+  "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\n\nInvalid email or password\n\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [
+   "Invalid email or password"
+  ],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 800
+ },
+ "34-login-sin-confirmar-360.png": {
+  "url": "/login",
+  "punteroFino": false,
+  "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\n\nConfirm your email first\n\nWe have just sent a new link to sinconfirmar@example.com. Open it and you will be signed in. Check the spam folder if it does not show up.\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [
+   "Confirm your email first\n\nWe have just sent a new link to sinconfirmar@example.com. Open it and you will be signed in. Check the spam folder if it does not show up."
+  ],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 932
+ },
+ "34b-login-sin-confirmar-mala": "Log in\n\nWelcome back.\n\nEmail\nPassword\n\nInvalid email or password\n\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+ "35-login-429-fastify.serie": [
+  {
+   "i": 1,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 2,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 3,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 4,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 5,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 6,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 7,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 8,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 9,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 10,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 11,
+   "status": 429,
+   "alerta": "Wrong email or password."
+  },
+  {
+   "i": 12,
+   "status": 429,
+   "alerta": "Wrong email or password."
+  }
+ ],
+ "35-login-429-fastify-360.png": {
+  "url": "/login",
+  "punteroFino": false,
+  "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\n\nWrong email or password.\n\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [
+   "Wrong email or password."
+  ],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 820
+ },
+ "35b-login-429-buena": {
+  "url": "http://localhost:3005/login",
+  "alerta": [
+   "Wrong email or password."
+  ]
+ },
+ "36-login-429-better-auth.serie": [
+  {
+   "i": 1,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 2,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 3,
+   "status": 401,
+   "alerta": "Invalid email or password"
+  },
+  {
+   "i": 4,
+   "status": 429,
+   "alerta": "Too many requests. Please try again later."
+  },
+  {
+   "i": 5,
+   "status": 429,
+   "alerta": "Too many requests. Please try again later."
+  }
+ ],
+ "36-login-429-better-auth-360.png": {
+  "url": "/login",
+  "punteroFino": false,
+  "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\n\nToo many requests. Please try again later.\n\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [
+   "Too many requests. Please try again later."
+  ],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 820
+ },
+ "40-forgot-360.png": {
+  "url": "/forgot-password",
+  "punteroFino": false,
+  "main": "Forgot your password?\n\nGive us your email and we will send you a link to set a new one.\n\nEmail\nSend me a link\nBack to log in",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "forgot-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   }
+  ],
+  "alto": 800
+ },
+ "40-forgot-1280.png": {
+  "url": "/forgot-password",
+  "punteroFino": true,
+  "main": "Forgot your password?\n\nGive us your email and we will send you a link to set a new one.\n\nEmail\nSend me a link\nBack to log in",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   }
+  ],
+  "campos": [
+   {
+    "id": "forgot-email",
+    "type": "email",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "email"
+   }
+  ],
+  "alto": 800
+ },
+ "41-forgot-sin-correo-360.png": {
+  "url": "/forgot-password",
+  "punteroFino": false,
+  "main": "Forgot your password?\n\nGive us your email and we will send you a link to set a new one.\n\nEmail\n\nEnter your email.\n\nSend me a link\nBack to log in",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "forgot-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   }
+  ],
+  "alto": 800
+ },
+ "42-forgot-enviado-360.png": {
+  "url": "/forgot-password",
+  "punteroFino": false,
+  "main": "Forgot your password?\n\nIf there is an account for nueva@example.com, a link to choose a new password is on its way. It expires in one hour.\n\nNothing in your inbox? Check the spam folder before asking for another one.\n\nBack to log in",
+  "alertas": [
+   "If there is an account for nueva@example.com, a link to choose a new password is on its way. It expires in one hour.\n\nNothing in your inbox? Check the spam folder before asking for another one."
+  ],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "42b-forgot-inexistente": "Forgot your password?\n\nIf there is an account for nadie@example.com, a link to choose a new password is on its way. It expires in one hour.\n\nNothing in your inbox? Check the spam folder before asking for another one.\n\nBack to log in",
+ "43-reset-360.png": {
+  "url": "/reset-password?token=qx5rsmvWDviupEfxaBLvRkNQ",
+  "punteroFino": false,
+  "main": "Choose a new password\nNew password\n\nAt least 8 characters.\n\nRepeat it\nSave my new password",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "reset-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "reset-confirm",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "44-reset-corta-360.png": {
+  "url": "/reset-password?token=qx5rsmvWDviupEfxaBLvRkNQ",
+  "punteroFino": false,
+  "main": "Choose a new password\nNew password\n\nAt least 8 characters.\n\nYour password must be at least 8 characters.\n\nRepeat it\nSave my new password",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "reset-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "reset-confirm",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "45-reset-no-coinciden-360.png": {
+  "url": "/reset-password?token=qx5rsmvWDviupEfxaBLvRkNQ",
+  "punteroFino": false,
+  "main": "Choose a new password\nNew password\n\nAt least 8 characters.\n\nRepeat it\n\nThe two passwords do not match.\n\nSave my new password",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "reset-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "reset-confirm",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "46-reset-teclado-360.png": {
+  "teclado": 470,
+  "campo": {
+   "top": 257,
+   "bottom": 305
+  },
+  "boton": {
+   "top": 341,
+   "bottom": 385
+  },
+  "botonVisible": true,
+  "scrollY": 0,
+  "barraInferior": "hidden",
+  "url": "/reset-password?token=qx5rsmvWDviupEfxaBLvRkNQ",
+  "punteroFino": false,
+  "main": "Choose a new password\nNew password\n\nAt least 8 characters.\n\nRepeat it\n\nThe two passwords do not match.\n\nSave my new password",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "reset-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "reset-confirm",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "47-reset-hecho-360.png": {
+  "url": "/login",
+  "punteroFino": false,
+  "main": "Log in\n\nWelcome back.\n\nEmail\nPassword\nForgot your password?\nLog in\n\nNo account yet? Sign up",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "a",
+    "texto": "Sign up",
+    "w": 50,
+    "h": 17,
+    "enLinea": true
+   }
+  ],
+  "campos": [
+   {
+    "id": "login-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "login-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 800
+ },
+ "48-reset-usado-360.png": {
+  "url": "/reset-password?error=INVALID_TOKEN",
+  "punteroFino": false,
+  "main": "Choose a new password\n\nThat link is not valid any more. Ask for a new one.\n\nAsk for a new link",
+  "alertas": [
+   "That link is not valid any more. Ask for a new one."
+  ],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "48b-reset-segundo-enlace": {
+  "url": "/reset-password?token=ZytnTMdBRON0fD0Js076G9pc",
+  "punteroFino": false,
+  "main": "Choose a new password\nNew password\n\nAt least 8 characters.\n\nRepeat it\nSave my new password",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "reset-password",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "reset-confirm",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 800
+ },
+ "49-reset-token-malo-360.png": {
+  "url": "/reset-password?error=INVALID_TOKEN",
+  "punteroFino": false,
+  "main": "Choose a new password\n\nThat link is not valid any more. Ask for a new one.\n\nAsk for a new link",
+  "alertas": [
+   "That link is not valid any more. Ask for a new one."
+  ],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "49b-reset-sin-token-360.png": {
+  "url": "/reset-password",
+  "punteroFino": false,
+  "main": "Choose a new password\n\nOpen this page from the link in your email.\n\nAsk for a new link",
+  "alertas": [
+   "Open this page from the link in your email."
+  ],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "50-account-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta360@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 1950
+ },
+ "50-account-1280.png": {
+  "url": "/account",
+  "punteroFino": true,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta1280@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [],
+  "pequeños": [
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   },
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   },
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   },
+   {
+    "zona": "main",
+    "tag": "input",
+    "texto": "",
+    "w": 414,
+    "h": 40,
+    "enLinea": false
+   }
+  ],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 40,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 1769
+ },
+ "51-account-sin-confirmar-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\n\nYour email is not confirmed\n\nYou will need it the next time you log in, and to recover your account if you ever lose your password.\n\nSend me a confirmation link\nEmail\n\nSigned in as antigua@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 2126
+ },
+ "52-account-sin-confirmar-enviado-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\n\nYour email is not confirmed\n\nYou will need it the next time you log in, and to recover your account if you ever lose your password.\n\nLink sent — check your inbox (and the spam folder).\n\nSend me a confirmation link\nEmail\n\nSigned in as antigua@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [
+   "Link sent — check your inbox (and the spam folder)."
+  ],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 2166
+ },
+ "52b-account-sin-confirmar-cambio": "Signed in as antigua@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nWe have sent a confirmation link to antigua-nueva@example.com. Your email changes when you open it.\n\nUpdate email",
+ "52b-account-sin-confirmar-cambio.correos": [
+  "antigua-nueva@example.com: Confirm your Cycling Star email"
+ ],
+ "53-account-correo-vacio-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nEnter a new, different email.\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 1974
+ },
+ "53b-account-correo-igual": "Signed in as cuenta@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nEnter a new, different email.\n\nUpdate email",
+ "53c-account-correo-ocupado": "Signed in as cuenta@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nWe have sent an approval link to cuenta@example.com. Once you approve, a confirmation link goes to nueva@example.com; your email changes when you open it.\n\nUpdate email",
+ "53c-account-correo-ocupado.correos": [],
+ "54-account-correo-pedido-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nWe have sent an approval link to cuenta@example.com. Once you approve, a confirmation link goes to cuenta-nueva@example.com; your email changes when you open it.\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [
+   "We have sent an approval link to cuenta@example.com. Once you approve, a confirmation link goes to cuenta-nueva@example.com; your email changes when you open it."
+  ],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 2062
+ },
+ "55-account-teclado-360.png": {
+  "teclado": 470,
+  "campo": {
+   "top": 376,
+   "bottom": 424
+  },
+  "boton": {
+   "top": 548,
+   "bottom": 592
+  },
+  "botonVisible": false,
+  "scrollY": 395,
+  "barraInferior": "hidden",
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nWe have sent an approval link to cuenta@example.com. Once you approve, a confirmation link goes to cuenta-nueva@example.com; your email changes when you open it.\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [
+   "We have sent an approval link to cuenta@example.com. Once you approve, a confirmation link goes to cuenta-nueva@example.com; your email changes when you open it."
+  ],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 2005
+ },
+ "56-verify-approved-real-360.png": {
+  "url": "/verify-email?step=approved",
+  "punteroFino": false,
+  "main": "Change approved\n\nOne step left: we have sent a link to your new address. Your email changes only when you open it.\n\nContinue\nAccount",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "57-verify-cambio-hecho-360.png": {
+  "url": "/verify-email",
+  "punteroFino": false,
+  "main": "Email confirmed\n\nYour address is verified and you are signed in.\n\nContinue\nAccount",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 800
+ },
+ "58-account-correo-cambiado-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta-nueva@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 1950
+ },
+ "60-account-pw-corta": "Changing your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nNew password must be at least 8 characters.\n\nConfirm new password\n\nUpdate password",
+ "60b-account-pw-no-coinciden": "Changing your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nThe new passwords do not match.\n\nUpdate password",
+ "60-account-pw-actual-mala-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta-nueva@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nInvalid password\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [
+   "Invalid password"
+  ],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 1982
+ },
+ "60c-account-pw-actual-vacia": "Changing your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nInvalid password\n\nUpdate password",
+ "61-account-pw-cambiada-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta-nueva@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nPassword updated.\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nDelete my account…",
+  "alertas": [
+   "Password updated."
+  ],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   }
+  ],
+  "alto": 1982
+ },
+ "61-account-pw-otra-sesion": null,
+ "62-account-borrar-abierto-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta-nueva@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nPassword updated.\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nPassword\n\nDelete my account for good\nCancel",
+  "alertas": [
+   "Password updated."
+  ],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "delete-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 2122
+ },
+ "63-account-borrar-vacio": "Password\n\nEnter your password to delete your account.\n\nDelete my account for good\nCancel",
+ "63-account-borrar-mala-360.png": {
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta-nueva@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nPassword updated.\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nPassword\n\nInvalid password\n\nDelete my account for good\nCancel",
+  "alertas": [
+   "Password updated.",
+   "Invalid password"
+  ],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "delete-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 2154
+ },
+ "64-account-borrar-teclado-360.png": {
+  "teclado": 470,
+  "campo": {
+   "top": 318,
+   "bottom": 366
+  },
+  "boton": {
+   "top": 410,
+   "bottom": 454
+  },
+  "botonVisible": true,
+  "scrollY": 1309,
+  "barraInferior": "hidden",
+  "url": "/account",
+  "punteroFino": false,
+  "main": "Account settings\n\nManage your login details.\n\nSpoiler protection\n\nWhich races keep their results hidden until you watch them. Everything else in the world is shown up to date.\n\nYours and the big ones\nOnly yours\nNothing\n\nYour rider’s and your team’s races, the ones you follow, the three grand tours and the five monuments.\n\nAsk before showing a result\n\nYes\nNo\nAppearance\nLight\nDark\nEmail\n\nSigned in as cuenta-nueva@example.com. A new address has to be confirmed by email before it replaces this one.\n\nNew email\n\nUpdate email\nPassword\n\nChanging your password signs you out of other devices.\n\nCurrent password\nNew password\n\nAt least 8 characters.\n\nConfirm new password\n\nPassword updated.\n\nUpdate password\nSign out\nDelete account\n\nThis cannot be undone. Your rider and your team stay in the world, run by the game, and your email becomes free to use on another account.\n\nPassword\n\nInvalid password\n\nDelete my account for good\nCancel",
+  "alertas": [
+   "Password updated.",
+   "Invalid password"
+  ],
+  "pequeños": [],
+  "campos": [
+   {
+    "id": "new-email",
+    "type": "email",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "email"
+   },
+   {
+    "id": "cur-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   },
+   {
+    "id": "new-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "confirm-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "new-password"
+   },
+   {
+    "id": "delete-pw",
+    "type": "password",
+    "font": "16px",
+    "h": 48,
+    "autocomplete": "current-password"
+   }
+  ],
+  "alto": 2097
+ },
+ "65-account-borrada-360.png": {
+  "url": "/",
+  "punteroFino": false,
+  "main": "Race. Train. Rise.\n\nA persistent cycling world where your rider trains, gets called up, races a full season, signs contracts and builds a palmarès — and the world keeps moving without you.\n\nCreate account\nHow to play\nSystem status\nServer\nOnline\nEngine version\n91\nGame day\nthe game has not started yet\nDatabase\nready",
+  "alertas": [],
+  "pequeños": [],
+  "campos": [],
+  "alto": 981
+ },
+ "65-account-borrada.correos": [],
+ "66-sign-out": {
+  "url": "http://localhost:3005/login"
+ },
+ "70-correo-1-360.png": {
+  "subject": "Confirm your Cycling Star email"
+ },
+ "70-correo-2-360.png": {
+  "subject": "Reset your Cycling Star password"
+ },
+ "70-correo-3-360.png": {
+  "subject": "Confirm the new email of your Cycling Star account"
+ }
+}

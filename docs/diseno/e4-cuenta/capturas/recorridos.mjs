@@ -63,8 +63,16 @@ async function persona(width = 360, base = BASE) {
     extraHTTPHeaders: { 'x-forwarded-for': nextIp() },
   })
   const page = await context.newPage()
+  if (width === 360) {
+    // Una captura de página entera más alta que la ventana deja a Chromium en `pointer: fine` (medido:
+    // `matchMedia` pasa de coarse a fine), y los campos bajan de 48 a 40 px (`fine:min-h-10`, Field.tsx
+    // l. 137). Tras cada captura se vuelve a encender el táctil por CDP.
+    const cdp = await context.newCDPSession(page)
+    tactil.set(page, () => cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }))
+  }
   return { context, page }
 }
+const tactil = new WeakMap()
 
 /** SQL de preparación por la ruta del arnés. */
 async function sql(q, base = BASE) {
@@ -152,6 +160,7 @@ async function medir(page) {
     }))
     return {
       url: location.pathname + location.search,
+      punteroFino: matchMedia('(pointer: fine)').matches,
       main: document.querySelector('main')?.innerText ?? '',
       alertas: [...document.querySelectorAll('[role=alert],[role=status]')]
         .map((e) => e.innerText.trim())
@@ -170,6 +179,7 @@ async function shot(page, name, { full = true } = {}) {
   const file = `${name}-${w}.png`
   medidas[file] = await medir(page)
   await page.screenshot({ path: resolve(OUT, file), fullPage: full })
+  await tactil.get(page)?.()
   log(`  ${file}`)
 }
 
@@ -206,7 +216,7 @@ async function teclado(page, name, campo, boton) {
   await page.waitForTimeout(200)
   // la barra inferior (`BottomNav`, `data-state` hidden o ready) y lo que queda fijo arriba
   datos.barraInferior = await page.evaluate(
-    () => document.querySelector('nav[data-state]')?.getAttribute('data-state') ?? 'no está',
+    () => document.querySelector('nav.fixed[data-state]')?.getAttribute('data-state') ?? 'no está',
   )
   const file = `${name}-360.png`
   medidas[file] = { teclado: TECLADO, ...datos, ...(await medir(page)) }
@@ -434,6 +444,20 @@ if (PROD) {
   }
   medidas['36-login-429-better-auth.serie'] = serie
   await shot(r.page, '36-login-429-better-auth')
+  // pedir el enlace de recuperación cuatro veces en un minuto: el cuarto es un 429 de better-auth
+  // (tres cada sesenta segundos), y la pantalla no mira la respuesta (ForgotPassword.tsx l. 47 y 48)
+  const recup = []
+  for (let i = 1; i <= 4; i += 1) {
+    await r.page.goto('/forgot-password')
+    await quieto(r.page)
+    const [res] = await Promise.all([
+      r.page.waitForResponse((x) => x.url().includes('/request-password-reset')),
+      rellenaYEnvia(r.page, { '#forgot-email': NUEVO }, 'button[type=submit]'),
+    ])
+    recup.push({ i, status: res.status(), pantalla: (await r.page.locator('[role=status]').allInnerTexts()).join(' | ').slice(0, 60) })
+  }
+  medidas['37-forgot-429-better-auth.serie'] = recup
+  await shot(r.page, '37-forgot-429-better-auth')
   await r.context.close()
 }
 
