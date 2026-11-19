@@ -130,8 +130,18 @@ function b5Lines(): string[] {
  * donde decía «is left alone in front»; y las 2 cabezas que crecen fuera de cabeza, «together now» sin «clear»
  * donde decían «at the front now».
  * Era `ea9ece4a725ae6992604edc9988f89c8cdf33802f63ba27fac078164a6a7107f`.
+ *
+ * RE-SELLADO EN W5d-1 (la revisión de `Watch` del dueño): la capa estira la velocidad de cada grupo con 1 km
+ * de base y la pendiente del perfil, y deja de pintar delante a grupos que iban detrás por estirar de más su
+ * última marca. La voz congelada cambia en 3 líneas, y nada más: en la e18, un corte en el puerto (km 179)
+ * gana `groupHead` 1 (el grupo del líder iba en cabeza; la capa de antes pintaba delante a uno que pasó 80 s
+ * después) y un parte de ventaja a 6 km pasa de `mainRole` chase a lead; en la e5 de Colombia, el grupo de
+ * cinco que se forma delante a 111 km gana `groupHead` 1 y `groupRole` lead por `groupJersey` kom. De las 1.020
+ * que se pintan cambian 2: el parte de la e18 dice `The race leader’s group stretches the lead` donde decía
+ * `The lead group`, y la cabeza de Colombia, «5 at the front now» donde decía «5 together now».
+ * Era `4ee0811b6e9a0a61c87e44ef9e3a77d7c8a68e62f90daaffb77fd21749798b53`.
  */
-const B5_SHA256 = '4ee0811b6e9a0a61c87e44ef9e3a77d7c8a68e62f90daaffb77fd21749798b53'
+const B5_SHA256 = '4d224b3203288468ac8e6cf271f4b252a5cd09a0ba1b37df6a35620911eb0597'
 
 const CHILD = process.env.CORPUS_CHILD_OUT
 
@@ -221,8 +231,9 @@ else {
               if (/over the chase group/.test(l)) malas.push(`${name} ${i} ${l}`)
           }
         })
-      // las 11 que la barra enseña detrás (el re-sellado de W2b, arriba) y las 8 referencias anotadas
-      expect(fuera).toHaveLength(11)
+      // las 9 que la barra enseña detrás y las 8 referencias anotadas: eran 11 hasta W5d-1, que pone en cabeza
+      // el corte del puerto de la e18 y el grupo de cinco de Colombia (el re-sellado de W5d-1, arriba)
+      expect(fuera).toHaveLength(9)
       expect(referencias).toBe(8)
       expect(malas).toEqual([])
     })

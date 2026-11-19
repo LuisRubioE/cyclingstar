@@ -30,9 +30,10 @@ export function paceAt(toGoKm: number, zones: readonly PaceZone[]): number {
  * (`BROADCAST.nominalKmh`, la primera banda con `upToPct` ≥ su pendiente) y, desde el 10b, más despacio
  * si sube más de `nominalAltitude.abovePct` % por encima de `fromM` de cota media (B17: los km de subida
  * altos van más despacio que su banda, y el digest de una reina larga que acaba a más de 2.000 m se iba
- * un 41 % de su presupuesto). Solo el perfil, nunca la carrera.
+ * un 41 % de su presupuesto). Solo el perfil, nunca la carrera. Desde W5d-1 la lee también la capa fija
+ * (`instant.ts`), para estirar la velocidad vista de un grupo a la pendiente que tiene delante.
  */
-function nominalKmS(profile: ProfileStrip, k: number): number {
+export function nominalKmS(profile: ProfileStrip, k: number): number {
   const a = profile.altM[k]!
   const b = profile.altM[k + 1]!
   const pct = (b - a) / 10 // pendiente media del km, en %
