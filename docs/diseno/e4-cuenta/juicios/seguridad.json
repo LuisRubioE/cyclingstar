@@ -1,0 +1,419 @@
+{
+  "foco": "seguridad",
+  "ganadora": "atacante",
+  "puntuaciones": [
+    {
+      "propuesta": "atacante",
+      "cobertura": 8,
+      "coherencia": 7,
+      "seguridad": 9,
+      "experiencia": 5,
+      "justificacion": "La única que recorre los diez atacantes con su coste y defiende la SSRF de los endpoint (lista de servicios), el panel raíz (TOTP, correo fijo, admin_audit), el escáner de enlaces en todos los correos (#token= y botón), el clic del aviso a otro origen y la carrera tras recuperar (la cookie de dispositivo al recuperar; su WeakMap funciona, medido). Pierde seguridad por topes mal calibrados: L1 de 30 en 24 h más L5 de 6 al día dejan al dueño un día fuera de todo navegador nuevo por 36 peticiones; anular al pedir regala el enlace del dueño al atacante; L2 sin tope diario (960 al día con una cookie robada). Pierde experiencia porque no vio el mapa 05 (22, 37, 47, 55 y 65 siguen igual), añade un toque por enlace y su frase del iPhone es falsa en iOS 16.4 a 18."
+    },
+    {
+      "propuesta": "jugador",
+      "cobertura": 8,
+      "coherencia": 7,
+      "seguridad": 4,
+      "experiencia": 9,
+      "justificacion": "La mejor en el teléfono: traductor de errores con Retry-After y cuenta atrás, ninguna pantalla muda, ForgotPassword que mira el 429, Account en subpáginas que caben sobre el teclado (55), CheckInbox que sobrevive a recargar, fecha en tres campos con autorrelleno, iPhone condicionado a iOS 26, y usar un enlace de recuperación mata a los demás (la regla buena bajo ataque). En seguridad es la más floja: cambio de correo sin contraseña con aprobación GET de 24 h (sesión robada más escáner es secuestro), E7 sin tope (bombardeo de un buzón), ninguna defensa de SSRF, cs_known que exime del todo y sobrevive al cierre de sesión, correos en claro en auth_limits, panel sin pieza propia y recuperar sin cookie: el atacante vuelve a cerrar antes que el dueño (medido)."
+    },
+    {
+      "propuesta": "incremental",
+      "cobertura": 7,
+      "coherencia": 9,
+      "seguridad": 6,
+      "experiencia": 6,
+      "justificacion": "La más verificable: revokeSessionsOnPasswordReset, storeIdentifier hashed, backgroundTasks, disabledPaths, el validador antes de la búsqueda y trustProxy por función, todo reproducido por el juez. Pero su tope de 80 registros al día lo agota una IP en 40 minutos y cierra el registro a todos; su aparato conocido es cs_viewer, diseñada para no dar nada, y lo midió con una cabecera del arnés; no limita por usuario las contraseñas con sesión (change-password y delete-user solo por IP); no defiende la SSRF y su aviso de prueba devuelve el oráculo de puertos; TOTP fuera por defecto; list-sessions entrega tokens al JavaScript. En pantalla solo arregla los textos del 429 de Login."
+    }
+  ],
+  "injertos": [
+    {
+      "id": "I-seguridad-01",
+      "de": "jugador",
+      "seccion": "§6.1",
+      "que": "authErrorText con Retry-After, botón deshabilitado con cuenta atrás, y el 429 de Fastify con message",
+      "porque": "hoy el 429 se pinta Wrong email or password. con la contraseña buena (captura 35, Login.tsx l. 61, app.ts l. 213 a 217)"
+    },
+    {
+      "id": "I-seguridad-02",
+      "de": "jugador",
+      "seccion": "§4.2",
+      "que": "ForgotPassword que mira la respuesta, VerifyEmail que pregunta por la sesión, finales con Notice tras recuperar y borrar, CheckInbox en sessionStorage",
+      "porque": "37, 22, 47 y 65 mienten o callan; atacante no vio el mapa 05"
+    },
+    {
+      "id": "I-seguridad-03",
+      "de": "jugador",
+      "seccion": "§5",
+      "que": "Account como lista con subpáginas y el formulario arriba",
+      "porque": "el botón Update email queda 122 px bajo el teclado (captura 55)"
+    },
+    {
+      "id": "I-seguridad-04",
+      "de": "jugador",
+      "seccion": "§4.1",
+      "que": "usar un enlace de recuperación mata los demás, en vez de pedir uno anula los anteriores",
+      "porque": "con la regla de atacante el atacante mata el enlace que el dueño tiene en la mano; con esta, los correos que dispara el atacante son la salida del dueño"
+    },
+    {
+      "id": "I-seguridad-05",
+      "de": "jugador",
+      "seccion": "§3",
+      "que": "DateField de tres campos con autocomplete bday-* y la puerta neutra en sessionStorage",
+      "porque": "un toque con autorrelleno; localStorage 24 h deja en el aparato la marca de que un menor lo intentó y cierra el registro a toda la casa"
+    },
+    {
+      "id": "I-seguridad-06",
+      "de": "jugador",
+      "seccion": "§8.3",
+      "que": "el texto del iPhone condicionado a iOS 26 o más, y un gemelo en la web para cada aviso",
+      "porque": "en iOS 16.4 a 18 sin manifiesto lo añadido a la pantalla de inicio no recibe avisos (mapa 02 §6, punto 2): la frase de atacante §8.5 es falsa ahí"
+    },
+    {
+      "id": "I-seguridad-07",
+      "de": "jugador",
+      "seccion": "§8.1",
+      "que": "stage_digest de uno al día y horas de silencio",
+      "porque": "Chrome retira el permiso a webs no instaladas con muchos avisos (mapa 02 §5)"
+    },
+    {
+      "id": "I-seguridad-08",
+      "de": "incremental",
+      "seccion": "§6",
+      "que": "trustProxy: (addr, hop) => hop === 0, con su test de dos IP y la alarma xff_varias",
+      "porque": "medido en fastify 5.12.8: toma la última dirección, la que pone el borde; true toma la primera, falsificable si Railway añadiera en vez de reescribir"
+    },
+    {
+      "id": "I-seguridad-09",
+      "de": "incremental",
+      "seccion": "§7",
+      "que": "disabledPaths como segunda barrera detrás de la lista blanca del proxy",
+      "porque": "medido: 404 antes del limitador y de los ganchos, sin variante de URL que lo esquive, y auth.api.verifyPassword sigue en el servidor"
+    },
+    {
+      "id": "I-seguridad-10",
+      "de": "incremental",
+      "seccion": "§3",
+      "que": "el validator de additionalFields para la edad; el año se guarda después en databaseHooks.user.create.before",
+      "porque": "medido: corre antes de buscar el correo, el mismo 400 con un correo existente"
+    },
+    {
+      "id": "I-seguridad-11",
+      "de": "incremental",
+      "seccion": "§11",
+      "que": "borrado atómico con beforeDelete que llama a deleteUserAsAdmin, con L3 en un gancho after",
+      "porque": "medido: 200 y 0 filas en una transacción, sin ruta propia ni sacar delete-user de la lista"
+    },
+    {
+      "id": "I-seguridad-12",
+      "de": "incremental",
+      "seccion": "§5",
+      "que": "30 días de sesión renovable, con el techo absoluto de 90 de atacante §5",
+      "porque": "quien vuelve de vacaciones no escribe la contraseña y una cookie robada no vive más de un trimestre; recuperar y Devices cierran el resto"
+    },
+    {
+      "id": "I-seguridad-13",
+      "de": "incremental",
+      "seccion": "§5",
+      "que": "advanced.ipAddress.disableIpTracking en vez de truncar la IP",
+      "porque": "medido: ip_address queda vacía; lo que no se guarda no hay que explicarlo en Privacy ni exportarlo, y la IP /24 apenas ayuda al jugador"
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-seguridad-01",
+      "seccion_ganadora": "§6.2",
+      "que": "L1 con 30 en 24 h y L5 con 6 al día dejan al dueño fuera de todo navegador nuevo un día entero; L5 calla. L1 solo con ventana de 15 min y L5 3 por hora sin tope diario",
+      "evidencia": "30 fallos y 6 recuperaciones al día; con RESET_TOKEN_TTL_S de 1.800 el último enlace muere a la media hora (atacante §14)"
+    },
+    {
+      "id": "O-seguridad-02",
+      "seccion_ganadora": "§4.1",
+      "que": "anular las recuperaciones al pedir otra deja al atacante matar el enlace del dueño; cambiar a matar al usar",
+      "evidencia": "incremental lo midió con la misma regla: pedidos dos, el primero da 400 (out/medir-incremental.json)"
+    },
+    {
+      "id": "O-seguridad-03",
+      "seccion_ganadora": "§6.2",
+      "que": "L2 sin tope diario: una cs_device robada da 960 intentos al día, 32 veces L1. L2 con 30 en 24 h, y Sign out of all other devices rota la cookie de esa cuenta",
+      "evidencia": "10 en 15 min (atacante §14, DEVICE_FAILS)"
+    },
+    {
+      "id": "O-seguridad-04",
+      "seccion_ganadora": "§10.3",
+      "que": "el presupuesto diario se agota para todos y corta las recuperaciones; reservar 30 a recuperaciones de cuentas confirmadas",
+      "evidencia": "cinco IP por L4 (20 al día) gastan los 90 de MAIL_DAILY_BUDGET; el texto global dice We cannot send emails right now"
+    },
+    {
+      "id": "O-seguridad-05",
+      "seccion_ganadora": "§7.1 y §7.3",
+      "que": "con TOTP (DD-1) la lista blanca necesita /two-factor/* y la respuesta twoFactorRedirect de sign-in; escribirlas en la lista y en T7.1",
+      "evidencia": "la lista de §7.1 tiene 11 rutas y ninguna del plugin twoFactor"
+    },
+    {
+      "id": "O-seguridad-06",
+      "seccion_ganadora": "§8.4",
+      "que": "la lista de servicios de push tiene que exigir https:, puerto vacío o 443 y sin usuario, revalidarse al enviar y no devolver nunca el error del envío",
+      "evidencia": "web-push 4.0.0 abre TLS a cualquier host y puerto aunque el esquema sea http (web-push-lib.js l. 343 a 363); ECONNRESET, ECONNREFUSED y ENOTFOUND distinguen puertos (out/ssrf.json)"
+    },
+    {
+      "id": "O-seguridad-07",
+      "seccion_ganadora": "§4.2",
+      "que": "la página del botón debe borrar #token= con history.replaceState y llevar su texto entero, no solo la etiqueta del botón",
+      "evidencia": "el fragmento no va al servidor pero queda en el historial del navegador; §4.2 solo da Confirm my email, Use this email, Approve the change"
+    },
+    {
+      "id": "O-seguridad-08",
+      "seccion_ganadora": "§4.3",
+      "que": "deshacer 7 días da poder a quien lea el buzón que el jugador dejaba atrás; 72 h y aviso también a la dirección nueva",
+      "evidencia": "el cambio ya exige contraseña (§7.1) y aprobación del buzón viejo; deshacer lleva a /forgot-password del buzón viejo"
+    },
+    {
+      "id": "O-seguridad-09",
+      "seccion_ganadora": "§8.5",
+      "que": "la frase del iPhone es falsa en iOS 16.4 a 18 sin manifiesto",
+      "evidencia": "mapa 02 §6, punto 2"
+    },
+    {
+      "id": "O-seguridad-10",
+      "seccion_ganadora": "§6.5",
+      "que": "HIBP falla cerrado: si su API cae no hay registro ni recuperación; o envoltorio propio que deja pasar, o DD-3 lo dice",
+      "evidencia": "haveibeenpwned/index.mjs 1.7.26 l. 37 y 41 lanzan 500; envuelve password.hash (l. 63 a 75)"
+    },
+    {
+      "id": "O-seguridad-11",
+      "seccion_ganadora": "§6.4 y §4.2",
+      "que": "no vio el mapa 05: 22, 37, 47, 55 y 65 siguen igual, y cada página de botón añade un toque sin texto escrito",
+      "evidencia": "propuesta, l. 3 a 4; capturas 22, 37, 47, 55 y 65"
+    },
+    {
+      "id": "O-seguridad-12",
+      "seccion_ganadora": "§3",
+      "que": "cs.ageGate 24 h en localStorage deja en el aparato la marca de un menor y bloquea a toda la casa; sessionStorage",
+      "evidencia": "atacante §3, l. 103 a 105"
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-seguridad-01",
+      "que": "La enumeración por el cambio de correo: con el destino ocupado no sale nada y con el libre llega la aprobación al buzón propio, así que cualquier cuenta confirmada sabe si una dirección juega (update-user.mjs 1.7.26 l. 456 a 459). Mandar siempre la aprobación y avisar al final a la dirección ocupada; 3 cambios por usuario y día"
+    },
+    {
+      "id": "H-seguridad-02",
+      "que": "El registro como bombardeo de rebotes: cada registro con un correo inventado manda un correo que rebota y Resend castiga por encima del 4 %; nadie limita las cuentas sin confirmar por IP y día"
+    },
+    {
+      "id": "H-seguridad-03",
+      "que": "Nadie ha probado un escáner de enlaces real (si ejecuta JavaScript y pulsa botones)"
+    },
+    {
+      "id": "H-seguridad-04",
+      "que": "Nadie ha probado en un iPhone el aviso desde la pantalla de inicio en iOS 26 ni que esa app web tenga cookies propias (de memoria): sin sesión ni cookie de dispositivo de Safari, bajo ataque es un navegador nuevo"
+    },
+    {
+      "id": "H-seguridad-05",
+      "que": "better-auth escribe Sign-up attempt for existing email: <correo> a nivel info (sign-up.mjs l. 194); hoy no sale porque el nivel por defecto es warn, y nadie lo fija por escrito"
+    },
+    {
+      "id": "H-seguridad-06",
+      "que": "El menor que se descubre sin canal de contacto: quién avisa y qué se hace con sus datos; a confirmar con un abogado"
+    }
+  ],
+  "comprobaciones": [
+    {
+      "afirmacion": "revokeSessionsOnPasswordReset cierra la sesión de antes; storeIdentifier hashed no guarda el token y acepta el enlace en claro de antes",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "medir.mjs reproducido: sesionAnteriorTrasReset cerrada, tokenEnClaro falso, enlaceEnClaroDeAntes 200 (juez-seguridad/out/medir-incremental.json)"
+    },
+    {
+      "afirmacion": "Un endpoint como http://postgres.railway.internal:5432 hace hablar a la API con la red privada",
+      "propuesta": "atacante",
+      "resultado": "cierta",
+      "evidencia": "web-push 4.0.0 usa siempre https.request con host y puerto de la URL (web-push-lib.js l. 343 a 363); el servicio de 127.0.0.1 recibió 160301; ECONNRESET abierto, ECONNREFUSED cerrado, ENOTFOUND sin nombre (out/ssrf.json)"
+    },
+    {
+      "afirmacion": "backgroundTasks cierra la enumeración por tiempo",
+      "propuesta": "atacante, jugador, incremental",
+      "resultado": "cierta",
+      "evidencia": "41 muestras, correo de 250 ms: recuperar 4,0 frente a 4,6 ms (sin la opción 5,6 frente a 255,6); registrarse 85,8 frente a 80,7; onExistingUserSignUp en segundo plano (sign-up.mjs 1.7.26 l. 205) (out/tiempo.json)"
+    },
+    {
+      "afirmacion": "Recuperar la contraseña es la salida del dueño bloqueado por el límite por cuenta",
+      "propuesta": "jugador, incremental",
+      "resultado": "falsa",
+      "evidencia": "peticion.mjs: tras recuperar (200, contador a cero), 10 fallos del atacante y la contraseña nueva del dueño desde un aparato nuevo da 429 (out/peticion.json)"
+    },
+    {
+      "afirmacion": "Que ctx.request sea el mismo objeto que el proxy pasa a auth.handler está por comprobar",
+      "propuesta": "atacante",
+      "resultado": "cierta",
+      "evidencia": "password.mjs 1.7.26 l. 164 pasa ctx.request a onPasswordReset y es el mismo objeto Request (misma: true, out/peticion.json)"
+    },
+    {
+      "afirmacion": "El límite por cuenta deja entrar desde un aparato conocido y no delata un correo inexistente",
+      "propuesta": "incremental",
+      "resultado": "a medias",
+      "evidencia": "la serie del correo inexistente es idéntica (reproducida), pero el aparato conocido del arnés es la cabecera x-known-device, no cs_viewer (medir.mjs, buenaConocida)"
+    },
+    {
+      "afirmacion": "HIBP no delata porque corre en las dos ramas y falla cerrado",
+      "propuesta": "incremental (atacante: no lo sé)",
+      "resultado": "cierta",
+      "evidencia": "haveibeenpwned/index.mjs l. 63 a 75 envuelve password.hash; sign-up.mjs l. 200 y 220 hashea en las dos ramas; l. 37 y 41 lanzan 500"
+    },
+    {
+      "afirmacion": "disabledPaths da 404 antes del limitador; ninguna variante de URL lo esquiva",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "404 con sesión en las cuatro rutas y verifyPassword de servidor ok (reproducido); normalizePathname quita la barra final (core/utils/url.mjs l. 18 a 30); en 1.6.25 y 1.7.26 /sign-in/email/, //sign-in/email y /Sign-in/email dan 404 y ?x=1 cae en el límite estricto (out/clon/barra.txt, out/clon17/barra.txt)"
+    },
+    {
+      "afirmacion": "trustProxy: 1 da siempre la del socket; la función hop === 0 da la última de X-Forwarded-For",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "fastify 5.12.8 lib/request.js l. 53 a 57; ip.mjs reproducido (out/ip.json)"
+    },
+    {
+      "afirmacion": "emailVerification.expiresIn fija la vida de todos los JWT de correo",
+      "propuesta": "jugador",
+      "resultado": "cierta",
+      "evidencia": "update-user.mjs 1.7.26 l. 457, 474, 491 y 508; email-verification.mjs l. 29, 109 y 201"
+    },
+    {
+      "afirmacion": "El validador de additionalFields corre antes de buscar el correo",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "reproducido: el menor con correo nuevo y con correo existente, el mismo 400 VALIDATION_ERROR"
+    },
+    {
+      "afirmacion": "El cambio a un correo ocupado no delata nada",
+      "propuesta": "atacante, jugador, incremental (implícita)",
+      "resultado": "falsa",
+      "evidencia": "update-user.mjs 1.7.26 l. 456 a 459: con el destino ocupado no sale correo; libre, la aprobación llega al buzón propio del que pide (mapa 05, 53c)"
+    }
+  ],
+  "duenio": [
+    {
+      "decision": "Segundo factor del panel",
+      "de_quien": "dueño",
+      "opciones": [
+        "TOTP solo para administradores",
+        "sin TOTP, segundo factor en el buzón de ADMIN_EMAIL",
+        "panel solo con ADMIN_TOKEN"
+      ],
+      "defecto": "TOTP solo para administradores"
+    },
+    {
+      "decision": "Plan de Resend",
+      "de_quien": "dueño",
+      "opciones": ["Pro antes de abrir", "gratuito con tandas de 50"],
+      "defecto": "Pro, con 30 correos al día reservados a recuperar"
+    },
+    {
+      "decision": "Contraseñas filtradas (HIBP)",
+      "de_quien": "dueño",
+      "opciones": ["sí, falla cerrado", "sí, deja pasar con código propio", "no"],
+      "defecto": "sí, deja pasar"
+    },
+    {
+      "decision": "Fecha o año de nacimiento",
+      "de_quien": "dueño",
+      "opciones": [
+        "la fecha",
+        "el año, comprobando la fecha entera al enviarla",
+        "solo que declara 16"
+      ],
+      "defecto": "el año"
+    },
+    {
+      "decision": "Duración de la sesión",
+      "de_quien": "síntesis",
+      "opciones": ["7 días", "30 renovables", "30 renovables con techo de 90"],
+      "defecto": "30 renovables con techo de 90"
+    },
+    {
+      "decision": "Correo de entrada desde un navegador nuevo (E6)",
+      "de_quien": "dueño",
+      "opciones": ["encendido sin interruptor", "con interruptor", "apagado"],
+      "defecto": "encendido, uno por hora"
+    },
+    {
+      "decision": "Deshacer el cambio de correo",
+      "de_quien": "síntesis",
+      "opciones": ["7 días", "72 h con aviso a las dos direcciones", "nada"],
+      "defecto": "72 h"
+    },
+    {
+      "decision": "Tope diario de registros",
+      "de_quien": "síntesis",
+      "opciones": ["descartado: es un apagado a disposición de cualquiera"],
+      "defecto": "ninguno; reserva de correo"
+    },
+    {
+      "decision": "Avisos encendidos de serie",
+      "de_quien": "dueño",
+      "opciones": [
+        "regla del mes, fin de ausencia y stage_digest",
+        "solo los dos primeros",
+        "todos apagados"
+      ],
+      "defecto": "regla del mes, fin de ausencia y stage_digest"
+    },
+    {
+      "decision": "Cuándo se pide el permiso",
+      "de_quien": "dueño",
+      "opciones": [
+        "tras crear el corredor y al seguir una carrera, con un toque",
+        "solo en Account",
+        "además en la portada"
+      ],
+      "defecto": "tras crear el corredor y al seguir una carrera"
+    },
+    {
+      "decision": "El jugador de iPhone",
+      "de_quien": "dueño",
+      "opciones": [
+        "no hay avisos todavía y dónde está todo en la web",
+        "lo anterior más el camino de iOS 26",
+        "además un aviso en la portada"
+      ],
+      "defecto": "el primero hasta probarlo en un iOS 26; luego el segundo"
+    },
+    {
+      "decision": "Pantalla del modo ausencia",
+      "de_quien": "dueño",
+      "opciones": ["líneas calculadas con atajos y fecha", "solo la fecha", "solo atajos"],
+      "defecto": "líneas calculadas; terminarla sin contraseña"
+    },
+    {
+      "decision": "Pantalla de sesiones",
+      "de_quien": "dueño",
+      "opciones": [
+        "aparato y fechas",
+        "además la IP truncada",
+        "solo el número y Sign out of all other devices"
+      ],
+      "defecto": "aparato y fechas, sin IP"
+    },
+    {
+      "decision": "Texto de privacidad",
+      "de_quien": "dueño",
+      "opciones": ["todo a la vista", "tabla What, Why, How long", "resumen y detalle plegado"],
+      "defecto": "todo a la vista, con los hechos de atacante §11.1"
+    },
+    {
+      "decision": "Casilla de condiciones",
+      "de_quien": "dueño",
+      "opciones": ["línea bajo el botón", "casilla obligatoria"],
+      "defecto": "a confirmar con un abogado"
+    },
+    {
+      "decision": "Destino de los informes DMARC",
+      "de_quien": "dueño",
+      "opciones": ["un buzón suyo", "un servicio de resúmenes", "ninguno"],
+      "defecto": "un buzón suyo"
+    }
+  ]
+}
