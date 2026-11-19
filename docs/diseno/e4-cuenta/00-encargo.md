@@ -24,17 +24,19 @@ cambió:
 2. **La seguridad de la cuenta**, que en E4 es la mitad del trabajo: secuestro de cuenta,
    enumeración de correos, límites de intento por IP y por cuenta, tokens y su caducidad, sesiones,
    el correo como vía de ataque, las dependencias con avisos abiertos (§3) y los datos de un menor.
-3. **Las notificaciones**: qué se avisa, por dónde (correo hoy; el teléfono, cuando llegue la app),
-   cuándo, con qué baja de un toque y con qué frecuencia máxima. La regla de E2 manda: **ningún aviso
+3. **Las notificaciones**: qué se avisa, por dónde (**solo el aviso del navegador y, cuando exista,
+   el de la app; ningún correo de juego**, §9.1), cuándo, con qué baja de un toque y con qué
+   frecuencia máxima. La regla de E2 manda: **ningún aviso
    destripa** (`docs/retransmision.md` §11.9).
 4. **El modo ausencia**: con cuatro días de juego por día real, un juego sin ausencia castiga tener
    vida. Cómo se declara, qué pasa mientras dura, cómo se vuelve, y su relación con la regla del mes
    (`agenda.md` §4.15.5) y con el resumen `While you were away` de E2, que ya existe.
-5. **Dos decisiones de infraestructura que no se saltan**: separar el correo TRANSACCIONAL del de
-   NOTIFICACIÓN en subdominios distintos desde el primer día, y **calentar** el dominio de envío antes
-   del lanzamiento en lugar de estrenarlo con mil registros.
-6. **El contacto**: por dónde se queja un jugador. Hoy no hay ni un correo de contacto en la web, y
-   el primero que se quede fuera de su cuenta no tiene a dónde ir.
+5. **Dos decisiones de infraestructura del encargo**: separar el correo TRANSACCIONAL del de
+   NOTIFICACIÓN en subdominios distintos, que **pierde urgencia porque no habrá correo de
+   notificación** (§9.1) y se escribe para el día que lo haya, y **calentar** el dominio de envío
+   antes del lanzamiento en lugar de estrenarlo con mil registros, que sigue en pie.
+6. **El contacto**: por dónde se queja un jugador. **El dueño lo aparcó el 19 de noviembre (§9.1)**:
+   se escribe como riesgo y como coste, no como pieza.
 7. **Lo legal que toca a la cuenta** (`agenda.md` §4.9): acceso, exportación y borrado de los datos,
    la política de privacidad viva (`apps/web/src/pages/Privacy.tsx`) y los menores. Lo que necesite
    un abogado se marca como tal y no se dictamina.
@@ -231,11 +233,15 @@ trabajan como mucho de dos en dos**, y son del mismo modelo que el orquestador.
    lo que hace Railway, `NODE_ENV`), probado en local con la API levantada; la enumeración de correos
    ruta a ruta (respuesta y tiempo); y las dependencias con avisos: qué dice cada aviso, si nos
    alcanza y qué cambia al subir `better-auth` a 1.7 y `fastify` a 5.12.
-2. `mapas/02-correo.md` · **El correo**: `mailer.ts`, las cuatro plantillas, Resend (lo que ofrece:
-   dominios, subdominios, webhooks de rebote y queja, cabecera de baja, recepción), el DNS real de
-   `cyclingstar.app` consultado (SPF, DKIM, DMARC, MX, el `send.`), qué falta para separar los dos
-   flujos, cómo se calienta un dominio con el volumen de este juego, y cómo recibir el correo de
-   contacto.
+2. `mapas/02-correo-y-avisos.md` · **El correo y los avisos**: `mailer.ts`, las cuatro plantillas,
+   Resend (dominios, subdominios, webhooks de rebote y queja), el DNS real de `cyclingstar.app`
+   consultado (SPF, DKIM, DMARC, MX, el `send.`), y cómo se calienta un dominio con el volumen de este
+   juego. Y, porque el dueño quiere los avisos solo por el navegador y la app (§9.1), **el aviso del
+   navegador hoy**: Web Push en Chrome, Firefox, Edge y Safari, en escritorio, Android e iPhone (con
+   y sin pantalla de inicio), con fuentes y fecha; lo que exige (service worker, claves VAPID, permiso
+   del usuario, HTTPS) y cómo choca o no con D-00p de `docs/visual.md`, con la CSP de `app.ts` y con
+   el servidor de estáticos; la librería que lo enviaría y su mantenimiento; y lo que pide una app
+   futura (FCM, APNs) para que el diseño de hoy no la estorbe.
 3. `mapas/03-datos-y-ausencia.md` · **Los datos y lo que pasa cuando no entras**: `users`,
    `sessions`, `accounts`, `verifications` y todo lo que cuelga de un usuario; qué se borra, qué pasa
    a la máquina y qué queda al borrar; qué datos personales se guardan de verdad frente a lo que dice
@@ -295,4 +301,53 @@ Cada agente trabaja en su propio subdirectorio (`<scratchpad>/<tu-rol>/`).
 
 ## 9. Lo que el dueño ha añadido durante el diseño
 
-(Vacío por ahora. Aquí van sus palabras textuales, con su fecha, y lo que deciden.)
+### 9.1 Las respuestas a la fase 0 (19 de noviembre de 2026)
+
+El orquestador le hizo seis preguntas, cada una con su recomendación delante. Las preguntas, en
+resumen, y su respuesta textual:
+
+1. Edad mínima de 16, con la fecha de nacimiento en el registro, y a las cuentas que ya existen (hoy
+   solo la suya) se les pide al entrar. Respuesta: «Ok».
+2. Un buzón `support@cyclingstar.app` reenviado a su correo, con un enlace en el pie y en el login, y
+   dónde tiene el DNS. Respuesta: «? De momento no lo pongas».
+3. Avisos de juego por correo antes de la app, pocos y con baja de un toque (el de la regla del mes
+   encendido; «etapa lista» y los resúmenes apagados). Respuesta: «No, como mucho notificadores de
+   browser y app».
+4. Con qué y cuándo hará la app. Respuesta: «Ni idea».
+5. Un botón de ausencia con fecha de vuelta: mientras dura decide el entrenador, se callan los avisos
+   y no corre la regla del mes; lo que el mundo hace con el ausente largo es de E7. Respuesta: «Ok».
+6. Nada de entrar con Google o Apple por ahora. Respuesta: «Ok».
+
+Lo que queda decidido, y que manda sobre el encargo y sobre cualquier otro texto del rastro:
+
+1. **Edad mínima de 16**, declarada con la fecha de nacimiento en el registro; a las cuentas que ya
+   existen se les pide al entrar. Sigue en pie el aviso de `agenda.md` §3.7: confirmarlo con un
+   abogado antes de abrir el registro.
+2. **Sin canal de contacto por ahora.** El encargo lo pedía y el dueño lo aparca. El documento no lo
+   diseña como pieza que se implementa; escribe el hueco como riesgo (quien se quede fuera de su
+   cuenta no tiene a dónde ir), lo que costaría el día que se quiera, y retira de la web las frases
+   que prometen un canal que no existe (el `Ask and…` de `Privacy.tsx`).
+3. **Ningún correo de juego**, tampoco el aviso de la regla del mes. El correo se queda en lo
+   transaccional de la cuenta. Los avisos de juego van **solo por notificación del navegador y de la
+   app**. Consecuencias que el diseño tiene que resolver y no dar por supuestas:
+   - `stageReadyEmail` no se envía nunca como correo; lo que vale de ella es `stageReadyNotice`, el
+     texto que no destripa, para el aviso del navegador y el de la app.
+   - La separación del correo transaccional y el de notificación en dos subdominios ya no es urgente,
+     porque no habrá correo de notificación. Se escribe qué haría falta si algún día lo hubiera. El
+     calentamiento del dominio sigue valiendo para el transaccional.
+   - El aviso del navegador (Web Push) necesita un service worker. D-00p de `docs/visual.md` quitó el
+     service worker junto con la web instalable; uno que solo reciba avisos, sin caché ni
+     instalación, es otra cosa, y el diseño lo tiene que decir con su frontera respecto a D-00p.
+   - Por lo que sabe el orquestador, a comprobar en el mapa 02: en iPhone el aviso web solo llega a
+     las webs añadidas a la pantalla de inicio, que ya no se ofrece; en Android y en el escritorio
+     llega sin instalar nada. Hasta la app, un jugador de iPhone podría no recibir ningún aviso.
+   - El aviso de la regla del mes (`agenda.md` §4.15.5, punto 3) solo llega a quien haya aceptado
+     las notificaciones. Para el resto, lo que se le enseña al volver y antes de que pase nada tiene
+     que estar en la propia web.
+4. **La app no tiene tecnología ni fecha.** El teléfono se diseña como un canal más, que se enchufa
+   cuando exista, sin suponer Expo, Capacitor ni ninguna otra.
+5. **El modo ausencia, con la frontera propuesta**: lo declara el jugador con una fecha de vuelta;
+   mientras dura decide el entrenador, se callan los avisos y no corre la regla del mes. Lo que el
+   mundo haga con una ausencia larga es de E7.
+6. **Solo correo y contraseña.** Nada de OAuth, enlace mágico ni código por correo en E4; los tres
+   avisos de `better-auth` (§3) se leen para la subida de versión, no para añadir esos accesos.

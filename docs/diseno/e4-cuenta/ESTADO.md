@@ -1,6 +1,6 @@
 # E4 · Estado del proceso de diseño
 
-Estado: **fase 0 hecha, a la espera de las respuestas del dueño** antes de lanzar los mapas.
+Estado: **fase 0b, los mapas, en marcha** (01 y 03 primero).
 Empezado el 19 de noviembre de 2026 sobre `2a29e6d` (`main`, con E2 en producción, E3 en
 implementación y el motor v91). El documento final será `docs/cuenta.md`. Se actualiza este fichero
 al terminar cada fase, con commit y push en la rama de desarrollo, para poder retomar el trabajo si la
@@ -23,12 +23,18 @@ sesión se corta.
 - El entorno: un clon de `2a29e6d` en `<scratchpad>/repo` con `pnpm install --frozen-lockfile` en
   verde.
 
+- **Las respuestas del dueño a la fase 0** (19 de noviembre de 2026), en `00-encargo.md` §9.1: edad
+  mínima de 16 con fecha de nacimiento; sin canal de contacto por ahora; ningún correo de juego,
+  avisos solo por el navegador y la app; la app sin tecnología ni fecha; el modo ausencia con la
+  frontera propuesta; solo correo y contraseña. El brief se ajusta (§1, puntos 3, 5 y 6; el mapa 02
+  pasa a ser el del correo y los avisos).
+- `00-fase-mapas.md`, las instrucciones de los cinco cartógrafos.
+
 ## Siguiente
 
-1. Las respuestas del dueño a las preguntas de la fase 0, que van a `00-encargo.md` §9.
-2. `00-fase-mapas.md` y los cinco mapas, de dos en dos: 01 y 03 primero (cuenta y datos), luego 02 y
+1. Los cinco mapas, de dos en dos: 01 y 03 primero (cuenta y datos), luego 02 y
    04 (correo y corpus), y el 05 (pantallas) solo.
-3. Las tres propuestas, los tres jueces, la síntesis con la página de opciones, la refutación, la
+2. Las tres propuestas, los tres jueces, la síntesis con la página de opciones, la refutación, la
    corrección, la coherencia, la auditoría y el ensamblado (`00-encargo.md` §6).
 
 ## Decisiones del proceso
