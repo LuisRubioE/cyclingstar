@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import type { RadioGroupKind } from '../contracts.js'
-import { synthLine, toyStage, toyStageWithDrop } from './__fixtures__/syntheticLine.js'
+import {
+  type SynthPhoto,
+  synthLine,
+  toyStage,
+  toyStageWithDrop,
+} from './__fixtures__/syntheticLine.js'
 import { decodeTimeline } from './codec.js'
 import { BROADCAST } from './constants.js'
 import { chunkOf, cutTimeline, visibilityOf } from './cut.js'
@@ -673,9 +678,11 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
   })
 
   it('groupRolesAt: la etiqueta sale del papel con histéresis, no del crudo (W2b)', () => {
-    // la e5 de Colombia a las 10.200 s: la cabeza, de cinco, tiene el papel crudo lead y gruppetto por la
+    // la e5 de Colombia a las 10.440 s: la cabeza, de cinco, tiene el papel crudo lead y gruppetto por la
     // histéresis, y la barra la rotula por el maillot de la montaña; con el crudo sería `Lead group`. En la
-    // e20 no pasa en ninguna hora de la prueba de arriba: aquí, 12 veces cada 60 s
+    // e20 no pasa en ninguna hora de la prueba de arriba: aquí, 8 veces cada 60 s. Era a las 10.200 s hasta
+    // W5d-1: la capa estira ahora la velocidad con la pendiente y una base de 1 km, los grupos van algo más
+    // atrás en esos minutos y la histéresis llega a gruppetto a las 10.380 s; sigue hasta las 10.500
     const col = decodeTimeline(
       JSON.parse(
         gunzipSync(
@@ -699,7 +706,7 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
       start: { leaders: lead, gcTop: [] },
       photoBlocks: photoBlocksOf(col.lengthKm, col.dx),
     }
-    const t = 10200
+    const t = 10440
     const i = instantAt(col, t, ctxC)
     const head = i.groups.filter((g) => g.members.length > 0)[0]!
     const raw = groupRoleOf(
@@ -711,6 +718,214 @@ describe('groupRoleAt · el papel y la etiqueta de un grupo, los de instantAt (6
     expect(groupRolesAt(col, t, ctxC, [(_x, row) => row === 0])).toEqual([
       { g: head.g, role: 'gruppetto', label: head.label, row: 0 },
     ])
+  })
+})
+
+describe('la capa entre dos marcas: la base de 1 km y la pendiente (W5d-1)', () => {
+  /**
+   * Un pelotón solo, de 50 bloques (5 km), con lo que tarda en cada bloque y un perfil a mano. Lleva marca
+   * en cada km de foto y en los diez últimos bloques; `outAt` le quita un corredor en ese bloque, que le
+   * pone una marca en él y en el anterior, y `warpS` le resta segundos al reloj desde ahí, como el reloj
+   * del de delante que el motor le deja al pelotón cuando caza.
+   */
+  const lineOf = (
+    secsOf: (b: number) => number,
+    altM: readonly number[],
+    opts: { readonly outAt?: number; readonly warpS?: number } = {},
+  ) => {
+    const riderIds = ['r0', 'r1', 'r2']
+    const photos: SynthPhoto[] = []
+    let t = 0
+    for (let b = 0; b < 50; b++) {
+      t += secsOf(b)
+      const out = opts.outAt !== undefined && b >= opts.outAt
+      const groupOf: (string | null)[] = riderIds.map((_r, i) =>
+        out && i === 2 ? null : 'peloton',
+      )
+      photos.push({
+        groupOf,
+        clockS: { peloton: t - (out ? (opts.warpS ?? 0) : 0) },
+        main: 'peloton',
+      })
+    }
+    const synth = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 100, lastBlocks: 10 })
+    const tl: TimelineCore = { ...synth.tl, profile: { altM, climbs: [], sprintsKm: [], laps: 1 } }
+    const ctx: InstantContext = {
+      own: new Set(),
+      start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
+      photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+    }
+    return { tl, ctx, clock: (b: number): number => photos[b]!.clockS.peloton! }
+  }
+
+  it('el que llega a un puerto frena con la pendiente del perfil: no se planta en la foto siguiente a esperar su marca', () => {
+    // los km 0 y 1, llanos, a 8 s el bloque; del 2 al 5, al 8 %, a 20 s
+    const { tl, ctx, clock } = lineOf((b) => (b < 20 ? 8 : 20), [0, 0, 0, 80, 160, 240])
+    const t20 = clock(20)
+    const toGo = (dt: number): number => instantAt(tl, t20 + dt, ctx).toGoKm
+    // A ritmo de llano (lo de antes), a los 100 s ya estaba en el km 3 (1,95 km a meta) y se quedaba allí
+    // hasta su marca, a los 200 s. Con la pendiente sube: en el bloque 24, unos 2,55 km a meta.
+    expect(toGo(100)).toBeGreaterThan(2.4)
+    expect(toGo(100)).toBeLessThan(2.7)
+    for (let dt = 20; dt < 200; dt += 20) expect(toGo(dt + 20)).toBeLessThan(toGo(dt))
+  })
+
+  it('la marca que una caza trae adelantada no dispara la velocidad: sale de 1 km de marcas, no de las dos últimas', () => {
+    // llano a 8 s el bloque; en el 23 se va un corredor (marca en el 22 y en el 23) y el reloj baja 5 s
+    const { tl, ctx, clock } = lineOf(() => 8, [0, 0, 0, 0, 0, 0], { outAt: 23, warpS: 5 })
+    const t23 = clock(23)
+    const toGo = (dt: number): number => instantAt(tl, t23 + dt, ctx).toGoKm
+    // Con las dos últimas, 100 m en 3 s: el km 3 a los 21 s y parado allí hasta su marca, 56 s después.
+    // Con la base del km 1 al bloque 23, 13 bloques en 99 s: llega a los 53 s.
+    for (let dt = 10; dt < 50; dt += 10) expect(toGo(dt + 10)).toBeLessThan(toGo(dt))
+  })
+
+  /**
+   * Un pelotón de tres y un ataque de r0 desde el bloque 23, con el reloj de cada grupo a mano; con
+   * `joinAt`, r1 se une al ataque en ese bloque (y le pone marca en él y en el anterior).
+   */
+  const attackLine = (
+    pelotonAt: (b: number) => number,
+    movAt: (b: number) => number,
+    joinAt: number = Number.POSITIVE_INFINITY,
+    altM: readonly number[] = [],
+  ) => {
+    const riderIds = ['r0', 'r1', 'r2']
+    const photos: SynthPhoto[] = []
+    for (let b = 0; b < 50; b++) {
+      const after = b >= 23
+      const groupOf: (string | null)[] = riderIds.map((_r, i) =>
+        after && (i === 0 || (b >= joinAt && i === 1)) ? 'mov-1' : 'peloton',
+      )
+      const clockS: Record<string, number> = { peloton: pelotonAt(b) }
+      if (after) clockS['mov-1'] = movAt(b)
+      photos.push({ groupOf, clockS, main: 'peloton' })
+    }
+    const synth = synthLine(photos, riderIds, {
+      photoEvery: 10,
+      keyEvery: 100,
+      lastBlocks: 10,
+    })
+    const tl: TimelineCore = { ...synth.tl, profile: { altM, climbs: [], sprintsKm: [], laps: 1 } }
+    const ixOf = synth.ixOf
+    const ctx: InstantContext = {
+      own: new Set(),
+      start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
+      photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+    }
+    const mov = ixOf.get('mov-1')!
+    const kmAt = (t: number): number => instantAt(tl, t, ctx).groups.find((g) => g.g === mov)!.km
+    return { kmAt, movAt }
+  }
+
+  it('el grupo que nace donde caza el pelotón no hereda su velocidad disparada: la del origen sale también de 1 km de marcas', () => {
+    // El pelotón, a 8 s el bloque, con el reloj 5 s atrás desde el 23 (como al cazar): marca en el 22 y en
+    // el 23, 100 m en 3 s. El ataque nace en el 23, y hasta su marca del km 3 se estira con la velocidad del
+    // pelotón (3-a): con las dos últimas marcas, el km 3 a los 21 s y parado allí 32 s; con la base, 53 s.
+    const { kmAt, movAt } = attackLine(
+      (b) => 8 * (b + 1) - (b >= 23 ? 5 : 0),
+      (b) => 8 * (b + 1) - 5 - 0.5 * (b - 22),
+    )
+    const t23 = movAt(23)
+    for (let dt = 10; dt < 50; dt += 10) expect(kmAt(t23 + dt + 10)).toBeGreaterThan(kmAt(t23 + dt))
+  })
+
+  it('el grupo de una sola marca también frena con la pendiente: el ataque que nace al pie del puerto no sube al paso que su origen traía del llano', () => {
+    // Llano hasta el km 2 y del 2 al 5 al 8 %. El pelotón, a 8 s el bloque en llano y a 20 desde el 20; el
+    // ataque nace en el 23 y sube a 18 s. Con la base del km 1 al bloque 23, el pelotón iba a 13 bloques en
+    // 152 s: al paso del llano, el ataque iría por el bloque 28 a los 60 s; con la pendiente, por el 25,6.
+    const { kmAt, movAt } = attackLine(
+      (b) => (b < 20 ? 8 * (b + 1) : 160 + 20 * (b - 19)),
+      (b) => 160 + 20 * (23 - 19) - 1 + 18 * (b - 23),
+      Number.POSITIVE_INFINITY,
+      [0, 0, 0, 80, 160, 240],
+    )
+    const km = kmAt(movAt(23) + 60)
+    expect(km).toBeGreaterThan(2.5)
+    expect(km).toBeLessThan(2.7)
+  })
+
+  it('y no acelera más de 1,15 veces el paso de su origen: el que nace al acabar el puerto no se pinta al doble', () => {
+    // Del km 0 al 2, al 8 %; llano desde el 2. El pelotón, a 20 s el bloque hasta el 20 y a 8 después; el
+    // ataque nace en el 23. Su origen iba a 13 bloques en 224 s; el perfil diría 2,35 veces más deprisa.
+    const { kmAt, movAt } = attackLine(
+      (b) => (b <= 20 ? 20 * (b + 1) : 420 + 8 * (b - 20)),
+      (b) => 420 + 8 * 3 - 1 + 8 * (b - 23),
+      Number.POSITIVE_INFINITY,
+      [0, 80, 160, 160, 160, 160],
+    )
+    expect(kmAt(movAt(23) + 40)).toBeCloseTo((23 + (13 / 224) * 1.15 * 40 + 0.5) * 0.1, 6)
+  })
+
+  it('sin tiempo visto entre su base y su última marca, el grupo se queda en ella: ni se estira ni salta a la foto', () => {
+    // El ataque nace en el 23, y en el 24 y el 25 (se le une r1) su reloj no crece: las tres marcas se ven a
+    // la misma hora (el máximo acumulado, 4-e de §4.6). Hasta la del km 3, en el bloque 25 y no en el 30.
+    const { kmAt, movAt } = attackLine(
+      (b) => 8 * (b + 1),
+      (b) => (b <= 25 ? 186.5 - 0.5 * (b - 23) : 185.5 + 8 * (b - 25)),
+      25,
+    )
+    expect(kmAt(movAt(23) + 13.5)).toBeCloseTo((25 + 0.5) * 0.1, 6)
+  })
+
+  /**
+   * LA REVISIÓN DE W5d-1. Un ataque de una sola marca en cabeza (r0, desde el bloque 23) con su origen, el
+   * pelotón, a 7 s el bloque en llano y a 22 s desde el 24 (el puerto del perfil, del km 2 al 10 %); el
+   * pelotón pierde a r2 en el 25, que le pone marca en el 24 y el 25: su paso de 1 km baja mientras el ataque
+   * tiene una marca. Con `join`, r1 se une al ataque en el 27 (su segunda marca, en el 26); con `die`, r0
+   * vuelve al pelotón en el 27 y el ataque muere en el 26, con los suyos en carrera.
+   */
+  const slowingOriginLine = (mode: 'join' | 'die') => {
+    const riderIds = ['r0', 'r1', 'r2', 'r3']
+    const pelAt = (b: number): number => (b <= 23 ? 7 * (b + 1) : 7 * 24 + 22 * (b - 23))
+    const movAt = (b: number): number => pelAt(23) - 1 + 15 * (b - 23)
+    const photos: SynthPhoto[] = []
+    for (let b = 0; b < 50; b++) {
+      const inMov = b >= 23 && (mode === 'join' || b < 27)
+      const groupOf: (string | null)[] = riderIds.map((_r, i) => {
+        if (i === 0 && inMov) return 'mov-1'
+        if (mode === 'join' && i === 1 && b >= 27) return 'mov-1'
+        if (i === 2 && b >= 25) return 'shed-1'
+        return 'peloton'
+      })
+      const clockS: Record<string, number> = { peloton: pelAt(b) }
+      if (inMov) clockS['mov-1'] = movAt(b)
+      if (b >= 25) clockS['shed-1'] = pelAt(b) + 5
+      photos.push({ groupOf, clockS, main: 'peloton' })
+    }
+    const synth = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 100, lastBlocks: 10 })
+    const tl: TimelineCore = {
+      ...synth.tl,
+      profile: { altM: [0, 0, 0, 100, 200, 300], climbs: [], sprintsKm: [], laps: 1 },
+    }
+    const ctx: InstantContext = {
+      own: new Set(),
+      start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
+      photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+    }
+    return { tl, ctx, movAt }
+  }
+
+  it.each(['join', 'die'] as const)(
+    'un grupo de una sola marca cuyo origen frena no vuelve atrás al ver su segunda marca ni al morir (%s), décima a décima',
+    (mode) => {
+      const { tl, ctx, movAt } = slowingOriginLine(mode)
+      let min = Number.POSITIVE_INFINITY
+      for (let ds = Math.round(movAt(23) * 10); ds <= Math.round(movAt(31) * 10); ds++) {
+        const now = instantAt(tl, ds / 10, ctx).toGoKm
+        expect(now, `a ${ds / 10} s`).toBeLessThanOrEqual(min + 1e-9)
+        min = Math.min(min, now)
+      }
+    },
+  )
+
+  it('tras un puerto, el llano no se pinta más deprisa que 1,15 veces lo visto: pasarse obligaría a volver atrás', () => {
+    // los km 0 y 1, al 8 %, a 20 s el bloque; del 2 al 5, llano a 8 s
+    const { tl, ctx, clock } = lineOf((b) => (b <= 20 ? 20 : 8), [0, 80, 160, 160, 160, 160])
+    const i = instantAt(tl, clock(20) + 40, ctx)
+    // visto, 10 bloques en 200 s; el perfil diría 2,75 veces más deprisa, y se queda en 1,15
+    expect(BROADCAST.overlaySpeed.maxSpeedUp).toBe(1.15)
+    expect(i.groups[0]!.km).toBeCloseTo((20 + 0.05 * 1.15 * 40 + 0.5) * 0.1, 6)
   })
 })
 
