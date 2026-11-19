@@ -103,19 +103,13 @@ jobs:
       # con doscientos ficheros más compitiendo por la CPU: con el mismo `computeHorizon`, el p95 del
       # jugador dio 3,75, 5,05, 5,11 y 6,40 ms en cuatro corridas, y B8 dio 0,42 ms en la del 6a; eso
       # mide el runner, no el código. Los umbrales no cambian.
+      # La lista de las puertas de latencia vive en `package.json`: `test:rapido` las deja fuera y
+      # `test:latencia` las corre solas, igual aquí que en local.
       - name: Test (sin los bancos)
-        run: >-
-          pnpm test:rapido
-          --exclude packages/db/src/horizonLatency.test.ts
-          --exclude apps/web/src/domain/broadcast/clientCost.test.ts
-          --exclude apps/api/src/voicePrefix.test.ts
+        run: pnpm test:rapido
 
       - name: Las puertas de latencia (B14 y B8), solas
-        run: >-
-          pnpm exec vitest run --no-file-parallelism
-          packages/db/src/horizonLatency.test.ts
-          apps/web/src/domain/broadcast/clientCost.test.ts
-          apps/api/src/voicePrefix.test.ts
+        run: pnpm test:latencia
 
   benches:
     name: Bancos · ${{ matrix.nombre }}

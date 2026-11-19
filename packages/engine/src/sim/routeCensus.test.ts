@@ -113,7 +113,14 @@ describe('el censo mide como lee el motor', () => {
     const filas = routeCensus()
     const ms = performance.now() - t0
     expect(filas).toHaveLength(1418)
-    expect(ms).toBeLessThan(2_000) // 0,41 s medidos en el paso 0 (0,57 s el juez del motor)
+    // La cobertura de noche instrumenta el código (×1,75 a ×2,02 medido, `vitest.config.ts`) y lo corre
+    // en paralelo con los bancos de `sim/`: allí el censo tardó de 2,11 a 2,37 s y tumbó la pasada
+    // cuatro noches de noviembre (7, 9, 14 y 15). El tope se dobla solo en ella, como en
+    // `routes/arranque.test.ts`; en el banco de `ci.yml`, sin instrumentar, sigue en 2 s. Un test no lo
+    // importa nadie, así que leer el entorno aquí no rompe la pureza del motor.
+    // eslint-disable-next-line no-restricted-globals
+    const K = process.env.npm_lifecycle_event === 'test:coverage' ? 2 : 1
+    expect(ms).toBeLessThan(2_000 * K) // 0,41 s medidos en el paso 0 (0,57 s el juez del motor)
     expect(routeCensus()).toEqual(filas)
   })
 })

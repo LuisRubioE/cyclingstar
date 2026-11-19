@@ -74,6 +74,12 @@ jobs:
       # de esa noche, y un redespliegue de ese commit en Railway, el de cambiar una variable, espera al
       # CI y se salta si lo encuentra rojo. Por la instrumentación (×1,75 a ×2,02) y el runner (+30 %),
       # el límite por test es aquí de 90 s y no de 30 (`vitest.config.ts`).
+      #
+      # Dos trampas más, de noviembre de 2026: esta pasada cayó el 7, 8, 9, 14 y 15 por dos
+      # pruebas del motor. El final de PAVÉ llevaba su propio `{ timeout: 30000 }`, que pisa el
+      # `--testTimeout` de aquí: ya no lo lleva (ninguna repite el 30 000 del config). Y el censo de
+      # rutas (`sim/routeCensus.test.ts`) mide su reloj contra 2 s y aquí tardó de 2,11 a 2,37: su tope
+      # se dobla cuando el script es `test:coverage`, con el mismo K que `routes/arranque.test.ts`.
       - name: Test con cobertura
         run: >-
           pnpm test:coverage

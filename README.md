@@ -110,7 +110,8 @@ modo de desarrollo local. La puesta en marcha del dominio en Resend está en `do
 | -------------------------- | ---------------------------------------------------------------------- |
 | `pnpm typecheck`           | `tsc -b` de todos los paquetes + `tsc --noEmit` de apps/web.           |
 | `pnpm test`                | Vitest (`*.test.ts` y `*.test.tsx` bajo `{apps,packages}/*/src`).      |
-| `pnpm test:rapido`         | La suite MENOS los bancos de `sim/`: 1.771 pruebas en ~12,5 min.       |
+| `pnpm test:rapido`         | La suite MENOS los bancos de `sim/` y las puertas de latencia.         |
+| `pnpm test:latencia`       | Las puertas de latencia (B14 y B8), solas: sin nada que les quite CPU. |
 | `pnpm test:bancos`         | Solo los bancos de simulación (`sim/`): 114 pruebas en ~73 min.        |
 | `pnpm test:watch`          | Vitest en modo watch.                                                  |
 | `pnpm test:coverage`       | Tests con cobertura V8 (informe en `coverage/`).                       |
