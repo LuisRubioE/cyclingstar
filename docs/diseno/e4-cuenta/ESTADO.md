@@ -45,6 +45,11 @@ sesión se corta.
   el equipo; ningún iPhone recibe avisos de una pestaña, y desde iOS 26 cualquier web en la pantalla de
   inicio se abre como app; un `sw.js` solo de avisos cabe en la CSP de hoy sin manifiesto (medido en
   Chromium); `web-push` 4.0.0; a `stageReadyNotice` le faltan la URL y la etiqueta.
+- `mapas/04-documentos.md` (284 l.): 19 `[DUEÑO]`, 28 `[DOC]` y 27 contradicciones; el dueño no había
+  dicho nada de la cuenta, el correo, la ausencia ni los avisos antes del 19 de noviembre; el correo de
+  juego sigue escrito en seis sitios que contradicen §9.1 (corregido el de la tabla de fronteras de
+  `00-encargo.md`); la regla del mes habla de «login» y solo existe `last_seen_at`; quien se quede con
+  el correo de `ADMIN_EMAIL` se queda con el panel.
 
 ## Siguiente
 
