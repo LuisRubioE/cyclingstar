@@ -54,10 +54,13 @@ export interface TelefonoPantalla {
 /** La etapa en línea de `Watch` del mapa 05: las pantallas 08, 09, 10 y 36. */
 const ETAPA = '/world/races/race-valencia/stages/3'
 /**
- * La 48, el último km (W5c), en otra: la 3 la gana uno solo en alto, y sin dos delante no hay panel (la
- * barra lo cuenta mejor). En la 5, llana, cuatro escapados llegan juntos y se lo juegan al sprint.
+ * La 48, el último km (W5c), en otra: sin dos en el grupo de cabeza no hay panel (la barra lo cuenta
+ * mejor), y el mundo no sale igual en dos construcciones (en el del CI de W5c, la 5 la ganó uno solo). Se
+ * prueban, por orden, las de `race-valencia` que suelen acabar en grupo: la 5, llana; la 1 y la 4, de
+ * media montaña; y la 3, la de las otras pantallas de `Watch`.
  */
-const ETAPA_SPRINT = '/world/races/race-valencia/stages/5'
+const ETAPAS_SPRINT = [5, 1, 4, 3].map((d) => `/world/races/race-valencia/stages/${d}`)
+const ETAPA_SPRINT = ETAPAS_SPRINT[0]!
 
 /**
  * `Play`, un salto de la hoja `⋯` y `Pause` (7-j): la pantalla se mide en pausa, siempre en el mismo
@@ -75,14 +78,31 @@ const saltaYPara =
 
 /**
  * EL ÚLTIMO KM COMO EN LA TELE (W5c): `Last km` y, cuando el panel del final ya está (sus fotogramas
- * llegan con el tramo siguiente al salto), `Pause`: siempre el mismo panel, el de su primer fotograma.
+ * llegan con el tramo siguiente al salto), `Pause`: siempre el mismo panel, el de su primer fotograma. Si
+ * en esta etapa no sale (en este mundo va uno solo delante), la siguiente de `ETAPAS_SPRINT`.
  */
 const alSprint = async (page: Page): Promise<void> => {
-  await page.getByRole('button', { name: 'Play', exact: true }).first().click()
-  await page.getByRole('button', { name: 'More', exact: true }).first().click()
-  await page.getByRole('button', { name: 'Last km', exact: true }).first().click()
-  await page.locator('[data-ui="SprintBoard"]').first().waitFor({ timeout: 60_000 })
-  await page.getByRole('button', { name: 'Pause', exact: true }).first().click()
+  for (const [i, etapa] of ETAPAS_SPRINT.entries()) {
+    if (i > 0) await page.goto(etapa, { waitUntil: 'domcontentloaded' })
+    await page.getByRole('button', { name: 'Play', exact: true }).first().click()
+    await page.getByRole('button', { name: 'More', exact: true }).first().click()
+    await page.getByRole('button', { name: 'Last km', exact: true }).first().click()
+    const sale = await page
+      .locator('[data-ui="SprintBoard"]')
+      .first()
+      .waitFor({ timeout: 30_000 })
+      .then(
+        () => true,
+        () => false,
+      )
+    if (sale) {
+      await page.getByRole('button', { name: 'Pause', exact: true }).first().click()
+      return
+    }
+  }
+  throw new Error(
+    `48: en este mundo ninguna de ${ETAPAS_SPRINT.join(', ')} saca el panel del último km`,
+  )
 }
 
 /** La 25: otro papel en la primera etapa de las órdenes, sin guardar. */
