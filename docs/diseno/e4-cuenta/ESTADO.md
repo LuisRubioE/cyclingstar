@@ -1,6 +1,6 @@
 # E4 · Estado del proceso de diseño
 
-Estado: **fase 0b, los mapas, en marcha** (01 y 03 primero).
+Estado: **fase 1, las propuestas, en marcha** (`atacante` e `incremental` hechas; falta `jugador`).
 Empezado el 19 de noviembre de 2026 sobre `2a29e6d` (`main`, con E2 en producción, E3 en
 implementación y el motor v91). El documento final será `docs/cuenta.md`. Se actualiza este fichero
 al terminar cada fase, con commit y push en la rama de desarrollo, para poder retomar el trabajo si la
@@ -50,6 +50,17 @@ sesión se corta.
   juego sigue escrito en seis sitios que contradicen §9.1 (corregido el de la tabla de fronteras de
   `00-encargo.md`); la regla del mes habla de «login» y solo existe `last_seen_at`; quien se quede con
   el correo de `ADMIN_EMAIL` se queda con el panel.
+- `mapas/05-pantallas.md` (300 l.) y `capturas/` (61 PNG, 1,5 MB, con sus scripts): el 429 de Fastify
+  sale en Login como contraseña mala; ningún correo avisa de que algo cambió; reabrir un enlace usado
+  dice `you are signed in` sin sesión; `ForgotPassword` da por enviado un 429; tras recuperar o borrar
+  no hay mensaje; los objetivos táctiles cumplen salvo dos enlaces en una frase.
+- `01-fase-propuestas.md`, las instrucciones de las tres lentes (`atacante`, `jugador`, `incremental`).
+- `propuestas/atacante.md` (597 l.): diez atacantes; límite por cuenta con cookie de dispositivo en una
+  tabla `auth_throttle`; el correo como blanco, con presupuesto y `delivery_log`; lista blanca de rutas;
+  TOTP para administradores como decisión del dueño; 12 PR y migraciones 0055 a 0059.
+- `propuestas/incremental.md` (417 l.): siete opciones de `better-auth` 1.7 que nadie pone, medidas;
+  límite por cuenta y un solo enlace vivo con ganchos, sin migración; solo dos migraciones; 14 PR; y
+  dos trampas medidas de la subida (`trustProxy: 1` en Fastify 5.12.8, `SchemaMismatchError`).
 
 ## Siguiente
 

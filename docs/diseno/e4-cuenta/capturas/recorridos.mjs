@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global process, console, window, document, getComputedStyle, Event, URL */
+/* global process, window, document, getComputedStyle, Event, URL, fetch, setTimeout, Buffer, location, matchMedia */
 /**
  * E4, mapa 05: LOS RECORRIDOS DE LA CUENTA, contra el servidor de `servir.mjs`.
  *
@@ -53,7 +53,12 @@ const nextIp = () => {
 
 const browser = await chromium.launch()
 const VIEW = {
-  360: { viewport: { width: 360, height: 800 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true },
+  360: {
+    viewport: { width: 360, height: 800 },
+    deviceScaleFactor: 1,
+    isMobile: true,
+    hasTouch: true,
+  },
   1280: { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 },
 }
 async function persona(width = 360, base = BASE) {
@@ -68,7 +73,9 @@ async function persona(width = 360, base = BASE) {
     // `matchMedia` pasa de coarse a fine), y los campos bajan de 48 a 40 px (`fine:min-h-10`, Field.tsx
     // l. 137). Tras cada captura se vuelve a encender el táctil por CDP.
     const cdp = await context.newCDPSession(page)
-    tactil.set(page, () => cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }))
+    tactil.set(page, () =>
+      cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }),
+    )
   }
   return { context, page }
 }
@@ -136,7 +143,13 @@ async function medir(page) {
       return r.width > 1 && r.height > 1 && cs.visibility !== 'hidden' && cs.display !== 'none'
     }
     const zona = (el) =>
-      el.closest('footer') ? 'pie' : el.closest('header') ? 'cabecera' : el.closest('nav') ? 'nav' : 'main'
+      el.closest('footer')
+        ? 'pie'
+        : el.closest('header')
+          ? 'cabecera'
+          : el.closest('nav')
+            ? 'nav'
+            : 'main'
     const pequeños = []
     for (const el of document.querySelectorAll(SEL)) {
       if (!vis(el)) continue
@@ -145,19 +158,23 @@ async function medir(page) {
       pequeños.push({
         zona: zona(el),
         tag: el.tagName.toLowerCase(),
-        texto: (el.innerText || el.value || el.getAttribute('aria-label') || '').trim().slice(0, 50),
+        texto: (el.innerText || el.value || el.getAttribute('aria-label') || '')
+          .trim()
+          .slice(0, 50),
         w: Math.round(r.width),
         h: Math.round(r.height),
         enLinea: getComputedStyle(el).display === 'inline',
       })
     }
-    const campos = [...document.querySelectorAll('input:not([type=hidden])')].filter(vis).map((el) => ({
-      id: el.id,
-      type: el.type,
-      font: getComputedStyle(el).fontSize,
-      h: Math.round(el.getBoundingClientRect().height),
-      autocomplete: el.getAttribute('autocomplete'),
-    }))
+    const campos = [...document.querySelectorAll('input:not([type=hidden])')]
+      .filter(vis)
+      .map((el) => ({
+        id: el.id,
+        type: el.type,
+        font: getComputedStyle(el).fontSize,
+        h: Math.round(el.getBoundingClientRect().height),
+        autocomplete: el.getAttribute('autocomplete'),
+      }))
     return {
       url: location.pathname + location.search,
       punteroFino: matchMedia('(pointer: fine)').matches,
@@ -220,7 +237,10 @@ async function teclado(page, name, campo, boton) {
   )
   const file = `${name}-360.png`
   medidas[file] = { teclado: TECLADO, ...datos, ...(await medir(page)) }
-  await page.screenshot({ path: resolve(OUT, file), clip: { x: 0, y: 0, width: 360, height: TECLADO } })
+  await page.screenshot({
+    path: resolve(OUT, file),
+    clip: { x: 0, y: 0, width: 360, height: TECLADO },
+  })
   log(`  ${file} ${JSON.stringify(datos)}`)
 }
 
@@ -295,7 +315,11 @@ const NUEVO = 'nueva@example.com'
   await page.reload()
   await quieto(page)
   const t0 = Date.now()
-  await rellenaYEnvia(page, { '#register-email': NUEVO, '#register-password': PASSWORD }, 'button[type=submit]')
+  await rellenaYEnvia(
+    page,
+    { '#register-email': NUEVO, '#register-password': PASSWORD },
+    'button[type=submit]',
+  )
   await shot(page, '14-checkinbox')
   apunta('registro', await esperaCorreo(NUEVO, t0))
   const t1 = Date.now()
@@ -320,7 +344,9 @@ const NUEVO = 'nueva@example.com'
   const tel = await persona()
   await tel.page.goto(enlace(reenvio))
   await shot(tel.page, '20-verify-ok')
-  medidas['20-verify-ok.sesion'] = await (await tel.context.request.get('/api/auth/get-session')).json()
+  medidas['20-verify-ok.sesion'] = await (
+    await tel.context.request.get('/api/auth/get-session')
+  ).json()
   await tel.page.getByRole('link', { name: 'Continue' }).tap()
   await shot(tel.page, '21-verify-continue')
   await tel.context.close()
@@ -328,7 +354,9 @@ const NUEVO = 'nueva@example.com'
   const otra = await persona()
   await otra.page.goto(enlace(reenvio))
   await shot(otra.page, '22-verify-otra-vez')
-  medidas['22-verify-otra-vez.sesion'] = await (await otra.context.request.get('/api/auth/get-session')).json()
+  medidas['22-verify-otra-vez.sesion'] = await (
+    await otra.context.request.get('/api/auth/get-session')
+  ).json()
   await otra.context.close()
   // el primer enlace (del registro), después de haber confirmado con el segundo
   const primero = correosVistos.find((c) => c.paso === 'registro')
@@ -357,14 +385,22 @@ log('C. Registrarse con un correo ya usado')
   await page.goto('/register')
   await quieto(page)
   const t0 = Date.now()
-  await rellenaYEnvia(page, { '#register-email': NUEVO, '#register-password': 'otra-contrasena-cualquiera' }, 'button[type=submit]')
+  await rellenaYEnvia(
+    page,
+    { '#register-email': NUEVO, '#register-password': 'otra-contrasena-cualquiera' },
+    'button[type=submit]',
+  )
   await shot(page, '17-register-correo-usado')
   await page.waitForTimeout(1000)
   medidas['17-register-correo-usado.correos'] = correos(NUEVO, t0).map((m) => m.subject)
   // una contraseña de más de 128 (el máximo de better-auth, mapa 01 §6)
   await page.goto('/register')
   await quieto(page)
-  await rellenaYEnvia(page, { '#register-email': 'larga@example.com', '#register-password': 'x'.repeat(129) }, 'button[type=submit]')
+  await rellenaYEnvia(
+    page,
+    { '#register-email': 'larga@example.com', '#register-password': 'x'.repeat(129) },
+    'button[type=submit]',
+  )
   await shot(page, '18-register-demasiado-larga')
   await context.close()
 }
@@ -383,9 +419,17 @@ const SINCONF = 'sinconfirmar@example.com'
   await quieto(page)
   await page.tap('button[type=submit]')
   await shot(page, '31-login-sin-correo')
-  await rellenaYEnvia(page, { '#login-email': NUEVO, '#login-password': 'mala-mala-mala' }, 'button[type=submit]')
+  await rellenaYEnvia(
+    page,
+    { '#login-email': NUEVO, '#login-password': 'mala-mala-mala' },
+    'button[type=submit]',
+  )
   await shot(page, '32-login-contrasena-mala')
-  await rellenaYEnvia(page, { '#login-email': 'nadie@example.com', '#login-password': 'mala-mala-mala' }, 'button[type=submit]')
+  await rellenaYEnvia(
+    page,
+    { '#login-email': 'nadie@example.com', '#login-password': 'mala-mala-mala' },
+    'button[type=submit]',
+  )
   medidas['32b-login-correo-inexistente'] = await page.locator('[role=alert]').allInnerTexts()
   await teclado(page, '33-login-teclado', '#login-password', 'button[type=submit]')
   await context.close()
@@ -395,11 +439,19 @@ const SINCONF = 'sinconfirmar@example.com'
   await s.page.goto('/login')
   await quieto(s.page)
   const t0 = Date.now()
-  await rellenaYEnvia(s.page, { '#login-email': SINCONF, '#login-password': PASSWORD }, 'button[type=submit]')
+  await rellenaYEnvia(
+    s.page,
+    { '#login-email': SINCONF, '#login-password': PASSWORD },
+    'button[type=submit]',
+  )
   await shot(s.page, '34-login-sin-confirmar')
   apunta('entrar sin confirmar', await esperaCorreo(SINCONF, t0))
   // con la contraseña mala, la cuenta sin confirmar: ¿avisa o no?
-  await rellenaYEnvia(s.page, { '#login-email': SINCONF, '#login-password': 'mala-mala-mala' }, 'button[type=submit]')
+  await rellenaYEnvia(
+    s.page,
+    { '#login-email': SINCONF, '#login-password': 'mala-mala-mala' },
+    'button[type=submit]',
+  )
   medidas['34b-login-sin-confirmar-mala'] = await s.page.locator('main').innerText()
   await s.context.close()
 
@@ -411,15 +463,30 @@ const SINCONF = 'sinconfirmar@example.com'
   for (let i = 1; i <= 12; i += 1) {
     const [res] = await Promise.all([
       r.page.waitForResponse((x) => x.url().includes('/sign-in/email')),
-      rellenaYEnvia(r.page, { '#login-email': NUEVO, '#login-password': `mala-${i}-xxxx` }, 'button[type=submit]'),
+      rellenaYEnvia(
+        r.page,
+        { '#login-email': NUEVO, '#login-password': `mala-${i}-xxxx` },
+        'button[type=submit]',
+      ),
     ])
-    serie.push({ i, status: res.status(), alerta: (await r.page.locator('[role=alert]').allInnerTexts()).join(' | ') })
+    serie.push({
+      i,
+      status: res.status(),
+      alerta: (await r.page.locator('[role=alert]').allInnerTexts()).join(' | '),
+    })
   }
   medidas['35-login-429-fastify.serie'] = serie
   await shot(r.page, '35-login-429-fastify')
   // y con la buena, desde la misma IP
-  await rellenaYEnvia(r.page, { '#login-email': NUEVO, '#login-password': PASSWORD }, 'button[type=submit]')
-  medidas['35b-login-429-buena'] = { url: r.page.url(), alerta: await r.page.locator('[role=alert]').allInnerTexts() }
+  await rellenaYEnvia(
+    r.page,
+    { '#login-email': NUEVO, '#login-password': PASSWORD },
+    'button[type=submit]',
+  )
+  medidas['35b-login-429-buena'] = {
+    url: r.page.url(),
+    alerta: await r.page.locator('[role=alert]').allInnerTexts(),
+  }
   await r.context.close()
 }
 
@@ -438,9 +505,17 @@ if (PROD) {
   for (let i = 1; i <= 5; i += 1) {
     const [res] = await Promise.all([
       r.page.waitForResponse((x) => x.url().includes('/sign-in/email')),
-      rellenaYEnvia(r.page, { '#login-email': NUEVO, '#login-password': `mala-${i}-xxxx` }, 'button[type=submit]'),
+      rellenaYEnvia(
+        r.page,
+        { '#login-email': NUEVO, '#login-password': `mala-${i}-xxxx` },
+        'button[type=submit]',
+      ),
     ])
-    serie.push({ i, status: res.status(), alerta: (await r.page.locator('[role=alert]').allInnerTexts()).join(' | ') })
+    serie.push({
+      i,
+      status: res.status(),
+      alerta: (await r.page.locator('[role=alert]').allInnerTexts()).join(' | '),
+    })
   }
   medidas['36-login-429-better-auth.serie'] = serie
   await shot(r.page, '36-login-429-better-auth')
@@ -454,7 +529,11 @@ if (PROD) {
       r.page.waitForResponse((x) => x.url().includes('/request-password-reset')),
       rellenaYEnvia(r.page, { '#forgot-email': NUEVO }, 'button[type=submit]'),
     ])
-    recup.push({ i, status: res.status(), pantalla: (await r.page.locator('[role=status]').allInnerTexts()).join(' | ').slice(0, 60) })
+    recup.push({
+      i,
+      status: res.status(),
+      pantalla: (await r.page.locator('[role=status]').allInnerTexts()).join(' | ').slice(0, 60),
+    })
   }
   medidas['37-forgot-429-better-auth.serie'] = recup
   await shot(r.page, '37-forgot-429-better-auth')
@@ -497,12 +576,20 @@ log('E. Recuperar la contraseña')
   await shot(tel.page, '43-reset')
   await tel.page.tap('button[type=submit]')
   await shot(tel.page, '44-reset-corta')
-  await rellenaYEnvia(tel.page, { '#reset-password': 'nueva-contrasena-1', '#reset-confirm': 'nueva-contrasena-2' }, 'button[type=submit]')
+  await rellenaYEnvia(
+    tel.page,
+    { '#reset-password': 'nueva-contrasena-1', '#reset-confirm': 'nueva-contrasena-2' },
+    'button[type=submit]',
+  )
   await shot(tel.page, '45-reset-no-coinciden')
   await teclado(tel.page, '46-reset-teclado', '#reset-confirm', 'button[type=submit]')
   await tel.page.goto(enlace(mail))
   await quieto(tel.page)
-  await rellenaYEnvia(tel.page, { '#reset-password': 'nueva-contrasena-1', '#reset-confirm': 'nueva-contrasena-1' }, 'button[type=submit]')
+  await rellenaYEnvia(
+    tel.page,
+    { '#reset-password': 'nueva-contrasena-1', '#reset-confirm': 'nueva-contrasena-1' },
+    'button[type=submit]',
+  )
   await shot(tel.page, '47-reset-hecho')
   // el mismo enlace, otra vez
   await tel.page.goto(enlace(mail))
@@ -526,7 +613,11 @@ log('E. Recuperar la contraseña')
   const m3 = await esperaCorreo(NUEVO, t2)
   await back.page.goto(enlace(m3))
   await quieto(back.page)
-  await rellenaYEnvia(back.page, { '#reset-password': PASSWORD, '#reset-confirm': PASSWORD }, 'button[type=submit]')
+  await rellenaYEnvia(
+    back.page,
+    { '#reset-password': PASSWORD, '#reset-confirm': PASSWORD },
+    'button[type=submit]',
+  )
   await back.context.close()
 }
 
@@ -555,10 +646,18 @@ const CTA = 'cuenta@example.com'
   apunta('cuenta antigua sin confirmar', await esperaCorreo(ANT, t0))
   // cambiar el correo sin confirmar: el enlace va directo a la nueva (mapa 01 §2)
   const t0b = Date.now()
-  await rellenaYEnvia(a.page, { '#new-email': 'antigua-nueva@example.com' }, 'form:has(#new-email) button[type=submit]')
-  medidas['52b-account-sin-confirmar-cambio'] = await a.page.locator('form:has(#new-email)').innerText()
+  await rellenaYEnvia(
+    a.page,
+    { '#new-email': 'antigua-nueva@example.com' },
+    'form:has(#new-email) button[type=submit]',
+  )
+  medidas['52b-account-sin-confirmar-cambio'] = await a.page
+    .locator('form:has(#new-email)')
+    .innerText()
   await a.page.waitForTimeout(500)
-  medidas['52b-account-sin-confirmar-cambio.correos'] = correos(null, t0b).map((m) => `${m.to}: ${m.subject}`)
+  medidas['52b-account-sin-confirmar-cambio.correos'] = correos(null, t0b).map(
+    (m) => `${m.to}: ${m.subject}`,
+  )
   await a.context.close()
 
   // cambiar el correo, con los dos enlaces
@@ -576,7 +675,9 @@ const CTA = 'cuenta@example.com'
   await rellenaYEnvia(c.page, { '#new-email': NUEVO }, formMail)
   medidas['53c-account-correo-ocupado'] = await c.page.locator('form:has(#new-email)').innerText()
   await c.page.waitForTimeout(600)
-  medidas['53c-account-correo-ocupado.correos'] = correos(null, tOc).map((m) => `${m.to}: ${m.subject}`)
+  medidas['53c-account-correo-ocupado.correos'] = correos(null, tOc).map(
+    (m) => `${m.to}: ${m.subject}`,
+  )
   await c.page.reload()
   await quieto(c.page)
   const NUEVA = 'cuenta-nueva@example.com'
@@ -601,22 +702,48 @@ const CTA = 'cuenta@example.com'
 
   // la contraseña
   const formPw = 'form:has(#cur-pw) button[type=submit]'
-  await rellenaYEnvia(c.page, { '#cur-pw': PASSWORD, '#new-pw': 'corta', '#confirm-pw': 'corta' }, formPw)
+  await rellenaYEnvia(
+    c.page,
+    { '#cur-pw': PASSWORD, '#new-pw': 'corta', '#confirm-pw': 'corta' },
+    formPw,
+  )
   medidas['60-account-pw-corta'] = await c.page.locator('form:has(#cur-pw)').innerText()
-  await rellenaYEnvia(c.page, { '#cur-pw': PASSWORD, '#new-pw': 'nueva-contrasena-1', '#confirm-pw': 'nueva-contrasena-2' }, formPw)
+  await rellenaYEnvia(
+    c.page,
+    { '#cur-pw': PASSWORD, '#new-pw': 'nueva-contrasena-1', '#confirm-pw': 'nueva-contrasena-2' },
+    formPw,
+  )
   medidas['60b-account-pw-no-coinciden'] = await c.page.locator('form:has(#cur-pw)').innerText()
-  await rellenaYEnvia(c.page, { '#cur-pw': 'mala-mala-mala', '#new-pw': 'nueva-contrasena-1', '#confirm-pw': 'nueva-contrasena-1' }, formPw)
+  await rellenaYEnvia(
+    c.page,
+    {
+      '#cur-pw': 'mala-mala-mala',
+      '#new-pw': 'nueva-contrasena-1',
+      '#confirm-pw': 'nueva-contrasena-1',
+    },
+    formPw,
+  )
   await c.page.locator('#cur-pw').scrollIntoViewIfNeeded()
   await shot(c.page, '60-account-pw-actual-mala', { full: false })
-  await rellenaYEnvia(c.page, { '#cur-pw': '', '#new-pw': 'nueva-contrasena-1', '#confirm-pw': 'nueva-contrasena-1' }, formPw)
+  await rellenaYEnvia(
+    c.page,
+    { '#cur-pw': '', '#new-pw': 'nueva-contrasena-1', '#confirm-pw': 'nueva-contrasena-1' },
+    formPw,
+  )
   medidas['60c-account-pw-actual-vacia'] = await c.page.locator('form:has(#cur-pw)').innerText()
   // otra sesión abierta antes del cambio
   const otra = await persona()
   await entrar(otra, NUEVA)
-  await rellenaYEnvia(c.page, { '#cur-pw': PASSWORD, '#new-pw': 'nueva-contrasena-1', '#confirm-pw': 'nueva-contrasena-1' }, formPw)
+  await rellenaYEnvia(
+    c.page,
+    { '#cur-pw': PASSWORD, '#new-pw': 'nueva-contrasena-1', '#confirm-pw': 'nueva-contrasena-1' },
+    formPw,
+  )
   await c.page.locator('#cur-pw').scrollIntoViewIfNeeded()
   await shot(c.page, '61-account-pw-cambiada', { full: false })
-  medidas['61-account-pw-otra-sesion'] = await (await otra.context.request.get('/api/auth/get-session')).json()
+  medidas['61-account-pw-otra-sesion'] = await (
+    await otra.context.request.get('/api/auth/get-session')
+  ).json()
   await otra.context.close()
 
   // borrar la cuenta
@@ -626,13 +753,20 @@ const CTA = 'cuenta@example.com'
   await shot(c.page, '62-account-borrar-abierto', { full: false })
   await c.page.getByRole('button', { name: 'Delete my account for good' }).tap()
   await c.page.waitForTimeout(300)
-  medidas['63-account-borrar-vacio'] = await c.page.locator('#delete-pw').evaluate((el) => el.closest('form').innerText)
+  medidas['63-account-borrar-vacio'] = await c.page
+    .locator('#delete-pw')
+    .evaluate((el) => el.closest('form').innerText)
   await c.page.fill('#delete-pw', 'mala-mala-mala')
   await c.page.getByRole('button', { name: 'Delete my account for good' }).tap()
   await c.page.waitForTimeout(500)
   await c.page.locator('#delete-pw').scrollIntoViewIfNeeded()
   await shot(c.page, '63-account-borrar-mala', { full: false })
-  await teclado(c.page, '64-account-borrar-teclado', '#delete-pw', 'form:has(#delete-pw) button[type=submit]')
+  await teclado(
+    c.page,
+    '64-account-borrar-teclado',
+    '#delete-pw',
+    'form:has(#delete-pw) button[type=submit]',
+  )
   await c.page.reload()
   await quieto(c.page)
   await c.page.getByRole('button', { name: 'Delete my account…' }).tap()
@@ -659,7 +793,10 @@ const CTA = 'cuenta@example.com'
 log('G. Los correos, pintados a 360')
 {
   // sin `isMobile`: con él, un HTML sin `<meta viewport>` se pinta a 980 px y se encoge
-  const context = await browser.newContext({ viewport: { width: 360, height: 800 }, deviceScaleFactor: 1 })
+  const context = await browser.newContext({
+    viewport: { width: 360, height: 800 },
+    deviceScaleFactor: 1,
+  })
   const page = await context.newPage()
   const vistos = new Set()
   let n = 0
@@ -669,7 +806,8 @@ log('G. Los correos, pintados a 360')
     n += 1
     await page.setContent(c.html)
     const file = `70-correo-${n}-360.png`
-    if (!SOLO || SOLO.test(file)) await page.screenshot({ path: resolve(OUT, file), fullPage: true })
+    if (!SOLO || SOLO.test(file))
+      await page.screenshot({ path: resolve(OUT, file), fullPage: true })
     medidas[file] = { subject: c.subject }
   }
   await context.close()
