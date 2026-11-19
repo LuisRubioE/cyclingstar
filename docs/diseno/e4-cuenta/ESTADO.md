@@ -29,6 +29,11 @@ sesión se corta.
   frontera propuesta; solo correo y contraseña. El brief se ajusta (§1, puntos 3, 5 y 6; el mapa 02
   pasa a ser el del correo y los avisos).
 - `00-fase-mapas.md`, las instrucciones de los cinco cartógrafos.
+- `mapas/01-cuenta-y-seguridad.md` (300 l.): recuperar la contraseña no cierra las sesiones abiertas
+  (falta `revokeSessionsOnPasswordReset`); el tiempo de respuesta delata qué correos existen en el
+  registro, la recuperación y el cambio de correo; ningún límite mira la cuenta; `verify-password`
+  responde por HTTP con el límite flojo; la subida a `better-auth` 1.7.26 y `fastify` 5.12.8 compila
+  y pasa 1.126 tests sin migración, y ningún aviso nos alcanza hoy.
 
 ## Siguiente
 
