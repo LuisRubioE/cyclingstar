@@ -1,6 +1,6 @@
 # E4 · Estado del proceso de diseño
 
-Estado: **fase 2, los juicios, en marcha** (`codigo` y `seguridad` primero, luego `cobertura`).
+Estado: **fase 3a, el arquitecto, en marcha**.
 Empezado el 19 de noviembre de 2026 sobre `2a29e6d` (`main`, con E2 en producción, E3 en
 implementación y el motor v91). El documento final será `docs/cuenta.md`. Se actualiza este fichero
 al terminar cada fase, con commit y push en la rama de desarrollo, para poder retomar el trabajo si la
@@ -66,6 +66,14 @@ sesión se corta.
   como caso de primera clase (la web es el canal, el aviso solo lo adelanta); cinco avisos con tope de
   tres al día; la pantalla del modo ausencia dice qué se para; `Account` con una subpágina por tarea.
 - `02-fase-juicios.md`, las instrucciones de los tres jueces (`codigo`, `cobertura`, `seguridad`).
+- **Fase 2, los tres juicios** (19 de noviembre de 2026), sin mayoría: `codigo` elige `incremental`
+  (el límite por cuenta necesita tabla propia y reserva antes de comprobar, medido con una ráfaga de
+  40; `trustProxy` en Fastify 5.12.8; los avisos no saldrían con `AUTO_TICK=on`); `seguridad` elige
+  `atacante` (la SSRF de `web-push` medida, el bloqueo del dueño tras recuperar, el cambio a un correo
+  ocupado delata cuentas); `cobertura` elige `jugador` (la única que cumple §9.1.3 con la regla del
+  mes en la web; el TOTP de `atacante` choca con «solo correo y contraseña»). Por suma de puntos:
+  `jugador` 86, `atacante` 85, `incremental` 81.
+- `03-fase-sintesis.md`, las instrucciones de la síntesis.
 
 ## Siguiente
 
