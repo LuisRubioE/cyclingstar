@@ -1,6 +1,6 @@
 # E4 · Estado del proceso de diseño
 
-Estado: **fase 1, las propuestas, en marcha** (`atacante` e `incremental` hechas; falta `jugador`).
+Estado: **fase 2, los juicios, en marcha** (`codigo` y `seguridad` primero, luego `cobertura`).
 Empezado el 19 de noviembre de 2026 sobre `2a29e6d` (`main`, con E2 en producción, E3 en
 implementación y el motor v91). El documento final será `docs/cuenta.md`. Se actualiza este fichero
 al terminar cada fase, con commit y push en la rama de desarrollo, para poder retomar el trabajo si la
@@ -61,6 +61,11 @@ sesión se corta.
 - `propuestas/incremental.md` (417 l.): siete opciones de `better-auth` 1.7 que nadie pone, medidas;
   límite por cuenta y un solo enlace vivo con ganchos, sin migración; solo dos migraciones; 14 PR; y
   dos trampas medidas de la subida (`trustProxy: 1` en Fastify 5.12.8, `SchemaMismatchError`).
+- `propuestas/jugador.md` (597 l.): cada acción acaba en una frase verdadera y cada cambio en un correo;
+  ocho recorridos contados antes y después; un traductor de errores que lee `Retry-After`; el iPhone
+  como caso de primera clase (la web es el canal, el aviso solo lo adelanta); cinco avisos con tope de
+  tres al día; la pantalla del modo ausencia dice qué se para; `Account` con una subpágina por tarea.
+- `02-fase-juicios.md`, las instrucciones de los tres jueces (`codigo`, `cobertura`, `seguridad`).
 
 ## Siguiente
 
