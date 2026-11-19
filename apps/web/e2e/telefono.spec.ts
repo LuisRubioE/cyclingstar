@@ -26,7 +26,7 @@ import {
 
 /**
  * «SE JUEGA BIEN EN UN TELÉFONO», COMO PRUEBA (E3, docs/visual.md §7; PR 2b, D-18). Las diez
- * comprobaciones de §7.1 en `/_ui` y en las 46 pantallas de `pantallas.ts`, a 360 × 800 y a 320 × 640.
+ * comprobaciones de §7.1 en `/_ui` y en las 47 pantallas de `pantallas.ts` (la 48, el último km de `Watch`, desde W5c), a 360 × 800 y a 320 × 640.
  * Cada cifra es un número de faltas, y cada una tiene que ser cero (o `null` donde una comprobación no
  * corre). La 09 tiene además la suya propia a 360, la barra de grupos (§7.3; desde el PR 17a), y el modo
  * oscuro, la comprobación 6 de cada pantalla a 360 (paso 23).

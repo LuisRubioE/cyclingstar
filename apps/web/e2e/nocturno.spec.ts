@@ -253,7 +253,7 @@ const DE_LADO: Telefono = {
 type Pasada = Readonly<Record<string, { reflujo: number; recortes: number } | { error: string }>>
 
 /**
- * Las pasadas 3 y 4 (§16.5): las 46 pantallas con la letra raíz al 200 % (H-17; WCAG 1.4.4 y la escala
+ * Las pasadas 3 y 4 (§16.5): las 47 pantallas con la letra raíz al 200 % (H-17; WCAG 1.4.4 y la escala
  * de letra de Android), a 360 × 800, y de lado, a 800 × 360 (H-16), con las comprobaciones 1 y 2 de la
  * prueba del teléfono. Una pantalla que no se puede abrir se apunta y no para la pasada.
  */
@@ -409,19 +409,19 @@ test.describe('cada noche (§16.5)', () => {
     })
   }
 
-  // 3 y 4. La letra al doble (H-17) y de lado (H-16), en las 46 pantallas con las comprobaciones 1 y 2 de
+  // 3 y 4. La letra al doble (H-17) y de lado (H-16), en las 47 pantallas con las comprobaciones 1 y 2 de
   //        la prueba del teléfono (`/_ui` se suma con el PR 9a, que lo crea).
-  test('la letra al doble y de lado: se abren las 46', () => {
+  test('la letra al doble y de lado: se abren las 47', () => {
     expect(resumen(cifras.alDoble, 'reflujo').sinMedir).toBe(0)
     expect(resumen(cifras.deLado, 'reflujo').sinMedir).toBe(0)
   })
-  test.fixme('la letra al doble: ningún reflujo en las 46 (hoy, en 26)', () => {
+  test.fixme('la letra al doble: ningún reflujo en las 47 (hoy, en 26)', () => {
     expect(resumen(cifras.alDoble, 'reflujo')).toEqual({ pantallas: 0, faltas: 0, sinMedir: 0 })
   })
-  test.fixme('la letra al doble: ningún recorte en las 46 (hoy 724, en las 46)', () => {
+  test.fixme('la letra al doble: ningún recorte en las 47 (hoy 724, en las 46)', () => {
     expect(resumen(cifras.alDoble, 'recortes')).toEqual({ pantallas: 0, faltas: 0, sinMedir: 0 })
   })
-  test('de lado: ningún reflujo en las 46', () => {
+  test('de lado: ningún reflujo en las 47', () => {
     expect(resumen(cifras.deLado, 'reflujo')).toEqual({ pantallas: 0, faltas: 0, sinMedir: 0 })
   })
 })

@@ -312,6 +312,33 @@ describe('la llegada (§8.7): el ganador, los grupos que llegan y el fuera de co
     )
   })
 
+  it('la foto de la línea (W5c): con menos de una bicicleta entre los dos primeros, antes del ganador', () => {
+    const tight: BroadcastFinish = {
+      ...finish,
+      photo: [
+        { rider: 6, behindM: 0 },
+        { rider: 8, behindM: 0.3 },
+        { rider: 7, behindM: 1.1 },
+      ],
+    }
+    const opts = { revealed: false, digest: false, oneDay: false }
+    const cards = arrivalCardsOf(head, tight, last, opts)
+    expect(cards[0]).toMatchObject({
+      k: 'photo',
+      title: 'PHOTO FINISH',
+      detail: `${cast[6]!.name} by half a wheel · 2 ${cast[8]!.name} · 3 ${cast[7]!.name} +1.1 m`,
+    })
+    expect(cards[1]!.k).toBe('winner')
+    expect(arrivalSeconds(cards)).toBe(3 + 3 + 4 + 5)
+    // con dos bicicletas no hay foto, ni sin el final; en el digest, solo el ganador (§8.8)
+    const loose = { ...tight, photo: [tight.photo[0]!, { rider: 8, behindM: 3.6 }] }
+    expect(arrivalCardsOf(head, loose, last, opts).map((c) => c.k)).not.toContain('photo')
+    expect(arrivalCardsOf(head, finish, last, opts).map((c) => c.k)).not.toContain('photo')
+    expect(arrivalCardsOf(head, tight, last, { ...opts, digest: true }).map((c) => c.k)).toEqual([
+      'winner',
+    ])
+  })
+
   it('un grupo de tres o menos, por sus nombres, con la regla de los 3 km (6-o)', () => {
     const small: BroadcastFinish = {
       ...finish,
