@@ -929,6 +929,223 @@ describe('la capa entre dos marcas: la base de 1 km y la pendiente (W5d-1)', () 
   })
 })
 
+describe('el alcance: la marca que trae a un grupo por delante de lo pintado no lo hace saltar (W5d-1b)', () => {
+  const ctxOf = (tl: TimelineCore): InstantContext => ({
+    own: new Set(),
+    start: { leaders: { gc: null, points: null, kom: null }, gcTop: [] },
+    photoBlocks: photoBlocksOf(tl.lengthKm, tl.dx),
+  })
+  /** Un puerto de 2 km al 8 % y una bajada al 6 % hasta el km 5. */
+  const PUERTO_Y_BAJADA = [0, 80, 160, 100, 40, -20] as const
+  const CATCH_UP_S = BROADCAST.overlaySpeed.catchUpS
+
+  /**
+   * El mayor avance de una décima a la siguiente entre dos horas (en km), y si alguna vez vuelve atrás: lo
+   * que el banco de las 44 líneas mide décima a décima.
+   */
+  const stepsOf = (kmAt: (t: number) => number, from: number, to: number) => {
+    let prev = kmAt(from)
+    let worst = 0
+    let back = 0
+    for (let ds = Math.round(from * 10) + 1; ds <= Math.round(to * 10); ds++) {
+      const km = kmAt(ds / 10)
+      worst = Math.max(worst, km - prev)
+      back = Math.max(back, prev - km)
+      prev = km
+    }
+    return { worst, back }
+  }
+
+  /**
+   * Un pelotón solo que sube el puerto a 20 s el bloque y lo baja a 6: la velocidad vista del puerto, con el
+   * tope de `maxSpeedUp`, deja la capa muy por detrás en la bajada, y la marca del km 3 la traía 630 m más
+   * adelante de una décima a otra.
+   */
+  const bajadaLine = () => {
+    const riderIds = ['r0', 'r1', 'r2']
+    const photos: SynthPhoto[] = []
+    let t = 0
+    for (let b = 0; b < 50; b++) {
+      t += b < 20 ? 20 : 6
+      photos.push({
+        groupOf: riderIds.map(() => 'peloton'),
+        clockS: { peloton: t },
+        main: 'peloton',
+      })
+    }
+    const synth = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 100, lastBlocks: 10 })
+    const tl: TimelineCore = {
+      ...synth.tl,
+      profile: { altM: PUERTO_Y_BAJADA, climbs: [], sprintsKm: [], laps: 1 },
+    }
+    const ctx = ctxOf(tl)
+    return {
+      kmAt: (s: number): number => instantAt(tl, s, ctx).groups[0]!.km,
+      clock: (b: number): number => photos[b]!.clockS.peloton!,
+    }
+  }
+
+  it('en la bajada, la marca del km 3 no salta: la capa arranca de lo pintado y la alcanza en catchUpS por encima de su paso', () => {
+    const { kmAt, clock } = bajadaLine()
+    const t30 = clock(30)
+    // Al verse la marca, lo pintado sigue donde estaba (antes, de 2,42 a 3,05 km de una décima a otra).
+    expect(kmAt(t30) - kmAt(t30 - 0.1)).toBeLessThan(0.01)
+    expect(kmAt(t30)).toBeLessThan(2.45)
+    // Ninguna décima avanza más de 10 m, y nada vuelve atrás.
+    const { worst, back } = stepsOf(kmAt, clock(20), clock(40) + 30)
+    expect(worst).toBeLessThan(0.01)
+    expect(back).toBe(0)
+    // Pasado catchUpS, ya es la cuenta de la marca: 30 bloques más los que da su paso visto (10 en 60 s).
+    expect(kmAt(t30 + CATCH_UP_S)).toBeCloseTo((30 + CATCH_UP_S / 6 + 0.5) * 0.1, 6)
+    // Más deprisa al principio: a medio camino, le falta la cuarta parte de lo que le faltaba al verla.
+    const lag = (30 + 0.5) * 0.1 - kmAt(t30)
+    expect(kmAt(t30 + CATCH_UP_S / 2)).toBeCloseTo((30 + CATCH_UP_S / 12 + 0.5) * 0.1 - lag / 4, 6)
+  })
+
+  /**
+   * Un ataque de r0 desde el bloque 5, 30 s por delante del pelotón, en el mismo puerto y la misma bajada;
+   * vuelve al pelotón en el bloque `dieAt` (muere en el anterior, con los suyos en carrera: la cabeza
+   * retenida, 10a). Con `relabel`, no vuelve: el motor lo pasa a `mov-2`, que nace en ese bloque.
+   */
+  const ataqueLine = (dieAt: number, relabel = false) => {
+    const riderIds = ['r0', 'r1', 'r2', 'r3']
+    const pelAt = (b: number): number => (b < 20 ? 20 * (b + 1) : 400 + 6 * (b - 19))
+    const photos: SynthPhoto[] = []
+    for (let b = 0; b < 50; b++) {
+      const inMov = b >= 5 && b < dieAt
+      const inNew = relabel && b >= dieAt
+      const groupOf: (string | null)[] = riderIds.map((_r, i) =>
+        i === 0 && inMov ? 'mov-1' : i === 0 && inNew ? 'mov-2' : 'peloton',
+      )
+      const clockS: Record<string, number> = { peloton: pelAt(b) }
+      if (inMov) clockS['mov-1'] = pelAt(b) - 30
+      if (inNew) clockS['mov-2'] = pelAt(b) - 30
+      photos.push({ groupOf, clockS, main: 'peloton' })
+    }
+    const synth = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 100, lastBlocks: 10 })
+    const tl: TimelineCore = {
+      ...synth.tl,
+      profile: { altM: PUERTO_Y_BAJADA, climbs: [], sprintsKm: [], laps: 1 },
+    }
+    const ctx = ctxOf(tl)
+    const mov = synth.ixOf.get('mov-1')!
+    return {
+      toGo: (s: number): number => instantAt(tl, s, ctx).toGoKm,
+      diedS: visibilityOf(tl).groupDiedDs[mov]! / 10,
+      diedB: tl.groups[mov]!.diedB!,
+      movAt: (b: number): number => pelAt(b) - 30,
+    }
+  }
+
+  it('si el grupo de cabeza muere mientras alcanza su marca, la cabeza retenida sigue alcanzando hasta donde murió: ni salta ni vuelve atrás', () => {
+    // El ataque muere en el bloque 30, en la marca que lo trae 630 m por delante de lo pintado.
+    const { toGo, diedS, diedB, movAt } = ataqueLine(31)
+    expect(diedB).toBe(30)
+    const head = (s: number): number => 5 - toGo(s)
+    expect(head(diedS) - head(diedS - 0.1)).toBeLessThan(0.01)
+    const { worst, back } = stepsOf(head, movAt(20), diedS + 2 * CATCH_UP_S)
+    expect(worst).toBeLessThan(0.01)
+    expect(back).toBe(0)
+    // Pasado catchUpS, la cabeza retenida es su bloque de muerte, como antes de W5d-1b.
+    expect(head(diedS + CATCH_UP_S)).toBeCloseTo((diedB + 0.5) * 0.1, 6)
+  })
+
+  it('y si muere después, ya en la bajada, igual: la cabeza retenida arranca de lo que se pintaba', () => {
+    const { toGo, diedS, diedB, movAt } = ataqueLine(34)
+    expect(diedB).toBe(33)
+    const head = (s: number): number => 5 - toGo(s)
+    const { worst, back } = stepsOf(head, movAt(20), diedS + 2 * CATCH_UP_S)
+    expect(worst).toBeLessThan(0.01)
+    expect(back).toBe(0)
+    expect(head(diedS + CATCH_UP_S)).toBeCloseTo((diedB + 0.5) * 0.1, 6)
+  })
+
+  it('el que se descuelga del pelotón mientras este alcanza su marca nace igual de atrás: no pasa por delante de él', () => {
+    // El pelotón de la bajada, que alcanza su marca del km 3 (630 m) hasta 20 s después de verla; r2 se
+    // descuelga en el 31 y baja a 8 s el bloque. Si naciera en su bloque, saldría 600 m por delante de lo
+    // pintado del pelotón: en cabeza de la barra y con el pelotón de `chase` en la voz (la e18 a 3 km).
+    const riderIds = ['r0', 'r1', 'r2']
+    const pelAt = (b: number): number => (b < 20 ? 20 * (b + 1) : 400 + 6 * (b - 19))
+    const shedAt = (b: number): number => pelAt(31) + 1 + 8 * (b - 31)
+    const photos: SynthPhoto[] = []
+    for (let b = 0; b < 50; b++) {
+      const shed = b >= 31
+      const groupOf: (string | null)[] = riderIds.map((_r, i) =>
+        i === 2 && shed ? 'shed-1' : 'peloton',
+      )
+      const clockS: Record<string, number> = { peloton: pelAt(b) }
+      if (shed) clockS['shed-1'] = shedAt(b)
+      photos.push({ groupOf, clockS, main: 'peloton' })
+    }
+    const synth = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 100, lastBlocks: 10 })
+    const tl: TimelineCore = {
+      ...synth.tl,
+      profile: { altM: PUERTO_Y_BAJADA, climbs: [], sprintsKm: [], laps: 1 },
+    }
+    const ctx = ctxOf(tl)
+    const pel = synth.ixOf.get('peloton')!
+    const shed = synth.ixOf.get('shed-1')!
+    let seen = 0
+    for (let ds = Math.round(shedAt(31) * 10); ds <= Math.round((shedAt(31) + 30) * 10); ds += 5) {
+      const groups = instantAt(tl, ds / 10, ctx).groups
+      const p = groups.find((x) => x.g === pel)!
+      const d = groups.find((x) => x.g === shed)
+      if (d === undefined) continue
+      seen++
+      expect(groups[0]!.g, `a ${ds / 10} s`).toBe(pel)
+      expect(d.km, `a ${ds / 10} s`).toBeLessThanOrEqual(p.km)
+    }
+    expect(seen).toBeGreaterThan(40)
+  })
+
+  it('si el motor reetiqueta al que muere mientras la capa lo alcanza, el nuevo nace con lo que le faltaba: la cabeza no salta más que el bloque de siempre', () => {
+    // El ataque muere en el 30 mientras la capa lo alcanza, y r0 sigue en mov-2 desde el 31: con el grupo
+    // nuevo en su bloque, la cabeza de la pantalla saltaba de lo retenido a él (la e20, 479 m). Queda el
+    // bloque que el reetiquetado salta también en `main`, de la muerte al bloque siguiente.
+    const { toGo, diedS, movAt } = ataqueLine(31, true)
+    const head = (s: number): number => 5 - toGo(s)
+    const { worst, back } = stepsOf(head, movAt(20), diedS + 2 * CATCH_UP_S)
+    expect(worst).toBeLessThan(0.11)
+    expect(back).toBe(0)
+  })
+
+  /**
+   * Un grupo de una sola marca (3-a): r2 se descuelga en el bloque 21, al final del puerto, y sube a 20 s el
+   * bloque; su origen, el pelotón, baja a 6. El descolgado se estira al paso de su origen, y ese paso, de 1 km
+   * de marcas, se triplica cuando el pelotón deja la del km 3 (su base pasa del puerto a la bajada): con
+   * W5d-1, lo pintado del descolgado saltaba más de 500 m en esa décima.
+   */
+  it('el grupo de una sola marca tampoco salta cuando su origen deja una marca con otro paso: alcanza la cuenta nueva', () => {
+    const riderIds = ['r0', 'r1', 'r2']
+    const pelAt = (b: number): number => (b < 20 ? 20 * (b + 1) : 400 + 6 * (b - 19))
+    const shedAt = (b: number): number => pelAt(21) + 1 + 20 * (b - 21)
+    const photos: SynthPhoto[] = []
+    for (let b = 0; b < 50; b++) {
+      const shed = b >= 21
+      const groupOf: (string | null)[] = riderIds.map((_r, i) =>
+        i === 2 && shed ? 'shed-1' : 'peloton',
+      )
+      const clockS: Record<string, number> = { peloton: pelAt(b) }
+      if (shed) clockS['shed-1'] = shedAt(b)
+      photos.push({ groupOf, clockS, main: 'peloton' })
+    }
+    const synth = synthLine(photos, riderIds, { photoEvery: 10, keyEvery: 100, lastBlocks: 10 })
+    const tl: TimelineCore = {
+      ...synth.tl,
+      profile: { altM: [], climbs: [], sprintsKm: [], laps: 1 },
+    }
+    const ctx = ctxOf(tl)
+    const g = synth.ixOf.get('shed-1')!
+    const kmAt = (s: number): number => instantAt(tl, s, ctx).groups.find((x) => x.g === g)!.km
+    const t30 = pelAt(30)
+    // Al verse la marca del pelotón en el km 3, el descolgado sigue donde estaba.
+    expect(kmAt(t30) - kmAt(t30 - 0.1)).toBeLessThan(0.01)
+    const { worst, back } = stepsOf(kmAt, shedAt(21), shedAt(29))
+    expect(worst).toBeLessThan(0.01)
+    expect(back).toBe(0)
+  })
+})
+
 describe('coherentGaps · ninguna fila enseña menos que la de delante (W1, paso 8b)', () => {
   const r = (toHeadS: number, atKm = 10): GapReading => ({
     toHeadS,

@@ -163,6 +163,8 @@ export const BROADCAST = {
     // veía): una caza le pone al grupo el reloj del de delante, y dos marcas a 100 m daban 115 km/h
     maxSpeedUp: 1.15, // con la pendiente, el tramo siguiente va como mucho estas veces más rápido que el visto: frenar
     // de más solo retrasa la capa, y pasarse la obligaría a volver atrás cuando el grupo muere
+    catchUpS: 20, // s de carrera: la marca que trae al grupo más adelante de lo pintado no lo hace saltar; la capa
+    // recorta lo que le falta en este tiempo, por encima de su paso (W5d-1b). Con W5d-1, 524 saltos de más de 100 m
   },
 
   // RELOJ ESTIMADO (§3, §14; D-07)
