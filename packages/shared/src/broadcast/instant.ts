@@ -408,13 +408,18 @@ interface MoveEvent {
   readonly vis1: Ds
 }
 
+/** por GroupIx: `f[k]`, lo pintado al verse la marca k (k ≥ 1), contado desde `r0`, lo de la primera */
+type Floors = Map<GroupIx, { readonly r0: number; readonly f: number[] }>
+
 /**
  * Lo que no depende de la hora y sí del calendario de fotos, que da el tope de la extrapolación: por
- * grupo, el máximo de lo pintado por cada marca hasta la siguiente (`pm[k]`, el de las marcas 1 a
- * k − 1; la 0 depende de su origen y se calcula aparte).
+ * grupo, lo pintado justo antes de verse cada marca (`floorOf`, W5d-1b; el de la 1 es lo pintado por la
+ * primera, que depende de su origen y se calcula aparte).
  */
 interface PhotoCache {
-  readonly reachMax: Map<GroupIx, number[]>
+  readonly floors: Floors
+  /** lo mismo contando la primera marca en su bloque, sin su origen: lo que lee `birthFloorOf` */
+  readonly floorsByMarks: Floors
   /** por GroupIx: lo pintado por su primera marca hasta la segunda, válido desde `since` (depende de su origen) */
   readonly reach0: Map<GroupIx, { readonly since: Ds; readonly value: number }>
   /** la cabeza en cada km de foto, por índice: un borrador que cada fotograma rellena (sin un Map por fotograma) */
@@ -566,6 +571,8 @@ interface LineIndex {
 interface Stretch {
   readonly nominal: Float64Array
   readonly baseBlocks: number
+  /** el primer bloque del último km: sus marcas no se alcanzan, se saltan (`catchUpOf`, W5d-1b) */
+  readonly catchUpBelowB: number
 }
 
 /**
@@ -719,6 +726,7 @@ function indexOf(tl: TimelineCore): LineIndex {
     stretch: {
       nominal: nominalClockOf(tl),
       baseBlocks: Math.max(1, Math.round(BROADCAST.overlaySpeed.baseKm / tl.dx)),
+      catchUpBelowB: tl.blocks - Math.round(1 / tl.dx),
     },
   }
   indexes.set(tl, out)
@@ -746,33 +754,49 @@ function lineageRacing(ix: LineIndex, g: GroupIx, S: Ds): boolean {
 }
 
 /**
- * Lo más lejos que llegó a pintarse un grupo antes de que se viera su muerte, en bloques: su bloque de
- * muerte o lo que cada marca suya pintó hasta la siguiente (la última, hasta la de su muerte), con la
- * velocidad entre marcas de §4.5 y sin pasar de la foto siguiente. Solo con las marcas vistas en S (B9).
+ * Lo más lejos que llega a pintarse un grupo muerto a la hora S, en bloques: lo que se pintaba al verse su
+ * muerte (`diedAt`) y, desde ahí, su bloque de muerte, alcanzado sin saltar (`catchUpOf`, W5d-1b). Con la
+ * misma cuenta que en vida y solo con las marcas que se veían entonces: las que se ven después (la de su
+ * muerte puede verse antes que la anterior, a su reloj) no se pintaron nunca, y con ellas la cabeza retenida
+ * cambiaría hacia atrás o a saltos. Todas se ven en S, que no es antes de `diedAt` (B9).
  */
 function paintedAtDeathOf(
   ix: LineIndex,
   g: GroupIx,
   diedB: Block,
+  diedAt: Ds,
   S: Ds,
   cap: (b: Block) => number,
-  origin: GroupIx | undefined,
+  first: (d: Ds) => number,
 ): number {
   const m = ix.marks[g]
-  let best: number = diedB
-  if (m === undefined) return best
-  // Lo pintado por cada marca vista hasta la siguiente vista, con la misma cuenta que en vida (`reachOf`,
-  // W5d-1): con otra, la cabeza retenida no sería la que se pintó y la capa volvería atrás al morir.
+  if (m === undefined) return diedB
+  // Lo pintado al verse cada marca, como en vida (`floorOf`: lo de la primera, `firstReachUpTo`, y desde ahí
+  // `catchUpOf` con `reachOf`; las que se ven a la vez comparten lo de antes): con otra cuenta, la cabeza
+  // retenida no sería la que se pintó y la capa volvería atrás o saltaría al morir (W5d-1, W5d-1b).
   let prev = -1
+  let floor = Number.NEGATIVE_INFINITY
+  let since: Ds = 0
   for (let j = 0; j < m.b.length; j++) {
     const d = m.eff[j]!
-    if (d > S) continue
-    const until = prev >= 0 ? Math.max(d, m.eff[prev]!) : 0
-    if (prev === 0) best = Math.max(best, firstReachUpTo(ix, m, origin, until, cap))
-    else if (prev > 0) best = Math.max(best, reachOf(m, prev, until, cap, ix.stretch))
+    if (d > diedAt) continue
+    if (prev >= 0 && d > m.eff[prev]!) {
+      floor =
+        prev === 0
+          ? first(d)
+          : catchUpOf(
+              floor,
+              m.b[prev]!,
+              reachOf(m, prev, d, cap, ix.stretch),
+              m.eff[prev]!,
+              d,
+              ix.stretch,
+            )
+      since = d
+    }
     prev = j
   }
-  return best
+  return catchUpOf(floor, diedB, diedB, since, S, ix.stretch)
 }
 
 /**
@@ -787,6 +811,7 @@ function paintedAtDeathOf(
  */
 function heldLeadOf(
   ix: LineIndex,
+  cache: PhotoCache,
   S: Ds,
   pb: readonly Block[],
   paintedBlock: number,
@@ -805,7 +830,11 @@ function heldLeadOf(
     const died = vis.groupDiedDs[g]
     if (died === null || died === undefined || died > S) continue
     if (!lineageRacing(ix, g, S)) continue
-    const block = paintedAtDeathOf(ix, g, diedB, S, cap, g === 0 ? undefined : originOf(g))
+    const m = ix.marks[g]
+    const o = g === 0 ? undefined : originOf(g)
+    const first = (d: Ds): number =>
+      firstReachUpTo(ix, m!, o, d, cap, birthFloorOf(ix, cache, m!, o, cap))
+    const block = paintedAtDeathOf(ix, g, diedB, died, S, cap, first)
     if (block > paintedBlock && (best === null || block > best.block)) best = { g, block }
   }
   return best
@@ -959,23 +988,61 @@ function reachOf(m: GroupMarks, j: number, s: Ds, cap: (b: Block) => number, st:
   return Math.min(cap(bj), byProfile, atMost)
 }
 
-/** El máximo de lo pintado por las marcas 1 a k − 1 de un grupo, cada una hasta la siguiente (no depende de la hora). */
-function reachMaxOf(
-  cache: PhotoCache,
+/**
+ * EL ALCANCE (W5d-1b). Lo pintado a la hora s por una marca en el bloque b que se ve desde `since`, con
+ * `floor` lo pintado justo antes de verla y `reach` su cuenta (`reachOf`). Si la marca deja al grupo por
+ * detrás de lo pintado, la capa espera ahí a que su cuenta pase (nunca vuelve atrás, D-04). Si lo trae por
+ * delante, no salta a ella: arranca de lo pintado y recorta lo que le falta en `catchUpS` de carrera, por
+ * encima de su cuenta, que no decrece; más deprisa al principio (lo que falta baja con el cuadrado del tiempo
+ * que queda), para que espere menos si la cabeza retenida o la foto siguiente lo paran. Así no decrece, no
+ * salta al verla y, pasado ese tiempo, es su cuenta. En el último km no alcanza: salta a la marca, como antes.
+ * Con W5d-1 la capa saltaba al verse la marca: 524 veces más de 100 m y hasta 728 m de una décima a otra,
+ * casi siempre en las bajadas, que el tope de `maxSpeedUp` hace ir por detrás.
+ */
+function catchUpOf(floor: number, b: Block, reach: number, since: Ds, s: Ds, st: Stretch): number {
+  // en el último km, con marca en cada bloque, no salta más de uno, y la meta no espera a que alcance
+  if (b >= st.catchUpBelowB) return Math.max(floor, reach)
+  const lag = b - floor
+  // sin nada pintado antes (la marca se vio con la primera del grupo), no hay de dónde alcanzar
+  if (!(lag > 0 && lag < Number.POSITIVE_INFINITY)) return Math.max(floor, reach)
+  const left = 1 - (s - since) / (BROADCAST.overlaySpeed.catchUpS * 10)
+  return left > 0 ? Math.max(floor, reach - lag * left * left) : Math.max(floor, reach)
+}
+
+/**
+ * Lo pintado justo antes de verse la marca k de un grupo (k ≥ 1): el de la 1 es `r0`, lo pintado por la
+ * primera (`reach0Of`), y el de cada una sale del de la anterior con `catchUpOf` (W5d-1b). Las que se ven a
+ * la misma hora que la anterior comparten el de antes de esa hora: la pantalla no llegó a pintar la de en
+ * medio, y las que se ven con la primera no tienen ninguno (−∞: el grupo aparece en su última marca). No
+ * decrece con k y no depende de la hora: se guarda por grupo y calendario, y se rehace si cambia `r0` (su
+ * origen aún no está fijo). Con la marca k ya vista, las de antes también (lo visto de un grupo vivo es un
+ * prefijo).
+ */
+function floorOf(
+  floors: Floors,
   g: GroupIx,
   m: GroupMarks,
   k: number,
+  r0: number,
   cap: (b: Block) => number,
   st: Stretch,
 ): number {
-  let pm = cache.reachMax.get(g)
-  if (pm === undefined)
-    cache.reachMax.set(g, (pm = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]))
-  while (pm.length <= k) {
-    const j = pm.length - 1
-    pm.push(Math.max(pm[j]!, reachOf(m, j, m.eff[j + 1]!, cap, st)))
+  let hit = floors.get(g)
+  if (hit === undefined || hit.r0 !== r0) {
+    const f1 = m.eff[1]! > m.eff[0]! ? r0 : Number.NEGATIVE_INFINITY
+    floors.set(g, (hit = { r0, f: [Number.NEGATIVE_INFINITY, f1] }))
   }
-  return pm[k]!
+  const f = hit.f
+  while (f.length <= k) {
+    const j = f.length - 1
+    const until = m.eff[j + 1]!
+    f.push(
+      until > m.eff[j]!
+        ? catchUpOf(f[j]!, m.b[j]!, reachOf(m, j, until, cap, st), m.eff[j]!, until, st)
+        : f[j]!,
+    )
+  }
+  return f[k]!
 }
 
 /** La regla de kindOf (raceRadio.ts) sobre el orden de este instante: delante, fuga y contra; detrás, tierra o grupeto. */
@@ -1004,11 +1071,7 @@ function kindsOf(
  * y no de las dos últimas: una caza le pone a o el reloj del de delante. Null sin dos marcas vistas o sin
  * tiempo entre ellas.
  */
-function originPaceOf(
-  ix: LineIndex,
-  o: GroupIx | undefined,
-  s: Ds,
-): { readonly speed: number; readonly rate: number } | null {
+function originPaceOf(ix: LineIndex, o: GroupIx | undefined, s: Ds): Pace | null {
   const m = o === undefined ? undefined : ix.marks[o]
   if (m === undefined) return null
   let i1 = -1
@@ -1033,22 +1096,24 @@ function originPaceOf(
   }
 }
 
+/** El paso de un origen visto a una hora (`originPaceOf`): bloques y hora nominal por décima. */
+type Pace = { readonly speed: number; readonly rate: number }
+
 /**
- * HASTA DÓNDE LLEGA LA PRIMERA MARCA DE UN GRUPO A LA HORA S (3-a): al paso de su origen, con la misma
- * cuenta que `reachOf` desde la segunda (W5d-1): en hora nominal desde su bloque, para frenar donde el
+ * HASTA DÓNDE LLEGA LA PRIMERA MARCA DE UN GRUPO A LA HORA S CON UN PASO (3-a): al paso de su origen, con la
+ * misma cuenta que `reachOf` desde la segunda (W5d-1): en hora nominal desde su bloque, para frenar donde el
  * perfil sube, y acelerando como mucho `maxSpeedUp` veces la velocidad del origen; sin pasar de la foto
  * siguiente. Sin paso del origen, se queda en su bloque.
  */
-function firstReachAt(
+function firstReachWith(
   ix: LineIndex,
   m: GroupMarks,
-  o: GroupIx | undefined,
+  pace: Pace | null,
   s: Ds,
   cap: (b: Block) => number,
 ): number {
   const b0 = m.b[0]!
   const d0 = m.eff[0]!
-  const pace = originPaceOf(ix, o, s)
   if (pace === null || !(s > d0)) return Math.min(cap(b0), b0)
   const clock = ix.stretch.nominal
   const byProfile = blockAtNominal(clock, nominalAt(clock, b0) + pace.rate * (s - d0))
@@ -1056,15 +1121,70 @@ function firstReachAt(
   return Math.min(cap(b0), byProfile, atMost)
 }
 
+/** La cuenta de la primera marca a la hora s, con el paso que su origen deja ver a esa hora (3-a). */
+function firstReachAt(
+  ix: LineIndex,
+  m: GroupMarks,
+  o: GroupIx | undefined,
+  s: Ds,
+  cap: (b: Block) => number,
+): number {
+  return firstReachWith(ix, m, originPaceOf(ix, o, s), s, cap)
+}
+
 /**
- * LO PINTADO POR LA PRIMERA MARCA DE UN GRUPO HASTA LA HORA S, SIN VOLVER ATRÁS (W5d-1). Con una sola
- * marca, el grupo se estira al paso de su origen (3-a, `firstReachAt`), y ese paso cambia cuando el origen
- * deja una marca nueva: si baja, lo pintado bajaba con él (la excepción que `screenHead.test.ts` acotaba en
- * 50 m). Entre dos marcas del origen el paso no cambia y lo pintado crece, así que el máximo hasta s está al
- * final de cada tramo o en s: se mira justo antes de cada marca del origen. Lo leen el grupo mientras tiene
- * una marca, lo pintado por ella cuando ve la segunda (`reach0Of`) y su cabeza retenida si muere
- * (`paintedAtDeathOf`): con la cuenta de la hora de la segunda, lo pintado bajaba al verla (la revisión
- * de W5d-1).
+ * DÓNDE NACE UN GRUPO EN LA PANTALLA (W5d-1b). Mientras la capa alcanza la marca de un grupo, lo pintado va
+ * por detrás de él, y el que nace de él en su bloque salía por delante: en el orden, los papeles y la voz (la
+ * e18 a 3 km, un corredor descolgado en cabeza y el pelotón de `chase`) y en la cabeza de la pantalla, que
+ * saltaba hasta 479 m (la e20, un grupo reetiquetado). Ahora nace en su marca menos lo que la capa le
+ * llevaba entonces a su origen por detrás: si vive, de su cuenta (`reachOf`); si acaba de morir (el motor lo
+ * reetiqueta en el bloque siguiente), de su bloque de muerte, lo que aún le faltaba a su cabeza retenida
+ * (`paintedAtDeathOf`). Desde ahí alcanza su cuenta con `catchUpOf`. Si su origen no alcanzaba nada, nace en
+ * su marca, como antes: con la cabeza retenida entera, el reetiquetado nacía un bloque por detrás aunque no
+ * hubiera nada que alcanzar, y pasaba detrás de sus vecinos (la revisión: en Colombia e5, la diferencia de
+ * un grupo de 17, de +5:17 a +6:37). Lo de su origen sale de sus marcas, con la primera en su bloque: no
+ * depende del origen de su origen, que no está fijo mientras no se ven todos los que entraron en él; por eso
+ * un origen de una sola marca no pasa lo que le falta. −∞ (nace en su marca) sin origen o si no iba por detrás.
+ */
+function birthFloorOf(
+  ix: LineIndex,
+  cache: PhotoCache,
+  m: GroupMarks,
+  o: GroupIx | undefined,
+  cap: (b: Block) => number,
+): number {
+  const mo = o === undefined ? undefined : ix.marks[o]
+  if (o === undefined || mo === undefined || mo.b.length === 0) return Number.NEGATIVE_INFINITY
+  const b0 = m.b[0]!
+  const t = m.eff[0]!
+  const first = Math.min(cap(mo.b[0]!), mo.b[0]!)
+  const died = ix.vis.groupDiedDs[o]
+  if (died !== null && died !== undefined && died <= t) {
+    const diedB = ix.tl.groups[o]!.diedB!
+    const lag = diedB - paintedAtDeathOf(ix, o, diedB, died, t, cap, () => first)
+    return lag > 0 ? b0 - lag : Number.NEGATIVE_INFINITY
+  }
+  // vivo: lo visto es un prefijo (la marca de su muerte, la única fuera de orden, aún no se ve); por
+  // bisección si está ordenado (B8: el pelotón lleva miles de marcas)
+  let n = mo.sorted ? upperBound(mo.eff, t) : 0
+  if (!mo.sorted) while (n < mo.eff.length && mo.eff[n]! <= t) n++
+  if (n < 2) return Number.NEGATIVE_INFINITY
+  const floor = floorOf(cache.floorsByMarks, o, mo, n - 1, first, cap, ix.stretch)
+  const reach = reachOf(mo, n - 1, t, cap, ix.stretch)
+  const lag = reach - catchUpOf(floor, mo.b[n - 1]!, reach, mo.eff[n - 1]!, t, ix.stretch)
+  return lag > 0 ? b0 - lag : Number.NEGATIVE_INFINITY
+}
+
+/**
+ * LO PINTADO POR LA PRIMERA MARCA DE UN GRUPO HASTA LA HORA S, SIN VOLVER ATRÁS NI SALTAR (W5d-1, W5d-1b).
+ * Con una sola marca, el grupo se estira al paso de su origen (3-a), y ese paso cambia cuando el origen deja
+ * una marca nueva: la cuenta entera (`firstReachAt`) cambia con él, hacia atrás o hacia delante. Lo pintado
+ * no la sigue a saltos: en cada marca del origen arranca de lo pintado justo antes, y si la cuenta nueva va
+ * por delante la alcanza en `catchUpOf` y si va por detrás espera a que pase. Con W5d-1 subía de golpe:
+ * un ataque de una sola marca adelantaba así al pelotón que aún alcanzaba la suya, y al vaciarse la capa
+ * volvía atrás (la e19). Arranca de `born`, lo pintado de su origen al nacer (`birthFloorOf`). Lo leen el
+ * grupo mientras tiene una marca, lo pintado por ella cuando ve la segunda (`reach0Of`) y su cabeza retenida
+ * si muere (`paintedAtDeathOf`).
  */
 function firstReachUpTo(
   ix: LineIndex,
@@ -1072,21 +1192,38 @@ function firstReachUpTo(
   o: GroupIx | undefined,
   s: Ds,
   cap: (b: Block) => number,
+  born: number,
 ): number {
   const d0 = m.eff[0]!
-  const at = (t: Ds): number => firstReachAt(ix, m, o, t, cap)
-  let best = at(s)
+  let pace = originPaceOf(ix, o, d0)
+  let floor = born
+  let start = firstReachWith(ix, m, pace, d0, cap)
+  let since = d0
   const mo = o === undefined ? undefined : ix.marks[o]
-  if (mo === undefined) return best
-  // Solo las marcas del origen entre la primera del grupo y s: con el origen ordenado, por bisección (B8:
-  // el pelotón lleva miles de marcas, y un grupo de una sola marca vive menos de un km).
-  const from = mo.sorted ? upperBound(mo.eff, d0 + 1) : 0
-  const to = mo.sorted ? upperBound(mo.eff, s) : mo.eff.length
-  for (let j = from; j < to; j++) {
-    const t = mo.eff[j]!
-    if (t > d0 + 1 && t <= s) best = Math.max(best, at(t - 1))
+  if (mo !== undefined) {
+    // Las horas a las que se ven marcas del origen entre la primera del grupo y s, crecientes y sin repetir:
+    // con el origen ordenado, por bisección (B8: el pelotón lleva miles de marcas, y un grupo de una sola
+    // marca vive menos de un km).
+    let times: readonly Ds[]
+    if (mo.sorted) times = mo.eff.slice(upperBound(mo.eff, d0), upperBound(mo.eff, s))
+    else times = mo.eff.filter((t) => t > d0 && t <= s).sort((x, y) => x - y)
+    for (const t of times) {
+      if (t <= since) continue
+      const before = catchUpOf(
+        floor,
+        start,
+        firstReachWith(ix, m, pace, t, cap),
+        since,
+        t,
+        ix.stretch,
+      )
+      pace = originPaceOf(ix, o, t)
+      floor = before
+      start = firstReachWith(ix, m, pace, t, cap)
+      since = t
+    }
   }
-  return best
+  return catchUpOf(floor, start, firstReachWith(ix, m, pace, s, cap), since, s, ix.stretch)
 }
 
 /** Lo que se ve de la línea a la hora S, hasta el paso 7 (grupos, posiciones, composición, orden, pelotón y tipo). */
@@ -1224,7 +1361,8 @@ function seenAt(
     ix.byPhotos.set(
       photoBlocks,
       (cache = {
-        reachMax: new Map(),
+        floors: new Map(),
+        floorsByMarks: new Map(),
         reach0: new Map(),
         head: new Float64Array(photoBlocks.length),
         atPhoto,
@@ -1232,12 +1370,16 @@ function seenAt(
       }),
     )
   }
+  /** Dónde arranca a pintarse g al nacer (`birthFloorOf`): depende de su origen, como lo de su primera marca. */
+  const bornOf = (g: GroupIx, m: GroupMarks): number => birthFloorOf(ix, cache, m, originOf(g), cap)
   /** Lo pintado por la primera marca de g hasta la segunda, su máximo: fijo en cuanto su origen lo es. */
   const reach0Of = (g: GroupIx, m: GroupMarks): number => {
     const hit = cache.reach0.get(g)
     if (hit !== undefined && S >= hit.since) return hit.value
     const value =
-      g === 0 ? Math.min(cap(m.b[0]!), m.b[0]!) : firstReachUpTo(ix, m, originOf(g), m.eff[1]!, cap)
+      g === 0
+        ? Math.min(cap(m.b[0]!), m.b[0]!)
+        : firstReachUpTo(ix, m, originOf(g), m.eff[1]!, cap, bornOf(g, m))
     const fixed = g === 0 ? { since: Number.NEGATIVE_INFINITY } : ix.originCache.get(g)
     if (fixed !== undefined && S >= fixed.since)
       cache.reach0.set(g, { since: Math.max(fixed.since, m.eff[1]!), value })
@@ -1265,9 +1407,10 @@ function seenAt(
           : firstReachAt(ix, m, originOf(g), S, cap)
     let painted = real
     if (lastIx >= 1) {
-      painted = Math.max(painted, reach0Of(g, m))
-      painted = Math.max(painted, reachMaxOf(cache, g, m, lastIx, cap, ix.stretch))
-    } else if (g !== 0) painted = Math.max(painted, firstReachUpTo(ix, m, originOf(g), S, cap))
+      // desde lo pintado al verse su última marca, alcanzándola sin saltar (W5d-1b)
+      const floor = floorOf(cache.floors, g, m, lastIx, reach0Of(g, m), cap, ix.stretch)
+      painted = catchUpOf(floor, m.b[lastIx]!, real, m.eff[lastIx]!, S, ix.stretch)
+    } else if (g !== 0) painted = firstReachUpTo(ix, m, originOf(g), S, cap, bornOf(g, m))
     live.push({ g, real, painted, km: Math.max(0, (painted + 0.5) * tl.dx), last: lastIx })
   }
 
@@ -1779,7 +1922,10 @@ export function instantAt(tl: TimelineCore, t: RaceS, ctx: InstantContext): Inst
   // ese km (la menor marca vista allí), que es otra cuando el que pasó primero ya no va delante (una
   // fuga cazada), y la capa decía `+0:38` y la fila `+0:47` (la nota 4 del 6b).
   const row1 = seen.order.find((x) => x.members.length > 0) ?? seen.order[0]
-  const held = row1 === undefined ? null : heldLeadOf(ix, S, pb, row1.painted, seen.originOf)
+  const held =
+    row1 === undefined
+      ? null
+      : heldLeadOf(ix, ix.byPhotos.get(pb)!, S, pb, row1.painted, seen.originOf)
   const leadG: GroupIx | undefined = held?.g ?? row1?.g
   /** La marca de la cabeza de la pantalla en un km de foto: la suya, la de su origen (3-e) o la cabeza de ese km. */
   const leadMarkAt = (k: Block): Ds | undefined => {
