@@ -400,3 +400,16 @@ Desde este despliegue, quien tiene `Watch` (con `BROADCAST_WATCH`) escribe lo qu
 
 - En el log de `web`, `touchLastSeen` con un error: la escritura de `users.last_seen_at` falló (se lanza sin esperar y nunca tumba el proceso). Y `race_watch: lo alcanzado no se escribió al barrer`: una escritura de lo alcanzado que el barrido lanzó sin esperar y falló; el siguiente informe del espectador la repite.
 - Con `SPOILER_MODE=admins`, el dueño, en `GET /api/me/horizon`, lo que tiene por ver.
+
+## Dependencias: la subida de seguridad (22/11/2026)
+
+La auditoría de la noche (`cobertura.yml`, `pnpm audit`) marcaba 59 avisos: 1 crítico, 24 altos, 26 moderados y 8 bajos. Se subieron:
+
+- `better-auth`, de 1.6.25 a 1.7.27, en la API y en la web: el crítico (GHSA-965c-763c-88jm) y dos altos, de OAuth, el enlace mágico y el acceso por dispositivo, que la API no usa (solo correo y contraseña). Los nombres de las cookies de sesión no cambian (`better-auth.session_token`, `session_data` y `dont_remember`), así que nadie pierde la sesión al desplegar; y las tablas tampoco: los flujos de la cuenta pasan sobre PGlite con las migraciones de siempre.
+- `fastify`, de 5.11.2 a 5.12.8, y `@fastify/static`, de 10.1.2 a 10.1.12 (por su `glob`); por debajo, `fast-uri` (3.1.9 y 4.2.3) e `ip-address` (10.7.6, el de `@fastify/rate-limit`).
+- `zod`, de 4.4.3 a 4.6.7 (el catálogo de `pnpm-workspace.yaml`).
+- De desarrollo: `vite` a 8.3.8 y `vitest` a 4.1.12, y por debajo `brace-expansion`, `js-yaml` y `source-map-js`.
+
+Quedan 3 avisos, todos de herramientas de desarrollo: `esbuild` 0.18 (su servidor de desarrollo, que solo arranca `drizzle-kit`, al que también tira `better-auth`), `minimatch` 10 (de `typescript-eslint`) y `zod` 4.4.3 (de `eslint-plugin-react-hooks`). Ninguno llega a lo que sirve la API ni a la web construida.
+
+Dos topes cambian con la subida, por decisión del dueño. El del JS de arranque de la web (`ENTRY_JS_MAX_GZ`, `apps/web/scripts/peso.test.mjs`) pasa de 160 a 165 KB con gzip: zod 4.6 añade 7,3 KB a `request.js`, y el arranque pasa de 152,9 a 161,0 KB. Y el de la anotación de la voz en frío (B8, `apps/api/src/voicePrefix.test.ts`) pasa de 10 a 15 ms de mediana: la misma versión daba de 6,8 a 10,9 ms entre tandas, y el tope caía dentro del ruido de la medida.
