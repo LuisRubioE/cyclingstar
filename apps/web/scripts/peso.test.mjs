@@ -22,7 +22,9 @@ import { gzipSync } from 'node:zlib'
 
 const KB = 1000
 export const CSS_BLOCKING_MAX_GZ = 15 * KB
-export const ENTRY_JS_MAX_GZ = 160 * KB
+// 160 hasta el 22/11/2026: zod 4.6, la subida de seguridad de la API (docs/ops.md), añade 7,3 KB a request.js y
+// el arranque pasa de 152,9 a 161,0 KB; el dueño eligió subir el tope y no dejar zod
+export const ENTRY_JS_MAX_GZ = 165 * KB
 export const FLAG_SPRITE_MAX = 60 * KB
 
 const DIST = resolve(

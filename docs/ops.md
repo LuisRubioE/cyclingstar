@@ -411,3 +411,5 @@ La auditoría de la noche (`cobertura.yml`, `pnpm audit`) marcaba 59 avisos: 1 c
 - De desarrollo: `vite` a 8.3.8 y `vitest` a 4.1.12, y por debajo `brace-expansion`, `js-yaml` y `source-map-js`.
 
 Quedan 3 avisos, todos de herramientas de desarrollo: `esbuild` 0.18 (su servidor de desarrollo, que solo arranca `drizzle-kit`, al que también tira `better-auth`), `minimatch` 10 (de `typescript-eslint`) y `zod` 4.4.3 (de `eslint-plugin-react-hooks`). Ninguno llega a lo que sirve la API ni a la web construida.
+
+Dos topes cambian con la subida, por decisión del dueño. El del JS de arranque de la web (`ENTRY_JS_MAX_GZ`, `apps/web/scripts/peso.test.mjs`) pasa de 160 a 165 KB con gzip: zod 4.6 añade 7,3 KB a `request.js`, y el arranque pasa de 152,9 a 161,0 KB. Y el de la anotación de la voz en frío (B8, `apps/api/src/voicePrefix.test.ts`) pasa de 10 a 15 ms de mediana: la misma versión daba de 6,8 a 10,9 ms entre tandas, y el tope caía dentro del ruido de la medida.
