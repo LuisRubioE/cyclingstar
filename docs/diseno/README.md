@@ -187,3 +187,15 @@ lo mismo que el andamio de arriba: rehacerlos costaría todo el análisis otra v
   auditorías. Su contenido está fundido en `resultado-final.json`.
 - **Las instrucciones de cada fase y el estado del proceso**: `00-fase-mapas.md`,
   `01-fase-propuestas.md` a `05-fase-auditoria.md` y `ESTADO.md`.
+
+## `e4-cuenta/`: el material de la cuenta y el contacto (E4)
+
+**El documento final vive fuera de aquí**: `docs/cuenta.md` (unas 2.870 líneas, del 23 de noviembre de
+2026), **sin implementar**. Se hizo con el mismo método, más pequeño y, desde el 23 de noviembre, en
+modo ahorro por petición del dueño: cinco mapas con 61 capturas a 360 px, tres propuestas
+(`atacante`, `jugador`, `incremental`), tres jueces sin mayoría (base `jugador` por suma, por un punto),
+un esqueleto con glosario y decisiones, dos redactores, dos refutadores (31 hallazgos, 5 altos), un
+corrector y un auditor (46 veredictos). El documento cita `juicios/veredicto.json`,
+`borrador/00-decisiones.md`, `borrador/00-glosario.md`, `refutaciones/resultado-final.json`,
+`00-encargo.md` (§9, las palabras del dueño) y los mapas; el resto es andamio, como en E3.
+`borrador/ensamblar.sh` rehace el documento desde las secciones.

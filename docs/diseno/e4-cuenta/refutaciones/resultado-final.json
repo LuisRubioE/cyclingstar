@@ -1,0 +1,463 @@
+{
+  "recuento": {
+    "total_entradas": 46,
+    "hallazgos": 31,
+    "por_estado_corrector": {
+      "aplicado": 46
+    },
+    "por_veredicto": {
+      "bien": 41,
+      "en parte": 5
+    },
+    "hallazgos_por_gravedad": {
+      "alta": 5,
+      "media": 9,
+      "baja": 17
+    },
+    "hallazgos_por_gravedad_y_veredicto": {
+      "alta": {
+        "bien": 4,
+        "en parte": 1
+      },
+      "media": {
+        "bien": 9
+      },
+      "baja": {
+        "bien": 16,
+        "en parte": 1
+      }
+    }
+  },
+  "veredictos": [
+    {
+      "id": "Rcodigo-seguridad-001",
+      "gravedad": "alta",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§5.3 05-enlaces.md (v1 l. 445 y 538): el «usuario inventado» se declara falso y el proxy fija el 200 a { token: null, user: null } en el PR 3; §2.2 A7 (v1 l. 106) y enumTiming.test.ts (v1 l. 2187) exigen cuerpos iguales byte a byte.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-002",
+      "gravedad": "alta",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§7.2 punto 0 07-limites.md (v1 l. 661): onRequest de /api/auth/* con 404 si la ruta cruda difiere de la normalizada o lleva //, /./, /../, %2e, %2f, %5c; lista blanca y L1 a L4 con la ruta normalizada; §8.1 (v1 l. 811) y PR 3. La barra final la para la lista blanca, que compara exacto.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-003",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§7.6 07-limites.md (v1 l. 751 y 755): reserva una vez por destinatario y día UTC con clave rsv:; §2.4 (v1 l. 128) reescrito; alarma de más de 10 al día en §19.4 (v1 l. 2414); mailBudget.test.ts lo fija.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-004",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§2.3 02-amenazas.md (v1 l. 116) ya no cuenta la sesión abierta como freno; §5.5 (v1 l. 470 y 471): email_changed por push antes del cambio y casilla Sign out everywhere encendida; §8.5 y adminAudit.test.ts. El aviso llega con el PR 14 y el PR 5 lo dice (v1 l. 2303).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-005",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§5.4 (v1 l. 458, 539): change-password sube device_epoch y reemite la cs_device propia; §6.5 (v1 l. 620) POST /api/auth/devices/forget y el botón Forget this device; §2.3 (v1 l. 117) escribe lo que queda en el ordenador compartido.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-006",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§6.5 06-sesiones.md (v1 l. 619): POST /api/auth/devices/sign-out-others, ruta de Fastify bajo el Path de la cookie; §8.1 (v1 l. 811); deviceCookie.test.ts con dos cuentas en la cookie (v1 l. 2196).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-007",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§7.5 07-limites.md (v1 l. 741): la firma cubre v1.<hmac>.<nonce>.<userId>.<device_epoch> y se comprueba con la cuenta de ese correo; caso de cuenta borrada y vuelta a registrar en deviceCookie.test.ts.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-008",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§8.5 08-rutas.md (v1 l. 847): sobre la cuenta raíz, 409 es_el_admin_raiz para emailVerified, isAdmin, email y birthDate; adminAudit.test.ts (v1 l. 2194).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-009",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§7.4 07-limites.md (v1 l. 731): L3 por sesión (pw:, 5 en 900 s y 10 al día) y techo por cuenta (pwu:, 30 al día); se borran al 200, al recuperar y con sign-out-others.",
+      "arreglo_pendiente": "Arreglo menor: §10.5 10-privacidad.md l. 108 (v1 l. 1083) dice «reserva L3 (`pw:`)» y debe decir «reserva L3 (`pw:` y `pwu:`)», como la tabla de §7.4."
+    },
+    {
+      "id": "Rcodigo-seguridad-010",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§6.3 06-sesiones.md (v1 l. 562): el proxy quita token y session.token de todo JSON de /api/auth/*, citando sign-in.mjs l. 365 a 370; authFlow.test.ts.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-011",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§4.5 04-registro.md l. 122 (v1 l. 303): gancho global para todo lo que no es GET bajo /api/ con su lista de excepciones; cubre teams.ts y my-orders; birthDate.test.ts recorre las rutas con onRoute.",
+      "arreglo_pendiente": "Redacción: «un `preHandler` global (`onRequest` de la app, no de un grupo de rutas)» nombra dos ganchos distintos de Fastify. Dejar uno: «un gancho `preHandler` de la app (global, no de un grupo de rutas)»."
+    },
+    {
+      "id": "Rcodigo-seguridad-012",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§4.2 04-registro.md (v1 l. 280): returned: false; la web lee birthDateSet de GET /api/me/account, que nace en el PR 9 (v1 l. 304); el PR 11 depende del 9 (tabla de §18.2).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-013",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§7.1 07-limites.md (v1 l. 655): con más de dos entradas, request.ip y solo xff_varias; IPv6 por su /64 en L4 y en el keyGenerator (v1 l. 668, 783); clientIp.test.ts (v1 l. 2189).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-014",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§5.2 05-enlaces.md (v1 l. 421): el token viaja en el cuerpo de POST /api/account/verify-email, que llama a auth.handler dentro del proceso; Privacy dice «our server logs» (v1 l. 1000); el borde de Railway como «no lo sé».",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-015",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "en parte",
+      "evidencia": "§8.1 08-rutas.md l. 25 (v1 l. 813): se reconoce que disabledPaths no cierra rutas con parámetros y se añade un hooks.before que lanza 404 «cuando la plantilla del punto (ctx.path) no está en la lista». Pero en better-auth 1.7.26 los ganchos corren también en las llamadas auth.api.* (api/dispatch.mjs l. 194 a 202: «The HTTP router and auth.api.* reach it»). Tal como está escrito, el gancho daría 404 a auth.api.verifyPassword (exportación, §10.5), a auth.api.revokeOtherSessions (sign-out-others, §6.5), que no están en la lista, y desde el PR 19 a la llamada interna a /verify-email de POST /api/account/verify-email. Además, «disabledPaths es el complemento de AUTH_ALLOWED_PATHS» mete /verify-email en disabledPaths en cuanto el PR 19 la saca de la lista, contra lo que dice la l. 811.",
+      "arreglo_pendiente": "En §8.1 (08-rutas.md l. 25): el hooks.before lanza 404 solo cuando ctx.path es una de las plantillas con parámetros cerradas (/callback/:id y, desde el PR 19, /reset-password/:token), no para toda ruta fuera de la lista; y disabledPaths es «el complemento de AUTH_ALLOWED_PATHS sobre auth.api, menos /verify-email». authRoutes.test.ts: la exportación y sign-out-others siguen respondiendo 200 con el gancho puesto."
+    },
+    {
+      "id": "Rcodigo-seguridad-016",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§18.2 (tabla, PR 12 depende de 7 y 11) y §18.3 (v1 l. 2315); §10.5 (v1 l. 1129): notificationDevices es [] con un it.todo hasta el PR 14; exportData.test.ts.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcodigo-seguridad-017",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§9.2 09-correo.md (v1 l. 915): la ruta en su propio contexto con addContentTypeParser de cuerpo crudo; se retira la promesa del svix-id porque status no retrocede (9-e).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-001",
+      "gravedad": "alta",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§20.2 puntos 17 y 18 20-fronteras.md (v1 l. 2474 y 2475): texto sustituto entero para ops.md l. 87 a 99 (dos correos, registro por aprobación, correo cambiado por un administrador) y l. 136 a 141 (cola, Change email, fecha, Rename team, Recent changes, raíz protegido); las líneas citadas casan con docs/ops.md.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-002",
+      "gravedad": "alta",
+      "estado_corrector": "aplicado",
+      "veredicto": "en parte",
+      "evidencia": "§4.9 04-registro.md (v1 l. 352 a 365): registro por aprobación como twilightstruggle (decisión del dueño, §9.5 punto 1), con status, approve, reject, ACCOUNT_PENDING y test. Queda un agujero: request-password-reset manda reset_password a una cuenta pendiente. better-auth 1.7.26 (api/routes/password.mjs l. 59 a 86) solo mira si existe, y el diseño no filtra por status (§8.1, v1 l. 813 fila request-password-reset: «si la cuenta existe»; §5.7, v1 l. 518). Así cualquiera registra correos inventados (pending, sin correo) y luego pide recuperar: salen correos sin aprobación, rebotan (H-07) y gastan presupuesto, que es justo lo que las tandas debían impedir.",
+      "arreglo_pendiente": "En §4.9 (04-registro.md, punto «Quien se registra»): `sendResetPassword` lee también `status` de la base y no envía nada si no es `approved`; la respuesta sigue siendo la misma. Corregir la fila de §8.1 (08-rutas.md l. 17: «manda `reset_password` si la cuenta existe y está aprobada») y §5.7 (05-enlaces.md l. 132: «para una cuenta aprobada que existe»). Caso en signupApproval.test.ts: recuperar con una pendiente no manda nada."
+    },
+    {
+      "id": "Rcobertura-duenio-003",
+      "gravedad": "alta",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§13.4 y §13.5 13-avisos.md (v1 l. 1593, 1600, 1614, 1629): ios-home dice iOS 16.4 y hay manifiesto mínimo sin iconos, como twilightstruggle (§9.5 punto 2); 19-a (v1 l. 2435) se queda como plan provisional y explícito; §21.4 ya no lo trae como abierto.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-004",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§20.2 puntos 19 a 23 y §20.3 puntos 4 a 6 (v1 l. 2454 a 2500): entradas para encargos.md l. 252 a 254, 320 a 324, 326 a 328, agenda.md l. 155 a 156 y 567 a 568, y visual.md l. 3616, 3658, 3679; comprobadas las citas de encargos.md y agenda.md.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-005",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§18.2: el PR 16 depende de 5, 8, 12 y 14 (W5 para visual.md); grafo de §18.4 (v1 l. 2341).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-006",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§8.5 y §18.3 PR 5 (v1 l. 2303): Rename team también en /world/teams/:id para un administrador, con la misma PATCH /api/admin/teams/:id.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-007",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§8.5 08-rutas.md (v1 l. 853 a 862): filas user.premium, blocklist.add, blocklist.remove, world.tick y world.advance con actor id o 'token'; §15.1 (v1 l. 1948).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-008",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§22.5 (v1 l. 2700): las 63 D-nn citadas tienen su línea (comprobado con grep: no falta ninguna); ninguna §G.n ni bloque «Dudas para el ensamblador» en cuenta-v1.md.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-009",
+      "gravedad": "media",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§A de 00-esqueleto.md reescrito: dos correos, cambio de correo por un administrador, plan gratuito con aprobación, DMARC sin informes, iPhone con manifiesto, diecisiete PR y unas 134 horas.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-010",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§18 (v1 l. 2257 y 2291): «diecisiete PR» y 134 horas; la suma escrita da 134 (calculada) y casa con la tabla.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-011",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§4.6 (v1 l. 323): «An administrator can rename any team.»; las dos reglas de E7 fuera y llevadas a §21.4 punto 1 y a la lista del abogado (v1 l. 332).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-012",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§8.5 08-rutas.md (v1 l. 839 y 881, 8-c): por qué basta un ADMIN_EMAIL y qué cambia con dos (ADMIN_EMAILS con alias).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-013",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§8.5 (v1 l. 847): PATCH /api/admin/users/:id acepta birthDate con birthDateSchema y su fila user.birth_date; §11.1 dice que la corrige un administrador.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "Rcobertura-duenio-014",
+      "gravedad": "baja",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§12.5 12-pantallas.md (v1 l. 1381, 12-h): AwayBand, WelcomeBack y los dos Notice del permiso en /_ui con un estado como mínimo.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "dueno-9.4",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§18.3 PR 3 (v1 l. 2299) «el primer PR de seguridad» con los dos arreglos y la cita «no, primero el plan de E4»; §7.2 punto 0 y §5.3.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "dueno-9.5.1-registro",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "en parte",
+      "evidencia": "§4.9 (v1 l. 352 a 365) cumple el modelo de twilightstruggle. Falta cerrar la recuperación para cuentas pendientes (ver Rcobertura-duenio-002).",
+      "arreglo_pendiente": "El de Rcobertura-duenio-002."
+    },
+    {
+      "id": "dueno-9.5.1-correos",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§5.3 CheckInbox como petición recibida (v1 l. 438), sin Send it again; verify_signup sale al aprobar (v1 l. 518); el presupuesto corta la aprobación y no sign-up (v1 l. 2198).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "dueno-9.5.1-pantallas-panel",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§8.5 (v1 l. 849, 850, 863): Waiting for approval con Approve y Reject y sus textos; ACCOUNT_PENDING en Login (v1 l. 361); Privacy nombra la aprobación (v1 l. 1017).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "dueno-9.5.1-datos",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§15.2 (v1 l. 2033): status y approved_at en la 0055 con el UPDATE a mano; purga desde approved_at y no toca las pending (v1 l. 2207, 2540).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "dueno-9.5.1-tests-plan",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "en parte",
+      "evidencia": "El registro por aprobación va en el PR 5 (v1 l. 2303), pero dos cosas suyas dependen de PR posteriores: el 503 por presupuesto al aprobar (§7.6, PR 7) está entre los casos de signupApproval.test.ts del PR 5 (04-registro.md l. 184; 17-tests.md l. 18); y Sign out everywhere de §5.5 sube device_epoch y borra claves pw:, que nacen en la 0056 del PR 6.",
+      "arreglo_pendiente": "Decir en §18.3 PR 5 (18-plan.md) que hasta el PR 7 aprobar no mira el presupuesto (el caso del 503 es it.todo hasta entonces) y que hasta el PR 6 Sign out everywhere solo cierra sesiones."
+    },
+    {
+      "id": "dueno-9.5.2-iphone",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§13.5 (v1 l. 1614 a 1629): manifiesto de ocho claves sin icons, sin metas de Apple, caché ni sin red; sw.test.ts (v1 l. 2213); §19.3 punto 1 como prueba del dueño.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "dueno-9.5.3",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "Las 14 entradas de cobertura están tratadas (arriba).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "coherencia-dudas",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "grep en cuenta-v1.md: 0 bloques «Dudas para el ensamblador».",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "coherencia-glosario",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "00-glosario.md G.16 (l. 278) existe y ninguna sección conserva «Propuesto para el glosario».",
+      "arreglo_pendiente": "Trivial y fuera del documento ensamblado: 00-glosario.md l. 75, la fila de AUTH_ALLOWED_PATHS «(11; ver G.16.2)» sigue listando `POST change-email` (doce rutas). Quitarla."
+    },
+    {
+      "id": "coherencia-avisos-seguridad",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§13.1 (v1 l. 1450, 1454, 1469, 1525): tres avisos de seguridad en NOTICE_KINDS y NoticePayload; grep sin ningún «dos de seguridad».",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "coherencia-verify-email",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "en parte",
+      "evidencia": "§8.1 (v1 l. 811) dice que /verify-email no entra nunca en disabledPaths, pero la l. 813 sigue calculando disabledPaths como el complemento de la lista, que desde el PR 19 ya no la tiene; y el hooks.before de 8-g también la cerraría (ver Rcodigo-seguridad-015).",
+      "arreglo_pendiente": "El de Rcodigo-seguridad-015."
+    },
+    {
+      "id": "coherencia-plan",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "§18.2 y §18.4: PR 11 depende de 1, 6 y 9; PR 17 de 7, 8 y 14; grafo y tabla casan; nueve rutas desde el PR 19 (v1 l. 2289).",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "coherencia-referencias",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "0 «§G.» en cuenta-v1.md; 63 D-nn citadas, todas en §22.5.",
+      "arreglo_pendiente": ""
+    },
+    {
+      "id": "coherencia-textos",
+      "gravedad": "n/a",
+      "estado_corrector": "aplicado",
+      "veredicto": "bien",
+      "evidencia": "Send it again no aparece; §21.3 lleva el punto 11; «abrir el registro» se lee como aprobar (v1 l. 2555).",
+      "arreglo_pendiente": ""
+    }
+  ],
+  "fidelidad": [
+    {
+      "tipo": "correo fuera de los dos momentos",
+      "gravedad": "media",
+      "donde": "§8.1 (v1 l. 813, fila request-password-reset), §5.7 (v1 l. 518)",
+      "que": "Una cuenta pendiente recibe reset_password si alguien lo pide. No es un tercer tipo de correo, pero sale sin aprobación, contra §9.5 punto 1 («al aprobar sale el correo»). Arreglo en Rcobertura-duenio-002."
+    },
+    {
+      "tipo": "plan de pago de Resend",
+      "gravedad": "baja",
+      "donde": "§19.4 19-riesgos.md l. 51 (v1 l. 2416)",
+      "que": "La acción de la alarma dice «tandas más pequeñas o, si se repite, DD-10 A (Pro)». Ofrece el plan de pago como acción del operador, cuando el dueño eligió el gratuito. Que diga que se le pregunta al dueño."
+    },
+    {
+      "tipo": "registro sin aprobación (escrito, no contradice)",
+      "gravedad": "informativa",
+      "donde": "§19 (v1 l. 2378) y §15.2 (v1 l. 2033)",
+      "que": "La 0055 aprueba toda cuenta que exista al migrar, también las que se registren hasta el PR 5. Está escrito como riesgo; hoy solo existe la cuenta del dueño (§9.1). Sin arreglo, salvo que el orquestador quiera aprobar solo las de email_verified."
+    },
+    {
+      "tipo": "sin contradicciones",
+      "gravedad": "n/a",
+      "donde": "cuenta-v1.md entero, con grep",
+      "que": "No hay TOTP (solo «sin TOTP»), ni contraseñas filtradas (solo «no»), ni DMARC con informes (p=none sin rua), ni cambio de correo de autoservicio (retirado; las menciones de tres correos y changeEmail están en §1, que describe el código de hoy), ni ausencia distinta de 28 días reales (AWAY_MAX_DAYS 28; los 28 «de juego» son otra cosa), ni registro sin aprobación desde el PR 5, ni falta del manifiesto del iPhone."
+    },
+    {
+      "tipo": "rayas y guiones",
+      "gravedad": "n/a",
+      "donde": "cuenta-v1.md, prosa y títulos fuera de bloques de código y de `código`",
+      "que": "0 «—», 0 «–» y 0 « - » en mitad de frase (script en scratchpad/auditor/rayas.py)."
+    }
+  ],
+  "pendiente_para_el_orquestador": [
+    {
+      "fichero": "borrador/08-rutas.md l. 25 (§8.1)",
+      "texto": "Cambiar «el segundo cerrojo es un `hooks.before` que lanza 404 cuando la plantilla del punto (`ctx.path`) no está en la lista» por «… que lanza 404 cuando `ctx.path` es una de las plantillas con parámetros cerradas (`/callback/:id` y, desde el PR 19, `/reset-password/:token`); no mira la lista entera porque los ganchos corren también en `auth.api.*` (`api/dispatch.mjs` l. 194 a 202), y `verifyPassword` y `revokeOtherSessions` no están en ella». Y «`disabledPaths` se calcula como el complemento de `AUTH_ALLOWED_PATHS` sobre `auth.api`» por «… sobre `auth.api`, menos `/verify-email` (8-l)». Caso en authRoutes.test.ts: exportar y sign-out-others siguen dando 200."
+    },
+    {
+      "fichero": "borrador/04-registro.md §4.9 (punto «Quien se registra»), 08-rutas.md l. 17, 05-enlaces.md l. 132, 17-tests.md l. 18",
+      "texto": "Añadir que `sendResetPassword` lee `status` igual que `sendVerificationEmail` y no envía nada a una cuenta que no sea `approved`, con la respuesta idéntica. Fila de §8.1: «manda `reset_password` si la cuenta existe y está aprobada». §5.7: «para una cuenta aprobada que existe». signupApproval.test.ts: «recuperar con una pendiente no manda nada»."
+    },
+    {
+      "fichero": "borrador/04-registro.md l. 122 (§4.5)",
+      "texto": "«un `preHandler` global (`onRequest` de la app, no de un grupo de rutas)» por «un gancho `preHandler` de la app (global, no de un grupo de rutas)»."
+    },
+    {
+      "fichero": "borrador/10-privacidad.md l. 108 (§10.5)",
+      "texto": "«El proxy reserva L3 (`pw:`)» por «El proxy reserva L3 (`pw:` y `pwu:`)»."
+    },
+    {
+      "fichero": "borrador/19-riesgos.md l. 51 (§19.4)",
+      "texto": "«tandas más pequeñas o, si se repite, DD-10 A (Pro)» por «tandas más pequeñas; si se repite, se le pregunta al dueño (DD-10 A)»."
+    },
+    {
+      "fichero": "borrador/18-plan.md §18.3 PR 5 y borrador/04-registro.md l. 184",
+      "texto": "Añadir: «Hasta el PR 7 aprobar no mira el presupuesto (el caso del 503 es `it.todo`), y hasta el PR 6 `Sign out everywhere` solo cierra sesiones (`device_epoch` y `pw:` nacen en la 0056)»."
+    },
+    {
+      "fichero": "borrador/00-glosario.md l. 75",
+      "texto": "Quitar `POST change-email` de la fila de `AUTH_ALLOWED_PATHS (11)`. No entra en docs/cuenta.md."
+    }
+  ]
+}

@@ -1,0 +1,383 @@
+{
+  "foco": "cobertura",
+  "ganadora": "jugador",
+  "puntuaciones": [
+    {
+      "propuesta": "jugador",
+      "cobertura": 8,
+      "coherencia": 6,
+      "seguridad": 6,
+      "experiencia": 9,
+      "justificacion": "12 ●, 3 ◐ y 4 ○ en la tabla cruzada. La única que cumple las dos consecuencias escritas de §9.1.3: ningún correo de juego, dicho en el pie de cada correo, y la regla del mes enseñada en la web (Away y Welcome back) a quien no tiene avisos, todo condicionado a E7. La única que leyó el mapa 05 y arregla las pantallas que mienten, y responde a E2 con la sesión de 30 días. Pierde porque delega el panel raíz en otra lente (§7, l. 265), porque su pantalla de ausencia promete al jugador en manual algo falso y contrario a §9.1.5 (comprobación 2), porque no corrige ningún documento y porque deja sin tope el correo de registro ajeno."
+    },
+    {
+      "propuesta": "atacante",
+      "cobertura": 7,
+      "coherencia": 6,
+      "seguridad": 9,
+      "experiencia": 5,
+      "justificacion": "9 ●, 5 ◐ y 5 ○. Cubre las diecinueve secciones con mecanismo y cifra, es la única que lee «decide el entrenador» al pie de la letra (manual a mixto, sin tocar el motor) y la que mejor razona por qué la seguridad va por correo y lo de juego por aviso (§8.1). Pierde porque se escribió sin el mapa 05 (sus pantallas mentirosas siguen), no corrige ningún documento, no alarga la sesión que dejó E2, su Notice de §8.5 anuncia una regla de E7 que no existe, enciende el TOTP por defecto contra el título de §9.1.6 y toma cinco decisiones del dueño sin pasarlas por §19."
+    },
+    {
+      "propuesta": "incremental",
+      "cobertura": 6,
+      "coherencia": 8,
+      "seguridad": 7,
+      "experiencia": 5,
+      "justificacion": "8 ●, 8 ◐ y 3 ○. La única con un PR de documentos (PR 14) y con el contrato de inactividad para E7 escrito como función; sus afirmaciones de código se sostienen (comprobaciones 4 y 5). Falla la última viñeta de §9.1.3 (quien no acepta avisos no ve la regla del mes en la web), deja por defecto lo contrario de «mientras dura decide el entrenador» (§19.12), aplaza DMARC con informes y los webhooks atándolos al contacto aparcado, no bloquea el cambio del correo raíz desde la web y solo añade un correo de seguridad."
+    }
+  ],
+  "injertos": [
+    {
+      "id": "I-cobertura-01",
+      "de": "atacante",
+      "seccion": "§7.3",
+      "que": "El panel del administrador raíz completo: correo raíz que no cambia desde la web, admin_audit y el TOTP como decisión del dueño, por defecto fuera.",
+      "porque": "jugador §7 lo delega: «El resto es de la lente atacante». [DOC 22]: quien tenga el buzón de ADMIN_EMAIL tiene el juego."
+    },
+    {
+      "id": "I-cobertura-02",
+      "de": "atacante",
+      "seccion": "§9",
+      "que": "En manual, el día sin orden se resuelve como mixto mientras dura la ausencia, en packages/shared/src/trainingDay.ts, sin tocar el motor; y la línea de pantalla de jugador §9.1 se corrige.",
+      "porque": "§9.1.5: «mientras dura decide el entrenador». Hoy manual da descanso_activo (trainingDay.ts l. 132 a 135)."
+    },
+    {
+      "id": "I-cobertura-03",
+      "de": "incremental",
+      "seccion": "§16, PR 14",
+      "que": "Un PR de documentos con el texto que sustituye a cada frase: los cinco del correo de juego, los de «no hay recuperación» (encargos l. 312 a 316 y 776 a 778, G11, captacion.md l. 27, 215 y 263) y docs/ops.md l. 106 y 271; visual.md después de W5.",
+      "porque": "01-fase-propuestas.md punto 8 lo exige y jugador no lo tiene; la lección de B2: un documento que declara un estado falso."
+    },
+    {
+      "id": "I-cobertura-04",
+      "de": "atacante",
+      "seccion": "§6.2 (L5) y §10.3",
+      "que": "Tope por destinatario (3 por hora, 6 al día) y presupuesto diario con prioridades para los correos de cuenta.",
+      "porque": "jugador §4.4 añade cuatro correos sin tope; con el plan gratuito de Resend el correo 101 del día es un registro que no entra (mapa 02 §3)."
+    },
+    {
+      "id": "I-cobertura-05",
+      "de": "atacante",
+      "seccion": "§4.3 y §4.5 (E5)",
+      "que": "El enlace de deshacer de 7 días en el aviso de correo cambiado a la dirección vieja.",
+      "porque": "Sin contacto (§9.1.2) es la única vuelta de quien pierde su dirección y conserva el buzón viejo."
+    },
+    {
+      "id": "I-cobertura-06",
+      "de": "atacante",
+      "seccion": "§8.1",
+      "que": "El principio «ninguno de seguridad va por aviso: la seguridad va por correo, que no depende de un permiso», junto al principio 2 de jugador.",
+      "porque": "Es la frontera exacta entre el correo de cuenta que el dueño dejó y los avisos de juego que solo van por navegador y app."
+    },
+    {
+      "id": "I-cobertura-07",
+      "de": "incremental",
+      "seccion": "§5 y §9",
+      "que": "inactiveSince(lastSeenAt, awayUntil) como función pura en packages/db, y la frase de que «login» es una visita con sesión.",
+      "porque": "La regla del dueño dice «login» y el código no lo registra (mapa 04 §6.2, 6); E7 hereda una definición escrita y el dueño la ve."
+    },
+    {
+      "id": "I-cobertura-08",
+      "de": "incremental",
+      "seccion": "§12",
+      "que": "La rectificación sin destino (la fecha mal tecleada) en el riesgo del contacto, y buscar otras promesas de contacto en apps/web/src en el PR que retira «Ask and…».",
+      "porque": "Completa el riesgo que §9.1.2 manda escribir y asegura que no quede otra frase que prometa un canal."
+    },
+    {
+      "id": "I-cobertura-09",
+      "de": "incremental",
+      "seccion": "§8 y §19.6",
+      "que": "El iPhone sin instrucción de pantalla de inicio por defecto hasta probarlo en un aparato; la explicación de iOS 26 de jugador §8.3 pasa a alternativa.",
+      "porque": "Lo de iOS 26 no está probado (mapa 02 §6) y roza la letra de D-00p, que es decisión del dueño."
+    },
+    {
+      "id": "I-cobertura-10",
+      "de": "atacante",
+      "seccion": "§8.4",
+      "que": "Lista de servicios de push permitidos para el endpoint de una suscripción.",
+      "porque": "Sin ella el envío es una SSRF hacia la red privada de Railway; es parte de «el envío» que el §8 del encargo pide."
+    },
+    {
+      "id": "I-cobertura-11",
+      "de": "atacante",
+      "seccion": "§11.4",
+      "que": "Exportar pide la contraseña, como borrar, y como mucho 3 al día.",
+      "porque": "El fichero lleva la fecha de nacimiento y el correo; jugador §11.2 lo deja con la sesión sola."
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-cobertura-01",
+      "seccion_ganadora": "§7",
+      "que": "El panel raíz no se diseña: «El resto es de la lente atacante».",
+      "evidencia": "jugador.md l. 265; 01-fase-propuestas.md l. 11: cada propuesta es un diseño completo."
+    },
+    {
+      "id": "O-cobertura-02",
+      "seccion_ganadora": "§9.1",
+      "que": "«Your coach picks <rider>'s training from 25 Nov, when your plan ends» es falso en manual y deja sin cumplir «mientras dura decide el entrenador».",
+      "evidencia": "packages/shared/src/trainingDay.ts l. 132 a 135; 00-encargo.md l. 349 a 351."
+    },
+    {
+      "id": "O-cobertura-03",
+      "seccion_ganadora": "(falta)",
+      "que": "No hay sección de documentos que corregir: ni los del correo de juego ni los de «no hay recuperación».",
+      "evidencia": "01-fase-propuestas.md l. 63 a 64; mapa 04 §6.2 y §6.3; grep sin resultados en jugador.md salvo visual.md l. 3656."
+    },
+    {
+      "id": "O-cobertura-04",
+      "seccion_ganadora": "§4.4 y §6",
+      "que": "El correo «Someone tried to sign up with your email» sale sin tope por destinatario ni presupuesto: llena un buzón ajeno y gasta el cupo con el correo que el dueño dejó solo para la cuenta.",
+      "evidencia": "jugador.md l. 185 a 188; su tabla de límites (l. 231 a 241) no limita sign-up por correo; mapa 02 §3."
+    },
+    {
+      "id": "O-cobertura-05",
+      "seccion_ganadora": "§8.1 y §13",
+      "que": "users.time_zone es un dato nuevo que el texto de Privacy de §11.1 no nombra ni dice de dónde sale; y lo que el brief da a E4 para E10 (locale, país, Accept-Language) no se guarda.",
+      "evidencia": "jugador.md l. 285 y 478; 00-encargo.md l. 205."
+    },
+    {
+      "id": "O-cobertura-06",
+      "seccion_ganadora": "§5, §8.1, §9.2",
+      "que": "Decisiones sin pasar por §19: la sesión del aparato que declara la ausencia alargada hasta la vuelta más 7 días (hasta 52), el silencio de 22 a 8, y Account rehecha en subpáginas, que es frontera con E3.",
+      "evidencia": "jugador.md l. 214, 285, 221; docs/visual.md §17.21 y l. 1329 a 1333."
+    },
+    {
+      "id": "O-cobertura-07",
+      "seccion_ganadora": "§9.2 frente a §18",
+      "que": "«Si una ausencia se ve desde fuera» es de E7 en §9.2 y de E9 en §18; la síntesis lo fija en E9.",
+      "evidencia": "jugador.md l. 362 a 364 y l. 571."
+    },
+    {
+      "id": "O-cobertura-08",
+      "seccion_ganadora": "§8.3, D-3",
+      "que": "La explicación de la pantalla de inicio por defecto descansa en algo no probado y roza la letra de D-00p.",
+      "evidencia": "mapa 02 §6; docs/visual.md l. 2736."
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-cobertura-01",
+      "que": "E10 en el registro: ninguna guarda país ni Accept-Language, y users.locale sigue en 'es' con la interfaz en inglés ([DOC 14], 00-encargo.md l. 205)."
+    },
+    {
+      "id": "H-cobertura-02",
+      "que": "El canal de hecho en la beta es el grupo de WhatsApp con el dueño dentro ([DUEÑO 12], encargos l. 779 a 781); ninguna lo nombra en el riesgo del contacto."
+    },
+    {
+      "id": "H-cobertura-03",
+      "que": "Quien no acepta avisos y no vuelve no recibe nada antes de que actúe la regla del mes; ninguna se lo escribe al dueño como consecuencia de §9.1.3 para que E7 lo pese al fijar el plazo (agenda §4.15.5 punto 3)."
+    },
+    {
+      "id": "H-cobertura-04",
+      "que": "Ninguna dice si la ausencia declarada pausa también el reloj más corto del mánager que propone agenda §4.15.5 punto 4."
+    },
+    {
+      "id": "H-cobertura-05",
+      "que": "Al borrar stageReadyEmail queda huérfano el comentario de packages/shared/src/broadcast/pageTitle.ts l. 5, territorio de W5."
+    },
+    {
+      "id": "H-cobertura-06",
+      "que": "Ninguna junta en una lista única las preguntas para el abogado (los 16, la casilla, el menor que ya existe, el nombre del equipo, la privacidad sin responsable con contacto, los plazos de logs y copias)."
+    }
+  ],
+  "comprobaciones": [
+    {
+      "afirmacion": "Seis documentos prometen correo de juego",
+      "propuesta": "incremental",
+      "resultado": "a medias",
+      "evidencia": "00-encargo.md l. 202 y 206 ya corregidos; quedan agenda l. 313 a 314 y 665 a 668, encargos l. 446, visual l. 3623, retransmision l. 12895 y 13004"
+    },
+    {
+      "afirmacion": "Your coach picks <rider>'s training from 25 Nov, when your plan ends",
+      "propuesta": "jugador",
+      "resultado": "falsa",
+      "evidencia": "packages/shared/src/trainingDay.ts l. 132 a 135: en manual, descanso_activo"
+    },
+    {
+      "afirmacion": "Resolver manual como mixto en ausencia no toca el motor",
+      "propuesta": "atacante",
+      "resultado": "cierta",
+      "evidencia": "trainingDay.ts en packages/shared; ENGINE_VERSION = 91 en packages/engine/src/constants.ts l. 853"
+    },
+    {
+      "afirmacion": "stageReadyEmail solo la usan sus tests y el canario",
+      "propuesta": "las tres",
+      "resultado": "cierta",
+      "evidencia": "grep: emails.test.ts l. 7 y 81 a 121, spoilerCanary.test.ts l. 5 y 206; queda un comentario en pageTitle.ts l. 5"
+    },
+    {
+      "afirmacion": "La web pide get-session al cargar y un gancho ahí cubre toda visita",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "Header.tsx l. 5 y 65, useSessionState.ts l. 23 (authClient.useSession)"
+    },
+    {
+      "afirmacion": "Las ofertas caducan a los 21 días de juego, unos 5 reales",
+      "propuesta": "jugador",
+      "resultado": "cierta",
+      "evidencia": "packages/db/src/contracts.ts l. 37, OFFER_TTL_DAYS = 21"
+    },
+    {
+      "afirmacion": "Privacy.tsx promete un canal que no existe",
+      "propuesta": "las tres",
+      "resultado": "cierta",
+      "evidencia": "apps/web/src/pages/Privacy.tsx l. 37 a 38"
+    },
+    {
+      "afirmacion": "users.name no lo lee nadie",
+      "propuesta": "las tres",
+      "resultado": "cierta",
+      "evidencia": "grep de users.name y name: users en apps/api/src y packages/db/src: solo el esquema; adminUsers.ts l. 114 a 122 lee corredor y equipo"
+    },
+    {
+      "afirmacion": "TOTP no choca con §9.1 punto 6",
+      "propuesta": "atacante, incremental",
+      "resultado": "a medias",
+      "evidencia": "00-encargo.md l. 352 a 353 («Solo correo y contraseña»); twoFactor 1.7.26 monta /two-factor/send-otp (ba17/plugins/two-factor/otp/index.mjs l. 63 a 78)"
+    },
+    {
+      "afirmacion": "Alargar la sesión es de E4",
+      "propuesta": "jugador, incremental",
+      "resultado": "cierta",
+      "evidencia": "docs/retransmision.md l. 6693; mapa 04 §7; atacante §5 la deja en 7 días"
+    }
+  ],
+  "duenio": [
+    {
+      "decision": "Segundo factor del panel",
+      "de_quien": "dueño",
+      "opciones": ["no en E4", "TOTP solo para el raíz"],
+      "defecto": "no en E4, con el correo raíz bloqueado en la web y segundo factor en su buzón"
+    },
+    {
+      "decision": "Qué se guarda de la fecha de nacimiento",
+      "de_quien": "dueño",
+      "opciones": ["fecha entera", "año", "solo que declaró 16"],
+      "defecto": "fecha entera, que es lo que él dijo"
+    },
+    {
+      "decision": "Plan de Resend",
+      "de_quien": "dueño",
+      "opciones": ["Pro antes de abrir el registro", "gratuito con tope diario de registros"],
+      "defecto": "Pro la semana antes de abrir el registro"
+    },
+    {
+      "decision": "Contraseñas filtradas (Have I Been Pwned)",
+      "de_quien": "dueño",
+      "opciones": ["no", "sí, fallando abierto", "sí, fallando cerrado"],
+      "defecto": "sí, fallando abierto"
+    },
+    {
+      "decision": "Duración máxima de la ausencia",
+      "de_quien": "dueño",
+      "opciones": ["28 días", "45 días", "90 días"],
+      "defecto": "28 días, por debajo de su «un mes»"
+    },
+    {
+      "decision": "Avisos encendidos de serie",
+      "de_quien": "dueño",
+      "opciones": [
+        "regla del mes y fin de ausencia (atacante A)",
+        "resumen diario de etapas, fin del plan y ausencia (jugador A)",
+        "los cuatro de incremental A"
+      ],
+      "defecto": "jugador A"
+    },
+    {
+      "decision": "Cuándo se pide el permiso",
+      "de_quien": "dueño",
+      "opciones": [
+        "solo en Account",
+        "además tras seguir una carrera",
+        "además tras crear el corredor"
+      ],
+      "defecto": "Account y una tarjeta tras seguir la primera carrera, que calla 30 días"
+    },
+    {
+      "decision": "El iPhone",
+      "de_quien": "dueño",
+      "opciones": [
+        "sin instrucción",
+        "la pantalla de inicio en iOS 26",
+        "paso a paso con capturas"
+      ],
+      "defecto": "sin instrucción hasta probarlo en un aparato"
+    },
+    {
+      "decision": "Pantalla del modo ausencia",
+      "de_quien": "dueño",
+      "opciones": [
+        "panel con fecha y líneas calculadas",
+        "tres atajos de duración",
+        "página propia y banda mientras dura"
+      ],
+      "defecto": "panel con fecha y líneas calculadas, y banda mientras dura"
+    },
+    {
+      "decision": "Pantalla de sesiones",
+      "de_quien": "dueño",
+      "opciones": ["lista sin IP", "lista con IP truncada", "solo el botón y el número"],
+      "defecto": "lista sin IP"
+    },
+    {
+      "decision": "Texto de privacidad",
+      "de_quien": "dueño",
+      "opciones": [
+        "prosa por apartados",
+        "tabla What, Why, How long",
+        "resumen arriba y detalle plegado"
+      ],
+      "defecto": "prosa por apartados; el contenido, a confirmar con un abogado"
+    },
+    {
+      "decision": "Condiciones de uso",
+      "de_quien": "dueño",
+      "opciones": ["línea bajo el botón", "casilla obligatoria", "nada hasta el abogado"],
+      "defecto": "línea bajo el botón con terms_version guardada"
+    },
+    {
+      "decision": "El equipo de quien se borra",
+      "de_quien": "dueño",
+      "opciones": ["nombre generado", "el que dejó"],
+      "defecto": "nombre generado, a confirmar con un abogado"
+    },
+    {
+      "decision": "manual en ausencia",
+      "de_quien": "síntesis",
+      "opciones": ["mixto mientras dura", "descanso como hoy"],
+      "defecto": "mixto mientras dura: ya lo decidió el dueño (§9.1.5)"
+    },
+    {
+      "decision": "«login» de la regla del mes",
+      "de_quien": "síntesis",
+      "opciones": ["visita con sesión", "entrada con contraseña"],
+      "defecto": "visita con sesión, con nota al dueño y a E7"
+    },
+    {
+      "decision": "Duración de la sesión",
+      "de_quien": "síntesis",
+      "opciones": ["7 días", "30 días", "90 días"],
+      "defecto": "30 días renovados cada día de uso"
+    },
+    {
+      "decision": "Correos de seguridad nuevos",
+      "de_quien": "síntesis",
+      "opciones": [
+        "contraseña cambiada",
+        "correo cambiado con deshacer",
+        "cuenta borrada",
+        "registro con un correo ajeno",
+        "entrada desde un navegador nuevo"
+      ],
+      "defecto": "los cinco, con tope por destinatario y presupuesto diario"
+    },
+    {
+      "decision": "DMARC con informes y webhooks de rebote",
+      "de_quien": "síntesis",
+      "opciones": ["ahora", "aplazados"],
+      "defecto": "ahora; el buzón de rua lo elige el dueño, fuera del dominio"
+    }
+  ]
+}

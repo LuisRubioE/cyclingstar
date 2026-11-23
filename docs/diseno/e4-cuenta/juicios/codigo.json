@@ -1,0 +1,408 @@
+{
+  "foco": "codigo",
+  "ganadora": "incremental",
+  "puntuaciones": [
+    {
+      "propuesta": "atacante",
+      "cobertura": 9,
+      "coherencia": 7,
+      "seguridad": 8,
+      "experiencia": 5,
+      "justificacion": "Lo que afirma del paquete está leído en 1.7.26 y es cierto (x-cs-client-ip por ipAddressHeaders, core17/utils/ip.mjs l. 221 a 228; resetPasswordTokenExpiresIn, password.mjs l. 73). Cubre lo que las otras no ven: SSRF de push, lista blanca, deshacer el cambio de correo, auditoría del panel. Pierde coherencia por su propio choque entre anular recuperaciones por value y el token de deshacer en la misma tabla, por un contador que cuenta tras la respuesta y por cinco rutas propias que sustituyen a las de better-auth; y experiencia por la puerta neutra y el enlace de 30 minutos."
+    },
+    {
+      "propuesta": "jugador",
+      "cobertura": 8,
+      "coherencia": 6,
+      "seguridad": 6,
+      "experiencia": 9,
+      "justificacion": "Arregla en un primer PR sin migración las pantallas que mienten del mapa 05, y su emisor con notice_log único es el único que no depende de quién corre el tick. Pero escribe contra su propia opción (borrar reset-password:* con storeIdentifier hashed, que quita el prefijo), mete una cookieCache que deja 60 s a la sesión cerrada en toda la API, sitúa el barrido en index.ts l. 69 a 98 (web) y no en el cron, no trata la SSRF del endpoint y no costea Account en subpáginas."
+    },
+    {
+      "propuesta": "incremental",
+      "cobertura": 7,
+      "coherencia": 8,
+      "seguridad": 6,
+      "experiencia": 6,
+      "justificacion": "La única que ha medido lo que propone, y casi todo es verdad: las cinco opciones de 1.7.26, el validador antes de buscar el correo, el borrado atómico por beforeDelete, la enumeración cerrada, trustProxy por función. Lo que no midió es lo que falla: en ráfaga su contador en verifications deja pasar 39 de 40, el emisor en tick/main.ts no ve los días que avanza web, la exención depende de cs_viewer; y no trata la SSRF, el aviso a la dirección vieja ni onExistingUserSignUp."
+    }
+  ],
+  "injertos": [
+    {
+      "id": "I-codigo-01",
+      "de": "jugador",
+      "seccion": "§13 (0056) y atacante §6.2",
+      "que": "Límite por cuenta en una tabla propia con clave primaria (auth_limits), reservado antes de reenviar con INSERT … ON CONFLICT (key) DO UPDATE … RETURNING count y borrado al 200.",
+      "porque": "Medido: 10 × 401 y 30 × 429 en una ráfaga de 40 (reserva.json), frente a 39 × 401 con el contador en verifications; y no depende de la purga oportunista de better-auth (internal-adapter.mjs l. 806)."
+    },
+    {
+      "id": "I-codigo-02",
+      "de": "atacante",
+      "seccion": "§4.1 y §6.3 (o jugador §6, cs_known)",
+      "que": "Cookie de aparato propia, firmada como cs_viewer, emitida al entrar bien y al recuperar, que exime del límite por cuenta.",
+      "porque": "cs_viewer solo se emite en rutas horizon o watch con sesión (spoiler.ts l. 355 a 377): con spoilerMode off no habría exención y cualquiera podría cerrar una cuenta."
+    },
+    {
+      "id": "I-codigo-03",
+      "de": "jugador",
+      "seccion": "§8.4",
+      "que": "Emisor como barrido idempotente con notice_log unique (user_id, kind, ref), llamado tras cualquier runTick (web, cron y /admin).",
+      "porque": "Con AUTO_TICK=on, el defecto (env.ts l. 84), el día lo procesa web (index.ts l. 74 a 106) y tick/main.ts sale con daysProcessed 0."
+    },
+    {
+      "id": "I-codigo-04",
+      "de": "atacante",
+      "seccion": "§8.4",
+      "que": "Lista de hosts del endpoint de push y solo https:, con test (localhost, *.railway.internal, una IP).",
+      "porque": "La API hará POST a una URL que manda el cliente: SSRF hacia la red privada de Railway."
+    },
+    {
+      "id": "I-codigo-05",
+      "de": "atacante",
+      "seccion": "§8.3",
+      "que": "notificationclick solo abre URL del mismo origen.",
+      "porque": "Una clave VAPID filtrada no debe poder llevar a otra web."
+    },
+    {
+      "id": "I-codigo-06",
+      "de": "atacante",
+      "seccion": "§4.5 (E5, E7) y jugador §4.4",
+      "que": "Correo «email changed» a la dirección vieja y onExistingUserSignUp, como mucho uno cada 24 h.",
+      "porque": "Con backgroundTasks no delatan por tiempo (sign-up.mjs l. 201 a 206 los encola tras la transacción) y incremental solo avisa del cambio de contraseña."
+    },
+    {
+      "id": "I-codigo-07",
+      "de": "atacante",
+      "seccion": "§4.2",
+      "que": "Token en el fragmento (#token=) para todos los enlaces de correo, con ?token= y GET reset-password/:token vivos 7 días por los correos en vuelo.",
+      "porque": "La redacción de logs no cubre la petición de la página; incremental solo lo hace con la aprobación."
+    },
+    {
+      "id": "I-codigo-08",
+      "de": "jugador",
+      "seccion": "§6.1 y PR 1",
+      "que": "authErrors.ts, 429 de Fastify con message y retryAfterS (app.ts l. 213 a 217), ForgotPassword que mira la respuesta, VerifyEmail que pregunta por la sesión.",
+      "porque": "Arregla lo que el jugador ya ve, sin migración; cabe como PR 2."
+    },
+    {
+      "id": "I-codigo-09",
+      "de": "atacante",
+      "seccion": "§7.1",
+      "que": "La lista blanca como test que recorre los puntos de auth.api y exige 404 fuera de la lista, con disabledPaths calculado como su complemento.",
+      "porque": "Una subida o un plugin que añada una ruta no se expone sin decidirlo, sin reescribir el proxy."
+    },
+    {
+      "id": "I-codigo-10",
+      "de": "atacante",
+      "seccion": "§7.3 punto 2 y jugador §4.3",
+      "que": "El correo de ADMIN_EMAIL no se cambia desde la web: 403 en el gancho before de /change-email.",
+      "porque": "Es la puerta del panel (mapa 04, [DOC 22]) y cuesta cinco líneas."
+    },
+    {
+      "id": "I-codigo-11",
+      "de": "atacante",
+      "seccion": "§5 y jugador §5",
+      "que": "Pantalla de sesiones sobre una ruta propia con id opaco, sin token ni IP.",
+      "porque": "list-sessions entrega al JavaScript los tokens de las otras sesiones (mapa 01 §1)."
+    },
+    {
+      "id": "I-codigo-12",
+      "de": "jugador",
+      "seccion": "§4.1",
+      "que": "24 h para los JWT de correo con emailVerification.expiresIn, si el dueño lo acepta.",
+      "porque": "Medido en el código que gobierna todos los JWT de correo de 1.7.26; es una línea."
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-codigo-01",
+      "seccion_ganadora": "§6",
+      "que": "El contador por cuenta en verifications no aguanta una ráfaga; va a tabla con clave primaria (la 0056 pasa a auth_limits y push_subscriptions a 0057).",
+      "evidencia": "rafaga.json: 40 entradas a la vez, límite 10: 39 × 401, 1 × 429, tres filas de contador y la buena entra; verifications sin índice único (schema.ts l. 168 a 175)."
+    },
+    {
+      "id": "O-codigo-02",
+      "seccion_ganadora": "§6",
+      "que": "La exención por cs_viewer ata la seguridad a spoilerMode de E2.",
+      "evidencia": "spoiler.ts l. 355 a 377 solo la emite en rutas horizon o watch con sesión; authProxy.ts l. 18 a 21 la borra al cerrar sesión."
+    },
+    {
+      "id": "O-codigo-03",
+      "seccion_ganadora": "§8",
+      "que": "El emisor tras runTick en tick/main.ts no ve los días que avanza web ni /admin/tick; VAPID tiene que entrar en loadTickEnv y en el entorno de web.",
+      "evidencia": "env.ts l. 84 (AUTO_TICK on por defecto); index.ts l. 74 a 106; railway.tick.json l. 8 y 9; env.ts l. 124."
+    },
+    {
+      "id": "O-codigo-04",
+      "seccion_ganadora": "§8",
+      "que": "No valida el endpoint de la suscripción: SSRF.",
+      "evidencia": "§8 y §13 de incremental: address text sin restricción de host."
+    },
+    {
+      "id": "O-codigo-05",
+      "seccion_ganadora": "§6",
+      "que": "La función de trustProxy no valida que la última entrada sea una IP, y con dos saltos daría la del salto; y el PR 2 borra la única prueba de lo que manda Railway (sessions.ip_address) antes de mirarla.",
+      "evidencia": "ip.json: 'basura' sale como IP; '203.0.113.7, 100.64.0.9' da 100.64.0.9."
+    },
+    {
+      "id": "O-codigo-06",
+      "seccion_ganadora": "§4 y §17",
+      "que": "backgroundTasks sin cierre ordenado: un despliegue puede tirar un correo en vuelo; hace falta guardar las promesas y esperarlas hasta 10 s en SIGTERM.",
+      "evidencia": "index.ts sin manejador de SIGTERM (búsqueda); mailer.ts l. 51 (TIMEOUT_MS)."
+    },
+    {
+      "id": "O-codigo-07",
+      "seccion_ganadora": "§7",
+      "que": "Contraseñas filtradas sin tiempo de espera: si el servicio cuelga, cuelga el registro.",
+      "evidencia": "plugins/haveibeenpwned/index.mjs l. 33 a 40: betterFetch sin timeout y 500 ante cualquier fallo."
+    },
+    {
+      "id": "O-codigo-08",
+      "seccion_ganadora": "§4",
+      "que": "Solo passwordChangedEmail: faltan el aviso a la dirección vieja al aplicarse el cambio de correo y onExistingUserSignUp.",
+      "evidencia": "mapa 05 §9 (ningún correo de cambio hecho); sign-up.mjs l. 201 a 206."
+    },
+    {
+      "id": "O-codigo-09",
+      "seccion_ganadora": "§5",
+      "que": "Acepta que list-sessions entregue los tokens de las otras sesiones al JavaScript.",
+      "evidencia": "mapa 01 §1 y §3, medido."
+    },
+    {
+      "id": "O-codigo-10",
+      "seccion_ganadora": "§15",
+      "que": "El test de enumeración tiene que medir también change-email, que la propuesta da por deducido.",
+      "evidencia": "update-user.mjs l. 456 a 460 (rama ocupada sin espera) frente a l. 491 a 502."
+    },
+    {
+      "id": "O-codigo-11",
+      "seccion_ganadora": "§3",
+      "que": "La puerta de la fecha solo en la web: con el registro abierto, la API tiene que responder 403 en crear corredor y tomar equipo.",
+      "evidencia": "incremental §3 lo aplaza; atacante §3 lo hace."
+    },
+    {
+      "id": "O-codigo-12",
+      "seccion_ganadora": "§16",
+      "que": "Con los injertos el coste sube a unas 1.900 líneas, 85 horas y tres migraciones (estimado).",
+      "evidencia": "§16 de incremental más los injertos 1 a 4, 6 y 11."
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-codigo-01",
+      "que": "La reserva atómica del límite por cuenta: atacante decide antes y cuenta después, jugador no dice cuándo, incremental comprueba en before y cuenta en after; las tres dejan pasar una ráfaga."
+    },
+    {
+      "id": "H-codigo-02",
+      "que": "El cierre ordenado del proceso con correos en segundo plano (backgroundTasks)."
+    },
+    {
+      "id": "H-codigo-03",
+      "que": "Cuántas réplicas tiene web: el límite de Fastify en memoria se multiplica por réplica y nadie lo comprueba."
+    },
+    {
+      "id": "H-codigo-04",
+      "que": "Leer sessions.ip_address en producción antes del PR que deja de guardar la IP, para saber qué cabecera manda Railway."
+    },
+    {
+      "id": "H-codigo-05",
+      "que": "El tiempo de espera de la consulta a Have I Been Pwned."
+    }
+  ],
+  "comprobaciones": [
+    {
+      "afirmacion": "El contador por cuenta cabe en verifications",
+      "propuesta": "incremental",
+      "resultado": "a medias",
+      "evidencia": "En serie cierta; en ráfaga de 40 con límite 10, 39 × 401 y tres filas (juez-codigo/rafaga.json). Sin índice único en identifier (schema.ts l. 168 a 175). Con tabla de clave primaria y reserva previa, 10 × 401 y 30 × 429 (reserva.json). Hace falta tabla."
+    },
+    {
+      "afirmacion": "trustProxy: 1 da siempre la del socket desde 5.12.1",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "fastify@5.12.8/lib/request.js l. 53 a 56; ip.json: 5.12.8 da el socket en todos los casos, 5.11.2 la última de X-Forwarded-For."
+    },
+    {
+      "afirmacion": "trustProxy: true toma la primera de X-Forwarded-For y la función de un salto la última; con una sola entrada dan lo mismo",
+      "propuesta": "atacante",
+      "resultado": "cierta",
+      "evidencia": "ip.json con remoteAddress 10.1.2.3. Con dos saltos la función da la IP del salto; ninguna valida ('basura' pasa)."
+    },
+    {
+      "afirmacion": "backgroundTasks, storeIdentifier hashed, disabledPaths, disableIpTracking y revokeSessionsOnPasswordReset existen en 1.7.26 y hacen lo que dicen",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "create-context.mjs l. 212 a 224; internal-adapter.mjs l. 751 y 801; api/index.mjs l. 169 a 171; core17/utils/ip.mjs l. 218 y rate-limiter/index.mjs l. 243; utils/password.mjs l. 34."
+    },
+    {
+      "afirmacion": "emailVerification.expiresIn gobierna todos los JWT de correo",
+      "propuesta": "jugador",
+      "resultado": "cierta",
+      "evidencia": "1.7.26: email-verification.mjs l. 29, 109 y 201; update-user.mjs l. 457, 474, 491 y 508; solo la rama heredada (l. 253) fija 3.600 s y no se alcanza sin updateEmailWithoutVerification."
+    },
+    {
+      "afirmacion": "El validador de additionalFields corre antes de buscar el correo y no delata",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "sign-up.mjs l. 157 frente a l. 192; db/schema.mjs l. 81."
+    },
+    {
+      "afirmacion": "onPasswordReset borra las filas reset-password:* del usuario",
+      "propuesta": "jugador",
+      "resultado": "a medias",
+      "evidencia": "Con hashed el identificador es SHA-256 base64url de reset-password:<token> entero (verification-token-storage.mjs l. 4 a 10): hay que borrar por value."
+    },
+    {
+      "afirmacion": "Anular las recuperaciones anteriores con DELETE … WHERE value = id AND identifier <> hash",
+      "propuesta": "atacante",
+      "resultado": "a medias",
+      "evidencia": "Orden correcto (password.mjs l. 75 y 82), pero borra también su token de deshacer, que comparte value y tiene menos de 1.800 s."
+    },
+    {
+      "afirmacion": "El plugin haveIBeenPwned falla cerrado",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "plugins/haveibeenpwned/index.mjs l. 33 a 40; sin tiempo de espera."
+    },
+    {
+      "afirmacion": "El gancho after ve el 401 y el before puede cortar la ruta o cambiar el cuerpo",
+      "propuesta": "incremental",
+      "resultado": "cierta",
+      "evidencia": "api/dispatch.mjs l. 111 a 124 y 256 a 264."
+    },
+    {
+      "afirmacion": "Los avisos salen de tick/main.ts tras runTick con los días que acaba de procesar",
+      "propuesta": "incremental",
+      "resultado": "falsa",
+      "evidencia": "Con AUTO_TICK=on (defecto, env.ts l. 84) los días los procesa web (index.ts l. 74 a 106) y /admin/tick; el cron sale con daysProcessed 0."
+    },
+    {
+      "afirmacion": "El aparato conocido es el que trae cs_viewer",
+      "propuesta": "incremental",
+      "resultado": "a medias",
+      "evidencia": "spoiler.ts l. 355 a 377: solo en rutas horizon o watch con sesión y viewerSecret; authProxy.ts l. 18 a 21 la borra al cerrar sesión."
+    },
+    {
+      "afirmacion": "Con cookieCache de 60 s cerrar otro aparato tarda un minuto como mucho",
+      "propuesta": "jugador",
+      "resultado": "cierta",
+      "evidencia": "routes/context.ts l. 53 a 58 usa auth.api.getSession; session.mjs l. 41 a 50: vale para toda la API, también tras recuperar."
+    }
+  ],
+  "duenio": [
+    {
+      "decision": "Vida de la sesión",
+      "de_quien": "dueño",
+      "opciones": ["7 días", "30 días", "90 días"],
+      "defecto": "30 días, con la pantalla de sesiones"
+    },
+    {
+      "decision": "Qué se guarda de la fecha de nacimiento",
+      "de_quien": "dueño",
+      "opciones": ["la fecha entera", "el año"],
+      "defecto": "la fecha entera (mismo coste en código)"
+    },
+    {
+      "decision": "Plan de Resend",
+      "de_quien": "dueño",
+      "opciones": ["Pro antes de abrir el registro", "gratuito con tope diario de registros"],
+      "defecto": "Pro antes de abrir"
+    },
+    {
+      "decision": "TOTP del panel",
+      "de_quien": "dueño",
+      "opciones": ["no en E4, con el correo raíz bloqueado", "twoFactor solo para administradores"],
+      "defecto": "no en E4, con el correo raíz bloqueado"
+    },
+    {
+      "decision": "Contraseñas filtradas",
+      "de_quien": "dueño",
+      "opciones": ["sí, fallo cerrado", "sí, 3 s de espera y fallo abierto registrado", "no"],
+      "defecto": "sí, 3 s de espera y fallo abierto registrado"
+    },
+    {
+      "decision": "Duración máxima de la ausencia",
+      "de_quien": "dueño",
+      "opciones": ["28 días", "45 días"],
+      "defecto": "28 días (roza a E7)"
+    },
+    {
+      "decision": "Casilla de condiciones",
+      "de_quien": "dueño",
+      "opciones": ["línea bajo el botón", "casilla obligatoria"],
+      "defecto": "línea bajo el botón, a confirmar con un abogado"
+    },
+    {
+      "decision": "Vida de los JWT de correo",
+      "de_quien": "síntesis",
+      "opciones": ["1 h", "24 h"],
+      "defecto": "24 h (una opción, todos los JWT)"
+    },
+    {
+      "decision": "trustProxy, tabla de límites y cifras, disabledPaths, hashed, backgroundTasks, emisor, lista de hosts, cookie de aparato, sin cookieCache",
+      "de_quien": "síntesis",
+      "opciones": ["lo de §5 y §6 de este juicio"],
+      "defecto": "función de un salto validada, auth_limits con reserva previa, sin cookieCache"
+    },
+    {
+      "decision": "Avisos encendidos de serie",
+      "de_quien": "dueño",
+      "opciones": [
+        "A: etapa con su corredor, ofertas y regla del mes encendidos; carreras seguidas apagadas",
+        "B: resumen diario (pide time_zone y horas de silencio)",
+        "C: todos apagados"
+      ],
+      "defecto": "A"
+    },
+    {
+      "decision": "Cuándo se pide el permiso",
+      "de_quien": "dueño",
+      "opciones": [
+        "A: en Account y una tarjeta tras crear el corredor",
+        "B: solo en Account",
+        "C: además en la portada a la tercera visita"
+      ],
+      "defecto": "A"
+    },
+    {
+      "decision": "El jugador de iPhone",
+      "de_quien": "dueño",
+      "opciones": [
+        "A: aún no hay avisos en iPhone, hasta probar iOS 26 en un aparato",
+        "B: la instrucción de la pantalla de inicio"
+      ],
+      "defecto": "A"
+    },
+    {
+      "decision": "Pantalla del modo ausencia",
+      "de_quien": "dueño",
+      "opciones": [
+        "A: panel en Account con fecha y dos líneas calculadas",
+        "B: atajos de 1, 2 y 4 semanas",
+        "C: página propia"
+      ],
+      "defecto": "A"
+    },
+    {
+      "decision": "Pantalla de sesiones",
+      "de_quien": "dueño",
+      "opciones": ["A: lista sin IP", "B: con IP truncada", "C: solo el botón de cerrar las otras"],
+      "defecto": "A"
+    },
+    {
+      "decision": "Texto de privacidad",
+      "de_quien": "dueño",
+      "opciones": ["A: por paneles", "B: tabla", "C: resumen y detalle plegado"],
+      "defecto": "A"
+    },
+    {
+      "decision": "Account",
+      "de_quien": "dueño",
+      "opciones": [
+        "A: una página con paneles y el caso del teclado (captura 55) arreglado",
+        "B: subpágina por tarea (reescribe Account.tsx, 417 l., y sus tests)"
+      ],
+      "defecto": "A"
+    }
+  ]
+}

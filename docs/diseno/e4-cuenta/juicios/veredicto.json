@@ -1,0 +1,1940 @@
+{
+  "cabecera": {
+    "fase": "E4 · fase 3a (arquitecto)",
+    "arbol": "2a29e6d (main, 19-11-2026). Hasta a781831 solo cambian documentos de E4: git diff --stat 2a29e6d HEAD -- apps packages, vacío.",
+    "engine_version": 91,
+    "engine_version_donde": "packages/engine/src/constants.ts l. 853; E4 no la sube ni toca packages/engine/",
+    "ultima_migracion": "0054_modo_oscuro",
+    "proxima_migracion": "0055 (packages/db/drizzle/, la última es 0054_modo_oscuro.sql)",
+    "estados": "Todo injerto, objeción y hueco nace «pendiente». El ensamblador (fase 3c) lo marca «aplicado» cuando su id aparece en el bloque de cierre de alguna sección de borrador/ («Injertos aplicados», «Objeciones resueltas», «Huecos rellenados») y anota en aplicado_en las secciones de esos bloques.",
+    "ficheros_leidos": "Enteros: 00-encargo.md (con §9.1), 01-fase-propuestas.md, 03-fase-sintesis.md, los cinco mapas, las tres propuestas (jugador 597 l., atacante 597, incremental 417) y los tres juicios (.md y .json). Modelos: docs/diseno/e3-visual/juicios/veredicto.json y borrador/00-esqueleto.md, 00-decisiones.md y 00-glosario.md. Comprobado en el código por el arquitecto, sin medir: packages/shared/src/trainingDay.ts l. 132-135; apps/api/src/env.ts l. 84 y 124; apps/api/src/index.ts l. 48, 56, 74-77 y 90 (los cuatro runTick de web); apps/api/src/tick/main.ts l. 11; apps/api/src/routes/admin.ts l. 147; apps/api/src/app.ts l. 160; packages/db/src/contracts.ts l. 37; railway.tick.json l. 8-9; la lista de apps/web/src/components/ui/ y de apps/web/src/pages/."
+  },
+  "juicios": [
+    {
+      "foco": "codigo: coherencia con el código y coste; si es verdad en el código y en el paquete lo que cada propuesta dice, cuánto cuesta y si deja producción desplegable con los usuarios que ya existen.",
+      "ganadora": "incremental",
+      "resumen": "Gana incremental: la única que midió lo que propone, y casi todo es verdad (las cinco opciones de better-auth 1.7.26, el validador antes de buscar el correo, el borrado atómico por beforeDelete, la enumeración cerrada, trustProxy por función). Falla en lo que no midió: en ráfaga su contador en verifications deja pasar 39 de 40 (C1), su emisor en tick/main.ts no ve los días que avanza web con AUTO_TICK=on (C11) y su aparato conocido depende de cs_viewer (C12). atacante tiene el modelo de amenazas más completo y lo paga en código propio (cinco rutas, proxy reescrito) y en su propio choque entre anular recuperaciones por value y el token de deshacer (C8). jugador, las mejores pantallas y el emisor más robusto (notice_log), con una cookieCache de 60 s que deja viva la sesión cerrada (C13) y el prefijo reset-password:* que el hash borra (C7).",
+      "ficheros": ["juicios/codigo.md", "juicios/codigo.json"],
+      "puntuaciones": [
+        {
+          "propuesta": "atacante",
+          "cobertura": 9,
+          "coherencia": 7,
+          "seguridad": 8,
+          "experiencia": 5,
+          "suma": 29
+        },
+        {
+          "propuesta": "jugador",
+          "cobertura": 8,
+          "coherencia": 6,
+          "seguridad": 6,
+          "experiencia": 9,
+          "suma": 29
+        },
+        {
+          "propuesta": "incremental",
+          "cobertura": 7,
+          "coherencia": 8,
+          "seguridad": 6,
+          "experiencia": 6,
+          "suma": 27
+        }
+      ],
+      "cuentas": {
+        "injertos": 12,
+        "objeciones": 12,
+        "huecos": 5,
+        "comprobaciones": 13
+      }
+    },
+    {
+      "foco": "seguridad: qué le queda a quien quiere quitarle la cuenta a otro, bloquearlo, saber si juega, usar el servidor contra la red privada o abrir el panel; y qué ve el jugador a 360 px y en un iPhone cuando algo falla.",
+      "ganadora": "atacante",
+      "resumen": "Gana atacante: la única que recorre los diez atacantes con su coste y defiende la SSRF de los endpoint, el panel raíz, el escáner en todos los enlaces, el clic del aviso a otro origen y la carrera tras recuperar (su WeakMap funciona, C5). Pierde por tres topes mal calibrados (L1 y L5 diarios dejan al dueño un día fuera; anular al pedir regala al atacante el enlace del dueño; L2 sin tope diario) y porque no vio el mapa 05. jugador es la mejor en el teléfono y la más floja en seguridad (cambio de correo sin contraseña con aprobación GET de 24 h, E7 sin tope, sin SSRF, cs_known que exime del todo, recuperar sin cookie: medido, 429). incremental, la más verificable (siete opciones reproducidas por el juez), con un tope de registros que es un botón de apagado para cualquiera.",
+      "ficheros": ["juicios/seguridad.md", "juicios/seguridad.json"],
+      "puntuaciones": [
+        {
+          "propuesta": "atacante",
+          "cobertura": 8,
+          "coherencia": 7,
+          "seguridad": 9,
+          "experiencia": 5,
+          "suma": 29
+        },
+        {
+          "propuesta": "jugador",
+          "cobertura": 8,
+          "coherencia": 7,
+          "seguridad": 4,
+          "experiencia": 9,
+          "suma": 28
+        },
+        {
+          "propuesta": "incremental",
+          "cobertura": 7,
+          "coherencia": 9,
+          "seguridad": 6,
+          "experiencia": 6,
+          "suma": 28
+        }
+      ],
+      "cuentas": {
+        "injertos": 13,
+        "objeciones": 12,
+        "huecos": 6,
+        "comprobaciones": 12
+      }
+    },
+    {
+      "foco": "cobertura: los siete puntos de 00-encargo.md §1, sus §2 y §3, las seis decisiones de §9.1, los [DUEÑO n] y [DOC n] del mapa 04, lo que E2 y E3 dejaron a E4 y las fronteras de §5; y qué decide cada propuesta que es del dueño sin decirlo.",
+      "ganadora": "jugador",
+      "resumen": "Gana jugador: 12 ●, 3 ◐ y 4 ○ en la tabla cruzada (atacante 9, 5 y 5; incremental 8, 8 y 3). La única que cumple las dos consecuencias escritas de §9.1.3 (ningún correo de juego, dicho en el pie de cada correo, y la regla del mes enseñada en la web a quien no tiene avisos), la única que leyó el mapa 05 y arregla las pantallas que mienten y la que responde a E2 con la sesión de 30 días. Pierde por delegar el panel raíz en otra lente, por su pantalla de ausencia que promete en manual algo falso (trainingDay.ts l. 132-135), por no corregir ningún documento y por dejar sin tope el correo de registro ajeno. Advierte que el TOTP del panel choca con el titular «Solo correo y contraseña» de §9.1.6 y que twoFactor 1.7.26 monta /two-factor/send-otp (C8).",
+      "ficheros": ["juicios/cobertura.md", "juicios/cobertura.json"],
+      "puntuaciones": [
+        {
+          "propuesta": "jugador",
+          "cobertura": 8,
+          "coherencia": 6,
+          "seguridad": 6,
+          "experiencia": 9,
+          "suma": 29
+        },
+        {
+          "propuesta": "atacante",
+          "cobertura": 7,
+          "coherencia": 6,
+          "seguridad": 9,
+          "experiencia": 5,
+          "suma": 27
+        },
+        {
+          "propuesta": "incremental",
+          "cobertura": 6,
+          "coherencia": 8,
+          "seguridad": 7,
+          "experiencia": 5,
+          "suma": 26
+        }
+      ],
+      "cuentas": {
+        "injertos": 11,
+        "objeciones": 8,
+        "huecos": 6,
+        "comprobaciones": 10
+      }
+    }
+  ],
+  "ganadora": {
+    "propuesta": "jugador",
+    "metodo": "suma de puntuaciones, porque no hay mayoría: cada juez elige una propuesta distinta (codigo, incremental; seguridad, atacante; cobertura, jugador).",
+    "votos": {
+      "jugador": 1,
+      "atacante": 1,
+      "incremental": 1
+    },
+    "sumas_por_juez": {
+      "jugador": {
+        "codigo": 29,
+        "seguridad": 28,
+        "cobertura": 29
+      },
+      "atacante": {
+        "codigo": 29,
+        "seguridad": 29,
+        "cobertura": 27
+      },
+      "incremental": {
+        "codigo": 27,
+        "seguridad": 28,
+        "cobertura": 26
+      }
+    },
+    "total": {
+      "jugador": 86,
+      "atacante": 85,
+      "incremental": 81
+    },
+    "por_eje": {
+      "cobertura": {
+        "jugador": 24,
+        "atacante": 24,
+        "incremental": 20
+      },
+      "coherencia": {
+        "jugador": 19,
+        "atacante": 20,
+        "incremental": 25
+      },
+      "seguridad": {
+        "jugador": 16,
+        "atacante": 26,
+        "incremental": 19
+      },
+      "experiencia": {
+        "jugador": 27,
+        "atacante": 15,
+        "incremental": 17
+      }
+    },
+    "calculo": "Cada juez puntúa cada propuesta en cuatro ejes (cobertura, coherencia, seguridad, experiencia) de 1 a 10; se suman los cuatro ejes de los tres juicios, con un máximo de 120. jugador: 29 (codigo: 8 + 6 + 6 + 9) + 28 (seguridad: 8 + 7 + 4 + 9) + 29 (cobertura: 8 + 6 + 6 + 9) = 86. atacante: 29 (9 + 7 + 8 + 5) + 29 (8 + 7 + 9 + 5) + 27 (7 + 6 + 9 + 5) = 85. incremental: 27 (7 + 8 + 6 + 6) + 28 (7 + 9 + 6 + 6) + 26 (6 + 8 + 7 + 5) = 81. Calculado con este script sobre los tres .json.",
+    "margen": "UN punto entre jugador (86) y atacante (85); cinco sobre incremental (81). Es un empate técnico: la base da la estructura del documento y la voz (los recorridos, las pantallas dibujadas, los textos en inglés, el emisor con notice_log, Welcome back y la regla del mes en la web), pero NO decide la seguridad. Los injertos de seguridad de atacante (la SSRF de los avisos, I-01 e I-02; la cookie de aparato tras recuperar, I-03; el token en el fragmento con página de botón contra los escáneres, I-04; el panel del administrador, I-05; la lista blanca, I-06) y las opciones medidas de better-auth de incremental (I-07 a I-10) no son opcionales: entran todos, y donde la base dice otra cosa manda el injerto.",
+    "nota": "Sumadas por eje, jugador gana en experiencia (27, frente a 17 y 15) y empata en cobertura con atacante (24); atacante gana en seguridad (26, frente a 19 de incremental y 16 de jugador); incremental gana en coherencia (25, frente a 20 y 19). La base es la peor en seguridad de las tres: por eso la mitad del documento (§2, §5 a §9 y §13) es más de atacante y de incremental que de la base, y el esqueleto lo dice sección a sección.",
+    "fusion": {
+      "jugador (base)": "la estructura y la voz: los ocho recorridos con la fricción contada; las pantallas que mienten arregladas primero (el PR 1); authErrorText con Retry-After; CheckInbox en sessionStorage; DateField de tres campos con autocomplete bday-*; la puerta neutra en sessionStorage; Account como lista con subpáginas (DD-07); Devices sin IP; los textos de los correos; la web como canal y el aviso que solo adelanta, con un gemelo en la web para cada aviso; stage_digest con tope y silencio; notice_log único; Welcome back y la regla del mes enseñada en la web; las líneas calculadas del modo ausencia; el texto de Privacy.tsx; la exportación; la sesión de 30 días.",
+      "atacante": "el modelo de amenazas (diez atacantes, lo que no se defiende); la SSRF de los endpoint de push y el clic solo al propio origen; la cookie de aparato cs_device emitida al entrar y al recuperar; todo enlace de correo a una página con botón y el token en el fragmento; el panel raíz (correo fijo, admin_audit, TOTP como DD-01); la lista blanca de rutas; las claves HMAC; los topes de correo (L2 a L6) y el presupuesto con prioridades; el cambio de correo con contraseña y su deshacer; los correos de entrada nueva y de registro ajeno; manual a mixto en ausencia; el techo de 90 días de la sesión; get-session sin token; exportar con contraseña; CAA y DMARC con informes; la purga de cuentas sin confirmar.",
+      "incremental": "opción antes que gancho y gancho antes que ruta propia: revokeSessionsOnPasswordReset, storeIdentifier hashed, backgroundTasks, disabledPaths, disableIpTracking, el limitador de better-auth apagado por escrito, el validator de additionalFields, el borrado por beforeDelete con deleteUserAsAdmin; trustProxy por función con la alarma xff_varias y las dos trampas medidas de la subida (trustProxy: 1 y SchemaMismatchError); users cambia una vez; inactiveSince y «login» como visita con sesión; last_seen_at en el gancho de get-session; el PR de documentos; el iPhone sin instrucción por defecto; offer_received."
+    }
+  },
+  "ranking": [
+    ["jugador", 86],
+    ["atacante", 85],
+    ["incremental", 81]
+  ],
+  "votos": {
+    "jugador": 1,
+    "atacante": 1,
+    "incremental": 1
+  },
+  "injertos": [
+    {
+      "id": "I-01",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§8.4"
+      },
+      "fuentes": ["I-codigo-04", "I-cobertura-10", "O-seguridad-06"],
+      "que": "La SSRF de los avisos: un endpoint de suscripción solo se acepta con esquema https:, puerto vacío o 443, sin usuario ni contraseña en la URL y con host en PUSH_ALLOWED_HOSTS (fcm.googleapis.com, updates.push.services.mozilla.com, web.push.apple.com y el sufijo .notify.windows.com); se valida al guardar y otra vez al enviar (filas viejas), el error del envío nunca vuelve al navegador y no hay «aviso de prueba» que salga de la API.",
+      "porque": "web-push 4.0.0 abre TLS al host y puerto de la URL sea cual sea el esquema (web-push-lib.js l. 343-363); el servicio de 127.0.0.1 recibió un saludo TLS y ECONNRESET, ECONNREFUSED y ENOTFOUND distinguen puertos (seguridad C2, out/ssrf.json). jugador e incremental no lo tratan.",
+      "destino": ["§13"],
+      "decision": ["D-46"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-02",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§8.3"
+      },
+      "fuentes": ["I-codigo-05"],
+      "que": "notificationclick solo abre una URL del propio origen (https://www.cyclingstar.app); cualquier otra abre /.",
+      "porque": "Una clave VAPID filtrada no debe poder llevar al jugador a otra web; jugador abre data.url sin mirarla (seguridad, tabla 16).",
+      "destino": ["§13"],
+      "decision": ["D-45"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-03",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§4.3 y §6.3"
+      },
+      "fuentes": ["I-codigo-02", "comprobaciones 4 y 5 de seguridad"],
+      "que": "La cookie de aparato cs_device, propia y firmada como cs_viewer, emitida al entrar bien y al navegador que recupera la contraseña (onPasswordReset apunta el correo en un WeakMap<Request, string> que el proxy lee al ver el 200), que exime del límite por cuenta L1; tiene su propio límite L2 y se invalida entera al rotar users.device_epoch.",
+      "porque": "Sin ella, recuperar no saca al dueño del cierre: tras recuperar, 10 fallos más del atacante y la contraseña nueva desde un aparato nuevo da 429 (seguridad C4, out/peticion.json). El WeakMap funciona: ctx.request es el mismo objeto (password.mjs 1.7.26 l. 164; seguridad C5). cs_viewer no sirve: solo se emite en rutas horizon o watch con sesión (spoiler.ts l. 355-377; codigo C12).",
+      "destino": ["§7", "§5"],
+      "decision": ["D-23", "D-13"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-04",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§4.2"
+      },
+      "fuentes": ["I-codigo-07", "O-seguridad-07"],
+      "que": "Todo enlace de correo aterriza en una página de la web con un botón y lleva el token en el fragmento (#token=), que la página borra con history.replaceState al leerlo; cada página de botón tiene su texto entero. Los enlaces de hoy (?token= y GET /api/auth/reset-password/:token) siguen valiendo LEGACY_LINK_GRACE_DAYS (7) por los correos en vuelo.",
+      "porque": "Los enlaces de hoy son GET que cambian estado (mapa 01 §2): un escáner del buzón aprueba un cambio de correo o confirma una cuenta ocupada con un correo ajeno (A10 más A2). La redacción de logs no cubre la petición de la página; el fragmento no viaja al servidor. incremental solo lo hace con la aprobación.",
+      "destino": ["§5"],
+      "decision": ["D-12"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-05",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§7.3"
+      },
+      "fuentes": ["I-cobertura-01", "I-codigo-10"],
+      "que": "El panel del administrador raíz: el correo de ADMIN_EMAIL no se cambia desde la web (403 en el gancho before de /change-email), cada PATCH y DELETE de /api/admin/users/:id queda en admin_audit (actor, acción, objetivo, hora, sin IP) y se ve en el panel; el segundo factor TOTP es la decisión del dueño DD-01, por defecto fuera de E4.",
+      "porque": "[DOC 22]: quien tenga el buzón de ADMIN_EMAIL tiene el juego (docs/ops.md l. 131-134). jugador lo delega: «El resto es de la lente atacante» (jugador.md l. 265; cobertura O-01).",
+      "destino": ["§8"],
+      "decision": ["D-31", "DD-01"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-06",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§7.1"
+      },
+      "fuentes": ["I-codigo-09", "I-seguridad-09"],
+      "que": "La lista blanca de rutas de better-auth en el proxy (doce), con disabledPaths calculado como su complemento y un test que recorre los puntos de auth.api y exige 404 a todo lo que no está en la lista.",
+      "porque": "Una subida o un plugin que añada una ruta no se expone sin decidirlo. disabledPaths da 404 antes del limitador y de los ganchos y ninguna variante de URL lo esquiva (seguridad C8; core/utils/url.mjs l. 18-30). jugador cierra por lista negra siete rutas.",
+      "destino": ["§8"],
+      "decision": ["D-29"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-07",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§0, §4, §5 y §7"
+      },
+      "fuentes": [
+        "comprobación 4 de codigo",
+        "comprobaciones 1 y 8 de seguridad",
+        "I-seguridad-13"
+      ],
+      "que": "Las opciones de better-auth 1.7.26 medidas: emailAndPassword.revokeSessionsOnPasswordReset, verification.storeIdentifier 'hashed' (los enlaces en claro de antes del despliegue siguen valiendo), advanced.backgroundTasks.handler, disabledPaths, advanced.ipAddress.disableIpTracking y rateLimit { enabled: false } por escrito.",
+      "porque": "Reproducidas por los jueces de código y de seguridad: create-context.mjs l. 212-224; internal-adapter.mjs l. 751 y 801; api/index.mjs l. 169-171; core17/utils/ip.mjs l. 218; utils/password.mjs l. 34 (out/medir-incremental.json). Son líneas de configuración en vez de código propio.",
+      "destino": ["§5", "§6", "§7", "§8"],
+      "decision": ["D-11", "D-13", "D-15", "D-18", "D-29"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-08",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§6"
+      },
+      "fuentes": ["I-seguridad-08", "O-codigo-05"],
+      "que": "trustProxy pasa de true a (addr, hop) => hop === 0 (la última dirección de X-Forwarded-For, la que pone el borde), con clientIp(request) que valida con net.isIP y, si no es una IP o la cabecera trae más de dos, registra xff_varias y usa la del socket. trustProxy: 1 está prohibido.",
+      "porque": "Medido en fastify 5.12.8: true da la primera (falsificable si Railway añadiera), la función la última, y 1 da siempre la del socket desde 5.12.1 (lib/request.js l. 53-57; codigo C2 y C3, ip.json). Ni la función ni true validan: 'basura' sale como IP.",
+      "destino": ["§7"],
+      "decision": ["D-21"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-09",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§3 y §1"
+      },
+      "fuentes": ["I-seguridad-10", "comprobación 6 de codigo"],
+      "que": "La edad se valida con user.additionalFields.birthDate y su validator de Zod (birthDateSchema en packages/shared), que corre antes de buscar el correo; la clave de Drizzle tiene que ser birthDate o better-auth 1.7 lanza SchemaMismatchError en la primera petición.",
+      "porque": "sign-up.mjs 1.7.26 l. 157 (parseUserInput) frente a l. 192 (findUserByEmail): el menor recibe el mismo 400 con un correo nuevo y con uno que existe (reproducido por seguridad, C11). La trampa de la clave la midió incremental (create-context.mjs l. 231).",
+      "destino": ["§4"],
+      "decision": ["D-06"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-10",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§11"
+      },
+      "fuentes": ["I-seguridad-11"],
+      "que": "El borrado atómico por el gancho beforeDelete de better-auth, que llama a deleteUserAsAdmin (adminUsers.ts l. 168-174) y borra en la misma transacción las filas de verifications del usuario; L3 se cuenta en un gancho after. Sustituye a DELETE /api/me de jugador.",
+      "porque": "Medido: 200 {success:true} y 0 filas de users, sessions y accounts en una transacción, sin ruta propia ni sacar delete-user de la lista (incremental, resultado.json; seguridad I-11).",
+      "destino": ["§10"],
+      "decision": ["D-38"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-11",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§5"
+      },
+      "fuentes": ["I-seguridad-12", "comprobación 13 de codigo"],
+      "que": "La sesión dura 30 días renovados cada día de uso, con un techo absoluto de 90 días desde created_at (se cierra en createCurrentUserId y en el proxy de get-session), y sin cookieCache.",
+      "porque": "Quien vuelve de vacaciones no escribe la contraseña y una cookie robada no vive más de un trimestre. Con cookieCache una sesión cerrada sigue valiendo en toda la API, también tras recuperar (routes/context.ts l. 53-58; session.mjs l. 41-50; codigo C13).",
+      "destino": ["§6"],
+      "decision": ["D-17"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-12",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§6.2"
+      },
+      "fuentes": ["I-codigo-01", "nota de seguridad §2"],
+      "que": "El límite por cuenta en la tabla auth_limits con clave primaria, la clave hecha con HMAC-SHA256 del correo normalizado (una clave derivada de SESSION_SECRET), reservado ANTES de reenviar a better-auth con INSERT … ON CONFLICT (key) DO UPDATE … RETURNING count y borrado al ver el 200.",
+      "porque": "En ráfaga de 40 con límite 10, el contador en verifications deja 39 × 401 y la buena entra; con tabla y reserva previa, 10 × 401 y 30 × 429 (codigo C1, rafaga.json y reserva.json). Un SHA-256 sin secreto se invierte con un diccionario de correos y jugador guarda el correo en claro (seguridad §2).",
+      "destino": ["§7"],
+      "decision": ["D-22"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-13",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§6.2 y §10.3"
+      },
+      "fuentes": ["I-cobertura-04", "O-seguridad-01", "O-seguridad-03", "O-seguridad-04"],
+      "que": "Los topes del correo y de la contraseña con sesión, recalibrados: L2 por cookie de aparato (10 en 15 min y 30 en 24 h), L3 contraseña con sesión (5 en 15 min y 10 en 24 h; la décima cierra esa sesión), L4 rutas que mandan correo por IP (20 en 24 h), L5 por destinatario (3 por hora, sin tope diario) y L6 el presupuesto diario MAIL_DAILY_BUDGET con 30 reservados a recuperaciones de cuentas confirmadas y los correos de aviso cortados al 70 %. L1 queda sin tope diario.",
+      "porque": "jugador añade cuatro correos sin tope (cobertura O-04); con el plan gratuito el correo 101 del día es un registro que no entra (mapa 02 §3). Las cifras de atacante dejaban al dueño un día fuera (L1 y L5 diarios), una cookie robada con 960 intentos al día y el presupuesto agotable por cinco IP: el juez de seguridad las corrige (O-01, O-03, O-04).",
+      "destino": ["§7", "§9"],
+      "decision": ["D-24", "D-26"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-14",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§4.5 (E5, E6 y E7)"
+      },
+      "fuentes": ["I-codigo-06", "I-cobertura-05", "O-seguridad-08"],
+      "que": "Los correos de cuenta que faltan además de los de jugador: email_changed a la dirección vieja con un enlace de deshacer de 72 horas (no 7 días), signup_existing por onExistingUserSignUp (uno cada 24 h por destinatario) y new_sign_in, la entrada desde un navegador sin cs_device (uno por hora; DD-16).",
+      "porque": "Con backgroundTasks no delatan por tiempo (sign-up.mjs l. 201-206 los encola tras la transacción). Sin contacto, el deshacer es la única vuelta de quien pierde su dirección y conserva el buzón viejo (cobertura I-05); 72 h y no 7 días porque el buzón viejo puede ser uno que el jugador dejaba atrás (seguridad O-08).",
+      "destino": ["§5"],
+      "decision": ["D-14", "D-16"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-15",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§7.1 (cambio de correo) e incremental §4"
+      },
+      "fuentes": ["tabla de seguridad, ítems 7 y 8"],
+      "que": "El cambio de correo pide la contraseña actual (gancho before de /change-email con ctx.context.password.verify, contado en L3), como mucho EMAIL_CHANGES_PER_DAY (3) al día, y al aplicarse cierra las otras sesiones.",
+      "porque": "En jugador, sesión robada más escáner es secuestro: sin contraseña y con una aprobación GET de 24 h (seguridad, tabla 8).",
+      "destino": ["§5"],
+      "decision": ["D-14"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-16",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§9"
+      },
+      "fuentes": ["I-cobertura-02", "comprobaciones 2 y 3 de cobertura"],
+      "que": "Mientras dura la ausencia, en training_mode manual el día sin orden se resuelve como mixto (el entrenador decide), en packages/shared/src/trainingDay.ts, sin tocar el motor; la línea de pantalla de jugador §9.1 se corrige con eso.",
+      "porque": "§9.1.5: «mientras dura decide el entrenador». Hoy manual da descanso_activo (trainingDay.ts l. 132-135). trainingDay.ts vive en packages/shared y ENGINE_VERSION sigue en 91.",
+      "destino": ["§14"],
+      "decision": ["D-53"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-17",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§16, PR 14"
+      },
+      "fuentes": ["I-cobertura-03"],
+      "que": "Un PR de documentos con el texto que sustituye a cada frase: los cinco del correo de juego (agenda l. 313-314 y 665-668, encargos l. 446, visual l. 3623, retransmision l. 12895 y 13004), los de «no hay recuperación» (encargos l. 312-316 y 776-778, G11 en epics l. 603-610, captacion.md l. 26-28, 213-216 y 263-264) y docs/ops.md l. 106 y 271; visual.md después de W5.",
+      "porque": "01-fase-propuestas.md punto 8 lo exige y jugador no lo tiene (cobertura O-03); la lección de B2: un documento que declara un estado falso es peor que no tener documento.",
+      "destino": ["§20", "§18"],
+      "decision": ["D-59"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-18",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§8.1"
+      },
+      "fuentes": ["I-cobertura-06"],
+      "que": "El principio que fija la frontera: ninguno de seguridad va por aviso; la seguridad va por correo, que no depende de un permiso. Junto al principio 2 de jugador.",
+      "porque": "Es la línea exacta entre el correo de cuenta que el dueño dejó y los avisos de juego que solo van por navegador y app (§9.1.3).",
+      "destino": ["§3", "§13"],
+      "decision": ["D-03", "D-42"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-19",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§5 y §9"
+      },
+      "fuentes": ["I-cobertura-07", "comprobación 4 de cobertura"],
+      "que": "inactiveSince(lastSeenAt, awayUntil) = max de las dos, como función pura en packages/db, y la frase de que el «login» de la regla del mes es una visita con sesión; last_seen_at se escribe en un gancho after de get-session, que la web pide al cargar cada página.",
+      "porque": "La regla del dueño dice «login» y el código no lo registra (mapa 04 §6.2, punto 6). get-session cubre toda visita: Header.tsx l. 5 y 65, useSessionState.ts l. 23 (cobertura C4).",
+      "destino": ["§14", "§10"],
+      "decision": ["D-54", "D-40"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-20",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§12"
+      },
+      "fuentes": ["I-cobertura-08"],
+      "que": "En el riesgo del contacto: la rectificación sin destino (la fecha mal tecleada no se corrige sin contacto); y el PR que retira «Ask and…» busca en apps/web/src otras promesas de contacto (contact, support, email us, ask) y las retira.",
+      "porque": "Completa el riesgo que §9.1.2 manda escribir y asegura que no queda otra frase que prometa un canal.",
+      "destino": ["§11"],
+      "decision": ["D-41"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-21",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§8 y §19.6"
+      },
+      "fuentes": ["I-cobertura-09", "DD del iPhone de los tres jueces"],
+      "que": "En iPhone, por defecto, ninguna instrucción de pantalla de inicio: «aún no hay avisos en iPhone» y dónde está todo en la web, hasta probarlo en un iOS 26 de verdad; la explicación de iOS 26 de jugador §8.3 pasa a alternativa B de DD-04.",
+      "porque": "Lo de iOS 26 no está comprobado en un aparato (mapa 02 §6) y roza la letra de D-00p (visual.md l. 2736); en iOS 16.4 a 18 sin manifiesto, la frase es falsa (seguridad O-09).",
+      "destino": ["§13", "§21"],
+      "decision": ["D-51", "DD-04"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-22",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§11.4"
+      },
+      "fuentes": ["I-cobertura-11"],
+      "que": "Exportar los datos pide la contraseña, como borrar, cuenta en L3 y como mucho EXPORTS_PER_DAY (3) al día.",
+      "porque": "El fichero lleva la fecha de nacimiento y el correo; jugador lo deja con la sesión sola.",
+      "destino": ["§10"],
+      "decision": ["D-39"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-23",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§6.5; incremental §7"
+      },
+      "fuentes": ["O-codigo-07", "O-seguridad-10", "H-codigo-05"],
+      "que": "Contraseñas filtradas (Have I Been Pwned) en registro, cambio y recuperación con un envoltorio propio de password.hash: HIBP_TIMEOUT_MS (3.000) de espera y fallo abierto registrado (hibp_caido). Es DD-11, por defecto sí.",
+      "porque": "El plugin falla cerrado y sin espera: si su API cuelga, cuelga el registro (haveibeenpwned/index.mjs l. 33-40 y 63-75; codigo C9, seguridad C7). Corre en las dos ramas del registro, así que no delata (sign-up.mjs l. 200 y 220).",
+      "destino": ["§7"],
+      "decision": ["D-27", "DD-11"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-24",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§5"
+      },
+      "fuentes": ["tabla de seguridad, ítem 17"],
+      "que": "El proxy reescribe el JSON de get-session y quita session.token, session.ipAddress y session.userAgent; la web no lee ninguno.",
+      "porque": "Una XSS futura no se lleva un token reutilizable; hoy el token viaja al JavaScript (mapa 01 §3).",
+      "destino": ["§6"],
+      "decision": ["D-19"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-25",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§8.4"
+      },
+      "fuentes": ["tabla de seguridad, ítem 16"],
+      "que": "Sign out borra antes la suscripción de avisos de ese navegador; cerrar una sesión desde Devices borra las suscripciones creadas desde ella (push_targets.session_id); la caducidad de la sesión no las borra.",
+      "porque": "En un ordenador compartido, la suscripción de jugador sobrevive al cierre de sesión. La caducidad no las borra porque el ausente que no entra es quien necesita away_warning.",
+      "destino": ["§13", "§6"],
+      "decision": ["D-49"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-26",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§10.1"
+      },
+      "fuentes": ["tabla de cobertura, ítem 13", "DD de cobertura «DMARC ahora»"],
+      "que": "DMARC con informes ahora (rua a un buzón del dueño fuera del dominio, DD-15; fo=1), DKIM de 2.048 bits si Resend deja elegir y un registro CAA con la autoridad que use Railway.",
+      "porque": "Sin rua nadie recibe un solo informe (mapa 02 §2); incremental los ata al contacto aparcado, y un rua no necesita contacto. Hoy no hay CAA.",
+      "destino": ["§9"],
+      "decision": ["D-32", "DD-15"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-27",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§3 y §13"
+      },
+      "fuentes": ["H-seguridad-02"],
+      "que": "La purga diaria borra las cuentas sin confirmar de más de PURGE_UNCONFIRMED_DAYS (7) sin corredor ni equipo, y con ellas la contraseña de quien se registró con un correo ajeno. Es DD-17, por defecto sí.",
+      "porque": "Es la salida de la cuenta ocupada con un correo ajeno (A2 más A10) y del registro como bombardeo de rebotes; cobertura la cuenta entre las decisiones que atacante tomó en silencio, por eso es del dueño.",
+      "destino": ["§9", "§15"],
+      "decision": ["D-34", "DD-17"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-28",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "atacante",
+        "seccion": "§3"
+      },
+      "fuentes": ["tabla de cobertura, ítem 19"],
+      "que": "users.name deja de ser la parte local del correo: la web no lo manda, un databaseHooks.user.create.before lo pone a 'Player' y la 0056 hace lo mismo con las filas de hoy; el gancho before de /sign-up/email rechaza image.",
+      "porque": "Es un dato personal que nadie lee (cobertura C7: solo el esquema; adminUsers.ts l. 114-122 enseña corredor y equipo).",
+      "destino": ["§4"],
+      "decision": ["D-08"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "I-29",
+      "tipo": "injerto",
+      "origen": {
+        "propuesta": "incremental",
+        "seccion": "§8"
+      },
+      "fuentes": ["DD de avisos de codigo, opción A"],
+      "que": "El aviso offer_received: el tick crea una oferta para su corredor libre; uno al día real como mucho.",
+      "porque": "Un agente libre ausente pierde sus ofertas a los 21 días de juego, unos 5 reales (mapa 03 §7; contracts.ts l. 37; cobertura C5). Es una oferta del mercado de hoy, no la negociación entre personas de E9.",
+      "destino": ["§13"],
+      "decision": ["D-42", "DD-02"],
+      "estado": "pendiente"
+    }
+  ],
+  "objeciones": [
+    {
+      "id": "O-01",
+      "fuentes": ["O-cobertura-01", "tabla de seguridad, ítem 14"],
+      "contra": "jugador",
+      "seccion_objetada": "§7",
+      "que": "El panel raíz no se diseña: «El resto es de la lente atacante».",
+      "evidencia": "jugador.md l. 265; 01-fase-propuestas.md l. 11 (cada propuesta es un diseño completo).",
+      "resolucion": "Se escribe entero con I-05: correo raíz fijo, admin_audit, TOTP como DD-01.",
+      "decision": ["D-31", "DD-01"],
+      "destino": ["§8"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-02",
+      "fuentes": ["O-cobertura-02", "comprobación 2 de cobertura"],
+      "contra": "jugador",
+      "seccion_objetada": "§9.1",
+      "que": "«Your coach picks <rider>'s training from 25 Nov, when your plan ends» es falso en manual y deja sin cumplir «mientras dura decide el entrenador».",
+      "evidencia": "packages/shared/src/trainingDay.ts l. 132-135; 00-encargo.md l. 349-351.",
+      "resolucion": "manual se resuelve como mixto mientras dura la ausencia (I-16) y la línea pasa a ser verdad para todos.",
+      "decision": ["D-53"],
+      "destino": ["§14"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-03",
+      "fuentes": ["O-cobertura-03"],
+      "contra": "jugador",
+      "seccion_objetada": "(falta)",
+      "que": "No hay sección de documentos que corregir: ni los del correo de juego ni los de «no hay recuperación».",
+      "evidencia": "01-fase-propuestas.md l. 63-64; mapa 04 §6.2 y §6.3.",
+      "resolucion": "§20 escribe la lista con el texto que sustituye a cada frase y el PR 16 la aplica (I-17).",
+      "decision": ["D-59"],
+      "destino": ["§20", "§18"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-04",
+      "fuentes": ["O-cobertura-04", "tabla de seguridad, ítem 10"],
+      "contra": "jugador",
+      "seccion_objetada": "§4.4 y §6",
+      "que": "Los cuatro correos nuevos, y sobre todo «Someone tried to sign up with your email», salen sin tope por destinatario ni presupuesto: llenan un buzón ajeno y gastan el cupo.",
+      "evidencia": "jugador.md l. 185-188 y la tabla de l. 231-241; mapa 02 §3.",
+      "resolucion": "L5 por destinatario, L6 presupuesto con reserva y prioridades, y un tope propio por correo (signup_existing uno cada 24 h, new_sign_in uno por hora) (I-13, I-14).",
+      "decision": ["D-24", "D-26", "D-16"],
+      "destino": ["§7", "§9", "§5"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-05",
+      "fuentes": ["O-cobertura-05", "H-cobertura-01"],
+      "contra": "jugador",
+      "seccion_objetada": "§8.1 y §13",
+      "que": "users.time_zone es un dato nuevo que Privacy no nombra ni dice de dónde sale; y lo que el brief da a E4 para E10 (locale, país, Accept-Language) no se guarda.",
+      "evidencia": "jugador.md l. 285 y 478; 00-encargo.md l. 205.",
+      "resolucion": "time_zone sale del navegador (Intl) al encender los avisos y Privacy lo nombra; locale se escribe al registrarse desde Accept-Language; el país ya lo tiene el corredor.",
+      "decision": ["D-43", "D-07", "D-36"],
+      "destino": ["§13", "§4", "§10"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-06",
+      "fuentes": ["O-cobertura-06"],
+      "contra": "jugador",
+      "seccion_objetada": "§5, §8.1 y §9.2",
+      "que": "Decisiones sin pasar por §19: la sesión del aparato que declara la ausencia alargada hasta la vuelta más 7 días (hasta 52), el silencio de 22 a 8 y Account rehecha en subpáginas, frontera con E3.",
+      "evidencia": "jugador.md l. 214, 285 y 221; docs/visual.md §17.21 y l. 1329-1333.",
+      "resolucion": "La sesión no se alarga (con 30 días renovables y 28 de ausencia como mucho no hace falta); el silencio queda como D-43 y se le enseña al dueño en §21; Account es DD-07 con su alternativa en la página de opciones y sus pantallas nuevas entran por el catálogo de E3.",
+      "decision": ["D-17", "D-43", "D-56", "DD-07"],
+      "destino": ["§6", "§13", "§12", "§21"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-07",
+      "fuentes": ["O-cobertura-07"],
+      "contra": "jugador",
+      "seccion_objetada": "§9.2 frente a §18",
+      "que": "«Si una ausencia se ve desde fuera» es de E7 en §9.2 y de E9 en §18.",
+      "evidencia": "jugador.md l. 362-364 y l. 571.",
+      "resolucion": "Es de E9, que es quien enseña a las personas entre sí; E4 no la enseña a nadie más que al propio jugador.",
+      "decision": ["D-54"],
+      "destino": ["§14", "§20"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-08",
+      "fuentes": ["O-cobertura-08", "O-seguridad-09"],
+      "contra": "jugador",
+      "seccion_objetada": "§8.3 y D-3",
+      "que": "La explicación de la pantalla de inicio por defecto descansa en algo no probado y roza la letra de D-00p.",
+      "evidencia": "mapa 02 §6; docs/visual.md l. 2736.",
+      "resolucion": "Pasa a alternativa B de DD-04; el defecto no la nombra (I-21).",
+      "decision": ["D-51", "DD-04"],
+      "destino": ["§13"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-09",
+      "fuentes": ["comprobación 7 de codigo", "comprobación 8 de codigo"],
+      "contra": "jugador",
+      "seccion_objetada": "§4.1",
+      "que": "«onPasswordReset borra las filas reset-password:*»: con storeIdentifier hashed el identificador es SHA-256 en base64url de reset-password:<token> entero y el prefijo desaparece.",
+      "evidencia": "db/verification-token-storage.mjs l. 4-10 (1.7.26); el borrado por value de atacante mataba además su propio token de deshacer, que compartía value.",
+      "resolucion": "Se borra por value = id del usuario; el token de deshacer guarda value = 'undo-email:<id>', así que nunca cae en ese borrado.",
+      "decision": ["D-11", "D-13"],
+      "destino": ["§5"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-10",
+      "fuentes": ["comprobación 13 de codigo", "tabla de seguridad, ítem 17"],
+      "contra": "jugador",
+      "seccion_objetada": "§5",
+      "que": "cookieCache de 60 s: una sesión cerrada sigue valiendo hasta un minuto en toda la API, también la que la recuperación acaba de cerrar.",
+      "evidencia": "routes/context.ts l. 53-58 usa auth.api.getSession; session.mjs 1.7.26 l. 41-50.",
+      "resolucion": "Sin cookieCache; el memo de request.viewer() de E2 se queda.",
+      "decision": ["D-17"],
+      "destino": ["§6"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-11",
+      "fuentes": ["comprobación 11 de codigo", "O-codigo-03"],
+      "contra": "jugador",
+      "seccion_objetada": "§8.4",
+      "que": "noticeSweep «cada 15 minutos en el servicio tick (index.ts l. 69 a 98)»: index.ts es web, y el cron de tick termina tras cada pasada.",
+      "evidencia": "apps/api/src/index.ts l. 74-106; railway.tick.json l. 8-9; env.ts l. 84 (AUTO_TICK on por defecto).",
+      "resolucion": "noticeSweep se llama al final de cada pasada de tick/main.ts (cada 5 minutos, procese o no días) y tras cada runTick de web (el automático y los dos de /admin); las variables VAPID entran en loadEnv y en loadTickEnv.",
+      "decision": ["D-47"],
+      "destino": ["§13"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-12",
+      "fuentes": ["O-codigo-04", "tabla de seguridad, ítem 15"],
+      "contra": "jugador",
+      "seccion_objetada": "§8.4",
+      "que": "No valida el endpoint de la suscripción: SSRF hacia la red privada de Railway.",
+      "evidencia": "seguridad C2 (out/ssrf.json); web-push-lib.js l. 343-363.",
+      "resolucion": "I-01.",
+      "decision": ["D-46"],
+      "destino": ["§13"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-13",
+      "fuentes": ["comprobación 3 de codigo", "tabla de seguridad, ítem 12"],
+      "contra": "jugador",
+      "seccion_objetada": "§6",
+      "que": "trustProxy: true toma la primera de X-Forwarded-For, falsificable si Railway añadiera en vez de reescribir; el log al arrancar no lo detecta en marcha.",
+      "evidencia": "ip.json: con 6.6.6.6, 203.0.113.7, true da 6.6.6.6.",
+      "resolucion": "I-08: la función de un salto, validada, con xff_varias.",
+      "decision": ["D-21"],
+      "destino": ["§7"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-14",
+      "fuentes": ["comprobación 1 de codigo", "H-codigo-01"],
+      "contra": "jugador",
+      "seccion_objetada": "§6",
+      "que": "auth_limits no dice cuándo cuenta: si cuenta tras la respuesta, una ráfaga pasa.",
+      "evidencia": "rafaga.json y reserva.json del juez de código.",
+      "resolucion": "I-12: reserva antes de reenviar y borrado al 200.",
+      "decision": ["D-22"],
+      "destino": ["§7"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-15",
+      "fuentes": ["tabla de seguridad, ítem 5", "nota de seguridad §2"],
+      "contra": "jugador",
+      "seccion_objetada": "§6",
+      "que": "cs_known exime del todo del límite por cuenta, sobrevive al cierre de sesión sin límite propio, y auth_limits guarda los correos en claro, también los que no existen.",
+      "evidencia": "jugador.md l. 240; seguridad, tabla 5.",
+      "resolucion": "cs_device con L2 (10 en 15 min y 30 en 24 h), rotación por users.device_epoch al cerrar las otras sesiones y al recuperar, y claves HMAC en auth_limits.",
+      "decision": ["D-22", "D-23"],
+      "destino": ["§7"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-16",
+      "fuentes": ["comprobación 4 de seguridad"],
+      "contra": "jugador",
+      "seccion_objetada": "§6",
+      "que": "«Recuperar la contraseña pone el contador a cero» no saca al dueño: el atacante que sondea vuelve a cerrar antes.",
+      "evidencia": "peticion.mjs del juez de seguridad: 429 con la contraseña nueva desde un aparato nuevo.",
+      "resolucion": "Recuperar emite cs_device al navegador que recupera (I-03).",
+      "decision": ["D-13", "D-23"],
+      "destino": ["§5", "§7"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-17",
+      "fuentes": ["tabla de seguridad, ítems 7 y 8"],
+      "contra": "jugador",
+      "seccion_objetada": "§4.3",
+      "que": "El cambio de correo sin contraseña y con una aprobación GET de 24 h: sesión robada más escáner es secuestro.",
+      "evidencia": "update-user.mjs 1.7.26 l. 457, 474, 491 y 508 (24 h para todos los JWT con la opción de jugador).",
+      "resolucion": "Contraseña en el gancho before (I-15) y aprobación por página de botón con el token en el fragmento (I-04).",
+      "decision": ["D-14", "D-12"],
+      "destino": ["§5"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-18",
+      "fuentes": ["O-codigo-06", "H-codigo-02"],
+      "contra": "jugador",
+      "seccion_objetada": "§4.5",
+      "que": "backgroundTasks sin cierre ordenado: un despliegue puede tirar un correo en vuelo.",
+      "evidencia": "index.ts no maneja SIGTERM (búsqueda); mailer.ts l. 51 (TIMEOUT_MS, 10 s).",
+      "resolucion": "Un Set de promesas pendientes que el proceso espera hasta MAIL_SHUTDOWN_GRACE_MS (10.000) al recibir SIGTERM; email_log apunta queued antes de enviar.",
+      "decision": ["D-15"],
+      "destino": ["§5"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-19",
+      "fuentes": ["tabla de seguridad, ítem 16"],
+      "contra": "jugador",
+      "seccion_objetada": "§8.2 y §8.4",
+      "que": "La suscripción sobrevive al cierre de sesión en un aparato compartido y notificationclick abre data.url sin mirarla.",
+      "evidencia": "jugador.md l. 296 y 319.",
+      "resolucion": "I-25 e I-02.",
+      "decision": ["D-49", "D-45"],
+      "destino": ["§13"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-20",
+      "fuentes": ["I-seguridad-13"],
+      "contra": "jugador",
+      "seccion_objetada": "§5",
+      "que": "La IP de la sesión con un databaseHooks.session.create.before «a comprobar en el PR».",
+      "evidencia": "jugador.md l. 217; disableIpTracking medido (ip_address queda vacía; core17/utils/ip.mjs l. 218).",
+      "resolucion": "advanced.ipAddress.disableIpTracking (I-07); la 0056 vacía las filas de hoy.",
+      "decision": ["D-18"],
+      "destino": ["§6"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-21",
+      "fuentes": ["tabla de seguridad, ítem 13"],
+      "contra": "jugador",
+      "seccion_objetada": "§7",
+      "que": "Rutas cerradas por lista negra en el proxy (siete): una ruta nueva de una subida queda abierta sin decidirlo.",
+      "evidencia": "jugador.md l. 263.",
+      "resolucion": "I-06: lista blanca con disabledPaths como complemento y su test.",
+      "decision": ["D-29"],
+      "destino": ["§8"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-22",
+      "fuentes": ["tabla de codigo, ítems 19 y 20"],
+      "contra": "jugador",
+      "seccion_objetada": "§13 y §16",
+      "que": "Account en subpáginas no está costeada (reescribe Account.tsx, 417 l., y sus tests) y time_zone no tiene fuente escrita.",
+      "evidencia": "codigo, tabla 20; Account.tsx 417 l. (mapa 05).",
+      "resolucion": "El plan costea el PR 11 (Account) por separado y lo deja detrás de DD-07; time_zone, por D-43.",
+      "decision": ["D-58", "D-56", "DD-07"],
+      "destino": ["§18", "§12"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-23",
+      "fuentes": ["DD de duración de la ausencia de codigo y cobertura"],
+      "contra": "jugador",
+      "seccion_objetada": "§9.1",
+      "que": "AWAY_MAX_DAYS de 45 días roza a E7 y pasa del «un mes» del dueño.",
+      "evidencia": "codigo §8 y cobertura §8: por defecto 28.",
+      "resolucion": "DD-12, por defecto 28 días; atajos de 7, 14 y 28.",
+      "decision": ["D-52", "DD-12"],
+      "destino": ["§14"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-24",
+      "fuentes": ["I-cobertura-11"],
+      "contra": "jugador",
+      "seccion_objetada": "§11.2",
+      "que": "Exportar con la sesión sola: el fichero lleva la fecha de nacimiento y el correo.",
+      "evidencia": "jugador.md l. 449.",
+      "resolucion": "I-22: contraseña y 3 al día.",
+      "decision": ["D-39"],
+      "destino": ["§10"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "O-25",
+      "fuentes": ["I-seguridad-11"],
+      "contra": "jugador",
+      "seccion_objetada": "§11.3",
+      "que": "DELETE /api/me como ruta propia, cuando el gancho beforeDelete con deleteUserAsAdmin está medido y no pide ruta nueva.",
+      "evidencia": "incremental §11, resultado.json; seguridad I-11.",
+      "resolucion": "I-10.",
+      "decision": ["D-38"],
+      "destino": ["§10"],
+      "estado": "pendiente"
+    }
+  ],
+  "huecos": [
+    {
+      "id": "H-01",
+      "fuentes": ["H-codigo-01"],
+      "que": "La reserva atómica del límite por cuenta: atacante decide antes y cuenta después, jugador no dice cuándo, incremental comprueba en before y cuenta en after; las tres dejan pasar una ráfaga.",
+      "resolucion": "Reserva en auth_limits antes de reenviar (INSERT … ON CONFLICT … RETURNING count) y borrado al 200; medido por el juez de código (reserva.json).",
+      "decision": ["D-22"],
+      "destino": ["§7"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-02",
+      "fuentes": ["H-codigo-02"],
+      "que": "El cierre ordenado del proceso con correos en segundo plano.",
+      "resolucion": "Set de promesas pendientes del manejador de backgroundTasks, esperadas hasta 10 s en SIGTERM en index.ts; email_log con queued y sent deja ver lo perdido.",
+      "decision": ["D-15"],
+      "destino": ["§5", "§19"],
+      "estado": "pendiente",
+      "sin_evidencia_de_los_jueces": true
+    },
+    {
+      "id": "H-03",
+      "fuentes": ["H-codigo-03"],
+      "que": "Cuántas réplicas tiene web: el límite de Fastify en memoria se multiplica por réplica y nadie lo comprueba.",
+      "resolucion": "La capa por cuenta vive en Postgres y no depende de réplicas; el dueño mira el número de réplicas en Railway antes del PR 6 y se escribe en docs/ops.md; con más de una, la capa de Fastify se lee como «por réplica».",
+      "decision": ["D-21"],
+      "destino": ["§7", "§19"],
+      "estado": "pendiente",
+      "sin_evidencia_de_los_jueces": true
+    },
+    {
+      "id": "H-04",
+      "fuentes": ["H-codigo-04"],
+      "que": "Leer sessions.ip_address en producción antes del PR que deja de guardar la IP, para saber qué cabecera manda Railway.",
+      "resolucion": "Precondición del PR 3: el dueño ejecuta en la consola de Railway un SELECT de ip_address de sus sesiones (lectura) y pega el resultado en el PR; vacío o una IP de Railway cambia la lectura de D-21.",
+      "decision": ["D-18", "D-58"],
+      "destino": ["§6", "§18"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-05",
+      "fuentes": ["H-codigo-05"],
+      "que": "El tiempo de espera de la consulta a Have I Been Pwned.",
+      "resolucion": "HIBP_TIMEOUT_MS = 3.000 con fallo abierto registrado (DD-11).",
+      "decision": ["D-27", "DD-11"],
+      "destino": ["§7"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-06",
+      "fuentes": ["H-seguridad-01", "comprobación 12 de seguridad"],
+      "que": "La enumeración por el cambio de correo: con el destino ocupado no sale nada y con el libre llega la aprobación al buzón propio (update-user.mjs 1.7.26 l. 456-459).",
+      "resolucion": "El gancho before de /change-email manda SIEMPRE la aprobación al buzón viejo: si el destino está ocupado, una aprobación propia (JWT con requestType change-email-taken firmado con SESSION_SECRET) cuya página de botón, al pulsarse, manda a la dirección ocupada change_to_taken (uno cada 24 h) y enseña lo mismo que la rama libre; 3 cambios por usuario y día.",
+      "decision": ["D-14"],
+      "destino": ["§5"],
+      "estado": "pendiente",
+      "sin_evidencia_de_los_jueces": true
+    },
+    {
+      "id": "H-07",
+      "fuentes": ["H-seguridad-02"],
+      "que": "El registro como bombardeo de rebotes: cada registro con un correo inventado manda un correo que rebota y Resend castiga por encima del 4 %.",
+      "resolucion": "L4 cuenta sign-up (20 al día por IP), la purga de cuentas sin confirmar a 7 días (DD-17) y la medida de rebotes de email_log con su umbral (§19).",
+      "decision": ["D-24", "D-34", "D-60"],
+      "destino": ["§9", "§19"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-08",
+      "fuentes": ["H-seguridad-03"],
+      "que": "Nadie ha probado un escáner de enlaces real (si ejecuta JavaScript y pulsa botones).",
+      "resolucion": "Se escribe como no comprobado: el botón se da por bueno por estimación. La prueba del dueño (§19) incluye mandar un enlace de verificación a un buzón con Safe Links y mirar si la cuenta se confirma sola.",
+      "decision": ["D-12"],
+      "destino": ["§5", "§19"],
+      "estado": "pendiente",
+      "sin_evidencia_de_los_jueces": true
+    },
+    {
+      "id": "H-09",
+      "fuentes": ["H-seguridad-04"],
+      "que": "Nadie ha probado en un iPhone el aviso desde la pantalla de inicio en iOS 26 ni si esa app web tiene sus propias cookies.",
+      "resolucion": "DD-04 por defecto sin instrucción; la prueba del dueño en su iPhone decide si se pasa a B, y §19 dice que esa app web es, bajo ataque, un navegador nuevo.",
+      "decision": ["D-51", "DD-04"],
+      "destino": ["§13", "§19"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-10",
+      "fuentes": ["H-seguridad-05"],
+      "que": "better-auth escribe «Sign-up attempt for existing email: <correo>» a nivel info (sign-up.mjs l. 194); hoy no sale porque el nivel por defecto es warn y nadie lo fija.",
+      "resolucion": "auth.ts fija logger: { level: 'warn' } de better-auth y un test lo comprueba registrando un correo que existe.",
+      "decision": ["D-30"],
+      "destino": ["§8"],
+      "estado": "pendiente",
+      "sin_evidencia_de_los_jueces": true
+    },
+    {
+      "id": "H-11",
+      "fuentes": ["H-seguridad-06"],
+      "que": "El menor que se descubre sin canal de contacto: quién avisa y qué se hace con sus datos.",
+      "resolucion": "Va a la lista para el abogado (§21) y al riesgo del contacto (§11); E4 no lo dictamina.",
+      "decision": ["D-41"],
+      "destino": ["§11", "§21"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-12",
+      "fuentes": ["H-cobertura-01"],
+      "que": "E10 en el registro: ninguna guarda país ni Accept-Language, y users.locale sigue en 'es' con la interfaz en inglés.",
+      "resolucion": "Al registrarse, un databaseHooks.user.create.before escribe locale con la etiqueta primaria de Accept-Language (dos letras) o 'en'; el defecto de la columna pasa a 'en'; el país ya lo guarda el corredor (riders.country).",
+      "decision": ["D-07"],
+      "destino": ["§4"],
+      "estado": "pendiente",
+      "sin_evidencia_de_los_jueces": true
+    },
+    {
+      "id": "H-13",
+      "fuentes": ["H-cobertura-02"],
+      "que": "El canal de hecho en la beta es el grupo de WhatsApp con el dueño dentro ([DUEÑO 12]); ninguna lo nombra en el riesgo del contacto.",
+      "resolucion": "§11 lo nombra: quien se quede fuera de su cuenta y del grupo no tiene nada.",
+      "decision": ["D-41"],
+      "destino": ["§11"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-14",
+      "fuentes": ["H-cobertura-03"],
+      "que": "Quien no acepta avisos y no vuelve no recibe nada antes de que actúe la regla del mes; nadie se lo escribe al dueño como consecuencia de §9.1.3.",
+      "resolucion": "§14 y §21 lo escriben como consecuencia para que E7 la pese al fijar el plazo.",
+      "decision": ["D-55"],
+      "destino": ["§14", "§21"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-15",
+      "fuentes": ["H-cobertura-04"],
+      "que": "Nadie dice si la ausencia declarada pausa también el reloj más corto del mánager (agenda §4.15.5 punto 4).",
+      "resolucion": "Sí: inactiveSince vale para cualquier reloj de inactividad; cuánto mide el del mánager es de E7.",
+      "decision": ["D-54"],
+      "destino": ["§14"],
+      "estado": "pendiente",
+      "sin_evidencia_de_los_jueces": true
+    },
+    {
+      "id": "H-16",
+      "fuentes": ["H-cobertura-05", "comprobación 3 de cobertura"],
+      "que": "Al borrar stageReadyEmail queda huérfano el comentario de packages/shared/src/broadcast/pageTitle.ts l. 5, territorio de W5.",
+      "resolucion": "El PR 14 no toca broadcast/; la corrección del comentario va en el PR de documentos (16) si W5 ha terminado, o se le pasa a W5 por escrito.",
+      "decision": ["D-48", "D-59"],
+      "destino": ["§13", "§20"],
+      "estado": "pendiente"
+    },
+    {
+      "id": "H-17",
+      "fuentes": ["H-cobertura-06"],
+      "que": "Ninguna junta en una lista única las preguntas para el abogado.",
+      "resolucion": "§21.3 las junta: los 16 y la fecha declarada, la casilla y las condiciones, el menor que ya existe y el que se descubre, el nombre del equipo de quien se borra, la privacidad sin responsable con contacto, los plazos de logs y copias, la exportación como acceso.",
+      "decision": [],
+      "destino": ["§21"],
+      "estado": "pendiente"
+    }
+  ],
+  "contradicciones": [
+    {
+      "id": "X-01",
+      "tema": "¿Cabe el contador del límite por cuenta en verifications?",
+      "posturas": {
+        "incremental §6": "sí, con un prefijo y UPDATE … RETURNING; better-auth purga las filas",
+        "atacante §13 y jugador §13": "tabla propia"
+      },
+      "resultado": "a medias",
+      "resolucion": "En serie es cierto; en ráfaga, falso. Hace falta tabla con clave primaria (auth_limits) y reserva antes de comprobar la contraseña.",
+      "evidencia": "rafaga.json: 40 a la vez, límite 10, 39 × 401 y 1 × 429, tres filas y la buena entra; reserva.json: 10 × 401 y 30 × 429; verifications sin índice único (schema.ts l. 168-175).",
+      "juez": "codigo (C1)",
+      "decision": ["D-22"]
+    },
+    {
+      "id": "X-02",
+      "tema": "¿Qué IP da trustProxy en fastify 5.12.8?",
+      "posturas": {
+        "atacante §6.1, jugador §6": "true, la primera de X-Forwarded-For",
+        "incremental §6": "(addr, hop) => hop === 0, la última; 1 da siempre el socket"
+      },
+      "resultado": "cierta la de incremental",
+      "resolucion": "true da la primera (falsificable si el borde añade); la función, la última; 1, siempre el socket desde 5.12.1. Ninguna valida. Se usa la función con validación por net.isIP.",
+      "evidencia": "fastify@5.12.8/lib/request.js l. 53-57; ip.json (6.6.6.6, 203.0.113.7: true da 6.6.6.6, la función 203.0.113.7; 'basura' sale como IP; con dos saltos, la del salto).",
+      "juez": "codigo (C2, C3); seguridad (C9)",
+      "decision": ["D-21"]
+    },
+    {
+      "id": "X-03",
+      "tema": "¿Cuándo mueren los enlaces de recuperación?",
+      "posturas": {
+        "atacante §4.1": "pedir uno anula los anteriores (DELETE por value)",
+        "incremental §4": "pedir uno anula el anterior, medido",
+        "jugador §4.1": "valen todos hasta que se usa uno; usarlo mata a los demás (por prefijo)"
+      },
+      "resultado": "la regla de jugador, con el mecanismo corregido",
+      "resolucion": "Mueren solo cuando otro se usa: anular al pedir deja al atacante matar el enlace que el dueño tiene en la mano. Con hashed el prefijo desaparece, así que se borra por value = id del usuario; el token de deshacer lleva otro value.",
+      "evidencia": "seguridad O-02 y tabla 6; out/medir-incremental.json (pedidos dos, el primero da 400); codigo C7 (verification-token-storage.mjs l. 4-10) y C8 (el borrado por value de atacante mataba su deshacer).",
+      "juez": "seguridad; codigo (C7, C8)",
+      "decision": ["D-11", "D-13"]
+    },
+    {
+      "id": "X-04",
+      "tema": "¿Desde dónde salen los avisos?",
+      "posturas": {
+        "incremental §8": "tick/main.ts tras runTick, con los días que acaba de procesar",
+        "jugador §8.4": "noticeSweep cada 15 minutos «en el servicio tick (index.ts)»",
+        "atacante §8.1": "al final del día del tick, sin decir dónde"
+      },
+      "resultado": "falsa la de incremental; mal situada la de jugador",
+      "resolucion": "Con AUTO_TICK=on (el defecto) los días los procesa web y /admin; el cron de tick sale con daysProcessed 0. El barrido idempotente con notice_log se llama al final de cada pasada de tick/main.ts y tras cada runTick de web.",
+      "evidencia": "env.ts l. 84; index.ts l. 48, 56 y 90 (los runTick de /admin/tick, /admin/advance y el automático) y l. 74-77; tick/main.ts l. 11; railway.tick.json l. 8-9.",
+      "juez": "codigo (C11)",
+      "decision": ["D-47"]
+    },
+    {
+      "id": "X-05",
+      "tema": "¿Qué pasa en manual mientras dura la ausencia?",
+      "posturas": {
+        "jugador §9.1": "«Your coach picks <rider>'s training»",
+        "atacante §9": "manual se resuelve como mixto, sin tocar el motor",
+        "incremental §9 y §19.12": "días de descanso, como hoy; lo cambia E7"
+      },
+      "resultado": "falsa la de jugador hoy; cierta la de atacante como cambio",
+      "resolucion": "Hoy manual da descanso_activo. El dueño aceptó «mientras dura decide el entrenador» (§9.1.5): manual pasa a mixto mientras dura, en trainingDay.ts, sin subir ENGINE_VERSION.",
+      "evidencia": "packages/shared/src/trainingDay.ts l. 132-135; ENGINE_VERSION = 91 en packages/engine/src/constants.ts l. 853.",
+      "juez": "cobertura (C2, C3)",
+      "decision": ["D-53"]
+    },
+    {
+      "id": "X-06",
+      "tema": "¿Es recuperar la contraseña la salida del dueño bloqueado por el límite por cuenta?",
+      "posturas": {
+        "jugador §6, incremental §6": "sí, pone el contador a cero",
+        "atacante §4.3": "sí, y además da la cookie de aparato al navegador que recupera (por comprobar)"
+      },
+      "resultado": "falsa sin la cookie; cierta con ella",
+      "resolucion": "Sin cookie, el atacante que sondea vuelve a cerrar antes. onPasswordReset recibe el mismo Request que el proxy pasa a auth.handler: el WeakMap funciona.",
+      "evidencia": "peticion.mjs (out/peticion.json): 200, contador a cero, 10 fallos más y la contraseña nueva desde un aparato nuevo da 429; password.mjs 1.7.26 l. 164 (misma: true).",
+      "juez": "seguridad (C4, C5)",
+      "decision": ["D-13", "D-23"]
+    },
+    {
+      "id": "X-07",
+      "tema": "¿Sirve cs_viewer como aparato conocido?",
+      "posturas": {
+        "incremental §6": "sí; medido con su arnés",
+        "jugador §6, atacante §6.3": "cookie propia"
+      },
+      "resultado": "a medias",
+      "resolucion": "cs_viewer solo se emite en rutas horizon o watch con sesión y viewerSecret, sign-out la borra, y el aparato conocido del arnés era la cabecera x-known-device. Cookie propia cs_device.",
+      "evidencia": "spoiler.ts l. 355-377; authProxy.ts l. 18-21; medir.mjs (buenaConocida).",
+      "juez": "codigo (C12); seguridad (C6)",
+      "decision": ["D-23"]
+    },
+    {
+      "id": "X-08",
+      "tema": "¿Gobierna emailVerification.expiresIn la vida de todos los JWT de correo?",
+      "posturas": {
+        "jugador §4.1": "sí, una opción para todos",
+        "atacante, incremental": "1 h, sin tocar"
+      },
+      "resultado": "cierta",
+      "resolucion": "En 1.7.26 la misma opción fija la verificación, la aprobación desde la vieja y la confirmación de la nueva; con 24 h, la aprobación también vive 24 h, y por eso pasa por un botón y pide la contraseña.",
+      "evidencia": "1.7.26: email-verification.mjs l. 29, 109 y 201; update-user.mjs l. 457, 474, 491 y 508; la rama heredada de l. 253 no se alcanza.",
+      "juez": "codigo (C5); seguridad (C10)",
+      "decision": ["D-11"]
+    },
+    {
+      "id": "X-09",
+      "tema": "¿Corre el validator de additionalFields antes de buscar el correo?",
+      "posturas": {
+        "incremental §3": "sí, medido",
+        "jugador §3, atacante §3": "gancho before propio"
+      },
+      "resultado": "cierta",
+      "resolucion": "El menor recibe el mismo 400 VALIDATION_ERROR con un correo nuevo y con uno que existe; se usa el validator.",
+      "evidencia": "sign-up.mjs 1.7.26 l. 157 frente a l. 192; db/schema.mjs l. 81; reproducido por seguridad.",
+      "juez": "codigo (C6); seguridad (C11)",
+      "decision": ["D-06"]
+    },
+    {
+      "id": "X-10",
+      "tema": "¿Qué hace el plugin de contraseñas filtradas si su API no responde?",
+      "posturas": {
+        "incremental §7": "falla cerrado",
+        "atacante §6.5": "no lo sé"
+      },
+      "resultado": "cierta la de incremental, y además sin tiempo de espera",
+      "resolucion": "Cualquier fallo es 500 y betterFetch no tiene espera: si el servicio cuelga, cuelga el registro. Envoltorio propio de 3 s con fallo abierto (DD-11).",
+      "evidencia": "plugins/haveibeenpwned/index.mjs 1.7.26 l. 33-40 y 63-75; sign-up.mjs l. 200 y 220 (hashea en las dos ramas).",
+      "juez": "codigo (C9); seguridad (C7)",
+      "decision": ["D-27"]
+    },
+    {
+      "id": "X-11",
+      "tema": "¿Delata el cambio a un correo ocupado?",
+      "posturas": {
+        "las tres, implícito": "no delata"
+      },
+      "resultado": "falsa",
+      "resolucion": "Con el destino ocupado no sale nada; con el libre, la aprobación llega al buzón propio del que pide: cualquiera con cuenta confirmada sabe si una dirección juega. Se manda siempre la aprobación (H-06).",
+      "evidencia": "update-user.mjs 1.7.26 l. 456-459; mapa 05, captura 53c.",
+      "juez": "seguridad (C12)",
+      "decision": ["D-14"]
+    },
+    {
+      "id": "X-12",
+      "tema": "¿Es el endpoint de push una SSRF?",
+      "posturas": {
+        "atacante §8.4": "sí",
+        "jugador, incremental": "no lo tratan"
+      },
+      "resultado": "cierta, y peor",
+      "resolucion": "web-push usa https.request al host y puerto de la URL sea cual sea el esquema, y los errores son un oráculo de puertos.",
+      "evidencia": "web-push 4.0.0 web-push-lib.js l. 343-363; out/ssrf.json (ECONNRESET, ECONNREFUSED, ENOTFOUND).",
+      "juez": "seguridad (C2)",
+      "decision": ["D-46"]
+    },
+    {
+      "id": "X-13",
+      "tema": "¿Vale una cookieCache de 60 s?",
+      "posturas": {
+        "jugador §5": "sí: cerrar otro aparato tarda un minuto como mucho",
+        "atacante §5, incremental §5": "sin caché"
+      },
+      "resultado": "cierta la cifra; se descarta la caché",
+      "resolucion": "La caché vale para toda la API, también para la sesión que la recuperación acaba de cerrar.",
+      "evidencia": "routes/context.ts l. 53-58; session.mjs 1.7.26 l. 41-50.",
+      "juez": "codigo (C13)",
+      "decision": ["D-17"]
+    },
+    {
+      "id": "X-14",
+      "tema": "¿Da disabledPaths 404 antes del limitador y sin variante de URL que lo esquive?",
+      "posturas": {
+        "incremental §7": "sí, medido"
+      },
+      "resultado": "cierta",
+      "resolucion": "404 en las rutas con sesión y auth.api.verifyPassword sigue en el servidor; /sign-in/email/, //sign-in/email y /Sign-in/email dan 404.",
+      "evidencia": "api/index.mjs l. 169-171; core/utils/url.mjs l. 18-30; out/clon/barra.txt y out/clon17/barra.txt.",
+      "juez": "seguridad (C8); codigo (C4)",
+      "decision": ["D-29"]
+    },
+    {
+      "id": "X-15",
+      "tema": "¿Cierra backgroundTasks la enumeración por tiempo?",
+      "posturas": {
+        "las tres": "sí"
+      },
+      "resultado": "cierta",
+      "resolucion": "41 muestras con un correo de 250 ms: recuperar 4,0 frente a 4,6 ms (sin la opción, 5,6 frente a 255,6); registrarse 85,8 frente a 80,7. onExistingUserSignUp también va en segundo plano.",
+      "evidencia": "out/tiempo.json; sign-up.mjs 1.7.26 l. 205; create-context.mjs l. 212-224.",
+      "juez": "seguridad (C3); codigo (C4)",
+      "decision": ["D-15"]
+    },
+    {
+      "id": "X-16",
+      "tema": "¿Choca el TOTP del panel con §9.1.6?",
+      "posturas": {
+        "atacante DD-1": "no: no es OAuth, enlace mágico ni código por correo (encendido por defecto)",
+        "incremental §7": "no choca (fuera por defecto)"
+      },
+      "resultado": "a medias",
+      "resolucion": "La lista de §9.1.6 no nombra el TOTP, pero el titular es «Solo correo y contraseña» y twoFactor 1.7.26 monta /two-factor/send-otp, el código por correo, inerte solo sin sendOTP. Va como DD-01 con el defecto de no hacerlo y la alternativa de hacerlo solo para administradores sin el envío por correo.",
+      "evidencia": "00-encargo.md l. 352-353; ba17/plugins/two-factor/otp/index.mjs l. 63-78.",
+      "juez": "cobertura (C8)",
+      "decision": ["D-31", "DD-01"]
+    },
+    {
+      "id": "X-17",
+      "tema": "¿Cuántos documentos prometen correo de juego?",
+      "posturas": {
+        "incremental §1 y PR 14, mapa 04 §6.3": "seis"
+      },
+      "resultado": "a medias",
+      "resolucion": "El sexto, la tabla de fronteras de 00-encargo.md, ya está corregido; quedan cinco.",
+      "evidencia": "agenda l. 313-314 y 665-668; encargos l. 446; visual l. 3623; retransmision l. 12895 y 13004; 00-encargo.md l. 202 y 206 ya corregidos.",
+      "juez": "cobertura (C1)",
+      "decision": ["D-59"]
+    },
+    {
+      "id": "X-18",
+      "tema": "¿Solo usan stageReadyEmail sus tests y el canario?",
+      "posturas": {
+        "las tres": "sí"
+      },
+      "resultado": "cierta",
+      "resolucion": "Y queda un comentario que la nombra en pageTitle.ts l. 5, territorio de W5 (H-16).",
+      "evidencia": "emails.test.ts l. 7 y 81-121; spoilerCanary.test.ts l. 5 y 206; packages/shared/src/broadcast/pageTitle.ts l. 5.",
+      "juez": "cobertura (C3)",
+      "decision": ["D-48"]
+    },
+    {
+      "id": "X-19",
+      "tema": "¿Cubre toda visita un gancho en get-session?",
+      "posturas": {
+        "incremental §5": "sí",
+        "jugador §11.2": "onRequest de toda petición con sesión",
+        "atacante §11.4": "createCurrentUserId"
+      },
+      "resultado": "cierta la de incremental",
+      "resolucion": "La web pide get-session al cargar cualquier página; con el memo de una hora de touchLastSeen basta.",
+      "evidencia": "Header.tsx l. 5 y 65; useSessionState.ts l. 23 (authClient.useSession).",
+      "juez": "cobertura (C4)",
+      "decision": ["D-40"]
+    },
+    {
+      "id": "X-20",
+      "tema": "¿Caducan las ofertas a los 21 días de juego?",
+      "posturas": {
+        "jugador §9.1, incremental §8": "sí, unos 5 reales"
+      },
+      "resultado": "cierta",
+      "resolucion": "A cuatro días de juego por día real, 5,25.",
+      "evidencia": "packages/db/src/contracts.ts l. 37 (OFFER_TTL_DAYS = 21).",
+      "juez": "cobertura (C5)",
+      "decision": ["D-52"]
+    },
+    {
+      "id": "X-21",
+      "tema": "¿Cierra revokeSessionsOnPasswordReset la sesión de antes, y acepta hashed los enlaces en claro previos?",
+      "posturas": {
+        "incremental §4": "sí, medido"
+      },
+      "resultado": "cierta",
+      "resolucion": "La sesión anterior responde null tras el reset; el enlace en claro de antes del despliegue da 200; ninguna fila contiene el token.",
+      "evidencia": "out/medir-incremental.json (sesionAnteriorTrasReset, tokenEnClaro false, enlaceEnClaroDeAntes 200); internal-adapter.mjs l. 800-801.",
+      "juez": "seguridad (C1)",
+      "decision": ["D-11", "D-13"]
+    },
+    {
+      "id": "X-22",
+      "tema": "¿Es de E4 alargar la sesión?",
+      "posturas": {
+        "jugador §5, incremental §5": "sí",
+        "atacante §5": "7 días con techo de 90"
+      },
+      "resultado": "cierta",
+      "resolucion": "E2 lo dejó a E4 por escrito; la sesión pasa a 30 días renovables con techo de 90.",
+      "evidencia": "docs/retransmision.md l. 6693; mapa 04 §7.",
+      "juez": "cobertura (C9)",
+      "decision": ["D-17"]
+    },
+    {
+      "id": "X-23",
+      "tema": "¿Ve el gancho after el 401, y puede el before cortar la ruta o cambiar el cuerpo?",
+      "posturas": {
+        "incremental §6, atacante §3": "sí"
+      },
+      "resultado": "cierta",
+      "resolucion": "El APIError pasa a returned en after; un before que devuelve otro objeto corta la ruta y uno con context lo funde.",
+      "evidencia": "ba17/api/dispatch.mjs l. 111-124 y 256-264.",
+      "juez": "codigo (C10)",
+      "decision": ["D-14", "D-22"]
+    }
+  ],
+  "decisiones_del_dueno": [
+    {
+      "dd": "DD-01",
+      "decision": "El segundo factor (TOTP) del panel del administrador",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "no en E4",
+          "origen": "incremental §19.5; codigo y cobertura",
+          "valores": "correo raíz bloqueado en la web, admin_audit, y como tarea de operación el segundo factor del propio buzón de ADMIN_EMAIL (docs/ops.md)",
+          "cambia": "nada más; el panel sigue colgando del buzón de ADMIN_EMAIL"
+        },
+        {
+          "id": "B",
+          "nombre": "TOTP solo para administradores, sin código por correo",
+          "origen": "atacante §7.3 y DD-1, con la corrección de cobertura C8 y seguridad O-05",
+          "valores": "plugin twoFactor de better-auth sin sendOTP; isUserAdmin por sesión exige two_factor_enabled; la lista blanca añade las rutas /two-factor/* de TOTP y de códigos de respaldo y deja en 404 /two-factor/send-otp y /two-factor/verify-otp; QR y diez códigos de respaldo; migración 0059_dos_factores; una pantalla de código al entrar; el token de máquina de security.ts l. 111-130 no cambia",
+          "cambia": "el PR 18, unas 8 h (estimado); el dueño configura el TOTP antes de volver a abrir el panel"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A",
+        "seguridad": "B",
+        "cobertura": "A"
+      },
+      "defecto": "A",
+      "porque": "Dos jueces de tres; el titular de §9.1.6 es «Solo correo y contraseña» y twoFactor monta /two-factor/send-otp (cobertura C8). Contra A4 más A5 solo un segundo factor funciona: por eso B está pintada al lado.",
+      "antes_del_pr": "18 (solo si elige B)"
+    },
+    {
+      "dd": "DD-02",
+      "decision": "Qué avisos van encendidos de serie",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "uno al día y lo que avisa de perder algo",
+          "origen": "jugador D-1 A más offer_received de incremental",
+          "valores": "encendidos stage_digest, plan_ending, offer_received, away_warning (solo con la regla de E7) y away_over; apagado stage_ready",
+          "cambia": "notice_prefs vacío equivale a A"
+        },
+        {
+          "id": "B",
+          "nombre": "solo lo que avisa de perder algo",
+          "origen": "atacante DD-8 A; seguridad B",
+          "valores": "encendidos away_warning y away_over; el resto apagado y uno a uno en Notifications",
+          "cambia": "NOTICE_DEFAULTS; menos castigo de Chrome y menos razones para dar el permiso"
+        },
+        {
+          "id": "C",
+          "nombre": "todo lo de A y cada etapa de lo que sigo",
+          "origen": "jugador D-1 C; incremental A",
+          "valores": "A más stage_ready (una por carrera cada 6 h; tope diario 3)",
+          "cambia": "NOTICE_DEFAULTS; más inmediato; Chrome puede retirar el permiso (mapa 02 §5)"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "etapa con su corredor, ofertas y regla del mes (su A)",
+        "seguridad": "regla del mes, fin de ausencia y stage_digest (su A)",
+        "cobertura": "jugador A"
+      },
+      "defecto": "A",
+      "porque": "Recoge lo que piden los tres jueces: el resumen diario de etapas (seguridad y cobertura), las ofertas (codigo) y lo que avisa de perder algo; con tope de 3 al día y silencio de 22 a 8.",
+      "antes_del_pr": "14"
+    },
+    {
+      "dd": "DD-03",
+      "decision": "Cuándo y cómo se pide el permiso de avisos",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "tras crear el corredor y al seguir una carrera, y en Account",
+          "origen": "jugador §8.2; seguridad A; codigo A en parte",
+          "valores": "Notice info con Turn on tras crear el corredor y tras seguir una carrera; cerrarlo lo calla NOTICE_ASK_SNOOZE_DAYS (30); y siempre en Account › Notifications",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "solo en Account",
+          "origen": "atacante DD-9 A; incremental A",
+          "valores": "solo Account › Notifications",
+          "cambia": "casi nadie lo encontrará"
+        },
+        {
+          "id": "C",
+          "nombre": "A y la portada a la tercera visita",
+          "origen": "jugador D-2 C; incremental C",
+          "valores": "A más, en Home, Never miss a stage of <rider> / Turn on a la tercera visita",
+          "cambia": "un Notice más; más peticiones de permiso"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "Account y una tarjeta tras crear el corredor",
+        "seguridad": "tras crear el corredor y al seguir una carrera",
+        "cobertura": "Account y una tarjeta tras seguir la primera carrera"
+      },
+      "defecto": "A",
+      "porque": "Nunca al cargar (Firefox y Safari exigen un toque, mapa 02 §5) y en los dos momentos en que el aviso tiene sentido; une las tres recomendaciones.",
+      "antes_del_pr": "14"
+    },
+    {
+      "dd": "DD-04",
+      "decision": "Qué se le ofrece al jugador de iPhone",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "aún no hay avisos en iPhone",
+          "origen": "incremental §8; jugador D-3 B; los tres jueces",
+          "valores": "en Notifications, en lugar de los interruptores: Notifications aren't available on iPhone yet. Everything a notification would tell you is on your Home page when you open Cycling Star.",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "el camino de iOS 26",
+          "origen": "jugador §8.3",
+          "valores": "iPhone can't show notifications from a browser tab. On iOS 26 or later you can add Cycling Star to your Home Screen (Share, then Add to Home Screen), open it from there and turn notifications on in this page. Sin manifiesto ni aviso de instalar",
+          "cambia": "solo tras probarlo en un iOS 26 de verdad; roza la letra de D-00p"
+        },
+        {
+          "id": "C",
+          "nombre": "B y un aviso en la portada",
+          "origen": "jugador D-3 C",
+          "valores": "B más un Notice una vez en Home: Want notifications on iPhone? See how / Show me",
+          "cambia": "lo más parecido al InstallHint que D-00p retiró"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A",
+        "seguridad": "A hasta probarlo en un iOS 26; luego B",
+        "cobertura": "A"
+      },
+      "defecto": "A",
+      "porque": "Unanimidad: lo de iOS 26 no está probado en un aparato (mapa 02 §6) y en iOS 16.4 a 18 sin manifiesto es falso.",
+      "antes_del_pr": "14"
+    },
+    {
+      "dd": "DD-05",
+      "decision": "La pantalla del modo ausencia",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "atajos, fecha y líneas calculadas, con banda",
+          "origen": "jugador §9.1 con AWAY_MAX_DAYS 28; cobertura",
+          "valores": "/account/away con Segmented 1 week, 2 weeks, 4 weeks y DateField Back on; las líneas de lo que pasa calculadas con sus datos (fin del plan, ofertas, agente libre, la regla del mes con E7); mientras dura, una banda bajo la cabecera You're away until 3 Dec / End now",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "solo la fecha",
+          "origen": "jugador D-4 B",
+          "valores": "DateField Back on y una frase fija: Your coach decides while you're away. Notifications stay quiet.",
+          "cambia": "un PR más corto y un jugador que no sabe qué se para"
+        },
+        {
+          "id": "C",
+          "nombre": "A sin banda",
+          "origen": "incremental A; atacante DD-10 A",
+          "valores": "como A, y mientras dura solo se ve en Account › Away",
+          "cambia": "quien abre la web en la playa no ve que está ausente"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "panel con fecha y dos líneas calculadas",
+        "seguridad": "líneas calculadas con atajos y fecha",
+        "cobertura": "panel con fecha y líneas calculadas, y banda mientras dura"
+      },
+      "defecto": "A",
+      "porque": "Las líneas calculadas son lo que distingue el modo ausencia de un interruptor de avisos (jugador §0); la banda la pide cobertura.",
+      "antes_del_pr": "13"
+    },
+    {
+      "dd": "DD-06",
+      "decision": "La pantalla de sesiones (Devices)",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "lista sin IP",
+          "origen": "jugador §5; los tres jueces",
+          "valores": "navegador y sistema (deviceLabel), This device, Active y Signed in con fecha; Sign out por fila; Sign out everywhere else con confirmación",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "lista con la IP recortada",
+          "origen": "atacante §5",
+          "valores": "A más 203.0.113.x por fila",
+          "cambia": "obliga a guardar la IP recortada en sessions (deja de valer disableIpTracking) y a explicarla en Privacy y en la exportación"
+        },
+        {
+          "id": "C",
+          "nombre": "solo el número y el botón",
+          "origen": "jugador D-6 C; incremental B",
+          "valores": "You're signed in on 3 devices. y Sign out everywhere else",
+          "cambia": "sin deviceLabel; menos pistas para la víctima"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A",
+        "seguridad": "A, sin IP",
+        "cobertura": "A"
+      },
+      "defecto": "A",
+      "porque": "Unanimidad; lo que no se guarda no hay que explicarlo ni exportarlo (seguridad I-13).",
+      "antes_del_pr": "11"
+    },
+    {
+      "dd": "DD-07",
+      "decision": "Account como lista o como página",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "lista con una subpágina por tarea",
+          "origen": "jugador §5; seguridad I-03",
+          "valores": "/account es una lista de ActionRow (Email, Password, Devices, Notifications, Away, Spoiler protection, Appearance, Your data, Sign out, Delete account; Admin panel a los administradores), cada fila con su valor; cada tarea en /account/<tarea> con el formulario arriba",
+          "cambia": "un toque más por tarea; el botón queda sobre el teclado (captura 55)"
+        },
+        {
+          "id": "B",
+          "nombre": "una página con paneles",
+          "origen": "codigo §8 A; jugador D-7 B",
+          "valores": "la página de hoy con la cuenta arriba (Email, Password, Devices, Notifications, Away, Your data) y el velo y el tema abajo, y el caso del teclado de la captura 55 arreglado subiendo el mensaje de estado sobre el botón",
+          "cambia": "ningún toque más; las pantallas de E4 se dibujan como paneles y no hay rutas /account/<tarea>"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "B (su A)",
+        "seguridad": "A (injerto 3)",
+        "cobertura": "es del dueño (O-06)"
+      },
+      "defecto": "A",
+      "porque": "La base y el juez de seguridad; cabe sobre el teclado por construcción y deja sitio a cuatro tareas nuevas. Su coste (reescribir Account.tsx, 417 l., y sus tests) va en un PR propio, el 11.",
+      "antes_del_pr": "11"
+    },
+    {
+      "dd": "DD-08",
+      "decision": "El texto de privacidad: cómo se presenta",
+      "pagina": "opciones/index.html",
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "todo a la vista, por apartados",
+          "origen": "jugador §11.1; los tres jueces",
+          "valores": "el texto de §10.1 en Panel por apartado",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "tabla What, Why, How long",
+          "origen": "atacante DD-12 B; incremental B",
+          "valores": "el mismo contenido en una tabla de tres columnas",
+          "cambia": "solo la presentación"
+        },
+        {
+          "id": "C",
+          "nombre": "resumen y detalle plegado",
+          "origen": "jugador D-8; incremental C",
+          "valores": "arriba We keep your email, your game, and when you last visited. We don't sell anything or track you. y cada apartado en un Disclosure",
+          "cambia": "solo la presentación"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A",
+        "seguridad": "A",
+        "cobertura": "A"
+      },
+      "defecto": "A",
+      "porque": "Unanimidad. En las tres el contenido es el mismo y su validez, a confirmar con un abogado.",
+      "antes_del_pr": "12"
+    },
+    {
+      "dd": "DD-09",
+      "decision": "Qué se guarda de la fecha de nacimiento",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "la fecha entera",
+          "origen": "jugador, incremental",
+          "valores": "users.birth_date date",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "el año",
+          "origen": "atacante DD-4",
+          "valores": "users.birth_year smallint y age_confirmed_at; se comprueba la fecha entera al enviarla y se tira",
+          "cambia": "la 0056 y el validator; si la edad mínima cambia, hay que volver a preguntar"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A",
+        "seguridad": "B",
+        "cobertura": "A"
+      },
+      "defecto": "A",
+      "porque": "Es lo que dijo el dueño («fecha de nacimiento», §9.1.1) y deja revisar la regla sin volver a preguntar si el abogado la cambia; mismo coste en código.",
+      "antes_del_pr": "9"
+    },
+    {
+      "dd": "DD-10",
+      "decision": "El plan de Resend",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "Pro antes de abrir el registro",
+          "origen": "los tres",
+          "valores": "20 USD al mes; MAIL_DAILY_BUDGET a 1.500",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "gratuito con tandas pequeñas",
+          "origen": "jugador D-13 B",
+          "valores": "MAIL_DAILY_BUDGET 90 y tandas de invitación de menos de 60 al día",
+          "cambia": "un atacante con cinco IP puede agotar el día"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A",
+        "seguridad": "A, con 30 reservados a recuperar",
+        "cobertura": "A, la semana antes de abrir"
+      },
+      "defecto": "A",
+      "porque": "Con el gratuito, el correo 101 del día es un registro que no entra (mapa 02 §3). No sé qué plan hay hoy.",
+      "antes_del_pr": "antes de abrir el registro"
+    },
+    {
+      "dd": "DD-11",
+      "decision": "Contraseñas filtradas (Have I Been Pwned)",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "sí, con 3 s de espera y fallo abierto registrado",
+          "origen": "codigo, seguridad, cobertura",
+          "valores": "envoltorio propio de password.hash con HIBP_TIMEOUT_MS 3.000",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "sí, fallo cerrado (el plugin tal cual)",
+          "origen": "incremental §19.3",
+          "valores": "si su API cae nadie se registra, cambia ni recupera la contraseña",
+          "cambia": "menos código"
+        },
+        {
+          "id": "C",
+          "nombre": "no",
+          "origen": "atacante DD-3 B",
+          "valores": "una línea menos en Privacy",
+          "cambia": "A1 sin freno propio"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A",
+        "seguridad": "A",
+        "cobertura": "A"
+      },
+      "defecto": "A",
+      "porque": "Unanimidad de los jueces; es el único freno a A1 que no depende de la IP.",
+      "antes_del_pr": "10"
+    },
+    {
+      "dd": "DD-12",
+      "decision": "La duración máxima de la ausencia",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "28 días",
+          "origen": "atacante, incremental; codigo, cobertura",
+          "valores": "AWAY_MAX_DAYS 28 (112 días de juego)",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "45 días",
+          "origen": "jugador",
+          "valores": "AWAY_MAX_DAYS 45",
+          "cambia": "pasa del «un mes» del dueño y pesa en E7"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A",
+        "seguridad": "(no la trata)",
+        "cobertura": "A"
+      },
+      "defecto": "A",
+      "porque": "Por debajo del «un mes» del dueño; lo que haga el mundo con una ausencia más larga es de E7.",
+      "antes_del_pr": "13"
+    },
+    {
+      "dd": "DD-13",
+      "decision": "Las condiciones de uso",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "línea bajo el botón con versión guardada",
+          "origen": "jugador §3; cobertura",
+          "valores": "By creating an account you agree to the Terms and the Privacy notice.; /terms en borrador; terms_version y terms_accepted_at",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "casilla obligatoria",
+          "origen": "atacante §3",
+          "valores": "Checkbox I am 16 or older and I accept the Terms and the Privacy notice.",
+          "cambia": "un toque más"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "A, a confirmar con un abogado",
+        "seguridad": "a confirmar con un abogado",
+        "cobertura": "A"
+      },
+      "defecto": "A",
+      "porque": "Lo mínimo que no dictamina; lo que valga, a confirmar con un abogado.",
+      "antes_del_pr": "9"
+    },
+    {
+      "dd": "DD-14",
+      "decision": "El nombre del equipo de quien borra su cuenta",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "nombre generado",
+          "origen": "jugador D-14; atacante §11.3",
+          "valores": "el beforeDelete lo renombra con el generador de nombres de equipo del mundo",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "el que dejó",
+          "origen": "incremental §11",
+          "valores": "como hoy",
+          "cambia": "si es dato personal, a confirmar con un abogado"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "(no la trata)",
+        "seguridad": "(no la trata)",
+        "cobertura": "A, a confirmar con un abogado"
+      },
+      "defecto": "A",
+      "porque": "El nombre lo escribió la persona (mapa 03 §3); a confirmar con un abogado.",
+      "antes_del_pr": "12"
+    },
+    {
+      "dd": "DD-15",
+      "decision": "El destino de los informes DMARC",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "un buzón del dueño fuera del dominio",
+          "origen": "atacante DD-7; jugador §10",
+          "valores": "rua=mailto:<buzón>; ese dominio publica cyclingstar.app._report._dmarc.<suyo>",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "un servicio de resúmenes",
+          "origen": "atacante DD-7 B",
+          "valores": "otro tercero",
+          "cambia": "un tercero más en Privacy"
+        },
+        {
+          "id": "C",
+          "nombre": "ninguno",
+          "origen": "incremental §10",
+          "valores": "como hoy",
+          "cambia": "nadie sabe quién manda en nombre del dominio"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "(no la trata)",
+        "seguridad": "A",
+        "cobertura": "ahora, a un buzón suyo"
+      },
+      "defecto": "A",
+      "porque": "Un rua no necesita contacto ni que alguien conteste.",
+      "antes_del_pr": "17"
+    },
+    {
+      "dd": "DD-16",
+      "decision": "El correo de entrada desde un navegador nuevo (new_sign_in)",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "encendido, sin interruptor, uno por hora",
+          "origen": "atacante DD-5",
+          "valores": "sale cuando una entrada buena llega sin cs_device válida para ese correo",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "con interruptor en Account",
+          "origen": "atacante DD-5",
+          "valores": "una casilla en Account › Password",
+          "cambia": "una preferencia más"
+        },
+        {
+          "id": "C",
+          "nombre": "apagado",
+          "origen": "atacante DD-5",
+          "valores": "",
+          "cambia": "ahorra correo y deja ciego al dueño de la cuenta ante A1 con la contraseña buena"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "(no la trata)",
+        "seguridad": "A",
+        "cobertura": "A (los cinco correos)"
+      },
+      "defecto": "A",
+      "porque": "Es la única pista de A1 con la contraseña buena.",
+      "antes_del_pr": "7"
+    },
+    {
+      "dd": "DD-17",
+      "decision": "Purgar las cuentas sin confirmar",
+      "pagina": null,
+      "opciones": [
+        {
+          "id": "A",
+          "nombre": "sí, a los 7 días, sin corredor ni equipo",
+          "origen": "atacante §13",
+          "valores": "PURGE_UNCONFIRMED_DAYS 7 en la purga diaria",
+          "cambia": "nada"
+        },
+        {
+          "id": "B",
+          "nombre": "no",
+          "origen": "jugador, incremental",
+          "valores": "",
+          "cambia": "quien se registró con un correo ajeno conserva esa cuenta y su contraseña"
+        }
+      ],
+      "votos_jueces": {
+        "codigo": "(no la trata)",
+        "seguridad": "hueco 2",
+        "cobertura": "decisión del dueño tomada en silencio por atacante"
+      },
+      "defecto": "A",
+      "porque": "Libera el correo de quien no se registró y quita la contraseña del intruso.",
+      "antes_del_pr": "17"
+    }
+  ],
+  "decisiones_sin_evidencia_de_los_jueces": {
+    "ids": ["D-07", "D-14", "D-15", "D-20", "D-23", "D-26", "D-43", "D-47", "D-52", "D-57", "D-58"],
+    "nota": "Partes de borrador/00-decisiones.md que esta síntesis ha tomado sin que ningún juez las midiera o las pidiera con mecanismo: locale desde Accept-Language y el defecto 'en' (D-07); la rama ocupada del cambio de correo con su aprobación propia (D-14); el Set de promesas y los 10 s de SIGTERM (D-15); que cerrar las otras sesiones no pida confirmación por fila (D-20); users.device_epoch para invalidar las cs_device (D-23); MAIL_DAILY_BUDGET 1.500 con el plan Pro (D-26); time_zone tomado del navegador al encender los avisos y el silencio de 22 a 8 como decisión de la síntesis (D-43); la llamada de noticeSweep en cada pasada del cron aunque no haya días (D-47); los atajos de 7, 14 y 28 días (D-52); el orden de las migraciones (D-57); el orden y el coste del plan (D-58). Cada una dice en el documento quién la mide y en qué PR."
+  },
+  "ficheros_de_la_sintesis": [
+    "juicios/veredicto.json",
+    "borrador/00-glosario.md",
+    "borrador/00-decisiones.md",
+    "borrador/00-esqueleto.md"
+  ]
+}

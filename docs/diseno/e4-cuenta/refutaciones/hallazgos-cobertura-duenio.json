@@ -1,0 +1,114 @@
+[
+  {
+    "id": "Rcobertura-duenio-001",
+    "seccion": "§20.2 (borrador/20-fronteras.md), §18.3 PR 17 (borrador/18-plan.md)",
+    "gravedad": "alta",
+    "que": "`docs/ops.md` sigue declarando el cambio de correo de autoservicio y tres correos, y §20.2 no lo corrige. l. 87 a 88: «La app manda tres correos, todos de better-auth: recuperar contraseña, verificar la dirección y confirmar un cambio de correo»; l. 97 a 99: «El cambio de correo siempre verifica la dirección nueva antes de aplicarse; si la actual ya estaba confirmada, antes se pide aprobarlo desde ella». Desde el PR 5 y el PR 8 las dos frases son falsas (§5.5, 5-b). Tampoco se corrige la descripción del panel (l. 129 a 141), que no dice que el administrador cambia correos y nombres de equipo ni que cada cambio queda en `admin_audit`. §20.2 solo toca ops.md l. 106 a 109 y 271 a 272, y el PR 17 solo DNS, VAPID, webhook, réplicas, logs y tandas. Es justo el tipo de documento que el encargo manda corregir (los que hablan de correo) y la lección de B2.",
+    "evidencia": "docs/ops.md l. 87 a 88, 97 a 99 y 129 a 141; borrador/20-fronteras.md l. 37 y 38 (puntos 16 y 17); borrador/18-plan.md, PR 17",
+    "arreglo": "Añadir a §20.2 dos entradas con su texto sustituto entero: ops.md l. 87 a 99 («La app manda dos correos: confirmar la dirección al registrarse y recuperar la contraseña. El cambio de correo lo hace un administrador desde el panel y no manda correo», con la referencia a `docs/cuenta.md` §5.5 y §8.5) y ops.md l. 136 a 141 (el panel gana `Change email`, `Rename team` y `Recent changes`; nadie cambia el correo de `ADMIN_EMAIL`). Asignarlas al PR que las hace verdad (PR 5) o al 17, y decirlo."
+  },
+  {
+    "id": "Rcobertura-duenio-002",
+    "seccion": "§9.4 (borrador/09-correo.md), §18.4 (borrador/18-plan.md), §20.2 puntos 9 y 13, §21.2 DD-10",
+    "gravedad": "alta",
+    "que": "Las «tandas» de DD-10 B no tienen mecanismo y el diseño trata «abrir el registro» como un acto futuro cuando el registro ya está abierto hoy. `auth.ts` no tiene `disableSignUp` ni interruptor (solo `sendOnSignUp: true`, l. 142), `/register` es pública y la cabecera ofrece `Sign up` a quien no ha entrado. El borrador dice «El registro no se abre antes del 9, del abogado y de las tandas» (§18.4) y cuenta tandas de 25, 40 y 50 «invitaciones de la lista de espera», pero no dice: (a) qué impide que se registre cualquiera que llegue a la web mientras tanto, también sin fecha de nacimiento hasta el PR 9; (b) por dónde salen las invitaciones: no pueden salir del juego por Resend, porque el dueño fijó dos correos y ninguno más (§9.3), y `captacion.md` l. 111 las da como envío personal del dueño; (c) qué cambia en el código el día que «se abre». Sin esto, un agente no puede implementar la decisión del dueño («abrimos registro por tandas pequeñas») sin decidirla él, y L6 (90 al día) es el único freno real.",
+    "evidencia": "apps/api/src/auth.ts l. 142 (ningún `disableSignUp`); borrador/cuenta-v0.md l. 719, 883 a 889, 2247; docs/captacion.md l. 111 y 263 a 264; 00-encargo.md l. 378 y 398 a 400",
+    "arreglo": "Decidir y escribir el interruptor: p. ej. variable `SIGNUP_OPEN` (por defecto `false` en producción) que pone `emailAndPassword.disableSignUp` y hace que `Register` pinte un texto fijo de registro cerrado, con su test y su PR (antes del 9 o en el 9); o un código de invitación de un solo uso. Escribir que las invitaciones las manda el dueño a mano desde su buzón, fuera de Resend, y que no son un tercer correo del juego. Si se prefiere dejar el registro abierto, decirlo y llevarlo a §21.4 como pregunta al dueño, porque contradice «No abrir el registro directo» de §20.2 punto 13."
+  },
+  {
+    "id": "Rcobertura-duenio-003",
+    "seccion": "§13.4 (borrador/13-avisos.md), §19.3 y 19-a (borrador/19-riesgos.md), §21.4 punto 1 (borrador/21-dueno.md)",
+    "gravedad": "alta",
+    "que": "La decisión del iPhone (DD-04: «si detecta que es un iPhone, que permita pero explique cómo hacerlo», como `twilightstruggle`) queda sin cumplir en dos supuestos que el borrador decide solo. (1) `twilightstruggle` funciona con un manifiesto (`PLAY_MANIFEST`) y dice iOS 16.4; el borrador lo quita y la explicación vale solo para iOS 26 o más, con una afirmación que él mismo dice «no comprobada en un aparato». El choque entre dos decisiones del dueño (D-00p, «quita la web instalable», y DD-04, «como twilightstruggle») lo resuelve la síntesis en §21.4 con «Si no dice nada, se queda así», cuando §9.2 punto 4 pedía escribir lo mínimo y su frontera, no elegir en silencio. (2) Si la prueba de §19.3 falla, 19-a vuelve a pintar «la frase de DD-04 A», que es justo la opción que el dueño rechazó, y esa frase solo está en el glosario (`00-glosario.md` l. 263), que no entra en `docs/cuenta.md`; en §19.3 aparece cortada con «…».",
+    "evidencia": "/home/user/twilightstruggle/ai/ui/src/online/push.ts l. 9 a 12 y 229 a 231 (manifiesto e iOS 16.4); borrador/cuenta-v0.md l. 2299 y 2445 a 2447; borrador/00-glosario.md l. 263; 00-encargo.md l. 373 a 376",
+    "arreglo": "Pasar el manifiesto mínimo de §21.4 punto 1 a una pregunta explícita al dueño (las dos opciones, con lo que cada una cuesta frente a D-00p y a quién deja fuera), no a «sigue abierto». Escribir el plan B si la prueba de iOS 26 falla como el manifiesto mínimo de `twilightstruggle` con su frontera, que es lo que el dueño pidió, y, si se mantiene una frase provisional, escribirla entera en §13.4 diciendo que deshace DD-04 hasta que el dueño decida."
+  },
+  {
+    "id": "Rcobertura-duenio-004",
+    "seccion": "§20.2 y §20.3 (borrador/20-fronteras.md)",
+    "gravedad": "media",
+    "que": "Faltan en la lista de documentos que corregir varias frases que el mapa 04 marca y que con E4 declaran un estado falso: `docs/encargos.md` l. 252 a 254 y `docs/agenda.md` l. 567 a 568 («el aviso al teléfono de E4 llegará con ella [la app]»), cuando E4 lo manda ya por el navegador; `docs/encargos.md` l. 320 a 324 (separar los dos flujos «desde el primer día») y l. 326 a 328 (el aviso al teléfono «que llegará con la app»), que §20.2 punto 5 no toca porque solo cubre l. 312 a 316; `docs/agenda.md` l. 155 a 156 («sigue en pie… separar el correo transaccional del de notificación»). Y a W5 solo se le pasan `visual.md` l. 3623 y 3656, no l. 3616, 3658 («El aviso al teléfono (E4): pasa a la app») ni 3679, que dicen lo mismo.",
+    "evidencia": "mapas/04-documentos.md §6.1 punto 1 y §6.3 punto 7; docs/encargos.md l. 252 a 254, 320 a 328; docs/agenda.md l. 155 a 156 y 567 a 568; docs/visual.md l. 3616, 3658 y 3679",
+    "arreglo": "Añadir a §20.2 esas entradas de encargos.md y agenda.md con su texto sustituto (aviso por el navegador desde E4 y por la app cuando exista; la separación de flujos, solo el día que haya correo de notificación, `docs/cuenta.md` §9.6), y a §20.3 las tres de visual.md."
+  },
+  {
+    "id": "Rcobertura-duenio-005",
+    "seccion": "§18.2 y §18.3, PR 16 (borrador/18-plan.md)",
+    "gravedad": "media",
+    "que": "El PR 16 «depende de nada» y se fusiona «cuando W5 acabe», pero casi todos sus textos sustitutos afirman cosas que solo son verdad tras otros PR: «solo dos correos de cuenta; el cambio de correo lo hace un administrador» (PR 5 y 8), «desde E4 en toda visita» (PR 12), «`stageReadyEmail` se borró con sus tests; el canario mira `noticePayload`» y el aviso por el navegador (PR 14). Si W5 acaba antes, el PR 16 vuelve a dejar documentos que declaran un estado falso, que es lo que §20.2 quiere arreglar.",
+    "evidencia": "borrador/cuenta-v0.md l. 2192 y 2247; borrador/20-fronteras.md puntos 3, 5, 6, 8, 10, 14 y 15",
+    "arreglo": "Poner como dependencias del PR 16 los PR 5, 8, 12 y 14, o repartir cada corrección de §20.2 en el PR que la hace verdad y dejar en el 16 solo las que ya lo son hoy (recuperación, `last_seen_at` de E2, correo de juego)."
+  },
+  {
+    "id": "Rcobertura-duenio-006",
+    "seccion": "§8.5 (borrador/08-rutas.md), §21.2 DD-14",
+    "gravedad": "media",
+    "que": "DD-14 deja que un administrador cambie «siempre» el nombre del equipo de quien se borra, «especialmente si es algo inapropiado». El borrador solo pone `Rename team` «en cada fila de cuenta» del panel; una cuenta borrada no tiene fila, y el panel no lista equipos (hoy solo enlaza a la página del equipo desde la fila de la cuenta). La ruta `PATCH /api/admin/teams/:id` vale para cualquier equipo, pero el caso principal del dueño no tiene pantalla desde la que llegar a ella.",
+    "evidencia": "borrador/cuenta-v0.md l. 816; apps/web/src/pages/AdminPanel.tsx l. 201 (único enlace a equipos); apps/api/src/routes/admin.ts (ninguna ruta que liste equipos); 00-encargo.md l. 379 a 382",
+    "arreglo": "Decir dónde está `Rename team` para un equipo sin dueño humano: p. ej. en la página del equipo (`/world/teams/:id`) para quien es administrador, o un buscador de equipos por nombre en el panel, con su texto (pantalla) y su test."
+  },
+  {
+    "id": "Rcobertura-duenio-007",
+    "seccion": "§8.5 (borrador/08-rutas.md)",
+    "gravedad": "media",
+    "que": "El dueño pidió que «cada edición de un administrador» quede escrita con el valor viejo y el nuevo (`00-encargo.md` l. 367 a 368). `admin_audit` solo cubre `PATCH /api/admin/users/:id`, `PATCH /api/admin/teams/:id`, `DELETE /api/admin/users/:id` y la vuelta del maillot. Quedan fuera ediciones de administrador que existen hoy: `POST /api/admin/premium` (premium por correo, `admin.ts` l. 259 a 270), `POST` y `DELETE /api/admin/blocklist` (l. 175 a 220) y las dos rutas con `ADMIN_TOKEN` que mueven el mundo (`/admin/tick` y `/admin/advance`, l. 147 y 162).",
+    "evidencia": "apps/api/src/routes/admin.ts l. 147, 162, 176, 189 y 261; borrador/08-rutas.md tabla «Lo que el panel gana en E4»",
+    "arreglo": "Añadir a la tabla de §8.5 las acciones `user.premium` (para `/api/admin/premium`), `blocklist.add` y `blocklist.remove` con `{ from, to }`, y decir si el tick y el avance forzado escriben `admin_audit` con `actor = 'token'` o por qué no."
+  },
+  {
+    "id": "Rcobertura-duenio-008",
+    "seccion": "Ensamblado (borrador/ensamblar.sh), §1, §3, §19.3 y en todo el documento",
+    "gravedad": "media",
+    "que": "`docs/cuenta.md` se ensambla sin `00-decisiones.md` ni `00-glosario.md` (ensamblar.sh salta `00-*`) y §0 solo traerá D-00a a D-00f y D-01, pero el texto cita 63 `D-nn` distintas en 247 líneas y `§G.n` 18 veces. Varias son de carga: la frase de DD-04 A de §19.3 solo existe en el glosario; «la de §G.12» en §9.3; «los textos de 429 de §G.12» en el PR 6; «Manda sobre D-42» o «D-23; §G.8». Además quedan dentro del documento dos bloques «Dudas para el ensamblador» (§1, l. 70 de cuenta-v0; §3, l. 180), porque el awk solo los quita cuando siguen a «Propuesto para el glosario»; el de §3 pide escribir §13 con D-42 «ninguno de seguridad», ya contradicho por 13-a. Un agente sin a quién preguntar no puede resolver esas referencias.",
+    "evidencia": "borrador/ensamblar.sh l. 8 a 11; borrador/00-esqueleto.md l. 76 (§0 contiene D-00a a D-00f y D-01); `grep -o 'D-[0-9][0-9]' cuenta-v0.md`: 63 distintas; borrador/cuenta-v0.md l. 70, 180, 875, 2210, 2299",
+    "arreglo": "O añadir a §22 un apéndice con cada `D-nn` en una línea y el glosario (o lo que de él se cita), o sustituir cada referencia por la sección que la contiene; escribir entera la frase de §19.3; y hacer que ensamblar.sh quite también los bloques «Dudas para el ensamblador» (o borrarlos al corregir)."
+  },
+  {
+    "id": "Rcobertura-duenio-009",
+    "seccion": "§0 (pendiente, desde borrador/00-esqueleto.md §A) y la duda de §1",
+    "gravedad": "media",
+    "que": "La cabecera §0.4 se escribe con el resumen §A del esqueleto, que contradice al dueño en más puntos de los que la duda de §1 avisa (2, 4 y 5): el punto 7 dice «el iPhone, por ahora, sin avisos y con todo en la web», contra DD-04; el 10 dice «Dieciocho PR» (son diecisiete) y «el plan de Resend» como condición de abrir, cuando el dueño se queda en el gratuito; el 2, «cada cambio, con un correo»; el 4, el cambio de correo con contraseña y deshacer de 72 horas; el 5, Pro y DMARC con informes.",
+    "evidencia": "borrador/00-esqueleto.md l. 30 a 43; borrador/cuenta-v0.md l. 70 a 72",
+    "arreglo": "Antes de escribir §0, reescribir §A con lo decidido el 19 y el 23 de noviembre: dos correos; cambio de correo por un administrador; plan gratuito por tandas; DMARC sin informes; iPhone con la explicación de DD-04; diecisiete PR; ampliar la duda de §1 a los puntos 7 y 10."
+  },
+  {
+    "id": "Rcobertura-duenio-010",
+    "seccion": "§18 (borrador/18-plan.md l. 3 y la línea del total)",
+    "gravedad": "baja",
+    "que": "La sección dice «dieciséis PR» y la tabla tiene diecisiete (1 a 9, 11 a 17 y 19). El total dice 120 horas y la suma que escribe al lado da 122 (6+3+10+2+8+12+6+6+10+12+10+10+18+3+3+2+1).",
+    "evidencia": "borrador/cuenta-v0.md l. 2162 y 2196",
+    "arreglo": "Escribir «diecisiete PR» y «122 horas», o ajustar una cifra de la tabla y decir cuál."
+  },
+  {
+    "id": "Rcobertura-duenio-011",
+    "seccion": "§4.6 (borrador/04-registro.md), frente a §10.1 y DD-14",
+    "gravedad": "baja",
+    "que": "`/terms` dice «An administrator can change a team name that is offensive or breaks these terms», que estrecha el «siempre» del dueño y contradice a Privacy («An administrator can change the email of your account and rename your team», sin condición). Además mete dos reglas que no ha decidido nadie y que son de E7 (integridad y moderación): «One account per person» y que un administrador «can close an account that breaks these terms».",
+    "evidencia": "borrador/cuenta-v0.md l. 318 y 324 a 328; borrador/10-privacidad.md (apartado «Who can change your account»); 00-encargo.md l. 379 a 382; 00-encargo.md §5, fila E7",
+    "arreglo": "Escribir «An administrator can rename any team.» y, para las dos reglas de E7, quitarlas o marcarlas como pendientes de E7 y del dueño en §21.4, además de en la lista del abogado."
+  },
+  {
+    "id": "Rcobertura-duenio-012",
+    "seccion": "§8.5 (borrador/08-rutas.md), §21.1 DD-01",
+    "gravedad": "baja",
+    "que": "El dueño pidió «administradores fijos por una lista del entorno que el panel no puede cambiar» como `AI_ADMINS` de `twilightstruggle`; el borrador mantiene un solo `ADMIN_EMAIL` y lo llama «como `AI_ADMINS`» sin decir que allí es una lista ni por qué aquí basta uno.",
+    "evidencia": "00-encargo.md l. 365 a 367; borrador/08-rutas.md, primer punto de §8.5",
+    "arreglo": "O pasar a `ADMIN_EMAILS` (lista separada por comas, con `ADMIN_EMAIL` como alias) o escribir en una línea por qué basta uno (un solo dueño) y qué cambia si algún día hay dos."
+  },
+  {
+    "id": "Rcobertura-duenio-013",
+    "seccion": "§4.5 y §11.1 (borrador/04-registro.md, 11-contacto.md), §8.5",
+    "gravedad": "baja",
+    "que": "La fecha de nacimiento se escribe una vez (409 `already_set`) y la rectificación «no tiene destino». En el modelo que el dueño eligió (`twilightstruggle`: los datos del perfil los cambia un administrador) el panel sí sería ese destino, pero `PATCH /api/admin/users/:id` no acepta `birthDate`; tampoco se dice por qué no.",
+    "evidencia": "borrador/cuenta-v0.md §4.5 (`PUT /api/me/birth-date`), §11.1 fila «Quien tecleó mal su fecha»; borrador/08-rutas.md tabla de §8.5",
+    "arreglo": "Añadir `birthDate` a `PATCH /api/admin/users/:id` con su fila `user.birth_date` en `admin_audit` (sin enseñar el valor en `Recent changes`), o escribir por qué se deja fuera."
+  },
+  {
+    "id": "Rcobertura-duenio-014",
+    "seccion": "§12.5 (borrador/12-pantallas.md), §13.4, §14.1 y §14.5",
+    "gravedad": "baja",
+    "que": "E3 dejó escrito que las pantallas nuevas de E4 entran por un componente y sus tokens, con test por estado y su sitio en `/_ui` (mapa 04 §7, `visual.md` l. 1329 a 1333). El borrador solo lo dice de `DateField` y `Field` `reveal`; `AwayBand`, `WelcomeBack`, los `Notice` del permiso y `AccountNotifications` no tienen su sitio en `/_ui`.",
+    "evidencia": "borrador/cuenta-v0.md l. 1321; mapas/04-documentos.md §7, fila E3",
+    "arreglo": "Añadir en §12.5 (o en el PR 13 y el 14) que `AwayBand`, `WelcomeBack` y los dos `Notice` del permiso entran en `/_ui` con un estado cada uno."
+  }
+]
