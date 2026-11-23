@@ -75,8 +75,10 @@ export function createCurrentUserId(
   return async (request) => {
     const session = await auth.api.getSession({ headers: toWebHeaders(request) })
     if (!session) return null
-    if (isPastSessionCeiling(session.session.createdAt)) {
-      await deleteSessionByToken(auth, session.session.token)
+    // Los dobles de better-auth de los tests de rutas solo traen `user`: sin sesión no hay techo.
+    const sesion = session.session as typeof session.session | undefined
+    if (sesion && isPastSessionCeiling(sesion.createdAt)) {
+      await deleteSessionByToken(auth, sesion.token)
       return null
     }
     return session.user.id

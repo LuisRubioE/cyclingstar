@@ -7,7 +7,7 @@ export const PRIVACY_UPDATED = 'November 23, 2026'
 
 /** Una lista del aviso: cada punto, un párrafo del cuerpo. */
 function Puntos({ children }: { children: ReactNode }) {
-  return <ul className="text-body text-ink-2 grid list-disc gap-1 pl-5">{children}</ul>
+  return <ul className="text-body text-ink-2 grid list-disc gap-1 pl-4">{children}</ul>
 }
 
 /**
