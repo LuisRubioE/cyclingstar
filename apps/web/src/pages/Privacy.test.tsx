@@ -57,6 +57,8 @@ describe('la privacidad de E4: lo que dice y lo que ya no', () => {
     "Your rider, your team and everything you do in the game: training, plans, the races you follow and how far you've watched them, and your settings.",
     "For each device you're signed in on: the browser and system it reported, and when you signed in and last used it.",
     'When you create a rider we may ask a public service (ipinfo.io, ipwho.is or ipapi.co) for your country to pre-select a flag; our server keeps the answer in memory for a few hours.',
+    'Our hosting provider keeps server logs with your full IP address for 7 days, to investigate attacks.',
+    'Links from our emails are removed from our server logs.',
     'A session cookie keeps you signed in: 30 days, renewed while you play, never more than 90.',
     'A viewer cookie keeps results hidden until you watch them: 90 days.',
     'Your browser also stores your theme and a few display choices.',

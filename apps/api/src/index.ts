@@ -5,6 +5,7 @@ import { createAuth } from './auth.js'
 import { loadEnv } from './env.js'
 import { createMailer } from './mailer.js'
 import { mailQueue } from './mailQueue.js'
+import { loggerOptions } from './redact.js'
 
 /** Lo más que espera el apagado a los correos en cola antes de salir. */
 const MAIL_DRAIN_TIMEOUT_MS = 8_000
@@ -66,7 +67,8 @@ async function main(): Promise<void> {
         forceDays: days,
         timelineRecord: env.TIMELINE_RECORD,
       }),
-    logger: { level: env.LOG_LEVEL },
+    // Los logs, sin los enlaces de cuenta (redact.ts; E4 PR 4).
+    logger: loggerOptions(env.LOG_LEVEL),
   })
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
 

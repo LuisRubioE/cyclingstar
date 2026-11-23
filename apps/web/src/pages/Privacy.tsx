@@ -47,6 +47,8 @@ export function Privacy() {
         <p className="text-body text-ink-2">
           When you create a rider we may ask a public service (ipinfo.io, ipwho.is or ipapi.co) for
           your country to pre-select a flag; our server keeps the answer in memory for a few hours.
+          Our hosting provider keeps server logs with your full IP address for 7 days, to
+          investigate attacks. Links from our emails are removed from our server logs.
         </p>
       </Panel>
       <Panel title="Cookies and storage">

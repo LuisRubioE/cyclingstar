@@ -1090,7 +1090,7 @@ What we keep about you
 - A record of each email we send you and whether it was delivered, without your address.
 
 Your IP address
-Your IP address is not saved with your account. When you create a rider we may ask a public service (ipinfo.io, ipwho.is or ipapi.co) for your country to pre-select a flag; our server keeps the answer in memory for a few hours. Our hosting provider keeps server logs with your full IP address for <N> days, to investigate attacks. Links from our emails are removed from our server logs.
+Your IP address is not saved with your account. When you create a rider we may ask a public service (ipinfo.io, ipwho.is or ipapi.co) for your country to pre-select a flag; our server keeps the answer in memory for a few hours. Our hosting provider keeps server logs with your full IP address for 7 days, to investigate attacks. Links from our emails are removed from our server logs.
 
 Cookies and storage
 - A session cookie keeps you signed in: 30 days, renewed while you play, never more than 90.
