@@ -406,3 +406,11 @@ lista de servicios de push permitidos `PUSH_HOSTS`, l. 356 a 373, que cierra la 
    `ADMIN_EMAIL` no se cambia allí. El dueño lo confirmó el mismo día: «si, esta bien asi».
 2. DMARC. «No sabia que se podia hacer eso... pero ok, de momento lo dejamos». **Sin informes DMARC
    por ahora (DD-15 C).**
+
+### 9.4 Sin arreglo urgente aparte (23 de noviembre de 2026)
+
+El refutador de código y seguridad encontró dos fallos que ya están en producción
+(`refutaciones/hallazgos-codigo-seguridad.json`, 001 y 002: el 200 del registro delata si el correo
+existe, y una ruta con `..` salta el límite estricto de las credenciales, comprobado en producción con
+GET). Preguntado si los arreglaba un PR urgente aparte, el dueño: «no, primero el plan de E4». **Los
+dos entran en el plan de E4, en su primer PR de seguridad**, y el documento lo dice.
