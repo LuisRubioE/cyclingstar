@@ -12,6 +12,7 @@ Last updated <date>. Cycling Star is a personal, non-commercial project run by o
 
 What we keep about you
 - Your email address, and your password stored as a one-way hash (we can't read it).
+- Whether an administrator has approved your account, and when.
 - Your date of birth, only to check you're 16 or over, and the version of the terms you accepted. Nobody else sees them.
 - The language your browser asked for when you signed up and, if you turn on notifications, its time zone, so notices don't arrive at night.
 - Your rider, your team and everything you do in the game: training, plans, the races you follow and how far you've watched them, your settings, and when you're away.
@@ -21,7 +22,7 @@ What we keep about you
 - A record of each email we send you and whether it was delivered, without your address.
 
 Your IP address
-Your IP address is not saved with your account. When you create a rider we may ask a public service (ipinfo.io, ipwho.is or ipapi.co) for your country to pre-select a flag; our server keeps the answer in memory for a few hours. Our hosting provider keeps server logs with your full IP address for <N> days, to investigate attacks. Links from our emails are removed from those logs.
+Your IP address is not saved with your account. When you create a rider we may ask a public service (ipinfo.io, ipwho.is or ipapi.co) for your country to pre-select a flag; our server keeps the answer in memory for a few hours. Our hosting provider keeps server logs with your full IP address for <N> days, to investigate attacks. Links from our emails are removed from our server logs.
 
 Cookies and storage
 - A session cookie keeps you signed in: 30 days, renewed while you play, never more than 90.
@@ -38,7 +39,7 @@ Who else handles your data
 Railway hosts the game, its database and its logs. Resend delivers our two emails. Google, Mozilla, Apple or Microsoft deliver notifications, depending on your browser.
 
 Who can change your account
-An administrator can change the email of your account and rename your team. Every change an administrator makes is recorded.
+An administrator approves new accounts, can change the email and the date of birth of your account, and can rename your team. Every change an administrator makes is recorded.
 
 Your data, your choice
 - Download a copy of everything we keep about you: Account, Your data.
@@ -54,31 +55,32 @@ This notice will be reviewed against applicable law before public launch.
 
 El PR 3 sustituye el texto de hoy por el de §10.1 **sin** las frases que aún no son verdad; cada PR siguiente añade la suya, y `privacy.test.ts` comprueba que cada frase está y que las retiradas no vuelven (D-36; principio 8).
 
-| Frase (resumida)                                         | Lo que la hace verdad                                                                          | PR    |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----- |
-| correo y contraseña con hash                             | `accounts.password` con scrypt (mapa 03 §1); hoy dice `encrypted`                              | 3     |
-| fecha de nacimiento y versión de las condiciones         | `users.birth_date`, `terms_version` (§4.3)                                                     | 9     |
-| lengua del navegador; zona horaria con avisos            | `users.locale` al registrarse (§4.7); `users.time_zone` con `POST /api/me/push-targets` (D-43) | 9, 14 |
-| el juego, lo seguido y lo visto, ajustes, ausencia       | `riders`, `race_watch`, `users.theme`, `spoiler_scope`, `away_since`                           | 3, 13 |
-| última visita                                            | `users.last_seen_at` en toda visita (§10.6)                                                    | 12    |
-| por aparato: navegador, sistema y fechas                 | `sessions.user_agent`, `created_at`, `updated_at`; `Devices` (§6.4)                            | 3, 11 |
-| dirección del servicio de push                           | `push_targets.credential`                                                                      | 14    |
-| registro de correos sin la dirección                     | `email_log.recipient_hash` (§9.2)                                                              | 7     |
-| la IP no se guarda con la cuenta                         | `disableIpTracking` (§6.2); la 0056 vacía las filas                                            | 3, 6  |
-| país por la IP, en memoria                               | `geoIp.ts` l. 62 a 113; el orden real es ipinfo.io, ipwho.is, ipapi.co                         | 3     |
-| logs con la IP entera `<N>` días, sin enlaces            | `redactUrl` (§10.3); `<N>` del panel de Railway                                                | 4     |
-| cookie de sesión de 30 días, nunca más de 90             | `SESSION_EXPIRES_S`, `SESSION_MAX_AGE_DAYS` (§6.1)                                             | 3     |
-| cookie de aparato de 180 días                            | `cs_device` (§7.5)                                                                             | 6     |
-| cookie del espectador de 90 días                         | `cs_viewer` (E2); hoy Privacy la calla                                                         | 3     |
-| tema y preferencias en el navegador                      | `cs-theme` y las claves de `localStorage` de mapa 03 §4                                        | 3     |
-| dos correos, ningún correo de juego                      | §5.7; D-00c                                                                                    | 8     |
-| avisos y avisos de seguridad solo por push               | §5.4, §7.5, §13                                                                                | 14    |
-| Railway, Resend y los servicios de push                  | `docs/ops.md`; `mailer.ts` l. 45; §13                                                          | 3, 14 |
-| un administrador cambia correo y equipo, y queda escrito | `admin_audit` y las rutas de §8.5                                                              | 5     |
-| exportar                                                 | `POST /api/me/export` (§10.5)                                                                  | 12    |
-| borrar de una vez; el equipo conserva su nombre          | `deleteAccount` (§10.4); DD-14 B                                                               | 12    |
-| copias de 14 días                                        | `scripts/backup.sh` y su cron                                                                  | 12    |
-| sin canal de contacto                                    | D-00b; se retira `Ask and…` (§11.2)                                                            | 3     |
+| Frase (resumida)                                                         | Lo que la hace verdad                                                                          | PR    |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ----- |
+| correo y contraseña con hash                                             | `accounts.password` con scrypt (mapa 03 §1); hoy dice `encrypted`                              | 3     |
+| fecha de nacimiento y versión de las condiciones                         | `users.birth_date`, `terms_version` (§4.3)                                                     | 9     |
+| lengua del navegador; zona horaria con avisos                            | `users.locale` al registrarse (§4.7); `users.time_zone` con `POST /api/me/push-targets` (D-43) | 9, 14 |
+| el juego, lo seguido y lo visto, ajustes, ausencia                       | `riders`, `race_watch`, `users.theme`, `spoiler_scope`, `away_since`                           | 3, 13 |
+| última visita                                                            | `users.last_seen_at` en toda visita (§10.6)                                                    | 12    |
+| por aparato: navegador, sistema y fechas                                 | `sessions.user_agent`, `created_at`, `updated_at`; `Devices` (§6.4)                            | 3, 11 |
+| dirección del servicio de push                                           | `push_targets.credential`                                                                      | 14    |
+| registro de correos sin la dirección                                     | `email_log.recipient_hash` (§9.2)                                                              | 7     |
+| la IP no se guarda con la cuenta                                         | `disableIpTracking` (§6.2); la 0056 vacía las filas                                            | 3, 6  |
+| país por la IP, en memoria                                               | `geoIp.ts` l. 62 a 113; el orden real es ipinfo.io, ipwho.is, ipapi.co                         | 3     |
+| logs con la IP entera `<N>` días, sin enlaces                            | `redactUrl` (§10.3); `<N>` del panel de Railway                                                | 4     |
+| cookie de sesión de 30 días, nunca más de 90                             | `SESSION_EXPIRES_S`, `SESSION_MAX_AGE_DAYS` (§6.1)                                             | 3     |
+| cookie de aparato de 180 días                                            | `cs_device` (§7.5)                                                                             | 6     |
+| cookie del espectador de 90 días                                         | `cs_viewer` (E2); hoy Privacy la calla                                                         | 3     |
+| tema y preferencias en el navegador                                      | `cs-theme` y las claves de `localStorage` de mapa 03 §4                                        | 3     |
+| dos correos, ningún correo de juego                                      | §5.7; D-00c                                                                                    | 8     |
+| avisos y avisos de seguridad solo por push                               | §5.4, §7.5, §13                                                                                | 14    |
+| Railway, Resend y los servicios de push                                  | `docs/ops.md`; `mailer.ts` l. 45; §13                                                          | 3, 14 |
+| cuenta aprobada y cuándo                                                 | `users.status`, `users.approved_at` (§4.9)                                                     | 5     |
+| un administrador aprueba, cambia correo, fecha y equipo, y queda escrito | `admin_audit` y las rutas de §8.5                                                              | 5     |
+| exportar                                                                 | `POST /api/me/export` (§10.5)                                                                  | 12    |
+| borrar de una vez; el equipo conserva su nombre                          | `deleteAccount` (§10.4); DD-14 B                                                               | 12    |
+| copias de 14 días                                                        | `scripts/backup.sh` y su cron                                                                  | 12    |
+| sin canal de contacto                                                    | D-00b; se retira `Ask and…` (§11.2)                                                            | 3     |
 
 ### 10.3 Los logs y `redactUrl`
 
@@ -127,7 +129,7 @@ export interface AccountExport {
   /** La fila de users sin lo interno ni lo que no es suyo. */
   account: Omit<UserRow, 'passwordHash' | 'isAdmin' | 'deviceEpoch' | 'name' | 'image'>
   devices: DeviceRow[]
-  /** Aparatos con avisos, sin la dirección ni las claves del servicio de push. */
+  /** Aparatos con avisos, sin la dirección ni las claves del servicio de push. `[]` fijo hasta el PR 14, que crea `push_targets` (10-g). */
   notificationDevices: {
     id: string
     channel: 'webpush' | 'fcm' | 'apns'
@@ -149,7 +151,7 @@ export interface AccountExport {
 }
 ```
 
-No lleva la contraseña ni su hash, los tokens de sesión, la IP (no se guarda), las claves de `auth_limits` ni el contenido de `admin_audit`. `exportData.test.ts` exporta una cuenta con todo y comprueba que el fichero no contiene el token de sesión, el hash ni el `credential` de un aparato. Si basta para el derecho de acceso, a confirmar con un abogado.
+No lleva la contraseña ni su hash, los tokens de sesión, la IP (no se guarda), las claves de `auth_limits` ni el contenido de `admin_audit`. El PR 12 depende del 7, que crea `email_log` (§18.2); `notificationDevices` entra en el tipo con el PR 12 como `[]` fijo y con un `it.todo` en `exportData.test.ts`, y el PR 14 lo llena (10-g). `exportData.test.ts` exporta una cuenta con todo y comprueba que el fichero no contiene el token de sesión, el hash ni el `credential` de un aparato. Si basta para el derecho de acceso, a confirmar con un abogado.
 
 ### 10.6 `last_seen_at` en toda visita
 
@@ -171,13 +173,6 @@ Hoy solo la escriben las rutas que resuelven el espectador de E2 (`spoiler.ts` l
 - **10-d**, `deleteAccount` vacía `from` y `to` de las filas `user.email` de `admin_audit` de la cuenta borrada.
 - **10-e**, el PR 3 pone el texto nuevo con solo lo que ya es verdad y cada PR añade su frase; la de las copias depende de que el cron de `backup.sh` corra.
 - **10-f**, `AccountExport` deja fuera `isAdmin`, `deviceEpoch`, `name` e `image` de `users`, y la credencial de cada aparato.
-
-**Propuesto para el glosario.**
-
-- `AccountExport` (`apps/api/src/routes/me.ts`); `cs.accountDeleted` (sessionStorage).
-- Textos (pantalla): `Your account is deleted` / `Thanks for playing.` (sustituye al de §G.12, que prometía un correo); `Want a copy first?` / `Download my data`; `Backups are not kept.` si el cron no corre.
-
-**Dudas para el ensamblador.**
-
-- El número de PR de cada frase de §10.2 sigue §G.14; si §18 mueve `last_seen_at` o la exportación a otro PR, la tabla cambia con él.
-- `users.password_hash` existe en el esquema (`schema.ts` l. 108) además de `accounts.password`; no he comprobado si se escribe. `AccountExport` la excluye igual.
+- **10-g**, `notificationDevices` es `[]` fijo hasta el PR 14; el PR 12 depende del 7 por `emails`.
+- **10-h**, Privacy dice «our server logs» y no «those logs»: los registros HTTP del borde de Railway no pasan por `redactUrl`, y si guardan la consulta no lo sé. El enlace de confirmación ya no lleva el token a una URL del servidor (§5.2).
+- **10-i**, Privacy nombra la aprobación de la cuenta y que un administrador puede cambiar la fecha de nacimiento (§4.9, §8.5).

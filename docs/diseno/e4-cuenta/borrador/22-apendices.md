@@ -78,27 +78,96 @@ Los veintinueve de `juicios/veredicto.json`. Tres no se aplicaron porque el due�
 
 ### 22.4 Los alias
 
-Los de las propuestas (§G.15) y los que añadió la redacción. Solo aquí; el resto del documento usa el nombre canónico.
+Los de las propuestas y los que añadió la redacción. Solo aquí; el resto del documento usa el nombre canónico.
 
-| Alias                                                          | De dónde              | Nombre canónico                                                         |
-| -------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
-| `cs_known`                                                     | jugador               | `cs_device`                                                             |
-| `auth_throttle`                                                | atacante              | `auth_limits`                                                           |
-| `delivery_log`                                                 | atacante              | `email_log`                                                             |
-| `push_subscriptions`                                           | atacante, incremental | `push_targets`                                                          |
-| `notify_prefs`                                                 | incremental           | `notice_prefs`                                                          |
-| `month_rule_warning`, `month_rule`                             | atacante, incremental | `away_warning`                                                          |
-| `absence_ending`                                               | incremental           | `away_over`                                                             |
-| `stage_ready_own`, `stage_ready_followed`                      | incremental           | `stage_digest`, `stage_ready`                                           |
-| `Sessions` (panel)                                             | incremental           | `AccountDevices`                                                        |
-| `DELETE /api/me`, `POST /api/me/delete`                        | atacante, incremental | `POST /api/auth/delete-user` con `beforeDelete`                         |
-| `/confirm-age`                                                 | atacante              | `/account/birth-date`                                                   |
-| `/confirm-email-change#t=`                                     | incremental           | ninguno: el cambio de correo es del panel                               |
-| `E1` a `E7`                                                    | atacante              | `verify_signup` y `reset_password`; el resto, fuera                     |
-| `stageReadyPush`                                               | incremental           | `noticePayload`                                                         |
-| `ACCOUNT.*`, `PUSH.*`                                          | incremental           | las constantes de §16                                                   |
-| `PUSH_HOSTS`, `MAX_DEVICES`, `later`                           | `twilightstruggle`    | `PUSH_ALLOWED_HOSTS`, `PUSH_TARGETS_PER_USER`, `mailQueue.track`        |
-| `SESSION_DAYS`, `KNOWN_DEVICE_DAYS`, `AWAY_SESSION_GRACE_DAYS` | jugador §14           | `SESSION_EXPIRES_S`, `DEVICE_COOKIE_DAYS`; el tercero desaparece (D-17) |
+| Alias                                                          | De dónde              | Nombre canónico                                                                                        |
+| -------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `cs_known`                                                     | jugador               | `cs_device`                                                                                            |
+| `auth_throttle`                                                | atacante              | `auth_limits`                                                                                          |
+| `delivery_log`                                                 | atacante              | `email_log`                                                                                            |
+| `push_subscriptions`                                           | atacante, incremental | `push_targets`                                                                                         |
+| `notify_prefs`                                                 | incremental           | `notice_prefs`                                                                                         |
+| `month_rule_warning`, `month_rule`                             | atacante, incremental | `away_warning`                                                                                         |
+| `absence_ending`                                               | incremental           | `away_over`                                                                                            |
+| `stage_ready_own`, `stage_ready_followed`                      | incremental           | `stage_digest`, `stage_ready`                                                                          |
+| `Sessions` (panel)                                             | incremental           | `AccountDevices`                                                                                       |
+| `DELETE /api/me`, `POST /api/me/delete`                        | atacante, incremental | `POST /api/auth/delete-user` con `beforeDelete`                                                        |
+| `/confirm-age`                                                 | atacante              | `/account/birth-date`                                                                                  |
+| `/confirm-email-change#t=`                                     | incremental           | ninguno: el cambio de correo es del panel                                                              |
+| `E1` a `E7`                                                    | atacante              | `verify_signup` y `reset_password`; el resto, fuera                                                    |
+| `stageReadyPush`                                               | incremental           | `noticePayload`                                                                                        |
+| `ACCOUNT.*`, `PUSH.*`                                          | incremental           | las constantes de §16                                                                                  |
+| `PUSH_HOSTS`, `MAX_DEVICES`, `later`                           | `twilightstruggle`    | `PUSH_ALLOWED_HOSTS`, `PUSH_TARGETS_PER_USER`, `mailQueue.track`                                       |
+| `SESSION_DAYS`, `KNOWN_DEVICE_DAYS`, `AWAY_SESSION_GRACE_DAYS` | jugador §14           | `SESSION_EXPIRES_S`, `DEVICE_COOKIE_DAYS`; el tercero desaparece (D-17)                                |
+| `UserStatus` de cuatro valores, `AI_ADMINS`, `PLAY_MANIFEST`   | `twilightstruggle`    | `UserStatus` de dos (`pending`, `approved`), `ADMIN_EMAIL`, `manifest.webmanifest` (§4.9, §8.5, §13.5) |
+
+### 22.5 Las decisiones `D-nn` en una línea
+
+El texto cita las decisiones de la síntesis por su número (`D-nn`). Esta es cada una de las citadas, con la sección que la desarrolla. Donde el dueño o la corrección la cambiaron, se dice: manda lo que dice la sección, no el título.
+
+- **D-00a** · 16 años con fecha de nacimiento. §4.
+- **D-00b** · Sin canal de contacto. §11.
+- **D-00c** · Ningún correo de juego. §9, §13, §14.
+- **D-00d** · La app sin tecnología ni fecha. §13.
+- **D-00e** · El modo ausencia con la frontera propuesta. §14.
+- **D-00f** · Solo correo y contraseña. §8.
+- **D-00p** · La web instalable, retirada. `docs/visual.md` l. 2736, decisión de E3: sin manifiesto de instalación, sin caché y sin cáscara sin red. E4 añade un service worker solo de avisos y un manifiesto mínimo sin iconos, que no la contradicen (§13.5; `00-encargo.md` §9.5).
+- **D-02** · Dónde vive cada cosa. §15, §16.
+- **D-03** · Los principios. §3. Cambió: el dueño deshizo «la seguridad va por correo»: va por push (principio 2, 3-a).
+- **D-04** · El campo y la puerta neutra. §4, §12.
+- **D-05** · Qué se guarda (defecto de DD-09). §4.
+- **D-06** · La validación en el servidor. §4.
+- **D-07** · Lo de E10. §4.
+- **D-08** · El nombre y la imagen. §4.
+- **D-09** · Las cuentas que ya existen. §4. Cambió: la puerta de la API es global (4-g).
+- **D-10** · Las condiciones (defecto de DD-13). §4.
+- **D-11** · Los tokens. §5.
+- **D-12** · Todo enlace pasa por una página de botón. §5. Cambió: el botón manda el token por `POST` (5-h).
+- **D-13** · Recuperar. §5.
+- **D-14** · El cambio de correo. §5. Cambió: retirado: el cambio de correo lo hace un administrador (§5.5, 5-b).
+- **D-15** · La enumeración por tiempo y el cierre ordenado. §5.
+- **D-16** · Los correos de cuenta. §5. Cambió: de diez correos a dos (§5.7, 5-a).
+- **D-17** · Vida y caché. §6.
+- **D-18** · La IP no se guarda. §6.
+- **D-19** · Lo que llega a la web. §6. Cambió: el token sale de todo JSON de `/api/auth/*` (6-f).
+- **D-20** · Cerrar sesiones. §6. Cambió: `Sign out everywhere else` vive en `POST /api/auth/devices/sign-out-others` (6-g).
+- **D-21** · Qué IP vale. §7. Cambió: con más de dos entradas, `request.ip` (7-h).
+- **D-22** · `auth_limits`. §7. Cambió: claves nuevas `pw:` por sesión, `pwu:` y `rsv:` (7-k, 7-m).
+- **D-23** · `cs_device`. §7. Cambió: la firma lleva el id de la cuenta (7-l); `Forget this device` (6-h).
+- **D-24** · Las cifras. §7. Cambió: L3 por sesión y con techo por cuenta (7-k).
+- **D-25** · Lo que ve quien choca. §7, §12.
+- **D-26** · El presupuesto. §7, §9. Cambió: plan gratuito (DD-10 B), sin la cifra de Pro; reserva una vez por destinatario y día (7-f, 7-m).
+- **D-28** · Las subidas (PR 2). §8.
+- **D-29** · La lista blanca. §8. Cambió: once rutas sin `change-email`, comparadas con la ruta normalizada; nueve desde el PR 19 (8-a, 7-j).
+- **D-30** · El registro de `better-auth`. §8.
+- **D-31** · El panel raíz. §8. Cambió: sin TOTP (DD-01 A); el raíz protegido también en el `PATCH` (8-b, 8-h).
+- **D-32** · DNS. §9. Cambió: DMARC se queda en `p=none` sin informes (DD-15 C, 9-a).
+- **D-33** · Saber qué pasó. §9.
+- **D-34** · Plan, calentamiento y purga. §9. Cambió: plan gratuito y tandas por aprobación (DD-10 B; §4.9; 9-b).
+- **D-35** · Subdominios, el día que haya otro flujo. §9.
+- **D-36** · `Privacy.tsx`. §10.
+- **D-37** · Los logs. §10.
+- **D-38** · Borrar. §10. Cambió: el equipo conserva su nombre (DD-14 B, 10-b).
+- **D-39** · Exportar. §10.
+- **D-40** · `last_seen_at` en toda visita. §10.
+- **D-42** · El catálogo. §13. Cambió: tres avisos de seguridad (13-a).
+- **D-43** · Topes, silencio y zona. §13.
+- **D-44** · El permiso y la baja. §13.
+- **D-45** · El service worker y D-00p. §13. Cambió: con un manifiesto mínimo sin iconos (13-g).
+- **D-46** · El envío y la SSRF. §13.
+- **D-47** · El emisor. §13.
+- **D-48** · Ningún aviso destripa. §13.
+- **D-49** · Aparatos compartidos. §13.
+- **D-50** · El contrato para la app. §13.
+- **D-52** · Declarar. §14.
+- **D-53** · Mientras dura. §14. Cambió: también salen los de seguridad (13-a).
+- **D-54** · Inactividad y E7. §14.
+- **D-55** · `Welcome back` y la regla en la web. §14.
+- **D-56** · `Account` y las pantallas. §12.
+- **D-57** · Las migraciones. §15.
+- **D-58** · El plan. §18. Cambió: diecisiete PR y unas 134 horas (§18).
+- **D-59** · Los documentos. §20.
+- **D-60** · Lo que se mide. §19. Cambió: más la cola de aprobación y la reserva de recuperar (19-c).
 
 ---
 
@@ -112,3 +181,4 @@ Los de las propuestas (§G.15) y los que añadió la redacción. Solo aquí; el 
 
 - **22-a**, la tabla de lo desestimado gana dos filas: alargar la sesión en ausencia y el aviso de prueba.
 - **22-b**, los alias de `twilightstruggle` entran en 22.4.
+- **22-c**, 22.5 da cada `D-nn` citada en una línea, porque `00-decisiones.md` no entra en `docs/cuenta.md`.

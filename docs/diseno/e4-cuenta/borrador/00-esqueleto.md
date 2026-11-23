@@ -29,16 +29,18 @@ La ley de los redactores de la fase 3b. Dos redactores escriben a la vez, un lot
 
 ## A. Resumen ejecutivo provisional (para §0.4, en este orden)
 
+Reescrito por el corrector el 23 de noviembre de 2026 con lo que decidió el dueño (`00-encargo.md` §9.1 a §9.5); manda sobre la versión anterior.
+
 1. **El ciclo de la identidad ya existe; E4 lo cierra por los bordes.** Recuperar cierra todas las sesiones, los enlaces se guardan con hash y mueren cuando otro se usa, ninguna respuesta espera al correo y ninguna ruta abierta queda sin decidir: casi todo son opciones de `better-auth` 1.7.26 medidas.
-2. **Cada acto termina con una frase verdadera y cada cambio, con un correo.** Las pantallas que mienten se arreglan en el PR 1; seis correos de cuenta nuevos, ninguno de juego.
+2. **Cada acto termina con una frase verdadera, y el correo lleva dos enlaces y nada más.** Las pantallas que mienten se arreglan en el PR 1; el juego manda dos correos, confirmar el registro y recuperar la contraseña, y ninguno de juego ni de seguridad: la contraseña cambiada, la entrada nueva y el correo cambiado por un administrador van por push y se ven en la web.
 3. **Un tercero nunca bloquea al dueño.** Límite por cuenta en Postgres con reserva previa y clave HMAC, que solo cierra a los navegadores sin `cs_device`; recuperar siempre da esa cookie.
-4. **Un enlace de correo nunca cambia nada por sí solo.** Página de botón y token en el fragmento; cambiar el correo pide la contraseña y se puede deshacer 72 horas.
-5. **El correo es escaso y es un blanco.** Topes por IP y por destinatario, un presupuesto diario con reserva para recuperar, Pro antes de abrir, DMARC con informes.
+4. **Un enlace de correo nunca cambia nada por sí solo.** Página de botón y token en el fragmento, que al pulsar viaja en el cuerpo de un `POST`. El jugador no cambia su correo: lo cambia un administrador desde el panel, sin correo, con aviso por push y escrito en `admin_audit`.
+5. **El correo es escaso y es un blanco.** Plan gratuito de Resend y registro por aprobación, como en `twilightstruggle`: quien se registra espera y un administrador aprueba por tandas; topes por IP y por destinatario, un presupuesto diario con reserva para recuperar, y DMARC sin informes por ahora.
 6. **16 años con fecha de nacimiento**, validada antes de mirar el correo; las cuentas de hoy la dan al entrar.
-7. **La web dice todo; el aviso solo adelanta.** Avisos por el navegador con un service worker de tres oyentes sin caché (D-00p intacto), con SSRF cerrada, tope de 3 al día y silencio de noche; el iPhone, por ahora, sin avisos y con todo en la web; la app, un canal más.
+7. **La web dice todo; el aviso solo adelanta.** Avisos por el navegador con un service worker de tres oyentes sin caché, con SSRF cerrada, tope de 3 al día y silencio de noche; en iPhone, la web lo detecta y explica cómo añadirla a la pantalla de inicio, con un manifiesto mínimo sin iconos para que valga desde iOS 16.4, sin nada más de lo que quitó D-00p; la app, un canal más.
 8. **Irse de vacaciones no castiga.** El modo ausencia dice qué se para con los datos de cada jugador, en `manual` decide el entrenador, calla los avisos y congela la inactividad para E7.
 9. **Lo que la web dice de los datos es verdad**: `Privacy.tsx` nueva, la IP fuera de la base, logs sin tokens, borrado atómico y exportación con contraseña.
-10. **Dieciocho PR, tests primero**; el registro no se abre sin el abogado y el plan de Resend; diecisiete decisiones son del dueño y ocho se miran en `opciones/index.html`.
+10. **Diecisiete PR, tests primero, unas 134 horas.** El PR 3, el primero de seguridad, cierra los dos agujeros que ya están en producción (el cuerpo del registro que delata la cuenta y la ruta con `..` que salta el límite), porque el dueño no quiso un PR urgente aparte. Nadie se aprueba antes del abogado; las diecisiete `DD` y las tres del final están contestadas por el dueño.
 
 ---
 

@@ -6,46 +6,48 @@ La única tabla entera de constantes del documento. Las compartidas por la API y
 
 **Edad, condiciones y sesiones** (`packages/shared/src/account/constants.ts`)
 
-| Constante                | Valor               | Por qué                                                                                   | Decisión   |
-| ------------------------ | ------------------- | ----------------------------------------------------------------------------------------- | ---------- |
-| `MIN_AGE_YEARS`          | 16                  | el dueño, «Ok» (`00-encargo.md` l. 309 a 310); a confirmar con un abogado                 | D-00a      |
-| `MIN_BIRTH_YEAR`         | 1900                | una fecha anterior es un error de teclado                                                 | D-06       |
-| `TERMS_VERSION`          | `'2026-11-draft'`   | volver a pedir la aceptación cuando cambie el texto                                       | D-10       |
-| `SESSION_EXPIRES_S`      | 2.592.000 (30 días) | volver de dos semanas fuera sin teclear la contraseña; cabe la ausencia máxima de 28 días | D-17       |
-| `SESSION_UPDATE_AGE_S`   | 86.400              | renovar una vez al día de uso, no en cada petición                                        | D-17       |
-| `SESSION_MAX_AGE_DAYS`   | 90                  | una cookie robada no vive más de un trimestre aunque se use                               | D-17; I-11 |
-| `EMAIL_JWT_TTL_S`        | 86.400              | el enlace de confirmar se lee mañana                                                      | D-11       |
-| `RESET_TOKEN_TTL_S`      | 3.600               | la recuperación es corta; el token ya no pasa por logs ni por la URL                      | D-11       |
-| `LEGACY_LINK_GRACE_DAYS` | 7                   | plazo para quitar el código de los enlaces viejos (5-f); el PR 19                         | D-12       |
-| `RESEND_COOLDOWN_S`      | 60                  | la espera visible de `Send it again`                                                      | §5.3       |
-| `EXPORTS_PER_DAY`        | 3                   | una exportación es una consulta grande; tres bastan a quien la quiere                     | D-39       |
+| Constante                | Valor                                          | Por qué                                                                                                                               | Decisión   |
+| ------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `MIN_AGE_YEARS`          | 16                                             | el dueño, «Ok» (`00-encargo.md` l. 309 a 310); a confirmar con un abogado                                                             | D-00a      |
+| `MIN_BIRTH_YEAR`         | 1900                                           | una fecha anterior es un error de teclado                                                                                             | D-06       |
+| `UserStatus`             | `'pending' \| 'approved'`, defecto `'pending'` | el registro por aprobación, como `twilightstruggle` (`00-encargo.md` §9.5, punto 1)                                                   | §4.9; 4-i  |
+| `TERMS_VERSION`          | `'2026-11-draft'`                              | volver a pedir la aceptación cuando cambie el texto                                                                                   | D-10       |
+| `SESSION_EXPIRES_S`      | 2.592.000 (30 días)                            | volver de dos semanas fuera sin teclear la contraseña; cabe la ausencia máxima de 28 días                                             | D-17       |
+| `SESSION_UPDATE_AGE_S`   | 86.400                                         | renovar una vez al día de uso, no en cada petición                                                                                    | D-17       |
+| `SESSION_MAX_AGE_DAYS`   | 90                                             | una cookie robada no vive más de un trimestre aunque se use                                                                           | D-17; I-11 |
+| `EMAIL_JWT_TTL_S`        | 86.400                                         | el enlace de confirmar se lee mañana                                                                                                  | D-11       |
+| `RESET_TOKEN_TTL_S`      | 3.600                                          | la recuperación es corta; el token ya no pasa por logs ni por la URL                                                                  | D-11       |
+| `LEGACY_LINK_GRACE_DAYS` | 7                                              | plazo para quitar el código de los enlaces viejos (5-f); el PR 19                                                                     | D-12       |
+| `RESEND_COOLDOWN_S`      | 60                                             | la espera visible de `Send another link` (`ForgotPassword`) y `Send me a new link` (`VerifyEmail`); `CheckInbox` ya no reenvía (§4.9) | §5.3, §5.4 |
+| `EXPORTS_PER_DAY`        | 3                                              | una exportación es una consulta grande; tres bastan a quien la quiere                                                                 | D-39       |
 
 **Límites** (`apps/api/src/security.ts`, salvo `MAIL_DAILY_BUDGET`, que es variable de entorno en `apps/api/src/env.ts`)
 
-| Constante                      | Valor                        | Por qué                                                                                           | Decisión   |
-| ------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------- | ---------- |
-| `ACCOUNT_FAILS` (L1)           | 10 en 900 s; cierre de 900 s | frena el relleno repartido entre IP (40 fallos y la buena entraba, mapa 01 §4.2); sin tope diario | D-24       |
-| `DEVICE_FAILS` (L2)            | 10 en 900 s; 30 en 86.400 s  | el aparato conocido también tiene techo                                                           | D-24       |
-| `SESSION_PASSWORD_FAILS` (L3)  | 5 en 900 s; 10 en 86.400 s   | con sesión robada no se prueba la contraseña a ciegas; al décimo se cierra la sesión              | D-24       |
-| `MAIL_ROUTES_PER_IP_DAY` (L4)  | 20                           | las rutas que mandan correo, por IP                                                               | D-24       |
-| `MAIL_PER_RECIPIENT_HOUR` (L5) | 3                            | un buzón ajeno no se inunda                                                                       | D-24       |
-| `MAIL_DAILY_BUDGET` (L6)       | 90                           | el plan gratuito de Resend da 100 al día y 3.000 al mes; 90 × 31 = 2.790 (calculado; DD-10 B)     | D-26; 7-f  |
-| `MAIL_RESET_RESERVE`           | 30                           | `verify_signup` para a los 60 del día; `reset_password` sigue hasta 90                            | D-26; 7-f  |
-| `DEVICE_COOKIE_DAYS`           | 180                          | vida de `cs_device`; sobrevive a `Sign out`                                                       | D-23       |
-| `DEVICE_COOKIE_MAX_ACCOUNTS`   | 5                            | cuentas por navegador; la sexta saca a la más vieja (7-e)                                         | D-23       |
-| `NEW_SIGN_IN_EVERY_H`          | 1                            | el aviso `new_sign_in`, como mucho uno por hora y cuenta                                          | DD-16; 7-g |
-| `AUTH_ALLOWED_PATHS`           | las once de §8.1             | lista blanca; `change-email` fuera                                                                | D-29; 8-a  |
-| `CREDENTIAL_AUTH_PATHS`        | siete rutas                  | pierde `change-email` (§7.2)                                                                      | §7.2       |
+| Constante                         | Valor                                  | Por qué                                                                                                                        | Decisión       |
+| --------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| `ACCOUNT_FAILS` (L1)              | 10 en 900 s; cierre de 900 s           | frena el relleno repartido entre IP (40 fallos y la buena entraba, mapa 01 §4.2); sin tope diario                              | D-24           |
+| `DEVICE_FAILS` (L2)               | 10 en 900 s; 30 en 86.400 s            | el aparato conocido también tiene techo                                                                                        | D-24           |
+| `SESSION_PASSWORD_FAILS` (L3)     | 5 en 900 s; 10 en 86.400 s, por sesión | con sesión robada no se prueba la contraseña a ciegas; al décimo se cierra esa sesión, y las otras del dueño siguen            | D-24; 7-k      |
+| `ACCOUNT_PASSWORD_FAILS_DAY` (L3) | 30 en 86.400 s, por cuenta             | techo para quien reparte intentos entre sesiones                                                                               | 7-k            |
+| `MAIL_ROUTES_PER_IP_DAY` (L4)     | 20                                     | las rutas que mandan correo, por IP                                                                                            | D-24           |
+| `MAIL_PER_RECIPIENT_HOUR` (L5)    | 3                                      | un buzón ajeno no se inunda                                                                                                    | D-24           |
+| `MAIL_DAILY_BUDGET` (L6)          | 90                                     | el plan gratuito de Resend da 100 al día y 3.000 al mes; 90 × 31 = 2.790 (calculado; DD-10 B)                                  | D-26; 7-f      |
+| `MAIL_RESET_RESERVE`              | 30                                     | `verify_signup` para a los 60 del día; `reset_password` sigue hasta 90; cada destinatario la gasta una vez al día UTC (`rsv:`) | D-26; 7-f; 7-m |
+| `DEVICE_COOKIE_DAYS`              | 180                                    | vida de `cs_device`; sobrevive a `Sign out`                                                                                    | D-23           |
+| `DEVICE_COOKIE_MAX_ACCOUNTS`      | 5                                      | cuentas por navegador; la sexta saca a la más vieja (7-e)                                                                      | D-23           |
+| `NEW_SIGN_IN_EVERY_H`             | 1                                      | el aviso `new_sign_in`, como mucho uno por hora y cuenta                                                                       | DD-16; 7-g     |
+| `AUTH_ALLOWED_PATHS`              | las once de §8.1                       | lista blanca; `change-email` fuera                                                                                             | D-29; 8-a      |
+| `CREDENTIAL_AUTH_PATHS`           | siete rutas                            | pierde `change-email` (§7.2)                                                                                                   | §7.2           |
 
 **Correo y purga** (`apps/api/src/mailQueue.ts`; `packages/db/src/purge.ts`)
 
-| Constante                    | Valor  | Por qué                                                                      | Decisión |
-| ---------------------------- | ------ | ---------------------------------------------------------------------------- | -------- |
-| `MAIL_SHUTDOWN_GRACE_MS`     | 10.000 | lo que `SIGTERM` espera a los correos y avisos en vuelo; **[sin evidencia]** | D-15     |
-| `AUTH_LIMITS_RETENTION_DAYS` | 2      | ninguna ventana pasa de 24 h                                                 | D-34     |
-| `EMAIL_LOG_RETENTION_DAYS`   | 90     | los rebotes se miran por semanas (§19.4)                                     | D-34     |
-| `NOTICE_LOG_RETENTION_DAYS`  | 90     | ninguna `ref` de aviso vive más de 28 días                                   | 15-e     |
-| `PURGE_UNCONFIRMED_DAYS`     | 7      | un registro con correo inventado no se queda                                 | DD-17 A  |
+| Constante                    | Valor  | Por qué                                                                       | Decisión     |
+| ---------------------------- | ------ | ----------------------------------------------------------------------------- | ------------ |
+| `MAIL_SHUTDOWN_GRACE_MS`     | 10.000 | lo que `SIGTERM` espera a los correos y avisos en vuelo; **[sin evidencia]**  | D-15         |
+| `AUTH_LIMITS_RETENTION_DAYS` | 2      | ninguna ventana pasa de 24 h                                                  | D-34         |
+| `EMAIL_LOG_RETENTION_DAYS`   | 90     | los rebotes se miran por semanas (§19.4)                                      | D-34         |
+| `NOTICE_LOG_RETENTION_DAYS`  | 90     | ninguna `ref` de aviso vive más de 28 días                                    | 15-e         |
+| `PURGE_UNCONFIRMED_DAYS`     | 7      | una cuenta aprobada que no confirma en 7 días desde `approved_at` no se queda | DD-17 A; 9-g |
 
 **Ausencia** (`packages/shared/src/account/constants.ts`)
 
@@ -84,7 +86,7 @@ La única tabla entera de constantes del documento. Las compartidas por la API y
 - `PLAN_END_WARN_DAYS` 7 de la portada (`apps/web/src/domain/dashboard.ts` l. 67), el gemelo de `plan_ending`.
 - `ENGINE_VERSION` 91 (`packages/engine/src/constants.ts` l. 853).
 
-**Las que desaparecen** frente a §G.6, por lo que decidió el dueño el 23 de noviembre: `HIBP_TIMEOUT_MS` (DD-11 C), `EMAIL_CHANGES_PER_DAY` y `UNDO_EMAIL_CHANGE_H` (sin cambio de correo de autoservicio, `00-encargo.md` l. 398 a 406), `SIGNUP_EXISTING_EVERY_H` y `CHANGE_TO_TAKEN_EVERY_H` (sin esos correos) y `MAIL_LOW_PRIORITY_CUTOFF` (sin correos de baja prioridad que cortar, 7-f). `MAIL_DAILY_BUDGET` pierde la cifra de 1.500 de Pro: volvería solo con DD-10 A.
+**Las que desaparecen** frente al glosario de las propuestas, por lo que decidió el dueño el 23 de noviembre: `HIBP_TIMEOUT_MS` (DD-11 C), `EMAIL_CHANGES_PER_DAY` y `UNDO_EMAIL_CHANGE_H` (sin cambio de correo de autoservicio, `00-encargo.md` l. 398 a 406), `SIGNUP_EXISTING_EVERY_H` y `CHANGE_TO_TAKEN_EVERY_H` (sin esos correos) y `MAIL_LOW_PRIORITY_CUTOFF` (sin correos de baja prioridad que cortar, 7-f). `MAIL_DAILY_BUDGET` pierde la cifra de 1.500 de Pro: volvería solo con DD-10 A.
 
 ---
 
@@ -95,7 +97,3 @@ La única tabla entera de constantes del documento. Las compartidas por la API y
 **Huecos rellenados.** Ninguno asignado.
 
 **Decisiones de esta sección.** Ninguna nueva: cada valor sale de la decisión de su fila, de L1 (`7-e`, `7-f`, `7-g`, `8-a`) o de §13 a §15.
-
-**Propuesto para el glosario.**
-
-- §G.6 sin las seis que desaparecen; con `STAGE_READY_EVERY_H`, `PLAN_ENDING_GAME_DAYS`, `PUSH_SEND_TIMEOUT_MS` y `NOTICE_LOG_RETENTION_DAYS`; `PUSH_ALLOWED_HOSTS` como en 13-j; `CREDENTIAL_AUTH_PATHS` con siete rutas.

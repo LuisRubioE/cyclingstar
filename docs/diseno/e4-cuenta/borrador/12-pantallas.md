@@ -24,9 +24,10 @@ The game
 [ Appearance            Dark            › ]
 
 [ Sign out ]
+Shared computer? Forget this device
 ```
 
-Cada fila es un `ActionRow` que abre `/account/<tarea>` (`AccountEmail`, `AccountPassword`, `AccountDevices`, `AccountData`, `AccountDelete`, `AccountNotifications`, `AccountAway`, `AccountSpoilers`, `AccountAppearance`), cada una con su `PageHeader` y `‹ Account` para volver. Los valores de la derecha salen de `GET /api/me/account` (propuesta de esta sección): `{ ok: true, email, joinedAt, passwordChangedAt: string | null, devices: number, emailUndeliverableAt: string | null }`. `passwordChangedAt` es `accounts.updated_at` de la fila `credential`; si `better-auth` no la toca al cambiar la contraseña (no lo he comprobado), la fila dice `Set`; `authFlow.test.ts` lo comprueba al cambiar la contraseña. Es el gemelo en la web de `password_changed`, como `Devices` lo es de `new_sign_in` (principio 2). Con `email_undeliverable_at`, el `Notice` `warn` de §9.3 va encima de todo.
+Cada fila es un `ActionRow` que abre `/account/<tarea>` (`AccountEmail`, `AccountPassword`, `AccountDevices`, `AccountData`, `AccountDelete`, `AccountNotifications`, `AccountAway`, `AccountSpoilers`, `AccountAppearance`), cada una con su `PageHeader` y `‹ Account` para volver. Los valores de la derecha salen de `GET /api/me/account` (nace en el PR 9 con `birthDateSet`, §4.5, y el PR 11 la completa): `{ ok: true, email, joinedAt, birthDateSet: boolean, passwordChangedAt: string | null, devices: number, emailUndeliverableAt: string | null }`. `Shared computer? Forget this device` es un `TextLink` bajo `Sign out` que quita la entrada de este navegador de la `cs_device` y sale (`POST /api/auth/devices/forget`, §6.5); al terminar, en `/login`, `Notice` `good` (pantalla) `Signed out. This browser no longer counts as one of your devices.` `passwordChangedAt` es `accounts.updated_at` de la fila `credential`; si `better-auth` no la toca al cambiar la contraseña (no lo he comprobado), la fila dice `Set`; `authFlow.test.ts` lo comprueba al cambiar la contraseña. Es el gemelo en la web de `password_changed`, como `Devices` lo es de `new_sign_in` (principio 2). Con `email_undeliverable_at`, el `Notice` `warn` de §9.3 va encima de todo.
 
 **La alternativa B** (DD-07 B): una sola página con un `Panel` por tarea, como hoy, con el orden de arriba. Sin el formulario de cambio de correo (§5.5), el botón que el teclado tapaba ya no existe; B cuesta menos que antes, pero sigue empezando lo de la cuenta lejos del principio.
 
@@ -143,22 +144,23 @@ export function authErrorText(
 export function waitText(seconds: number): string
 ```
 
-| Estado y código                                                       | Texto (pantalla)                                                                                                                                             |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0, sin red                                                            | `Can't reach Cycling Star. Check your connection and try again.`                                                                                             |
-| 429 de Fastify (`demasiadas_peticiones`) o L4                         | `Too many attempts from this connection. Try again in <wait>.`                                                                                               |
-| 429 `ACCOUNT_LOCKED`                                                  | `Too many failed attempts on this account. Try again in 15 minutes, or reset your password.`, con `reset your password` como `TextLink` a `/forgot-password` |
-| 429 `PASSWORD_ATTEMPTS_LOCKED`                                        | `Too many wrong passwords. Try again in 15 minutes.`; con `signedOut: true`, a `/login` con `You were signed out after too many wrong passwords.`            |
-| 429 `EXPORT_LIMIT`                                                    | `You've downloaded your data 3 times today. Try again tomorrow.`                                                                                             |
-| 401 `INVALID_EMAIL_OR_PASSWORD`                                       | `Wrong email or password.` (hoy `Invalid email or password`, sin punto)                                                                                      |
-| 400 `INVALID_PASSWORD`                                                | `That's not your current password.`                                                                                                                          |
-| 403 `EMAIL_NOT_VERIFIED`                                              | el `Notice` de §5.3                                                                                                                                          |
-| 400 `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_LONG`                         | `Use at least 8 characters.` / `Your password can be at most 128 characters.`                                                                                |
-| 400 `VALIDATION_ERROR` con `INVALID_BIRTH_DATE` o `UNDER_MINIMUM_AGE` | §4.8                                                                                                                                                         |
-| 400 `INVALID_TOKEN`, `TOKEN_EXPIRED`                                  | `This link has expired or has already been used.`                                                                                                            |
-| 403 `BIRTH_DATE_REQUIRED`                                             | ninguno: lleva a `/account/birth-date`                                                                                                                       |
-| 503 `MAIL_BUDGET_EXHAUSTED`                                           | `We can't send emails right now. Try again tomorrow.`                                                                                                        |
-| cualquier otro                                                        | `Something went wrong. Try again in a minute.`                                                                                                               |
+| Estado y código                                                       | Texto (pantalla)                                                                                                                                                      |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0, sin red                                                            | `Can't reach Cycling Star. Check your connection and try again.`                                                                                                      |
+| 429 de Fastify (`demasiadas_peticiones`) o L4                         | `Too many attempts from this connection. Try again in <wait>.`                                                                                                        |
+| 429 `ACCOUNT_LOCKED`                                                  | `Too many failed attempts on this account. Try again in 15 minutes, or reset your password.`, con `reset your password` como `TextLink` a `/forgot-password`          |
+| 429 `PASSWORD_ATTEMPTS_LOCKED`                                        | `Too many wrong passwords. Try again in 15 minutes.`; con `signedOut: true`, a `/login` con `You were signed out after too many wrong passwords.`                     |
+| 429 `EXPORT_LIMIT`                                                    | `You've downloaded your data 3 times today. Try again tomorrow.`                                                                                                      |
+| 401 `INVALID_EMAIL_OR_PASSWORD`                                       | `Wrong email or password.` (hoy `Invalid email or password`, sin punto)                                                                                               |
+| 400 `INVALID_PASSWORD`                                                | `That's not your current password.`                                                                                                                                   |
+| 403 `EMAIL_NOT_VERIFIED`                                              | el `Notice` de §5.3                                                                                                                                                   |
+| 403 `ACCOUNT_PENDING`                                                 | `Your account is waiting for approval` / `An administrator reviews new accounts by hand. When yours is approved, we'll email you a link to finish signing up.` (§4.9) |
+| 400 `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_LONG`                         | `Use at least 8 characters.` / `Your password can be at most 128 characters.`                                                                                         |
+| 400 `VALIDATION_ERROR` con `INVALID_BIRTH_DATE` o `UNDER_MINIMUM_AGE` | §4.8                                                                                                                                                                  |
+| 400 `INVALID_TOKEN`, `TOKEN_EXPIRED`                                  | `This link has expired or has already been used.`                                                                                                                     |
+| 403 `BIRTH_DATE_REQUIRED`                                             | ninguno: lleva a `/account/birth-date`                                                                                                                                |
+| 503 `MAIL_BUDGET_EXHAUSTED`                                           | `We can't send emails right now. Try again tomorrow.`                                                                                                                 |
+| cualquier otro                                                        | `Something went wrong. Try again in a minute.`                                                                                                                        |
 
 Con un 429, el botón queda deshabilitado con su porqué (`docs/visual.md` §4.1) y una cuenta atrás que baja cada segundo: `You can try again in 3:58.` Al llegar a cero se habilita y el texto se va. `authErrors.test.ts` cubre cada fila y `waitText` en 1, 45, 60, 61 y 899 segundos.
 
@@ -176,7 +178,7 @@ Con un 429, el botón queda deshabilitado con su porqué (`docs/visual.md` §4.1
 
 ### 12.5 `DateField` y `Field` `reveal`
 
-Entran por el catálogo de E3, con su test por estado y su sitio en `/_ui` (`docs/visual.md` l. 1329 a 1333; D-56).
+Entran por el catálogo de E3, con su test por estado y su sitio en `/_ui` (`docs/visual.md` l. 1329 a 1333; D-56). La misma regla vale para las demás piezas nuevas de E4, cada una con un estado en `/_ui` como mínimo (12-h): `AwayBand` (§14.1, PR 13), `WelcomeBack` con y sin corredor (§14.5, PR 13) y los dos `Notice` del permiso de §13.3 (PR 14). `AccountNotifications` es una página y no una pieza del catálogo: sus ocho estados los fija su test (§17.1).
 
 ```ts
 // apps/web/src/components/ui/DateField.tsx
@@ -224,10 +226,5 @@ La captura 55 (el botón `Update email` 122 px por debajo del teclado, mapa 05 �
 - **12-e**, `DateField` no salta de campo solo; `toIsoDate` no valida.
 - **12-f**, el 429 de exportar lleva el código `EXPORT_LIMIT`; el décimo intento de L3 lleva `signedOut: true`.
 - **12-g**, fechas de `Devices` relativas hasta 7 días y absolutas después.
-
-**Propuesto para el glosario.**
-
-- `GET /api/me/account` y su respuesta; `AuthErrorBody`, `waitText` (`apps/web/src/domain/authErrors.ts`); `DateFieldValue`, `DateFieldProps`, `toIsoDate`.
-- 429 `EXPORT_LIMIT`; `signedOut` en el 429 `PASSWORD_ATTEMPTS_LOCKED`.
-- Textos (pantalla): `Your email can only be changed by an administrator.`; `Link sent. Check your inbox and the spam folder.`; `Changing your password signs you out of your other devices.`; `Password updated` / `You've been signed out of your other devices.`; `That's not your current password.`; `Enter your current password.`; `You're only signed in here.`; `Signed out of <device>.`; `Signed out of <n> other devices.`; `Sign out of <n> other devices?`; `Download a copy of everything we keep about you, as a JSON file.`; `You've downloaded your data 3 times today. Try again tomorrow.`
-- Fuera de §G.12: `Enter your current password to change your email.` y `This account's email is set in the server settings and can't be changed here.`
+- **12-h**, `AwayBand`, `WelcomeBack` y los dos `Notice` del permiso entran en `/_ui` con un estado cada uno como mínimo.
+- **12-i**, `Account` gana `Shared computer? Forget this device` bajo `Sign out` (§6.5).

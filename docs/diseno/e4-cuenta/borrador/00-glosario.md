@@ -72,10 +72,10 @@ Vocabulario ÚNICO del documento final. Dos redactores escriben en paralelo y us
 
 | Ruta                                         | Qué                                                                                                                                                                                                                                                                                                                    |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_ALLOWED_PATHS` (12)                    | `POST sign-up/email`, `POST sign-in/email`, `GET get-session`, `POST sign-out`, `GET verify-email`, `POST send-verification-email`, `POST request-password-reset`, `GET reset-password/:token` (solo `LEGACY_LINK_GRACE_DAYS`), `POST reset-password`, `POST change-email`, `POST change-password`, `POST delete-user` |
+| `AUTH_ALLOWED_PATHS` (11; ver G.16.2)        | `POST sign-up/email`, `POST sign-in/email`, `GET get-session`, `POST sign-out`, `GET verify-email`, `POST send-verification-email`, `POST request-password-reset`, `GET reset-password/:token` (solo `LEGACY_LINK_GRACE_DAYS`), `POST reset-password`, `POST change-email`, `POST change-password`, `POST delete-user` |
 | `GET /api/me/devices`                        | las sesiones con id opaco (`SHA-256` del token, 16 hex), `label`, `current`, `createdAt`, `lastActiveAt`                                                                                                                                                                                                               |
 | `DELETE /api/me/devices/:id`                 | cierra una sesión y sus `push_targets`                                                                                                                                                                                                                                                                                 |
-| `POST /api/me/devices/sign-out-others`       | cierra las otras, sube `device_epoch` y reemite la `cs_device` del navegador propio                                                                                                                                                                                                                                    |
+| `POST /api/auth/devices/sign-out-others`     | cierra las otras, sube `device_epoch` y reemite la `cs_device` del navegador propio                                                                                                                                                                                                                                    |
 | `PUT /api/me/birth-date`                     | escribe la fecha una vez; 409 `already_set`                                                                                                                                                                                                                                                                            |
 | `POST /api/me/export`                        | `{ password }`; JSON adjunto                                                                                                                                                                                                                                                                                           |
 | `PUT /api/me/away`, `DELETE /api/me/away`    | `{ until }` ISO; termina antes                                                                                                                                                                                                                                                                                         |
@@ -274,3 +274,90 @@ Vocabulario ÚNICO del documento final. Dos redactores escriben en paralelo y us
 ## G.15 Alias de las propuestas → nombre canónico
 
 `cs_known` (jugador) → `cs_device`; `auth_throttle` (atacante) → `auth_limits`; `delivery_log` (atacante) → `email_log`; `push_subscriptions` (atacante, incremental) → `push_targets`; `notify_prefs` → `notice_prefs`; `month_rule_warning`, `month_rule` → `away_warning`; `absence_ending` → `away_over`; `stage_ready_own` → `stage_digest`; `stage_ready_followed` → `stage_ready`; `Sessions` (panel) → `AccountDevices`; `DELETE /api/me`, `POST /api/me/delete` → `POST /api/auth/delete-user` con `beforeDelete`; `/confirm-age` → `/account/birth-date`; `/confirm-email-change#t=` → `/approve-email#token=`; `E1` a `E7` de atacante → los ids de §G.9; `stageReadyPush` → `noticePayload`; `ACCOUNT.*`, `PUSH.*` de incremental → las constantes de §G.6.
+
+## G.16 Lo que fundió el corrector (23 de noviembre de 2026)
+
+Los bloques «Propuesto para el glosario» de las secciones, fundidos aquí y quitados de ellas, más los nombres que trajo la corrección (`refutaciones/correcciones.json`) y las decisiones del dueño de `00-encargo.md` §9.4 y §9.5. **Manda sobre G.1 a G.15** donde no coincidan.
+
+### G.16.1 Tablas, columnas y migraciones (G.2, G.3)
+
+- `users.status` (`text not null default 'pending'`, `CHECK` `pending` o `approved`) y `users.approved_at` (`timestamptz` nula), en la **0055**, con `UPDATE users SET status = 'approved', approved_at = now()` a mano (§4.9, §15.2).
+- `users.welcome_back_from` (`timestamptz` nula), en la 0056 (§14.5).
+- `push_targets.channel` como enum `push_channel` (`webpush`, `fcm`, `apns`).
+- Claves de `auth_limits`: `acct:`, `dev:`, `pw:` (por **sesión**), `pwu:` (por cuenta), `mailip:` (IP, o su /64 en IPv6), `rsv:` (reserva de recuperar por destinatario) y `exp:` (§7.3).
+- `email_log.kind`: solo `verify_signup` y `reset_password`. Sin `svix_id`.
+- Acciones de `admin_audit`: `user.status`, `user.email`, `user.email_verified`, `user.is_admin`, `user.premium`, `user.birth_date`, `user.delete`, `team.name`, `team.kit_revert`, `blocklist.add`, `blocklist.remove`, `world.tick`, `world.advance`.
+- Fuera: `0059_dos_factores` (DD-01 A).
+
+### G.16.2 Rutas (G.4)
+
+- `AUTH_ALLOWED_PATHS` son **11**, sin `change-email`; **9** desde el PR 19, sin `GET reset-password/:token` ni `GET verify-email`. Se comparan con la ruta normalizada; toda ruta con `..`, `.`, `//`, `%2e`, `%2f` o `%5c` da 404 (PR 3).
+- Rutas propias de Fastify bajo `/api/auth`: `POST /api/auth/devices/sign-out-others` (sustituye a `POST /api/me/devices/sign-out-others`) y `POST /api/auth/devices/forget`.
+- `POST /api/account/verify-email` con `{ token }`: llama a `auth.handler` dentro del proceso.
+- Panel: `POST /api/admin/users/:id/approve`, `POST /api/admin/users/:id/reject`, `PATCH /api/admin/users/:id` con `email`, `signOutEverywhere` y `birthDate`, `PATCH /api/admin/teams/:id` (`{ name }`), `GET /api/admin/audit` con `limit` (hasta 500) y `before`.
+- `GET /api/me/account` (nace en el PR 9 con `birthDateSet`; el PR 11 la completa); `GET /api/me/away`, `PUT /api/me/away` con `{ until }` (instante ISO con desfase), `DELETE /api/me/away`; `GET` y `DELETE /api/me/welcome-back`.
+- Fuera: `POST /api/account/undo-email-change`, `approve-email-change`.
+
+### G.16.3 Opciones (G.5)
+
+- `user.changeEmail.enabled: false`; `user.additionalFields.birthDate` con `returned: false`; `user.additionalFields.status` con `input: false`, `returned: false`, `defaultValue: 'pending'`; `sendVerificationEmail` que no envía a una cuenta que no esté `approved`; un `hooks.before` que da 404 a las rutas con parámetros fuera de la lista.
+- Fuera: `onExistingUserSignUp`.
+
+### G.16.4 Constantes y variables (G.6)
+
+- Nuevas: `ACCOUNT_PASSWORD_FAILS_DAY` 30; `STAGE_READY_EVERY_H` 6; `PLAN_ENDING_GAME_DAYS` 4; `PUSH_SEND_TIMEOUT_MS` 15.000; `NOTICE_LOG_RETENTION_DAYS` 90 (`purge.ts`); `PUSH_ALLOWED_HOSTS` como en 13-j.
+- Cambian: `SESSION_PASSWORD_FAILS` es por sesión; `MAIL_RESET_RESERVE` se gasta una vez por destinatario y día; `MAIL_DAILY_BUDGET` 90 (gratuito), sin la alternativa de 1.500 salvo con DD-10 A; `PURGE_UNCONFIRMED_DAYS` cuenta desde `approved_at`; `CREDENTIAL_AUTH_PATHS` con siete rutas.
+- Variables de entorno: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`.
+- Fuera: `HIBP_TIMEOUT_MS`, `MAIL_LOW_PRIORITY_CUTOFF`, `EMAIL_CHANGES_PER_DAY`, `UNDO_EMAIL_CHANGE_H`, `SIGNUP_EXISTING_EVERY_H`, `CHANGE_TO_TAKEN_EVERY_H`.
+
+### G.16.5 Tipos, esquemas y funciones (G.7)
+
+- `UserStatus = 'pending' | 'approved'` (`packages/shared/src/account/constants.ts`).
+- `parseIsoDate`, `YearMonthDay`, `BirthDateError`, `makeBirthDateSchema` (`packages/shared/src/account/birthDate.ts`).
+- `AttemptRule`, `AttemptResult` (`packages/db/src/authLimits.ts`); `AdminAuditDetail` (`{ field, from, to, teamId? }`); `pushChannelEnum`.
+- `deviceRowSchema`, `devicesResponseSchema`, `AccountExport`, `pushTargetBodySchema`, `awayBodySchema` (`apps/api/src/routes/me.ts`); `apps/web/src/api/devices.ts`.
+- `AuthErrorBody`, `waitText` (`apps/web/src/domain/authErrors.ts`); `DateFieldValue`, `DateFieldProps`, `toIsoDate`.
+- `NOTICE_KINDS` (nueve, con `email_changed`), `NoticeSpec`, `NoticeInput`, `ReadyStage`, `NOTICE_DEFAULTS` (`notices.ts`); `NoticePayload` gana `off`; `PushChannel`, `DeliveryResult`, `DeliveryOptions`, `PushTargetRow` (`push/deliver.ts`); `pushSupport` (`apps/web/src/notifications/push.ts`); `TrainingDayContext.ownerAway`.
+- Fuera: `hashPasswordWithHibp`.
+
+### G.16.6 Cookies, almacenamiento y ficheros estáticos (G.8)
+
+- `cs_device`: la firma es HMAC de `v1.<hmac>.<nonce>.<userId>.<device_epoch>`; `Forget this device` quita la entrada propia.
+- `cs.accountDeleted` (sessionStorage).
+- `apps/web/public/manifest.webmanifest`: el manifiesto mínimo de §13.5, sin `icons`.
+
+### G.16.7 Correos y avisos (G.9, G.10)
+
+- Correos: solo `verify_signup` (sale al aprobar la cuenta) y `reset_password`. Fuera: `verify_new_address`, `approve_change`, `password_changed` (correo), `email_changed` (correo), `account_deleted`, `signup_existing`, `new_sign_in` (correo), `change_to_taken`.
+- Avisos de seguridad, siempre, sin interruptor: `password_changed` (200 de `reset-password` y de `change-password`), `new_sign_in` (200 de `sign-in/email` sin `cs_device` válida; uno por hora) y `email_changed` (un administrador cambia el correo, antes del cambio).
+
+### G.16.8 Pantallas y componentes (G.11)
+
+- La fila de `Terms` cita el texto de §4.6; la puerta de la fecha vive en `ProtectedRoute.tsx` l. 11, no en `App.tsx` l. 318 a 325.
+- Fuera: `ApproveEmail`, `UndoEmail`.
+- `AwayBand`, `WelcomeBack` y los dos `Notice` del permiso, con su sitio en `/_ui`.
+
+### G.16.9 Códigos de error
+
+- 403 `ACCOUNT_PENDING`; 429 `ACCOUNT_LOCKED`, 429 `PASSWORD_ATTEMPTS_LOCKED` (con `signedOut`), 429 `EXPORT_LIMIT`; 503 `MAIL_BUDGET_EXHAUSTED`; `INVALID_BIRTH_DATE` y `UNDER_MINIMUM_AGE` (los `message` del 400 `VALIDATION_ERROR` y los códigos de `PUT /api/me/birth-date`).
+- Propios de la API: 400 `admin_email_fijo`, 409 `correo_ocupado`, 409 `es_el_admin_raiz`, 409 `no_pendiente`, 409 `usa_sign_out`, 400 `canal_no_disponible`, 400 `fecha_fuera_de_rango`.
+
+### G.16.10 Textos de pantalla (G.12)
+
+Los enteros están en su sección; aquí, cuáles cambian o entran:
+
+- Registro y enlaces (§4, §5): `Request received` y las líneas de `CheckInbox` de §5.3; `Your account is waiting for approval` / `An administrator reviews new accounts by hand. When yours is approved, we'll email you a link to finish signing up.`; `Confirm your email` / `Tap the button to finish creating your account.` / `Confirming…`; `This link is incomplete.` / `Open it again from the email, or ask for a new one.`; `Enter your email and we'll send you a new one.`; `If that address has an approved account waiting for confirmation, a new link is on its way.`; `If <email> has an account, we've sent a link to reset your password. It expires in one hour.`; `Your date of birth is already saved.`; `Use at least 8 characters.`; `Your password can be at most 128 characters.`; `Cycling Star is for people aged 16 or over, so this account can't stay open. You can delete it here.`; `We can't send a new link right now. Try again tomorrow.`
+- Cuenta (§9.3, §10, §12): `We can't deliver email to <email>` / `Without it you can't reset your password if you forget it. Only an administrator can change the email of an account.`; `Your email can only be changed by an administrator.`; `Link sent. Check your inbox and the spam folder.`; `Changing your password signs you out of your other devices.`; `Password updated` / `You've been signed out of your other devices.`; `That's not your current password.`; `Enter your current password.`; `You're only signed in here.`; `Signed out of <device>.`; `Signed out of <n> other devices.`; `Sign out of <n> other devices?`; `Shared computer? Forget this device`; `Signed out. This browser no longer counts as one of your devices.`; `Download a copy of everything we keep about you, as a JSON file.`; `You've downloaded your data 3 times today. Try again tomorrow.`; `Your account is deleted` / `Thanks for playing.` (sustituye al que prometía un correo); `Want a copy first?` / `Download my data`; `Backups are not kept.` si el cron no corre.
+- Panel (§8.5): `Waiting for approval (<n>)`, `Requested <date>`, `Approve`, `Reject`, `Reject <email>? The request is deleted and nothing is sent.`, `Nobody is waiting.`, `Change email`, `New email`, `Sign out everywhere`, `Change <old> to <new>? No email is sent to either address. A notification goes to their devices.`, `Change date of birth`, `Rename team`, `Team name`, `Recent changes`, y los siete errores de §8.5.
+- Avisos (§13): los de §13.3 y §13.4; la fila «iPhone» pasa a la de `ios-home` (iOS 16.4); `Always on: a changed password, a new sign-in and a changed email.`; el aviso `email_changed`: `Your account email was changed by an administrator` / `If you didn't ask for this, sign in and check Account.`; si la prueba del iPhone falla, `Notifications don't work on iPhone and iPad yet.` (19-a).
+- Ausencia (§14): los de §14.1, §14.3 y §14.5.
+- Fuera: `Enter your current password to change your email.`, `This account's email is set in the server settings and can't be changed here.`, `Change your email.`
+
+### G.16.11 Tests (G.13)
+
+- Nuevo: `signupApproval.test.ts` (PR 5). `authRoutes.test.ts` empieza en el PR 3 (las rutas con `..`).
+- Fuera: `hibp.test.ts`, `emailChange.test.ts`.
+
+### G.16.12 Los PR (G.14)
+
+- Diecisiete: 1 a 9, 11 a 17 y 19; el 10 (`filtradas`) y el 18 (`dos-factores`) retirados; 19 `fin-enlaces-viejos`. El **3** es el primer PR de seguridad y lleva los dos arreglos de producción (`00-encargo.md` §9.4); el **5** lleva el registro por aprobación (§9.5); el **14**, el manifiesto mínimo. Unas 134 horas.

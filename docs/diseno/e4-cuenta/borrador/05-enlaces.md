@@ -32,7 +32,7 @@ Los correos construyen el enlace con `APP_URL`: `${APP_URL}/verify-email#token=$
 | Caducado o malo (`INVALID_TOKEN`, `TOKEN_EXPIRED`)      | `This link has expired or has already been used.` / `Enter your email and we'll send you a new one.` | campo `Email`, `Send me a new link`, `Log in` |
 | Sin token en el fragmento                               | `This link is incomplete.` / `Open it again from the email, or ask for a new one.`                   | campo `Email`, `Send me a new link`           |
 
-El botón llama a `GET /api/auth/verify-email?token=…` sin `callbackURL`, que responde JSON y, con `autoSignInAfterVerification`, deja la sesión en ese navegador. Tras el 200 la página pregunta por la sesión antes de hablar: así no vuelve a decir `you are signed in` a quien no lo está (mapa 05 §5, captura 22). `Send me a new link` usa `send-verification-email` sin sesión, que ya iguala a 500 ms en todos los casos (`email-verification.mjs` l. 104 a 117) y responde siempre lo mismo: `If that address has an account waiting for confirmation, a new link is on its way.`
+El botón manda el token en el cuerpo de `POST /api/account/verify-email` (`{ token }`, Zod), una ruta de Fastify que llama a `auth.handler` dentro del proceso con un `Request` GET a `/api/auth/verify-email?token=…` armado allí, sin `callbackURL`, y devuelve su JSON y su `Set-Cookie`; con `autoSignInAfterVerification` deja la sesión en ese navegador (`email-verification.mjs` l. 289 a 300). Así el token, que abre sesión, no cruza el borde de Railway en una URL: `redactUrl` limpia nuestros logs (§10.3), pero no los registros HTTP del borde, y si guardan la consulta no lo sé (5-h). `GET /api/auth/verify-email` queda solo para los enlaces viejos, hasta el PR 19. Tras el 200 la página pregunta por la sesión antes de hablar: así no vuelve a decir `you are signed in` a quien no lo está (mapa 05 §5, captura 22). `Send me a new link` usa `send-verification-email` sin sesión, que ya iguala a 500 ms en todos los casos (`email-verification.mjs` l. 104 a 117) y responde siempre lo mismo: `If that address has an approved account waiting for confirmation, a new link is on its way.` A una cuenta pendiente no le manda nada (§4.9).
 
 **`ResetPassword`** (`/reset-password#token=`, pantalla):
 
@@ -48,13 +48,15 @@ Desaparece `Repeat it`: un campo con `Show` vale más que dos sin él (principio
 
 ### 5.3 Registrarse y confirmar (R1)
 
-1. `Register` (§4.1) manda `sign-up/email`. Con éxito, la web guarda el correo en `sessionStorage` (`cs.pendingEmail`) y enseña `CheckInbox`, que sobrevive a recargar y a volver atrás.
-2. `CheckInbox` (pantalla): `Check your email` / `We've sent a link to <email>. Open it to confirm your address and start playing. It expires in 24 hours.` / `Nothing there? Check the spam folder.` / `Send it again` / `Wrong address? Start again` / `Already have an account with this email? No link is sent: log in or reset your password.` / `Log in`.
-3. `Send it again` llama a `send-verification-email` y queda deshabilitado `RESEND_COOLDOWN_S` (60 s) con su porqué: `You can ask again in 0:42.`
+1. `Register` (§4.1) manda `sign-up/email`. La cuenta queda `pending` y no sale ningún correo (§4.9). Con éxito, la web guarda el correo en `sessionStorage` (`cs.pendingEmail`) y enseña `CheckInbox`, que sobrevive a recargar y a volver atrás.
+2. `CheckInbox` (pantalla): `Request received` / `An administrator reviews new accounts by hand, a few each day. When yours is approved, we'll email <email> a link to finish signing up. The link expires in 24 hours.` / `Nothing yet? Check the spam folder once you've been approved.` / `Wrong address? Start again` / `Already have an account with this email? Nothing is sent: log in or reset your password.` / `Log in`. Sin `Send it again`: no hay nada que reenviar hasta que un administrador apruebe.
+3. Un administrador aprueba desde el panel y sale `verify_signup` (§4.9, §8.5).
 4. El jugador abre el correo, pulsa en `VerifyEmail` y entra (§5.2).
-5. Quien intenta entrar sin haber confirmado y con la contraseña buena recibe el 403 `EMAIL_NOT_VERIFIED` y un enlace nuevo (`sendOnSignIn`); `Login` dice (pantalla) `Confirm your email first` / `We have just sent a new link to <email>. Open it and you will be signed in. Check the spam folder if it does not show up.`
+5. Quien intenta entrar con la contraseña buena antes de confirmar recibe el 403. Si su cuenta está aprobada, `better-auth` le manda un enlace nuevo (`sendOnSignIn`) y `Login` dice (pantalla) `Confirm your email first` / `We have just sent a new link to <email>. Open it and you will be signed in. Check the spam folder if it does not show up.` Si sigue pendiente, el proxy cambia el código por 403 `ACCOUNT_PENDING` y `Login` dice el texto de §4.9.
 
-Registrarse con un correo que ya tiene cuenta no manda nada: el correo `signup_existing` que proponía `atacante` era un tercer correo y el dueño solo quiere dos (`00-encargo.md` §9.3). La respuesta es la misma 200 con un usuario inventado (mapa 01 §5) y la última línea de `CheckInbox` le dice al que ya tenía cuenta qué hacer, sin decirle a nadie si la dirección juega.
+Registrarse con un correo que ya tiene cuenta no manda nada: el correo `signup_existing` que proponía `atacante` era un tercer correo y el dueño solo quiere dos (`00-encargo.md` §9.3). La última línea de `CheckInbox` le dice al que ya tenía cuenta qué hacer, sin decirle a nadie si la dirección juega.
+
+**El cuerpo del 200 delata la cuenta, hoy, y se cierra en el PR 3** (`00-encargo.md` §9.4). Que `better-auth` responda «la misma 200 con un usuario inventado» es falso en el cuerpo: con un correo nuevo, `user.id` es el uuid de Postgres (36 caracteres); con uno que existe, el `generateId()` de 32 caracteres de `better-auth`, porque `advanced.database.generateId: false` (`auth.ts` l. 219 a 220) deja `ctx.context.generateId` sin nada y la rama inventada cae en el genérico (`sign-up.mjs` l. 161 y 208). Medido por el refutador de código en 1.7.26 y en 1.6.25, la de producción. Con el gancho de §4.7 habría un segundo oráculo: `name: 'Player'` en la fila creada frente al `name: ''` del cuerpo en la inventada (l. 163). El arreglo: **el proxy sustituye el cuerpo de todo 200 de `/api/auth/sign-up/email` por `{ "token": null, "user": null }`**, fijo; `Register.tsx` l. 119 a 127 solo lee `result.error` y no lo nota (5-i). No se elige `emailAndPassword.customSyntheticUser`, porque se rompe en cuanto el gancho cambie otro campo. `enumTiming.test.ts` exige, además del tiempo, cuerpos iguales byte a byte para un correo nuevo y uno que existe.
 
 ### 5.4 Recuperar la contraseña (R2)
 
@@ -67,7 +69,7 @@ Registrarse con un correo que ya tiene cuenta no manda nada: el correo `signup_e
    - Se encola el aviso `password_changed` a todas las suscripciones de la cuenta (`push_targets`) y, una vez encolado, se borran todas: recuperar es el momento en que puede haber un intruso, y una suscripción suya seguiría recibiendo avisos del juego (§13).
 4. `/login` con `Password saved` / `Log in with your new password. You have been signed out everywhere else.` (`Notice` `good`, `role="status"`).
 
-**Cambiar la contraseña** desde `Account › Password` sigue mandando `revokeOtherSessions: true` (`Account.tsx` l. 223): cierra las otras sesiones, y con ellas sus suscripciones (I-25). Antes de cerrarlas, el proxy encola `password_changed` a las suscripciones de esas otras sesiones. No sale ningún correo.
+**Cambiar la contraseña** desde `Account › Password` sigue mandando `revokeOtherSessions: true` (`Account.tsx` l. 223): cierra las otras sesiones, y con ellas sus suscripciones (I-25). Antes de cerrarlas, el proxy encola `password_changed` a las suscripciones de esas otras sesiones. Al ver el 200, el proxy sube `users.device_epoch`, vuelve a emitir la `cs_device` de este navegador con el epoch nuevo (la ruta está bajo `/api/auth`, así que la cookie llega) y borra las claves `pw:` de la cuenta (`clearAttempts`, §7.3). Sin subir el epoch, el navegador de quien sabía la contraseña vieja seguiría siendo «conocido» 180 días y entraría con la nueva sin aviso `new_sign_in` (5-j). No sale ningún correo.
 
 ### 5.5 El cambio de correo, en manos de un administrador
 
@@ -77,11 +79,16 @@ El jugador ya no cambia su correo (`00-encargo.md` §9.3, punto 1, lectura del o
 - No se crean `ApproveEmail` ni `UndoEmail`, ni `POST /api/account/undo-email-change` ni `approve-email-change`, ni el JWT de la rama ocupada; no hay `EMAIL_CHANGES_PER_DAY` ni `UNDO_EMAIL_CHANGE_H`.
 - `Account › Email` enseña el correo sin formulario (§12.2). Con él desaparece la captura 55, el botón que el teclado tapaba, y la captura 53c, la promesa de un correo que no sale.
 
-Lo que entra: el administrador cambia el correo de una cuenta desde el panel con `PATCH /api/admin/users/:id` y `{ email }` (§8.5), como en `twilightstruggle` (`ai/src/pvp/admin.ts` l. 212 a 235). Reglas: el correo se normaliza (`trim` y minúsculas); ni el viejo ni el nuevo pueden ser `ADMIN_EMAIL` (400 `admin_email_fijo`), porque dar ese correo a una cuenta confirmada la haría administrador raíz (`isRootAdmin`, `adminUsers.ts` l. 21 a 26); si otra cuenta ya lo usa, 409 `correo_ocupado`; `email_verified` queda en `true`, porque el administrador responde de la dirección; no se cierra ninguna sesión, porque el cambio lo pide el jugador; no sale ningún correo, ni a la dirección vieja ni a la nueva; y cada cambio escribe una fila en `admin_audit` con el correo viejo y el nuevo. Las `cs_device` de esa cuenta dejan de reconocerla porque llevan el HMAC del correo viejo: la siguiente entrada buena la reemite.
+Lo que entra: el administrador cambia el correo de una cuenta desde el panel con `PATCH /api/admin/users/:id` y `{ email }` (§8.5), como en `twilightstruggle` (`ai/src/pvp/admin.ts` l. 212 a 235). Reglas: el correo se normaliza (`trim` y minúsculas); ni el viejo ni el nuevo pueden ser `ADMIN_EMAIL` (400 `admin_email_fijo`), porque dar ese correo a una cuenta confirmada la haría administrador raíz (`isRootAdmin`, `adminUsers.ts` l. 21 a 26); si otra cuenta ya lo usa, 409 `correo_ocupado`; `email_verified` queda en `true`, porque el administrador responde de la dirección; no sale ningún correo, ni a la dirección vieja ni a la nueva; y cada cambio escribe una fila en `admin_audit` con el correo viejo y el nuevo. Dos cosas más, porque sin correos de seguridad el push es la única señal (`00-encargo.md` §9.3) y el caso normal es alguien que ha perdido su buzón (5-k):
+
+- **Antes de cambiarlo**, se encola a todas las suscripciones de la cuenta el aviso `email_changed` (pantalla: `Your account email was changed by an administrator` / `If you didn't ask for this, sign in and check Account.`), de seguridad como `password_changed` (§13.1).
+- **La confirmación lleva una casilla**, `Sign out everywhere`, encendida por defecto: cierra todas las sesiones de la cuenta, borra sus suscripciones después de enviar el aviso, sube `device_epoch` y borra sus claves `pw:`. Quien pide el cambio porque perdió el buzón suele tener un intruso dentro; con la casilla apagada (el jugador lo pide desde su sesión y no quiere salir), las sesiones siguen.
+
+Las `cs_device` de esa cuenta dejan de reconocerla porque llevan el HMAC del correo viejo: la siguiente entrada buena la reemite. El correo de la cuenta raíz no se toca (§8.5: 409 `es_el_admin_raiz`).
 
 ### 5.6 La enumeración por el tiempo y el cierre ordenado
 
-Hoy el registro y la recuperación esperan a Resend solo en una rama (mapa 01 §5). `advanced.backgroundTasks.handler = mailQueue.track` lo cierra: ninguna respuesta espera al correo. Medido con un correo de 250 ms y 41 muestras: recuperar, 4,0 frente a 4,6 ms (sin la opción, 5,6 frente a 255,6); registrarse, 85,8 frente a 80,7 (X-15). El precio, que la pantalla diga «enviado» antes de saber si salió, lo cubren `Send it again` y `email_log` (§9.2).
+Hoy el registro y la recuperación esperan a Resend solo en una rama (mapa 01 §5). `advanced.backgroundTasks.handler = mailQueue.track` lo cierra: ninguna respuesta espera al correo. Medido con un correo de 250 ms y 41 muestras: recuperar, 4,0 frente a 4,6 ms (sin la opción, 5,6 frente a 255,6); registrarse, 85,8 frente a 80,7 (X-15). El precio, que la pantalla diga «enviado» antes de saber si salió, lo cubren `Send another link`, `Send me a new link` y `email_log` (§9.2).
 
 `mailQueue` (`apps/api/src/mailQueue.ts`) guarda cada promesa en un `Set` y la quita al resolverse; `index.ts`, al recibir `SIGTERM`, espera a `mailQueue.drain()` como mucho `MAIL_SHUTDOWN_GRACE_MS` (10.000) antes de cerrar (D-15; H-02; O-18). `mailer.send` apunta la fila de `email_log` con `status = 'queued'` antes de llamar a Resend, así que un correo perdido en un despliegue se ve como `queued` que nunca pasó a `sent`. El `Set` y los 10 s no los midió ningún juez: los fija `mailQueue.test.ts`. `enumTiming.test.ts` mide el registro y la recuperación con un `Mailer` de 250 ms y exige menos de 30 ms de diferencia entre ramas.
 
@@ -94,12 +101,12 @@ El pie de los dos, sin raya (la de `emails.ts` l. 54 se quita). El botón toma e
 Subject: Confirm your Cycling Star email
 [Confirm your email · Confirm my email]
 
-Confirm this address to finish creating your Cycling Star account.
+Your Cycling Star account has been approved. Confirm this address to finish creating it.
 
 Open this link and tap the button (it expires in 24 hours):
 <APP_URL>/verify-email#token=<token>
 
-If you did not create an account, ignore this email and nothing will happen.
+If you did not ask for an account, ignore this email and nothing will happen.
 
 Cycling Star · a fictional cycling-manager game.
 This is an account email. Cycling Star never sends newsletters or game emails.
@@ -122,7 +129,7 @@ Cycling Star · a fictional cycling-manager game.
 This is an account email. Cycling Star never sends newsletters or game emails.
 ```
 
-`verify_signup` sale al registrarse, al pedir otro enlace y al entrar sin confirmar; `reset_password`, al pedir recuperar para una cuenta que existe. Las plantillas son `verifyEmailEmail` y `resetPasswordEmail` de hoy (`emails.ts` l. 92 y 66) con el enlace y el texto nuevos. Se borran `changeEmailConfirmationEmail` (l. 118) y `stageReadyEmail` (l. 153) con sus tres tests (D-00c). Los ocho correos restantes de §G.9 (`verify_new_address`, `approve_change`, `password_changed`, `email_changed`, `account_deleted`, `signup_existing`, `new_sign_in`, `change_to_taken`) no se escriben: `password_changed` y `new_sign_in` pasan a ser avisos (§13), y los demás desaparecen.
+`verify_signup` sale al aprobar la cuenta un administrador (o al registrarse con el correo de `ADMIN_EMAIL`), al pedir otro enlace y al entrar sin confirmar, siempre con la cuenta aprobada (§4.9); `reset_password`, al pedir recuperar para una cuenta que existe. Las plantillas son `verifyEmailEmail` y `resetPasswordEmail` de hoy (`emails.ts` l. 92 y 66) con el enlace y el texto nuevos. Se borran `changeEmailConfirmationEmail` (l. 118) y `stageReadyEmail` (l. 153) con sus tres tests (D-00c). Los ocho correos que llegaron a proponerse además de estos dos (`verify_new_address`, `approve_change`, `password_changed`, `email_changed`, `account_deleted`, `signup_existing`, `new_sign_in`, `change_to_taken`) no se escriben: `password_changed` y `new_sign_in` pasan a ser avisos (§13), y los demás desaparecen.
 
 ---
 
@@ -134,23 +141,15 @@ This is an account email. Cycling Star never sends newsletters or game emails.
 
 **Decisiones de esta sección.**
 
-- **5-a**, se escriben dos correos y no diez (`00-encargo.md` §9.3, punto 1). Manda sobre D-16, D-14 y §G.9.
+- **5-a**, se escriben dos correos y no diez (`00-encargo.md` §9.3, punto 1). Manda sobre D-14 y D-16 (§22.5) y sobre el catálogo de correos de las propuestas.
 - **5-b**, el cambio de correo de autoservicio se retira entero (§9.3): sin `change-email`, sin `ApproveEmail` ni `UndoEmail`, sin las dos rutas de `/api/account/*`. Manda sobre D-14.
 - **5-c**, el cambio hecho por un administrador deja `email_verified` en `true`, no cierra sesiones, no manda correo y escribe `admin_audit`; rechaza `ADMIN_EMAIL` como viejo y como nuevo, como `twilightstruggle` (`admin.ts` l. 215 a 217).
 - **5-d**, recuperar encola `password_changed` por push a todas las suscripciones y después las borra; cambiar la contraseña lo encola a las de las otras sesiones antes de cerrarlas. Es la lectura de `00-encargo.md` §9.3 («van por push si el jugador lo tiene»).
 - **5-e**, `CheckInbox` gana la línea `Already have an account with this email? No link is sent: log in or reset your password.`, que sustituye al correo `signup_existing`.
 - **5-f**, `LEGACY_LINK_GRACE_DAYS` se lee como el plazo para quitar el código de los enlaces viejos: con tokens de una hora, ninguno vive tanto.
-- **5-g**, `Send me a new link` de `VerifyEmail` responde siempre `If that address has an account waiting for confirmation, a new link is on its way.`
-
-**Propuesto para el glosario.**
-
-- Fuera de §G.9: `verify_new_address`, `approve_change`, `password_changed` (correo), `email_changed`, `account_deleted`, `signup_existing`, `new_sign_in` (correo), `change_to_taken`. Fuera de §G.4: `POST /api/account/undo-email-change` y `approve-email-change`. Fuera de §G.11: `ApproveEmail`, `UndoEmail`. Fuera de §G.6: `EMAIL_CHANGES_PER_DAY`, `UNDO_EMAIL_CHANGE_H`, `SIGNUP_EXISTING_EVERY_H`, `CHANGE_TO_TAKEN_EVERY_H`. Fuera de §G.13: `emailChange.test.ts`. Fuera de §G.5: `onExistingUserSignUp`.
-- `user.changeEmail.enabled: false` en §G.5.
-- En §G.10, dos avisos de seguridad: `password_changed` (al recuperar, a todas las suscripciones; al cambiar la contraseña, a las de las otras sesiones) y `new_sign_in` (§7.5).
-- Errores del panel: 400 `admin_email_fijo`, 409 `correo_ocupado`.
-- Textos (pantalla): `Confirm your email` / `Tap the button to finish creating your account.` / `Confirming…` / `This link is incomplete.` / `Open it again from the email, or ask for a new one.` / `Enter your email and we'll send you a new one.` / `If that address has an account waiting for confirmation, a new link is on its way.` / `Check your email` y las líneas de `CheckInbox` de §5.3 / `If <email> has an account, we've sent a link to reset your password. It expires in one hour.`
-
-**Dudas para el ensamblador.**
-
-- §13 (L2): los textos de los avisos `password_changed` y `new_sign_in`, si respetan el silencio de la noche y si cuentan en `NOTICE_DAILY_CAP`. Recomendación de este lote: fuera del tope y fuera del silencio (son raros, como mucho `NEW_SIGN_IN_EVERY_H` uno por hora, y su valor es llegar a tiempo), sin interruptor (DD-16 A), `path` a `/account/devices`. Textos propuestos: `Your password was changed` / `If it wasn't you, reset it now.` y `New sign-in to your account` / `<deviceLabel> signed in just now. If it wasn't you, reset your password.`
-- §18 (L2): el PR 8 (`enlaces`) ya no lleva cambio de correo; el PR que quita el código de los enlaces viejos a los 7 días no está en §G.14.
+- **5-g**, `Send me a new link` de `VerifyEmail` responde siempre `If that address has an approved account waiting for confirmation, a new link is on its way.`
+- **5-h**, el botón de `VerifyEmail` va por `POST /api/account/verify-email` con el token en el cuerpo, no por `GET` con el token en la URL.
+- **5-i**, el proxy fija el cuerpo del 200 de `sign-up/email` a `{ "token": null, "user": null }` (PR 3, `00-encargo.md` §9.4).
+- **5-j**, cambiar la contraseña sube `device_epoch`, reemite la `cs_device` propia y borra las claves `pw:`.
+- **5-k**, el cambio de correo por un administrador avisa por push (`email_changed`) y ofrece cerrar todas las sesiones, encendido por defecto.
+- **5-l**, `CheckInbox` tras registrarse dice que la cuenta espera aprobación y no ofrece reenviar (§4.9).

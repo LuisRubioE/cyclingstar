@@ -17,7 +17,7 @@ Hoy una sesión dura 7 días renovados con cada uso, guarda la IP y el agente, y
 
 ### 6.3 `get-session` sin token
 
-El proxy (`apps/api/src/routes/authProxy.ts`) reescribe el JSON de `GET /api/auth/get-session` y quita `session.token`, `session.ipAddress` y `session.userAgent` (D-19; I-24). La web no lee ninguno (búsqueda en `apps/web/src`, mapa 01 §3), y una XSS futura no se lleva un token reutilizable. El mismo paso del proxy aplica el techo de 90 días (§6.1); la visita la apunta el gancho `after` de `get-session` (§10.6).
+El proxy (`apps/api/src/routes/authProxy.ts`) reescribe el JSON de `GET /api/auth/get-session` y quita `session.token`, `session.ipAddress` y `session.userAgent` (D-19; I-24). No basta con `get-session`: el 200 de `sign-in/email` lleva el token en el cuerpo (`token: session.token`, `ba17/api/routes/sign-in.mjs` l. 365 a 370). Así que el proxy quita `token` y `session.token` de **todo** JSON que responda bajo `/api/auth/*` (6-f). La web no lee ninguno (búsqueda en `apps/web/src`, mapa 01 §3), y una XSS futura no se lleva un token reutilizable. `authFlow.test.ts` comprueba que ningún cuerpo de las rutas de la lista blanca contiene el valor de la cookie de sesión. El mismo paso del proxy aplica el techo de 90 días (§6.1); la visita la apunta el gancho `after` de `get-session` (§10.6).
 
 ### 6.4 `GET /api/me/devices`
 
@@ -74,9 +74,10 @@ El orden de las comprobaciones importa y el test lo fija: `Edg/` antes que `Chro
 ### 6.5 Cerrar una sesión y las otras
 
 - **`DELETE /api/me/devices/:id`**: busca entre las sesiones del usuario la de ese id; si no hay, 404 `no_encontrado`; si es la propia, 409 `usa_sign_out` (la propia se cierra con `Sign out`). Borra antes las filas de `push_targets` con ese `session_id` (I-25) y después la sesión con `auth.api.revokeSession`. Sin confirmación: se deshace entrando (D-20). Responde `{ ok: true }`.
-- **`POST /api/me/devices/sign-out-others`**: borra los `push_targets` de las otras sesiones, llama a `auth.api.revokeOtherSessions`, sube `users.device_epoch` en uno y reemite la `cs_device` de este navegador con el epoch nuevo (§7.5). Responde `{ ok: true, closed: <número> }`. Lleva confirmación en la pantalla (§12.2).
+- **`POST /api/auth/devices/sign-out-others`**: borra los `push_targets` de las otras sesiones, llama a `auth.api.revokeOtherSessions`, sube `users.device_epoch` en uno, borra las claves `pw:` de la cuenta (§7.3) y reemite la `cs_device` de este navegador con el epoch nuevo (§7.5). Responde `{ ok: true, closed: <número> }`. Lleva confirmación en la pantalla (§12.2). Vive bajo `/api/auth` y no bajo `/api/me` porque la cookie lleva `Path=/api/auth` (7-e): en `/api/me/*` el navegador no la manda, el servidor no vería las otras entradas y el `Set-Cookie` las pisaría, dejando sin protección frente a L1 a las otras cuentas de ese navegador. La atiende Fastify con una ruta estática, que gana al comodín como ya hacen las de `CREDENTIAL_AUTH_PATHS`, sin pasar por `better-auth`, y está en la lista del proxy como ruta propia (§8.1). `deviceCookie.test.ts` comprueba que, con dos cuentas en la cookie, cerrar las otras sesiones de una deja intacta la entrada de la otra (6-g).
+- **`POST /api/auth/devices/forget`**: quita de la `cs_device` la entrada del correo de la sesión, sin tocar las otras, y responde `{ ok: true }`. Es lo que hace el botón `Forget this device` de `Account` (§12.1), que después llama a `sign-out`. Ruta propia de Fastify por la misma razón que la anterior (6-h).
 - Sin `cookieCache`, el otro aparato se entera en su siguiente petición: la pantalla no promete «hasta un minuto».
-- **`Sign out`** del propio navegador borra antes su `push_target` (con `cs.pushTargetId`, `DELETE /api/me/push-targets/:id`) y después llama a `sign-out` (D-49). La `cs_device` sobrevive (D-23) y `cs_viewer` se borra como hoy (`authProxy.ts` l. 18 a 21 y 52 a 54).
+- **`Sign out`** del propio navegador borra antes su `push_target` (con `cs.pushTargetId`, `DELETE /api/me/push-targets/:id`) y después llama a `sign-out` (D-49). La `cs_device` sobrevive (D-23) y `cs_viewer` se borra como hoy (`authProxy.ts` l. 18 a 21 y 52 a 54). Junto a él, `Shared computer? Forget this device` hace lo mismo y antes quita la entrada de la `cs_device` (`POST /api/auth/devices/forget`).
 - **La caducidad** no borra suscripciones: el ausente que no entra es quien necesita `away_warning` (I-25; §13).
 
 ### 6.6 `cs_viewer`, sin cambio
@@ -95,11 +96,9 @@ El orden de las comprobaciones importa y el test lo fija: `Edg/` antes que `Chro
 
 - **6-a**, el techo de 90 días borra la sesión al detectarlo, en `createCurrentUserId` y en el proxy de `get-session`.
 - **6-b**, `DELETE /api/me/devices/:id` sobre la sesión propia responde 409 `usa_sign_out`.
-- **6-c**, `POST /api/me/devices/sign-out-others` devuelve `closed` con el número de sesiones cerradas, para el `Notice` de §12.2.
+- **6-c**, `POST /api/auth/devices/sign-out-others` devuelve `closed` con el número de sesiones cerradas, para el `Notice` de §12.2.
+- **6-f**, el proxy quita `token` y `session.token` de todo JSON de `/api/auth/*`, no solo de `get-session`.
+- **6-g**, cerrar las otras sesiones vive en `POST /api/auth/devices/sign-out-others`, bajo el `Path` de `cs_device`.
+- **6-h**, `Forget this device` quita la entrada de la `cs_device` y sale; `POST /api/auth/devices/forget`.
 - **6-d**, los doce agentes de `deviceLabel.test.ts` son los de la tabla de §6.4, y un iPad que se anuncia como Mac sale `Safari on Mac`.
 - **6-e**, el SQL de la precondición del PR 3 es el de §6.2, de solo lectura.
-
-**Propuesto para el glosario.**
-
-- `deviceRowSchema`, `devicesResponseSchema` (`apps/api/src/routes/me.ts`); `apps/web/src/api/devices.ts`.
-- 409 `usa_sign_out`; la respuesta `{ ok: true, closed }` de `POST /api/me/devices/sign-out-others`.

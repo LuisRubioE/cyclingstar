@@ -1,0 +1,278 @@
+[
+  {
+    "id": "Rcodigo-seguridad-001",
+    "estado": "aplicado",
+    "donde": "§5.3 05-enlaces.md (5-i); §2.1 y §2.2 A7 02-amenazas.md; §4.7 04-registro.md; §1.3 01-inventario.md (16); §17.1 17-tests.md (enumTiming); §18.3 PR 3 18-plan.md",
+    "porque": "El proxy sustituye el cuerpo de todo 200 de sign-up/email por { token: null, user: null }; se desestima customSyntheticUser porque se rompe en cuanto el gancho cambie otro campo. enumTiming.test.ts exige cuerpos iguales byte a byte. Entra en el PR 3, el primer PR de seguridad, por 00-encargo.md §9.4."
+  },
+  {
+    "id": "Rcodigo-seguridad-002",
+    "estado": "aplicado",
+    "donde": "§7.2 punto 0 07-limites.md (7-j); §8.1 08-rutas.md; §2.2 A2 02-amenazas.md; §1.3 01-inventario.md (17); §17.1 authRoutes.test.ts; §18.3 PR 3",
+    "porque": "onRequest de /api/auth/* que da 404 a toda ruta distinta de su forma normalizada o con //, /./, /../, %2e, %2f o %5c, antes del límite y del proxy; la lista blanca y L1 a L4 se deciden con la ruta normalizada. Con la comprobación de producción del orquestador (el borde no normaliza). PR 3 por §9.4."
+  },
+  {
+    "id": "Rcodigo-seguridad-003",
+    "estado": "aplicado",
+    "donde": "§7.6 07-limites.md (7-m); §7.3 clave rsv:; §2.2 y §2.4 A6 02-amenazas.md; §16.1 MAIL_RESET_RESERVE; §19.4 19-riesgos.md (alarma)",
+    "porque": "Cada destinatario saca de la reserva una sola recuperación al día UTC (clave rsv:). §2.4 y §7.6 reescritos con lo que queda: 30 cuentas confirmadas o 30 correos de jugadores agotan el día. Alarma si la reserva pasa de 10 en un día. Además el registro ya no gasta correo (§4.9)."
+  },
+  {
+    "id": "Rcodigo-seguridad-004",
+    "estado": "aplicado",
+    "donde": "§5.5 05-enlaces.md (5-k); §2.3 02-amenazas.md; §8.5 08-rutas.md; §13.1 13-avisos.md (email_changed); §17.1 adminAudit.test.ts",
+    "porque": "Aviso push email_changed a todas las suscripciones antes del cambio; casilla Sign out everywhere encendida por defecto (cierra sesiones, borra suscripciones tras avisar, sube device_epoch, borra pw:). §2.3 ya no cuenta la sesión abierta como freno."
+  },
+  {
+    "id": "Rcodigo-seguridad-005",
+    "estado": "aplicado",
+    "donde": "§5.4 05-enlaces.md (5-j); §6.5 06-sesiones.md (6-h); §7.5 07-limites.md; §12.1 12-pantallas.md (12-i); §2.3 02-amenazas.md",
+    "porque": "change-password con éxito sube device_epoch y reemite la cs_device propia; Shared computer? Forget this device (POST /api/auth/devices/forget) quita la entrada; §2.3 escribe lo que queda en un ordenador compartido donde nadie la pulsa."
+  },
+  {
+    "id": "Rcodigo-seguridad-006",
+    "estado": "aplicado",
+    "donde": "§6.5 06-sesiones.md (6-g); §8.1 08-rutas.md; §17.1 devices.test.ts y deviceCookie.test.ts; §18 PR 11; glosario G.4 y G.16.2",
+    "porque": "La ruta pasa a POST /api/auth/devices/sign-out-others, ruta estática de Fastify bajo el Path de la cookie, sin pasar por better-auth; test con dos cuentas en la cookie."
+  },
+  {
+    "id": "Rcodigo-seguridad-007",
+    "estado": "aplicado",
+    "donde": "§7.5 07-limites.md (7-l); §17.1 deviceCookie.test.ts",
+    "porque": "La firma lleva el id de la cuenta (v1.<hmac>.<nonce>.<userId>.<device_epoch>) y se comprueba con la cuenta que tiene ese correo; caso de cuenta borrada y vuelta a registrar."
+  },
+  {
+    "id": "Rcodigo-seguridad-008",
+    "estado": "aplicado",
+    "donde": "§8.5 08-rutas.md (8-h); §5.5; §17.1 adminAudit.test.ts",
+    "porque": "El PATCH sobre la cuenta raíz responde 409 es_el_admin_raiz para emailVerified, isAdmin, email y birthDate (este último lo añade Rcobertura-duenio-013)."
+  },
+  {
+    "id": "Rcodigo-seguridad-009",
+    "estado": "aplicado",
+    "donde": "§7.3 y §7.4 07-limites.md (7-k); §5.4; §6.5; §2.2 y §2.4 02-amenazas.md; §16.1 ACCOUNT_PASSWORD_FAILS_DAY; §17.1 accountLimit.test.ts",
+    "porque": "L3 por sesión (pw:<hmac del id de sesión>, 5 en 900 s y 10 al día) con techo por cuenta (pwu:, 30 al día); las claves se borran al recuperar, con sign-out-others y al cambiar la contraseña."
+  },
+  {
+    "id": "Rcodigo-seguridad-010",
+    "estado": "aplicado",
+    "donde": "§6.3 06-sesiones.md (6-f); §2.2 A3; §17.1 authFlow.test.ts",
+    "porque": "El proxy quita token y session.token de todo JSON de /api/auth/*, también del 200 de sign-in/email (sign-in.mjs l. 365 a 370); el test comprueba que ningún cuerpo contiene el valor de la cookie."
+  },
+  {
+    "id": "Rcodigo-seguridad-011",
+    "estado": "aplicado",
+    "donde": "§4.5 04-registro.md (4-g); §17.1 birthDate.test.ts (API); §18 PR 9",
+    "porque": "La puerta de la fecha es un gancho global sobre todo lo que no es GET bajo /api/, salvo auth, admin, webhooks y la lista de D-09; cubre teams.ts y my-orders; el test recorre las rutas registradas con onRoute."
+  },
+  {
+    "id": "Rcodigo-seguridad-012",
+    "estado": "aplicado",
+    "donde": "§4.2 y §4.5 04-registro.md (4-f); §12.1 GET /api/me/account; §17.1; §18 PR 9 y 11",
+    "porque": "birthDate con returned: false; la web lee birthDateSet de GET /api/me/account, que nace en el PR 9 (el PR 11 pasa a depender del 9); comentario y test de que update-user sigue en 404."
+  },
+  {
+    "id": "Rcodigo-seguridad-013",
+    "estado": "aplicado",
+    "donde": "§7.1 07-limites.md (7-h, 7-i); §7.3 clave mailip:; §17.1 clientIp.test.ts",
+    "porque": "Con más de dos entradas, request.ip (la del borde) y solo xff_varias; IPv6 por su /64 en L4 y en el keyGenerator. Si Railway acepta IPv6, escrito como no lo sé."
+  },
+  {
+    "id": "Rcodigo-seguridad-014",
+    "estado": "aplicado",
+    "donde": "§5.2 05-enlaces.md (5-h); §8.1 (8-l); §10.1 10-privacidad.md (10-h); §3.1 principio 11; §18 PR 8 y 19",
+    "porque": "El botón manda el token en el cuerpo de POST /api/account/verify-email, que llama a auth.handler dentro del proceso; GET verify-email solo para enlaces viejos hasta el PR 19, sin entrar nunca en disabledPaths. Privacy dice our server logs."
+  },
+  {
+    "id": "Rcodigo-seguridad-015",
+    "estado": "aplicado",
+    "donde": "§8.1 08-rutas.md (8-g); §17.1 authRoutes.test.ts",
+    "porque": "Dicho en §8.1: disabledPaths no cierra rutas con parámetros; segundo cerrojo con un hooks.before sobre ctx.path; test de /callback/x y, desde el PR 19, /reset-password/abc."
+  },
+  {
+    "id": "Rcodigo-seguridad-016",
+    "estado": "aplicado",
+    "donde": "§18.2 y §18.3 PR 12 18-plan.md; §10.5 10-privacidad.md (10-g); §17.1 exportData.test.ts",
+    "porque": "El PR 12 depende del 7; notificationDevices es [] fijo con un it.todo hasta el PR 14."
+  },
+  {
+    "id": "Rcodigo-seguridad-017",
+    "estado": "aplicado",
+    "donde": "§9.2 09-correo.md (9-e, 9-f); §17.1 resendWebhook.test.ts",
+    "porque": "La ruta se registra en su propio contexto con addContentTypeParser de cuerpo crudo y un test de que otra ruta sigue con JSON; se quita la promesa del svix-id: status nunca retrocede, así que un repetido no cambia nada."
+  },
+  {
+    "id": "Rcobertura-duenio-001",
+    "estado": "aplicado",
+    "donde": "§20.2 puntos 17 y 18 20-fronteras.md (20-a); §18 PR 17",
+    "porque": "Dos entradas con texto sustituto entero para docs/ops.md l. 87 a 99 (dos correos, registro por aprobación, cambio de correo por un administrador) y l. 136 a 141 (cola, Change email, fecha, Rename team, Recent changes, raíz protegido). Las hace el PR 17, que ahora depende también del 8."
+  },
+  {
+    "id": "Rcobertura-duenio-002",
+    "estado": "aplicado",
+    "donde": "§4.9 04-registro.md; §9.4 y §9.5 09-correo.md (9-b, 9-g); §18.3 y §18.4; §20.2 puntos 9, 11, 12 y 13; §21.2 DD-10",
+    "porque": "El mecanismo lo decidió el dueño después del hallazgo (00-encargo.md §9.5, punto 1): registro por aprobación como twilightstruggle, no SIGNUP_OPEN. Escrito qué impide jugar a quien llega (pending), que las invitaciones salen a mano del buzón del dueño (no son un tercer correo) y que abrir el registro no cambia código: es empezar a aprobar."
+  },
+  {
+    "id": "Rcobertura-duenio-003",
+    "estado": "aplicado",
+    "donde": "§13.4 y §13.5 13-avisos.md (13-g); §19.3 punto 1 y 19-a 19-riesgos.md; §21.1 DD-04; §21.4",
+    "porque": "Resuelto por el dueño (§9.5, punto 2): manifiesto mínimo sin iconos, la explicación dice iOS 16.4. La frase provisional de 19-a está entera y dice que deshace DD-04 hasta que el dueño decida; el manifiesto sale de lo abierto de §21.4."
+  },
+  {
+    "id": "Rcobertura-duenio-004",
+    "estado": "aplicado",
+    "donde": "§20.2 puntos 19 a 23 y §20.3 puntos 4 a 6 20-fronteras.md (20-d)",
+    "porque": "Entradas con texto sustituto para encargos.md l. 252 a 254, 320 a 324 y 326 a 328, agenda.md l. 155 a 156 y 567 a 568, y para W5 visual.md l. 3616, 3658 y 3679."
+  },
+  {
+    "id": "Rcobertura-duenio-005",
+    "estado": "aplicado",
+    "donde": "§18.2, §18.3 y §18.4 PR 16 18-plan.md (18-h); §20.2",
+    "porque": "El PR 16 depende de los PR 5, 8, 12 y 14; si un documento no puede esperar, su corrección va en el PR que la hace verdad."
+  },
+  {
+    "id": "Rcobertura-duenio-006",
+    "estado": "aplicado",
+    "donde": "§8.5 08-rutas.md (8-j); §17.1 (Team)",
+    "porque": "Rename team también en la página del equipo /world/teams/:id (App.tsx l. 297) para un administrador, con la misma ruta PATCH /api/admin/teams/:id; test de la web."
+  },
+  {
+    "id": "Rcobertura-duenio-007",
+    "estado": "aplicado",
+    "donde": "§8.5 08-rutas.md (8-i); §15.1 admin_audit.action; §17.1 adminAudit.test.ts",
+    "porque": "admin_audit gana user.premium por /api/admin/premium, blocklist.add y blocklist.remove, y world.tick y world.advance con actor id o 'token'."
+  },
+  {
+    "id": "Rcobertura-duenio-008",
+    "estado": "aplicado",
+    "donde": "§22.5 22-apendices.md (22-c); bloques «Dudas para el ensamblador» quitados de 01, 03, 05, 08, 10, 13 y 18; §G.n sustituidas en 05, 07, 09, 13, 14, 16, 17, 18 y 22; §19.3 y 19-a",
+    "porque": "§22.5 da en una línea cada D-nn citada (63), con su sección y lo que cambió. Las dudas se resolvieron en su sitio y se borraron, así que ensamblar.sh (que no es .md y no se toca) ya no las arrastra. La frase de §19.3 está entera. Ninguna §G.n queda en el cuerpo."
+  },
+  {
+    "id": "Rcobertura-duenio-009",
+    "estado": "aplicado",
+    "donde": "§A 00-esqueleto.md",
+    "porque": "§A reescrito con lo decidido el 19 y el 23 de noviembre: dos correos, cambio de correo por un administrador, plan gratuito con registro por aprobación, DMARC sin informes, iPhone con la explicación y el manifiesto, diecisiete PR y unas 134 horas, el PR 3 con los dos arreglos de producción. La duda de §1 se quitó porque §A ya no contradice al dueño."
+  },
+  {
+    "id": "Rcobertura-duenio-010",
+    "estado": "aplicado",
+    "donde": "§18 18-plan.md (18-f); §A 00-esqueleto.md",
+    "porque": "«diecisiete PR»; el total se recalcula con los costes nuevos (PR 3, 5, 6, 9, 11, 14 y 16 suben): 134 horas, con la suma escrita al lado."
+  },
+  {
+    "id": "Rcobertura-duenio-011",
+    "estado": "aplicado",
+    "donde": "§4.6 04-registro.md; §20.1 E7; §21.3 punto 2; §21.4 punto 1",
+    "porque": "/terms dice «An administrator can rename any team.»; fuera «One account per person» y cerrar cuentas, que van como pregunta a E7 y al abogado."
+  },
+  {
+    "id": "Rcobertura-duenio-012",
+    "estado": "aplicado",
+    "donde": "§8.5 08-rutas.md (8-c)",
+    "porque": "Escrito por qué basta un correo fijo (un solo dueño) y qué cambia con dos: ADMIN_EMAILS como lista con ADMIN_EMAIL de alias."
+  },
+  {
+    "id": "Rcobertura-duenio-013",
+    "estado": "aplicado",
+    "donde": "§4.5 04-registro.md (4-h); §8.5 08-rutas.md; §11.1 11-contacto.md",
+    "porque": "PATCH /api/admin/users/:id acepta birthDate con birthDateSchema y escribe user.birth_date sin enseñar el valor en Recent changes; §11.1 dice que la corrige un administrador pero no hay dónde pedirlo."
+  },
+  {
+    "id": "Rcobertura-duenio-014",
+    "estado": "aplicado",
+    "donde": "§12.5 12-pantallas.md (12-h)",
+    "porque": "AwayBand, WelcomeBack y los dos Notice del permiso entran en /_ui con un estado cada uno como mínimo; AccountNotifications es página y sus estados los fija su test."
+  },
+  {
+    "id": "dueno-9.4",
+    "estado": "aplicado",
+    "donde": "§1.3 01-inventario.md; §5.3; §7.2; §2.2; §18.2, §18.3 PR 3 y 18-g; §21.2; §19.1; §A 00-esqueleto.md",
+    "porque": "«no, primero el plan de E4»: los dos fallos de producción (001 y 002) entran en el PR 3, nombrado el primer PR de seguridad; si su precondición H-04 se retrasa, trustProxy y clientIp pasan al PR 6 y los dos arreglos no esperan. Escrito como contestado con su cita en §21.2."
+  },
+  {
+    "id": "dueno-9.5.1-registro",
+    "estado": "aplicado",
+    "donde": "§4.9 nueva y §4.6 04-registro.md (4-i)",
+    "porque": "Registro por aprobación: users.status pending o approved y approved_at; sendVerificationEmail no envía a una pendiente (cubre sign-up, sendOnSignIn y send-verification-email); ADMIN_EMAIL entra aprobado; approve manda verify_signup (uno de los dos correos); reject borra la petición (diferencia escrita con twilightstruggle); ACCOUNT_PENDING; rejected y disabled de twilightstruggle explicados."
+  },
+  {
+    "id": "dueno-9.5.1-correos",
+    "estado": "aplicado",
+    "donde": "§5.3, §5.2 y §5.7 05-enlaces.md (5-l); §9.4 y §9.5 09-correo.md; §7.6 07-limites.md",
+    "porque": "CheckInbox en forma de petición recibida y sin reenviar; verify_signup sale al aprobar y su texto dice que la cuenta está aprobada; el presupuesto ya no corta sign-up y sí la aprobación; las tandas son aprobaciones al día; registros inventados no rebotan sin aprobación."
+  },
+  {
+    "id": "dueno-9.5.1-pantallas-panel",
+    "estado": "aplicado",
+    "donde": "§8.5 08-rutas.md (8-k); §12.3 12-pantallas.md; §10.1 10-privacidad.md (10-i); §11.1",
+    "porque": "Waiting for approval con Approve y Reject y sus textos y errores; ACCOUNT_PENDING en authErrorText; Privacy nombra la aprobación; §11.1 gana quien espera aprobación."
+  },
+  {
+    "id": "dueno-9.5.1-datos",
+    "estado": "aplicado",
+    "donde": "§15.1 y §15.2 15-datos.md (15-f); §15.4; §16.1 UserStatus y PURGE_UNCONFIRMED_DAYS; §9.5 (9-g)",
+    "porque": "status y approved_at en la 0055 con UPDATE a mano que aprueba las cuentas de hoy; la purga de DD-17 cuenta desde approved_at y no toca las pending."
+  },
+  {
+    "id": "dueno-9.5.1-tests-plan",
+    "estado": "aplicado",
+    "donde": "§17.1 signupApproval.test.ts y re-sellado del arnés; §18 PR 5 (18-i); §19.1, §19.2 y §19.4; §20.2 puntos 9, 11 a 13; §21.2 DD-10 y DD-17; §22.4",
+    "porque": "El registro por aprobación entra en el PR 5 porque el registro está abierto hoy; riesgos de la cola y medida de su tamaño; documentos y decisiones del dueño con la cita."
+  },
+  {
+    "id": "dueno-9.5.2-iphone",
+    "estado": "aplicado",
+    "donde": "§13.4 y §13.5 13-avisos.md (13-g); §17.1 sw.test.ts; §18 PR 14; §19.3 y 19-a; §20.3 puntos 2 y 3; §21.1 DD-04; §21.2; §A 00-esqueleto.md",
+    "porque": "Manifiesto mínimo de ocho claves, sin icons, enlazado desde index.html, como el de twilightstruggle (index.html l. 11, PLAY_MANIFEST); ios-home dice iOS 16.4; sin metas de Apple, caché, sin red ni ofrecer instalar; sw.test.ts lo fija. Que Chrome no ofrece instalar sin iconos y que el aviso llegue en un iPhone de verdad quedan como prueba del dueño."
+  },
+  {
+    "id": "dueno-9.5.3",
+    "estado": "aplicado",
+    "donde": "este fichero",
+    "porque": "«Ok»: el corrector arregla lo demás del refutador de cobertura (las 14 entradas de arriba)."
+  },
+  {
+    "id": "coherencia-dudas",
+    "estado": "aplicado",
+    "donde": "01, 03, 05, 08, 10, 13 y 18",
+    "porque": "Bloques «Dudas para el ensamblador» resueltos y quitados: §A del esqueleto reescrito (01); NOTICE_KINDS con los avisos de seguridad (03); textos de password_changed y new_sign_in ya en §13 y PR 19 ya en §18 (05); el moderador como frase de §8.5 (08); tabla de §10.2 comprobada contra §18 y password_hash contestada en §15.3 (10); stageReadyEmail en el PR 14 (13); la de §18 era una comprobación que coincide."
+  },
+  {
+    "id": "coherencia-glosario",
+    "estado": "aplicado",
+    "donde": "00-glosario.md G.16 nueva; filas de AUTH_ALLOWED_PATHS y sign-out-others en G.4",
+    "porque": "Los 14 bloques «Propuesto para el glosario» fundidos en G.16 (por apartado de G.2 a G.14, con los nombres de la corrección) y quitados de las secciones; G.16 manda sobre G.1 a G.15."
+  },
+  {
+    "id": "coherencia-avisos-seguridad",
+    "estado": "aplicado",
+    "donde": "§13.1 13-avisos.md; §3.1 principio 2; §14 tabla de la ausencia; 13-a; §19.4",
+    "porque": "Con email_changed son tres los avisos de seguridad: NOTICE_KINDS, NoticePayload, Always on y cada «dos de seguridad» corregidos."
+  },
+  {
+    "id": "coherencia-verify-email",
+    "estado": "aplicado",
+    "donde": "§8.1 08-rutas.md (8-l); §18 PR 19",
+    "porque": "Como POST /api/account/verify-email llama a /verify-email por dentro, /verify-email no entra en disabledPaths; desde el PR 19 la cierra solo el proxy. Sin esto el PR 19 rompía la confirmación."
+  },
+  {
+    "id": "coherencia-plan",
+    "estado": "aplicado",
+    "donde": "§18.2 y §18.4 18-plan.md",
+    "porque": "PR 11 depende del 9 (GET /api/me/account nace en el 9); PR 17 depende del 8 (ops.md con dos correos); grafo y orden de ejecución rehechos; AUTH_ALLOWED_PATHS queda en nueve tras el PR 19; «el registro no se abre» se reescribe: está abierto hoy y desde el PR 5 espera aprobación."
+  },
+  {
+    "id": "coherencia-referencias",
+    "estado": "aplicado",
+    "donde": "05, 07, 09, 13, 14, 16, 17, 18 y 22",
+    "porque": "Ninguna §G.n queda en el cuerpo (el glosario no entra en docs/cuenta.md); cada D-nn citada está en §22.5; cada N-x citada está definida en su sección (comprobado con un guion)."
+  },
+  {
+    "id": "coherencia-textos",
+    "estado": "aplicado",
+    "donde": "§5.6 y §16.1; §4 intro; §21.3",
+    "porque": "Send it again desaparece de CheckInbox y de lo que cubre el «enviado»; «abrir el registro» se lee como «aprobar a nadie» en §4 y §21.3; la lista del abogado gana el punto 11 (aprobación y fecha cambiada por un administrador)."
+  }
+]

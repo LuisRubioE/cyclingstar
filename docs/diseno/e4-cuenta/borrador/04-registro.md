@@ -1,6 +1,6 @@
 ## 4. El registro y la edad
 
-El dueño fijó la edad mínima en 16, declarada con la fecha de nacimiento, y que las cuentas que ya existen la den al entrar («Ok», `00-encargo.md` l. 309 a 310; D-00a). Sigue en pie el aviso de `docs/agenda.md` §3.7: **confirmarlo con un abogado antes de abrir el registro**. Esta sección dice cómo se pide, dónde se valida, qué se guarda, qué ve quien no llega y qué pasa con las cuentas de hoy.
+El dueño fijó la edad mínima en 16, declarada con la fecha de nacimiento, y que las cuentas que ya existen la den al entrar («Ok», `00-encargo.md` l. 309 a 310; D-00a). Sigue en pie el aviso de `docs/agenda.md` §3.7: **confirmarlo con un abogado antes de abrir el registro**, que con la aprobación de §4.9 quiere decir antes de aprobar a nadie. Esta sección dice cómo se pide, dónde se valida, qué se guarda, qué ve quien no llega y qué pasa con las cuentas de hoy. Desde el 23 de noviembre el registro es **por aprobación**, como en `twilightstruggle`: quien se registra queda `pending` hasta que un administrador lo aprueba, y solo entonces sale el correo para terminar el registro (§4.9; `00-encargo.md` §9.5, punto 1).
 
 ### 4.1 El formulario (pantalla, 360 px)
 
@@ -96,7 +96,7 @@ export function makeBirthDateSchema(now: () => Date = () => new Date()) {
 export const birthDateSchema = makeBirthDateSchema()
 ```
 
-En `auth.ts`, dentro de `user`: `additionalFields: { birthDate: { type: 'string', required: true, input: true, returned: true, validator: { input: birthDateSchema } } }`. La clave de Drizzle de `users.birth_date` tiene que ser `birthDate`: con otra, 1.7 lanza `SchemaMismatchError` en la primera petición (`create-context.mjs` l. 231, medido por `incremental`). La columna es `date` con `mode: 'string'`, para que viaje como `YYYY-MM-DD` sin pasar por la zona horaria. `MIN_AGE_YEARS` es 16 y `MIN_BIRTH_YEAR` 1900 (`packages/shared/src/account/constants.ts`).
+En `auth.ts`, dentro de `user`: `additionalFields: { birthDate: { type: 'string', required: true, input: true, returned: false, validator: { input: birthDateSchema } } }` (4-f). Con `returned: false` la fecha no viaja en `get-session` ni en el 200 del registro, y la web sabe si falta por `GET /api/me/account` (`birthDateSet: boolean`, §4.5). Con `input: true`, `update-user` la podría reescribir (`ba17/api/routes/update-user.mjs` l. 56 la pasa por `parseUserInput(…, "update")`); lo impide que esa ruta dé 404 (§8.1), y un comentario junto a `additionalFields` lo dice para que nadie la vuelva a abrir sin saberlo (`authRoutes.test.ts` fija el 404). La clave de Drizzle de `users.birth_date` tiene que ser `birthDate`: con otra, 1.7 lanza `SchemaMismatchError` en la primera petición (`create-context.mjs` l. 231, medido por `incremental`). La columna es `date` con `mode: 'string'`, para que viaje como `YYYY-MM-DD` sin pasar por la zona horaria. `MIN_AGE_YEARS` es 16 y `MIN_BIRTH_YEAR` 1900 (`packages/shared/src/account/constants.ts`).
 
 ### 4.3 Qué se guarda y qué no
 
@@ -119,8 +119,9 @@ La web la enseña al recibir `UNDER_MINIMUM_AGE` (o al calcularlo ella misma ant
 Hoy hay una, la del dueño (`00-encargo.md` l. 309 a 310). Con `birth_date` nula:
 
 - **La web**: `ProtectedRoute` (`apps/web/src/components/ProtectedRoute.tsx` l. 11) lleva a `/account/birth-date` antes de nada, salvo en `/privacy`, `/terms`, `/account/delete` y `Sign out` (D-09). La puerta de la fecha (pantalla): `One more thing` / `We now ask everyone for their date of birth. Cycling Star is for people aged 16 or over.` / `DateField` / `Save and continue`.
-- **La API**: toda petición que no sea `GET` a `/api/riders/*` y a `/api/me/*` responde 403 `BIRTH_DATE_REQUIRED`, salvo `PUT /api/me/birth-date`, `POST /api/me/export`, `/api/me/devices/*` y las rutas de avisos (`/api/me/push-targets*`, `/api/me/notices*`) (codigo O-11). Un `preHandler` común a los dos grupos de rutas, con su lista de excepciones escrita junto a él.
-- **`PUT /api/me/birth-date`** con `{ birthDate: string }`, validado con `birthDateSchema`: escribe una vez y responde `{ ok: true }`; si ya hay fecha, 409 `already_set` (no se corrige sin contacto, §11.1); con menos de 16, 400 `UNDER_MINIMUM_AGE` y no guarda nada.
+- **La API**: un `preHandler` global (`onRequest` de la app, no de un grupo de rutas) responde 403 `BIRTH_DATE_REQUIRED` a toda petición con sesión que no sea `GET` bajo `/api/`, salvo `/api/auth/*`, `/api/admin/*`, `/api/webhooks/*` y la lista de excepciones de D-09 (la puerta que no bloquea salir, leer las condiciones ni borrar la cuenta): `PUT /api/me/birth-date`, `POST /api/me/export`, `/api/me/devices/*` y las rutas de avisos (`/api/me/push-targets*`, `/api/me/notices*`). La lista vive escrita junto al gancho (codigo O-11). Así cubre también las rutas de juego que no cuelgan de `/api/riders/*` ni de `/api/me/*`: `POST /api/teams/take-over`, `PUT /api/teams/me`, `PUT /api/teams/me/kit`, `POST` y `DELETE /api/teams/me/calendar/:raceId` (`apps/api/src/routes/teams.ts` l. 70, 86, 133, 198 y 214) y `PUT /api/my-orders` (`races.ts` l. 182). `birthDate.test.ts` recorre las rutas registradas (con `onRoute`) y exige el 403 en cada una que no esté en la lista.
+- **`GET /api/me/account`** nace en este PR con `{ ok: true, birthDateSet: boolean }`; el PR 11 le añade el resto de §12.1. `ProtectedRoute` lo lee en lugar de la sesión, porque la fecha ya no viaja en ella (4-f).
+- **`PUT /api/me/birth-date`** con `{ birthDate: string }`, validado con `birthDateSchema`: escribe una vez y responde `{ ok: true }`; si ya hay fecha, 409 `already_set`. La rectificación la hace un administrador desde el panel (`PATCH /api/admin/users/:id` con `birthDate`, fila `user.birth_date` en `admin_audit` sin el valor en `Recent changes`, §8.5), como en `twilightstruggle`, donde los datos del perfil los cambia un administrador; quien la tecleó mal solo tiene que llegar a él, y sin canal de contacto ese es el hueco (§11.1); con menos de 16, 400 `UNDER_MINIMUM_AGE` y no guarda nada.
 - **El menor ya registrado** ve (pantalla): `Cycling Star is for people aged 16 or over, so this account can't stay open. You can delete it here.` y `Delete account`, que lleva a `/account/delete` (§10.4). Nada se bloquea ni se borra solo: qué hacer con la cuenta de un menor ya registrado, a confirmar con un abogado (§21.3).
 
 ### 4.6 Las condiciones y `/terms` (DD-13 A)
@@ -132,26 +133,26 @@ Terms
 These terms are a draft and will be reviewed before public launch.
 
 Who can play
-Cycling Star is for people aged 16 or over. One account per person.
+Cycling Star is for people aged 16 or over.
 
 A game
 Riders, teams and races are fictional.
 
 Your rider and your team
-If you delete your account or stop playing, your rider and your team stay in the world, run by the game. Your team keeps the name you gave it. An administrator can change a team name that is offensive or breaks these terms.
+If you delete your account or stop playing, your rider and your team stay in the world, run by the game. Your team keeps the name you gave it. An administrator can rename any team.
 
 Your account
-An administrator can change the email of an account and can close an account that breaks these terms. Every change an administrator makes is recorded.
+New accounts are approved by an administrator before they can play. An administrator can change the email and the date of birth of an account. Every change an administrator makes is recorded.
 
 Emails
 We only email you to confirm your address and to reset your password.
 ```
 
-Al registrarse, `databaseHooks.user.create.before` escribe `terms_version = TERMS_VERSION` y `terms_accepted_at = now()`. Si basta la línea bajo el botón o hace falta casilla (DD-13 B), y el texto entero, a confirmar con un abogado.
+Al registrarse, `databaseHooks.user.create.before` escribe `terms_version = TERMS_VERSION` y `terms_accepted_at = now()`. Si basta la línea bajo el botón o hace falta casilla (DD-13 B), y el texto entero, a confirmar con un abogado. Dos reglas que proponía el borrador, «One account per person» y que un administrador «can close an account that breaks these terms», no las ha decidido nadie y son de E7 (integridad y moderación, `00-encargo.md` §5): no entran en el texto, y quedan como pregunta para E7 y para el abogado (§21.3, punto 2).
 
 ### 4.7 `name`, `image` y `locale`
 
-- **`name`**: `databaseHooks.user.create.before` lo pone a `'Player'` y la 0056 hace lo mismo con las filas de hoy (D-08; I-28). Es un dato personal que nadie lee (cobertura C7; el panel enseña corredor y equipo, `adminUsers.ts` l. 114 a 122).
+- **`name`**: `databaseHooks.user.create.before` lo pone a `'Player'` y la 0056 hace lo mismo con las filas de hoy (D-08; I-28). Es un dato personal que nadie lee (cobertura C7; el panel enseña corredor y equipo, `adminUsers.ts` l. 114 a 122). Que el gancho cambie la fila creada no abre un oráculo, porque el proxy sustituye el cuerpo de todo 200 de `sign-up/email` por uno fijo (§5.3).
 - **`image`**: el gancho `before` de `/sign-up/email` responde 400 si el cuerpo trae `image`. `update-user`, la otra puerta, da 404 (§8.1).
 - **`locale`**: el mismo gancho de creación escribe la etiqueta primaria de `Accept-Language` en dos letras minúsculas (`es-ES,es;q=0.9` da `es`) o `'en'` si no hay; el defecto de la columna pasa de `'es'` a `'en'` (D-07; H-12; O-05). El país ya lo guarda el corredor. Traducir es de E10.
 
@@ -166,6 +167,21 @@ Al registrarse, `databaseHooks.user.create.before` escribe `terms_version = TERM
 | Contraseña de más de 128                  | página (hoy solo el servidor) y servidor | `PASSWORD_TOO_LONG`  | `Your password can be at most 128 characters.` |
 | Fecha ya guardada                         | servidor, `PUT /api/me/birth-date`       | 409 `already_set`    | `Your date of birth is already saved.`         |
 | Límites, red y presupuesto                | servidor                                 | §12.3                | los de `authErrorText`                         |
+
+### 4.9 El registro por aprobación (las tandas)
+
+El dueño, el 23 de noviembre: «Ok, si, de momento hagamos igual» (`00-encargo.md` §9.5, punto 1), sobre hacerlo como `twilightstruggle` (`ai/src/pvp/auth.ts` l. 19, 45, 362 a 411 y 526 a 541). Es el mecanismo de las tandas de DD-10 B: el registro sigue abierto (hoy lo está: `apps/api/src/auth.ts` no tiene `disableSignUp`, l. 142), pero nadie juega hasta que un administrador lo aprueba, al ritmo que quiera.
+
+- **El estado**: `users.status`, `text not null` con defecto `'pending'` y `CHECK (status in ('pending', 'approved'))`, y `users.approved_at timestamptz` nula. El tipo es `UserStatus = 'pending' | 'approved'` (`packages/shared/src/account/constants.ts`). En `auth.ts`, `additionalFields.status: { type: 'string', input: false, returned: false, defaultValue: 'pending' }`: nadie la escribe por `sign-up/email`. De los cuatro estados de `twilightstruggle` (`pending | approved | rejected | disabled`, l. 45) E4 usa dos: rechazar borra la petición (abajo) y suspender es moderación, de E7. Las cuentas de hoy pasan a `approved` en la 0055 (§15.2).
+- **Quien se registra** queda `pending`, con `email_verified` en `false`. `sendOnSignUp` sigue en `true`, pero la función `sendVerificationEmail` de `auth.ts` lee `status` de la base por el id (`SELECT status FROM users WHERE id = $1`, sin fiarse del objeto que le pasa `better-auth`) y no envía nada si no es `approved`. Así ni el registro (`sign-up.mjs` l. 247 a 260), ni `sendOnSignIn` (`sign-in.mjs` l. 341 a 353), ni `send-verification-email` sin sesión (`email-verification.mjs` l. 96 a 118) mandan correo a una cuenta pendiente: las tres puertas pasan por esa función.
+- **El administrador de la lista**: si el correo es el de `ADMIN_EMAIL`, `databaseHooks.user.create.before` escribe `status = 'approved'` y `approved_at = now()`, y el correo sale al registrarse, como `twilightstruggle` aprueba a la llegada a quien está en `AI_ADMINS` (l. 366 y 384; y `sessionUser`, l. 526 a 541, aprueba al vuelo a un administrador que se quedó pendiente).
+- **Aprobar**: `POST /api/admin/users/:id/approve` (§8.5). Solo con `status = 'pending'` (si no, 409 `no_pendiente`). Comprueba antes el presupuesto de `verify_signup` (§7.6): con el día gastado, 503 `MAIL_BUDGET_EXHAUSTED` y no cambia nada. Si cabe, en una transacción pone `status = 'approved'`, `approved_at = now()` y la fila `user.status` de `admin_audit` (`{ field: 'status', from: 'pending', to: 'approved' }`); después llama a `auth.api.sendVerificationEmail({ body: { email } })` sin sesión, que encuentra la cuenta sin confirmar y manda `verify_signup` (`email-verification.mjs` l. 107 a 112). Ese es el correo para terminar el registro, uno de los dos de `00-encargo.md` §9.3, y no uno nuevo.
+- **Rechazar**: `POST /api/admin/users/:id/reject`. Solo con `status = 'pending'` (si no, 409 `no_pendiente`). Borra la cuenta (`users` y su fila `credential` de `accounts`, en una transacción; una cuenta pendiente no tiene corredor ni equipo porque no ha podido entrar) y escribe `user.status` con `{ field: 'status', from: 'pending', to: 'rejected' }` y `target_user_id`, sin el correo. No sale ningún correo. Es una diferencia escrita con `twilightstruggle`, que guarda la fila rechazada y deja volver a pedir (l. 355 a 358): aquí no se guarda nada de quien no entra (el mismo principio que el menor rechazado, §4.3), y como la fila desaparece, la persona puede volver a registrarse con el mismo correo.
+- **Entrar estando pendiente**: `better-auth` comprueba la contraseña antes que la confirmación (`sign-in.mjs` l. 335 a 353) y responde 403 `EMAIL_NOT_VERIFIED` sin enviar nada. El proxy, solo en ese 403 de `sign-in/email` (la contraseña ya era buena, así que no delata nada a quien no la sabe), busca el estado por el correo y, si es `pending`, cambia el código por 403 `ACCOUNT_PENDING`. `Login` dice (pantalla) `Your account is waiting for approval` / `An administrator reviews new accounts by hand. When yours is approved, we'll email you a link to finish signing up.`
+- **Tras registrarse**, la web enseña `CheckInbox` en su forma de petición recibida (§5.3), la misma para un correo nuevo, para uno que ya existe y para el de `ADMIN_EMAIL`.
+- **Las invitaciones** de la lista de espera las manda el dueño a mano desde su buzón (`docs/captacion.md` l. 111), fuera de Resend: no son un tercer correo del juego. Quien llega sin invitación también puede pedir cuenta, y espera igual.
+- **El ritmo** lo pone el administrador con las aprobaciones de cada día, dentro de las tandas de §9.4. Abrir el registro no cambia ningún código: es empezar a aprobar. Nadie se aprueba antes del PR 9 y de la lista del abogado (§21.3); quien se registre antes espera en `pending`, y cuando lo aprueban y entra, la puerta de §4.5 le pide la fecha.
+- `signupApproval.test.ts` (PR 5) lo fija: el registro deja `pending` y no manda correo; ni `sign-in/email` con la contraseña buena ni `send-verification-email` mandan nada a una pendiente; aprobar manda un `verify_signup` y escribe `admin_audit`; rechazar borra la cuenta y deja registrarse otra vez; `ADMIN_EMAIL` entra aprobado; con el presupuesto gastado, aprobar da 503 y no cambia el estado.
 
 ---
 
@@ -182,10 +198,7 @@ Al registrarse, `databaseHooks.user.create.before` escribe `terms_version = TERM
 - **4-c**, la web manda `name: ''`, que `sign-up.mjs` l. 16 exige, y el gancho lo sustituye por `'Player'`.
 - **4-d**, el texto de `/terms` dice que el equipo conserva el nombre y que un administrador puede cambiarlo y cambiar el correo de una cuenta, por DD-14 B y por `00-encargo.md` §9.3; y que solo se manda correo para confirmar y recuperar.
 - **4-e**, el error de contraseña corta es `Use at least 8 characters.`, uno solo para la página y el servidor (hoy hay dos versiones, mapa 05 §3).
-
-**Propuesto para el glosario.**
-
-- `parseIsoDate`, `YearMonthDay`, `BirthDateError`, `makeBirthDateSchema` en `packages/shared/src/account/birthDate.ts`.
-- `INVALID_BIRTH_DATE` y `UNDER_MINIMUM_AGE`: los `message` del 400 `VALIDATION_ERROR` del registro y los códigos de `PUT /api/me/birth-date`.
-- Textos (pantalla): `Your date of birth is already saved.`; `Use at least 8 characters.`; `Your password can be at most 128 characters.`; `Cycling Star is for people aged 16 or over, so this account can't stay open. You can delete it here.`
-- La fila de G.11 de `Terms` debería citar el texto de §4.6; la puerta de la fecha vive en `ProtectedRoute.tsx` l. 11, no en `App.tsx` l. 318 a 325 (en este árbol `Private` está en l. 149 a 151 y solo envuelve a `ProtectedRoute`).
+- **4-f**, `birthDate` con `returned: false`; la web pregunta `birthDateSet` a `GET /api/me/account`, que nace en el PR 9.
+- **4-g**, la puerta de la fecha en la API es un gancho global sobre todo lo que no es `GET` bajo `/api/`, con su lista de excepciones; no un gancho por grupo de rutas.
+- **4-h**, la fecha la rectifica un administrador desde el panel, con su fila en `admin_audit`.
+- **4-i**, el registro por aprobación de §4.9, por el dueño (`00-encargo.md` §9.5, punto 1).

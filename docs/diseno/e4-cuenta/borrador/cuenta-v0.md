@@ -366,7 +366,6 @@ Al registrarse, `databaseHooks.user.create.before` escribe `terms_version = TERM
 - **4-d**, el texto de `/terms` dice que el equipo conserva el nombre y que un administrador puede cambiarlo y cambiar el correo de una cuenta, por DD-14 B y por `00-encargo.md` §9.3; y que solo se manda correo para confirmar y recuperar.
 - **4-e**, el error de contraseña corta es `Use at least 8 characters.`, uno solo para la página y el servidor (hoy hay dos versiones, mapa 05 §3).
 
-
 ## 5. Verificación, recuperación, cambio de correo y los correos
 
 El dueño dejó el correo en dos enlaces: «Solo correo para forgot password y para acabar el registro (igual que en el de Twilight Stuggle)» (`00-encargo.md` l. 398 a 399, 23 de noviembre de 2026). Esta sección dice cómo viven esos dos enlaces, qué pasa al pulsarlos, cómo sale el jugador de cada estado y qué se retira: el cambio de correo de autoservicio, con sus dos correos y sus dos páginas, pasa al panel de administración.
@@ -511,7 +510,6 @@ This is an account email. Cycling Star never sends newsletters or game emails.
 - **5-f**, `LEGACY_LINK_GRACE_DAYS` se lee como el plazo para quitar el código de los enlaces viejos: con tokens de una hora, ninguno vive tanto.
 - **5-g**, `Send me a new link` de `VerifyEmail` responde siempre `If that address has an account waiting for confirmation, a new link is on its way.`
 
-
 ## 6. Las sesiones
 
 Hoy una sesión dura 7 días renovados con cada uso, guarda la IP y el agente, y su token viaja al JavaScript en cada `get-session` (mapa 01 §3). Nadie la ve ni la cierra salvo de rebote al cambiar la contraseña (`00-encargo.md` §2.3, punto 2). E2 dejó a E4 por escrito alargarla (`docs/retransmision.md` l. 6693; X-22). Esta sección fija su vida, lo que se guarda, lo que llega a la web y cómo se cierra. La pantalla `Devices` se dibuja en §12.2.
@@ -612,7 +610,6 @@ El orden de las comprobaciones importa y el test lo fija: `Edg/` antes que `Chro
 - **6-c**, `POST /api/me/devices/sign-out-others` devuelve `closed` con el número de sesiones cerradas, para el `Notice` de §12.2.
 - **6-d**, los doce agentes de `deviceLabel.test.ts` son los de la tabla de §6.4, y un iPad que se anuncia como Mac sale `Safari on Mac`.
 - **6-e**, el SQL de la precondición del PR 3 es el de §6.2, de solo lectura.
-
 
 ## 7. Los límites de intento
 
@@ -748,7 +745,6 @@ Los textos y la cuenta atrás están en la tabla de `authErrorText` (§12.3). Lo
 - **7-f**, con DD-10 B: `MAIL_DAILY_BUDGET` 90, `verify_signup` hasta 60 y `reset_password` hasta 90; `MAIL_LOW_PRIORITY_CUTOFF` desaparece; `Login` tiene su texto con el presupuesto agotado.
 - **7-g**, `new_sign_in` se encola desde el proxy al 200 de `sign-in/email` sin `cs_device` válida, uno por hora y cuenta, solo por push.
 
-
 ## 8. Las rutas, las dependencias y el administrador
 
 `better-auth` monta 31 puntos y el proxy deja pasar todos por un comodín (mapa 01 §1; `authProxy.ts` l. 62 a 71); la web usa ocho. Esta sección cierra lo que no se usa por lista blanca, sube las dependencias, fija el registro de `better-auth` y escribe el panel de administración como lo quiere el dueño: el de `twilightstruggle`, sin segundo factor y con cada edición escrita (`00-encargo.md` §9.2, punto 1).
@@ -836,7 +832,6 @@ El dueño eligió el panel sin TOTP (DD-01 A): «Mira como resolví eso en herei
 - **8-e**, nueva `PATCH /api/admin/teams/:id` para que un administrador cambie siempre el nombre de un equipo (`00-encargo.md` §9.2, punto 7), con las reglas de `updateOwnedTeam`.
 - **8-f**, `GET /api/admin/audit` pagina con `before` y como mucho 500 filas, (`his` da 500 por defecto y hasta 1.000, `admin_log.py` l. 14).
 
-
 ## 9. El correo transaccional
 
 El juego manda dos correos, `verify_signup` y `reset_password` (§5.7), y ninguno de juego (D-00c). Esta sección dice lo que hace falta para que lleguen y para saber cuándo no llegan: el DNS, el registro de cada envío con el webhook de Resend, lo que ve el jugador cuyo buzón rebota, el plan gratuito con su registro por tandas, la purga y lo que haría falta el día que hubiera otro flujo.
@@ -918,7 +913,6 @@ Hoy no se hace nada de esto (D-35; D-00c). El día que hubiera un segundo flujo:
 - **9-c**, el `Notice` del correo que no llega dice `Only an administrator can change the email of an account.` en lugar de `Change your email.`
 - **9-d**, la marca `email_undeliverable_at` se borra con un cambio de correo del administrador o con un `email.delivered` posterior.
 - **9-e**, el webhook acepta un `svix-id` repetido sin aplicarlo dos veces.
-
 
 ## 10. Privacidad y datos
 
@@ -1093,7 +1087,6 @@ Hoy solo la escriben las rutas que resuelven el espectador de E2 (`spoiler.ts` l
 - **10-d**, `deleteAccount` vacía `from` y `to` de las filas `user.email` de `admin_audit` de la cuenta borrada.
 - **10-e**, el PR 3 pone el texto nuevo con solo lo que ya es verdad y cada PR añade su frase; la de las copias depende de que el cron de `backup.sh` corra.
 - **10-f**, `AccountExport` deja fuera `isAdmin`, `deviceEpoch`, `name` e `image` de `users`, y la credencial de cada aparato.
-
 
 ## 11. El contacto aparcado
 
@@ -1366,7 +1359,6 @@ La captura 55 (el botón `Update email` 122 px por debajo del teclado, mapa 05 �
 - **12-e**, `DateField` no salta de campo solo; `toIsoDate` no valida.
 - **12-f**, el 429 de exportar lleva el código `EXPORT_LIMIT`; el décimo intento de L3 lleva `signedOut: true`.
 - **12-g**, fechas de `Devices` relativas hasta 7 días y absolutas después.
-
 
 ## 13. Los avisos
 
@@ -1655,7 +1647,6 @@ La app no tiene tecnología ni fecha (D-00d). Lo que la deja enchufar sin rehace
 - **13-k**, los avisos de seguridad salen del proxy al ver el 200, en segundo plano por `mailQueue.track`, sin esperar al barrido.
 - **13-l**, al cambiar la contraseña reciben el aviso las suscripciones de las otras sesiones (que se borran) y las de sesión nula (que se quedan); la del propio navegador, no.
 
-
 ## 14. El modo ausencia y la regla del mes
 
 Con cuatro días de juego por día real, una semana fuera son 28 días de juego, y hoy nada distingue al que está de vacaciones del que se fue: el tick entrena, corre y cobra igual (mapa 03 §7) y no hay forma de decir «vuelvo el 3» (`00-encargo.md` §2.3, punto 4). El dueño aceptó la frontera el 19 de noviembre: el jugador lo declara con una fecha de vuelta, mientras dura decide el entrenador, se callan los avisos y no corre la regla del mes; lo que el mundo haga con una ausencia larga es de E7 (D-00e; «Ok», `00-encargo.md` l. 317 a 318 y 349 a 351). El 23 fijó el máximo: «ok 28 días reales» (l. 377).
@@ -1796,7 +1787,6 @@ You were away 12 days (48 game days). Luca Bianchi trained on 41 of them and rac
 - **14-d**, columna nueva `users.welcome_back_from` (en la 0056, §15) y rutas `GET` y `DELETE /api/me/welcome-back`: sin ella la visita de hoy borra la de antes y `Welcome back` no sabe cuánto faltó el jugador.
 - **14-e**, `PUT /api/me/away` con ausencia viva cambia la fecha, cuenta el máximo desde ahora y conserva `away_since`; `DELETE` conserva `away_since`.
 - **14-f**, los avisos de seguridad salen durante la ausencia (13-a); la línea `Notifications stay quiet` lo dice.
-
 
 ## 15. Datos y migraciones
 
@@ -1979,7 +1969,6 @@ Con `birthDate` obligatorio en el registro (§4.2), todo lo que llama a `sign-up
 - **15-d**, `capturas/mundo.mjs` de E3 no se toca; se anota.
 - **15-e**, `notice_log` se purga a 90 días.
 
-
 ## 16. Constantes
 
 La única tabla entera de constantes del documento. Las compartidas por la API y la web viven en `packages/shared/src/account/constants.ts` y `notices.ts`; las de límites, en `apps/api/src/security.ts`; las de la purga, en `packages/db/src/purge.ts` (D-02). Cada una con su valor, su intención y la decisión que la fija. Medida o estimada: casi ninguna se ha medido, y la columna «Por qué» dice de dónde sale cada cifra.
@@ -2078,7 +2067,6 @@ La única tabla entera de constantes del documento. Las compartidas por la API y
 
 **Decisiones de esta sección.** Ninguna nueva: cada valor sale de la decisión de su fila, de L1 (`7-e`, `7-f`, `7-g`, `8-a`) o de §13 a §15.
 
-
 ## 17. Tests
 
 Cada PR de §18 empieza por sus tests, rojos antes de su código. Los de la API corren contra la base real de PGlite, como `authFlow.test.ts`, salvo los de funciones puras; los de la web, con Testing Library como los de hoy. Las cifras de los de seguridad son las que midieron los jueces y los mapas, y el test las convierte en contrato. Fuera de §G.13, por lo que decidió el dueño el 23 de noviembre: `hibp.test.ts` (DD-11 C) y `emailChange.test.ts` (sin cambio de correo de autoservicio).
@@ -2155,7 +2143,6 @@ La de E3 (`docs/visual.md` §7; Chromium de `/opt/pw-browsers`, a 360 y 320 px, 
 **Huecos rellenados.** Ninguno asignado.
 
 **Decisiones de esta sección.** Ninguna nueva. Los tests de §G.13 que salen (`hibp.test.ts`, `emailChange.test.ts`) salen por las decisiones del dueño del 23 de noviembre; los que entran sin estar en §G.13 se proponen abajo.
-
 
 ## 18. El plan por PR, tests primero
 
@@ -2262,7 +2249,6 @@ El orden de ejecución: 1 y 2 a la vez; 3; 4, 5 y 8; 6; 7, 9 y 11; 12; 13; 14; 1
 - **18-d**, el PR 14 se puede partir en 14a (servidor) y 14b (web y variables).
 - **18-e**, el formulario de cambio de correo sale de `Account` en el PR 5, con la lista blanca, y no en el 11.
 - **18-f**, total de unas 120 horas, repartidas como en la tabla; ninguna cifra medida.
-
 
 ## 19. Riesgos del despliegue y lo que se mide
 
@@ -2581,4 +2567,3 @@ Los de las propuestas (§G.15) y los que añadió la redacción. Solo aquí; el 
 
 - **22-a**, la tabla de lo desestimado gana dos filas: alargar la sesión en ausencia y el aviso de prueba.
 - **22-b**, los alias de `twilightstruggle` entran en 22.4.
-

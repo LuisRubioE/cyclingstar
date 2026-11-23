@@ -67,7 +67,7 @@ export const awayBodySchema = z.object({ until: z.string().datetime({ offset: tr
 
 | Cambia                                                                                                                                                  | No cambia                                                                                                  |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Ningún aviso salvo `away_over` y los dos de seguridad (§13.1, 13-a)                                                                                     | Los dos correos de cuenta                                                                                  |
+| Ningún aviso salvo `away_over` y los tres de seguridad (§13.1, 13-a)                                                                                    | Los dos correos de cuenta                                                                                  |
 | La regla del mes no corre: E7 lee `inactiveSince` (§14.4)                                                                                               | El tick: entrena, corre con órdenes automáticas, cobra, envejece (mapa 03 §7, medido con 28 días de juego) |
 | En `training_mode = 'manual'`, el día sin orden ni bloque se resuelve como `mixto`: plan de equipo si lo hay y, si no, el entrenador (I-16; X-05; O-02) | Se puede entrar y jugar; **entrar no termina la ausencia**                                                 |
 | `AwayBand` bajo la cabecera en toda pantalla con sesión                                                                                                 | La sesión: 30 días renovables bastan para 28 de ausencia; no se alarga (D-17; O-06)                        |
@@ -80,7 +80,7 @@ Entrar no la termina porque quien abre la web en la playa para ver una etapa no 
 
 - **A la fecha**: `away_until` llega y la ausencia acaba sola; nadie escribe nada. El barrido manda `away_over` (§13.7) al primer paso fuera del silencio (a las 00:00 locales cae en él, así que sale a las 8). `Welcome back` espera en la portada (§14.5).
 - **`End now`**: `DELETE /api/me/away`. Desde `AwayBand` o desde `Away`, sin confirmación: se deshace declarándola otra vez. Al terminar, `Notice` `good`: `Welcome back. Your notifications are on again.` (pantalla).
-- **`AwayBand`** (`apps/web/src/components/AwayBand.tsx`, DD-05 A): un `Notice` `info` bajo la cabecera, en toda pantalla con sesión mientras `awayUntil > now`, con `You're away until 3 Dec` / `End now` (§G.12). Lo pinta `Layout` con `GET /api/me/away`, pedido una vez por carga con la sesión. No se cierra: es la única señal de que los avisos están callados.
+- **`AwayBand`** (`apps/web/src/components/AwayBand.tsx`, DD-05 A): un `Notice` `info` bajo la cabecera, en toda pantalla con sesión mientras `awayUntil > now`, con `You're away until 3 Dec` / `End now` (pantalla). Lo pinta `Layout` con `GET /api/me/away`, pedido una vez por carga con la sesión. No se cierra: es la única señal de que los avisos están callados.
 
 ### 14.4 `inactiveSince`, la visita y los relojes de E7
 
@@ -138,11 +138,3 @@ You were away 12 days (48 game days). Luca Bianchi trained on 41 of them and rac
 - **14-d**, columna nueva `users.welcome_back_from` (en la 0056, §15) y rutas `GET` y `DELETE /api/me/welcome-back`: sin ella la visita de hoy borra la de antes y `Welcome back` no sabe cuánto faltó el jugador.
 - **14-e**, `PUT /api/me/away` con ausencia viva cambia la fecha, cuenta el máximo desde ahora y conserva `away_since`; `DELETE` conserva `away_since`.
 - **14-f**, los avisos de seguridad salen durante la ausencia (13-a); la línea `Notifications stay quiet` lo dice.
-
-**Propuesto para el glosario.**
-
-- §G.2: `users.welcome_back_from` (`timestamptz` nula).
-- §G.4: `GET /api/me/away`; `GET` y `DELETE /api/me/welcome-back`; `PUT /api/me/away` con `{ until }` instante ISO con desfase.
-- §G.7: `awayBodySchema` (`routes/me.ts`); `TrainingDayContext.ownerAway`.
-- Errores: 400 `fecha_fuera_de_rango`.
-- Textos (pantalla) de §14.1, §14.3 y §14.5.

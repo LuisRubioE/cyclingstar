@@ -4,7 +4,19 @@ La última migración del árbol es `0054_modo_oscuro` (`packages/db/drizzle/`);
 
 ### 15.1 El esquema
 
-**`users`, lo que se añade** (todo en la 0056):
+**`users`, lo que se añade en la 0055** (el registro por aprobación, §4.9; va con el panel en el PR 5):
+
+```ts
+// packages/db/src/schema.ts, dentro de users
+/** `pending` hasta que un administrador aprueba; `approved` después (§4.9). `UserStatus`. */
+status: text('status').$type<UserStatus>().notNull().default('pending'),
+/** Cuándo se aprobó; nula en las pendientes. La purga de DD-17 cuenta desde aquí (§15.4). */
+approvedAt: timestamp('approved_at', { withTimezone: true }),
+```
+
+Y, en el tercer argumento de `pgTable`, el `CHECK` `users_status`: `status in ('pending', 'approved')`. La clave de Drizzle es `status`, como el `additionalFields` de `auth.ts`, o 1.7 lanza `SchemaMismatchError` (§4.2).
+
+**`users`, lo que se añade en la 0056**:
 
 ```ts
 // packages/db/src/schema.ts, dentro de users
@@ -34,7 +46,7 @@ Y en el tercer argumento de `pgTable`, `check('users_away_pair', sql\`(away_sinc
 
 ```ts
 export const authLimits = pgTable('auth_limits', {
-  /** `acct:`, `dev:`, `pw:`, `mailip:` o `exp:` y el HMAC de su valor (§7.3). */
+  /** `acct:`, `dev:`, `pw:`, `pwu:`, `mailip:`, `rsv:` o `exp:` y el HMAC de su valor (§7.3). */
   key: text('key').primaryKey(),
   windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
   count: integer('count').notNull(),
@@ -54,7 +66,7 @@ export const adminAudit = pgTable(
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
     /** Id de la cuenta que actúa, o `'token'` con `ADMIN_TOKEN` (8-d). */
     actor: text('actor').notNull(),
-    /** `user.email`, `user.email_verified`, `user.is_admin`, `user.premium`, `user.delete`, `team.name`, `team.kit_revert`. */
+    /** `user.status`, `user.email`, `user.email_verified`, `user.is_admin`, `user.premium`, `user.birth_date`, `user.delete`, `team.name`, `team.kit_revert`, `blocklist.add`, `blocklist.remove`, `world.tick`, `world.advance` (§8.5). */
     action: text('action').notNull(),
     /** Sin clave ajena: la fila sobrevive al borrado del objetivo. */
     targetUserId: uuid('target_user_id'),
@@ -139,7 +151,7 @@ export const noticeLog = pgTable(
 
 | Migración              | PR  | SQL principal                                                                                                                                                                                                                                                                                             | Filas de hoy                                                                                                                                                       | Índices                                                                                                 |
 | ---------------------- | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `0055_auditoria_admin` | 5   | `CREATE TABLE admin_audit (…)`                                                                                                                                                                                                                                                                            | vacía                                                                                                                                                              | `at desc`; `target_user_id`                                                                             |
+| `0055_auditoria_admin` | 5   | `CREATE TABLE admin_audit (…)`; `ALTER TABLE users ADD COLUMN status text DEFAULT 'pending' NOT NULL, ADD COLUMN approved_at timestamptz` y su `CHECK`; a mano: `UPDATE users SET status = 'approved', approved_at = now()`                                                                               | `admin_audit` vacía; todas las cuentas de hoy, `approved` (la del dueño entre ellas: ninguna se queda fuera)                                                       | `at desc`; `target_user_id`                                                                             |
 | `0056_cuenta_e4`       | 6   | `ALTER TABLE users ADD COLUMN birth_date date, …` (las diez columnas de §15.1) y `ADD CONSTRAINT users_away_pair CHECK (…)`; `ALTER TABLE users ALTER COLUMN locale SET DEFAULT 'en'`; `CREATE TABLE auth_limits (…)`; a mano: `UPDATE sessions SET ip_address = ''` y `UPDATE users SET name = 'Player'` | columnas nulas (`birth_date` nula: la puerta de la fecha, D-09), `notice_prefs` `{}`, `device_epoch` 0; `locale` se queda como esté; IP vaciada; nombre `'Player'` | ninguno nuevo en `users`; la clave primaria de `auth_limits`                                            |
 | `0057_correo`          | 7   | `CREATE TABLE email_log (…)`                                                                                                                                                                                                                                                                              | vacía                                                                                                                                                              | `(recipient_hash, created_at)`; `created_at`                                                            |
 | `0058_avisos`          | 14  | `CREATE TYPE push_channel AS ENUM (…)`; `CREATE TABLE push_targets (…)`; `CREATE TABLE notice_log (…)`                                                                                                                                                                                                    | vacías                                                                                                                                                             | `push_targets (user_id)`; el único de `endpoint_hash`; el único de `notice_log`; `notice_log (sent_at)` |
@@ -149,7 +161,9 @@ La 0056 lleva todas las columnas de `users` de E4, aunque `birth_date` la use el
 ### 15.3 Lo que no lleva migración
 
 - El cambio de correo de autoservicio retirado (§5.5): sin columnas ni filas de `verifications` para el deshacer.
-- El cambio de correo y el nombre de equipo desde el panel (§8.5): `users.email` y `teams.name` ya existen; solo escriben `admin_audit`.
+- El cambio de correo, de fecha y de nombre de equipo desde el panel (§8.5): `users.email`, `users.birth_date` y `teams.name` ya existen (la segunda desde la 0056); solo escriben `admin_audit`.
+- El manifiesto mínimo (§13.5): un fichero en `apps/web/public/`.
+- Las claves nuevas de `auth_limits` (`pwu:`, `rsv:`, §7.3): la tabla no cambia.
 - `stageReadyEmail` borrada, `cs_device` (cookie), `deviceLabel` (calculada), `inactiveSince` (función).
 - `users.password_hash` (`schema.ts` l. 106 a 108): existe «sin uso con better-auth», dice su comentario; E4 no la toca (contesta la duda de §10).
 - `users.last_seen_at`: existe desde la 0048 (`schema.ts` l. 121 a 125).
@@ -157,7 +171,7 @@ La 0056 lleva todas las columnas de `users` de E4, aunque `birth_date` la use el
 
 ### 15.4 La purga
 
-`purgeAccounts(db, now)` (`packages/db/src/purge.ts`; D-34; §9.5) borra, con `DELETE` indexados e idempotentes: `auth_limits` con `window_start` y `day_start` de más de `AUTH_LIMITS_RETENTION_DAYS` (2) días y sin cierre vivo; `email_log` de más de `EMAIL_LOG_RETENTION_DAYS` (90); `notice_log` de más de `NOTICE_LOG_RETENTION_DAYS` (90); `verifications` caducadas; y, con DD-17 A, las cuentas sin confirmar de más de `PURGE_UNCONFIRMED_DAYS` (7) días sin corredor ni equipo, por `deleteAccount` (§10.4). **Dónde corre** (15-c): en `runTick`, una vez por pasada que procese días, después del último, como ya corre `purgeAttrLog` (`packages/db/src/tick.ts` l. 218 y 346). Con cuatro días de juego por día real son unas cuatro pasadas al día (estimado), y da igual quién procese los días, `web` o `tick`. Los plazos se miden en tiempo real, no en días de juego.
+`purgeAccounts(db, now)` (`packages/db/src/purge.ts`; D-34; §9.5) borra, con `DELETE` indexados e idempotentes: `auth_limits` con `window_start` y `day_start` de más de `AUTH_LIMITS_RETENTION_DAYS` (2) días y sin cierre vivo; `email_log` de más de `EMAIL_LOG_RETENTION_DAYS` (90); `notice_log` de más de `NOTICE_LOG_RETENTION_DAYS` (90); `verifications` caducadas; y, con DD-17 A, las cuentas aprobadas y sin confirmar con `approved_at` de más de `PURGE_UNCONFIRMED_DAYS` (7) días, sin corredor ni equipo, por `deleteAccount` (§10.4). Las `pending` no se purgan: las decide un administrador (§4.9, 9-g). **Dónde corre** (15-c): en `runTick`, una vez por pasada que procese días, después del último, como ya corre `purgeAttrLog` (`packages/db/src/tick.ts` l. 218 y 346). Con cuatro días de juego por día real son unas cuatro pasadas al día (estimado), y da igual quién procese los días, `web` o `tick`. Los plazos se miden en tiempo real, no en días de juego.
 
 ### 15.5 Lo que registra cuentas y se re-sella
 
@@ -178,10 +192,4 @@ Con `birthDate` obligatorio en el registro (§4.2), todo lo que llama a `sign-up
 - **15-c**, la purga corre dentro de `runTick`, tras procesar días, como `purgeAttrLog`; no es una tarea aparte.
 - **15-d**, `capturas/mundo.mjs` de E3 no se toca; se anota.
 - **15-e**, `notice_log` se purga a 90 días.
-
-**Propuesto para el glosario.**
-
-- §G.2: `users.welcome_back_from`; `push_targets.channel` como enum `push_channel`.
-- §G.3: fuera `0059_dos_factores`.
-- §G.6: `NOTICE_LOG_RETENTION_DAYS` 90 (`purge.ts`).
-- §G.7: `AdminAuditDetail` (`{ field, from, to, teamId? }`), `pushChannelEnum`.
+- **15-f**, `users.status` y `users.approved_at` van en la 0055, con el panel, porque el registro está abierto hoy y la puerta tiene que llegar pronto; el `UPDATE` a mano deja aprobadas todas las cuentas que existan al migrar.
