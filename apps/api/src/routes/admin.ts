@@ -32,6 +32,7 @@ import {
   adminAuditResponseSchema,
   adminTeamPatchSchema,
   adminUserPatchSchema,
+  birthDateSchema,
   adminUsersResponseSchema,
   adminWhoamiResponseSchema,
   blocklistAddResponseSchema,
@@ -46,6 +47,7 @@ import { badRequest, notFound, sendError } from '../http.js'
 import type { AdminActor } from '../security.js'
 import { ADMIN_VEIL } from '../spoiler.js'
 import type { AdminRouteContext } from './context.js'
+import { mailBudgetOpen } from '../mailBudget.js'
 import { isCalendarRaceId, parseRaceId, parseStageDay } from './params.js'
 
 const kindSchema = z.enum(['team', 'rider'])
@@ -73,7 +75,7 @@ function actorId(actor: AdminActor): string {
 }
 
 /** Los campos que la cuenta raíz no deja cambiar desde el panel (8-h). */
-const ROOT_LOCKED_FIELDS = ['emailVerified', 'isAdmin', 'email'] as const
+const ROOT_LOCKED_FIELDS = ['emailVerified', 'isAdmin', 'email', 'birthDate'] as const
 
 /**
  * Manda el `verify_signup` de una cuenta recién aprobada (docs/cuenta.md §4.9): `sendVerificationEmail`
@@ -142,6 +144,13 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       const id = userIdSchema.safeParse(request.params.id)
       const patch = adminUserPatchSchema.safeParse(request.body)
       if (!id.success || !patch.success) return badRequest(reply)
+      // La fecha rectificada pasa la misma regla que el registro (§4.5): con menos de 16, 400
+      // `UNDER_MINIMUM_AGE` y no se guarda nada.
+      if (patch.data.birthDate !== undefined) {
+        const fecha = birthDateSchema.safeParse(patch.data.birthDate)
+        if (!fecha.success)
+          return badRequest(reply, fecha.error.issues[0]?.message ?? 'INVALID_BIRTH_DATE')
+      }
       // Quitarse el permiso a uno mismo es la forma más tonta de quedarse sin administrador.
       if (actor.via === 'session' && actor.userId === id.data && patch.data.isAdmin === false) {
         return sendError(reply, 409, 'no_puedes_quitarte_admin')
@@ -200,7 +209,10 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       if (!actor) return
       const id = userIdSchema.safeParse(request.params.id)
       if (!id.success) return badRequest(reply)
-      // Hasta el PR 7 no hay presupuesto de correo que mirar (el 503 `MAIL_BUDGET_EXHAUSTED`).
+      // El presupuesto de `verify_signup` (§7.6): con el día gastado, 503 y la cuenta sigue pendiente.
+      if (!(await mailBudgetOpen(db, 'verify_signup', ctx.mailDailyBudget))) {
+        return sendError(reply, 503, 'MAIL_BUDGET_EXHAUSTED')
+      }
       const out = await approvePendingUser(db, id.data, actorId(actor))
       if (!out.ok) {
         return out.reason === 'no_existe' ? notFound(reply) : sendError(reply, 409, out.reason)

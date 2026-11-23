@@ -74,7 +74,12 @@ describe('registro por aprobación, contra una base real', () => {
     })
     app = buildApp({ db: tdb.db, auth, serveWeb: false, adminEmail: ROOT })
     // El dueño se registra, entra aprobado y su enlace sale al momento; lo abre (aquí, a mano).
-    await authPost('/sign-up/email', { name: '', email: ROOT, password: PASSWORD })
+    await authPost('/sign-up/email', {
+      name: '',
+      email: ROOT,
+      password: PASSWORD,
+      birthDate: '1990-01-01',
+    })
     const correos = await salidos()
     expect(correos.map((m) => m.to)).toEqual([ROOT])
     await tdb.client`update users set email_verified = true where email = ${ROOT}`
@@ -106,6 +111,7 @@ describe('registro por aprobación, contra una base real', () => {
       name: '',
       email: 'nueva@example.com',
       password: PASSWORD,
+      birthDate: '1990-01-01',
     })
     expect(res.statusCode).toBe(200)
     expect(await estadoDe('nueva@example.com')).toEqual({ status: 'pending', approved_at: null })
@@ -117,13 +123,19 @@ describe('registro por aprobación, contra una base real', () => {
       name: '',
       email: 'lista@example.com',
       password: PASSWORD,
+      birthDate: '1990-01-01',
       status: 'approved',
     })
     expect((await estadoDe('lista@example.com'))?.status ?? 'pending').toBe('pending')
   })
 
   it('entrar con la contraseña buena estando pendiente: 403 ACCOUNT_PENDING y nada sale', async () => {
-    await authPost('/sign-up/email', { name: '', email: 'espera@example.com', password: PASSWORD })
+    await authPost('/sign-up/email', {
+      name: '',
+      email: 'espera@example.com',
+      password: PASSWORD,
+      birthDate: '1990-01-01',
+    })
     await salidos()
     const res = await authPost('/sign-in/email', {
       email: 'espera@example.com',
@@ -141,7 +153,12 @@ describe('registro por aprobación, contra una base real', () => {
   })
 
   it('send-verification-email y request-password-reset no mandan nada a una pendiente, con la respuesta idéntica', async () => {
-    await authPost('/sign-up/email', { name: '', email: 'cola@example.com', password: PASSWORD })
+    await authPost('/sign-up/email', {
+      name: '',
+      email: 'cola@example.com',
+      password: PASSWORD,
+      birthDate: '1990-01-01',
+    })
     await salidos()
     const reenvio = await authPost('/send-verification-email', { email: 'cola@example.com' })
     const reenvioNadie = await authPost('/send-verification-email', { email: 'nadie@example.com' })
@@ -165,6 +182,7 @@ describe('registro por aprobación, contra una base real', () => {
       name: '',
       email: 'aprobada@example.com',
       password: PASSWORD,
+      birthDate: '1990-01-01',
     })
     await salidos()
     const id = await idDe('aprobada@example.com')
@@ -204,7 +222,12 @@ describe('registro por aprobación, contra una base real', () => {
   })
 
   it('rechazar borra la cuenta sin correo y deja registrarse otra vez', async () => {
-    await authPost('/sign-up/email', { name: '', email: 'rechazo@example.com', password: PASSWORD })
+    await authPost('/sign-up/email', {
+      name: '',
+      email: 'rechazo@example.com',
+      password: PASSWORD,
+      birthDate: '1990-01-01',
+    })
     const id = await idDe('rechazo@example.com')
     const res = await adminPost(`/api/admin/users/${id}/reject`)
     expect(res.statusCode).toBe(200)
@@ -215,7 +238,12 @@ describe('registro por aprobación, contra una base real', () => {
     expect(audit).toEqual([{ detail: { field: 'status', from: 'pending', to: 'rejected' } }])
     expect(await salidos()).toEqual([])
     // La fila desapareció: el mismo correo puede volver a pedir cuenta, y vuelve a esperar.
-    await authPost('/sign-up/email', { name: '', email: 'rechazo@example.com', password: PASSWORD })
+    await authPost('/sign-up/email', {
+      name: '',
+      email: 'rechazo@example.com',
+      password: PASSWORD,
+      birthDate: '1990-01-01',
+    })
     expect((await estadoDe('rechazo@example.com'))?.status).toBe('pending')
     // Rechazar una cuenta que ya no está pendiente: 409.
     const aprobada = await adminPost(`/api/admin/users/${await idDe(ROOT)}/reject`)
@@ -245,5 +273,31 @@ describe('registro por aprobación, contra una base real', () => {
     ])
   })
 
-  it.todo('con el presupuesto de verify_signup gastado, aprobar da 503 y no cambia nada (PR 7)')
+  it('con el presupuesto de verify_signup gastado, aprobar da 503 y no cambia nada (§7.6; PR 7)', async () => {
+    await authPost('/sign-up/email', {
+      name: '',
+      email: 'tarde@example.com',
+      password: PASSWORD,
+      birthDate: '1990-01-01',
+    })
+    const id = await idDe('tarde@example.com')
+    // el día UTC lleva 60 envíos: los de `verify_signup` se acabaron
+    await tdb.client`insert into email_log (kind, recipient_hash, status)
+      select 'verify_signup', 'relleno-' || g, 'sent' from generate_series(1, 60) g`
+    try {
+      const res = await adminPost(`/api/admin/users/${id}/approve`)
+      expect(res.statusCode).toBe(503)
+      expect(res.json()).toEqual({ ok: false, error: 'MAIL_BUDGET_EXHAUSTED' })
+      expect(await estadoDe('tarde@example.com')).toEqual({ status: 'pending', approved_at: null })
+      expect(
+        await tdb.client`select id from admin_audit where target_user_id = ${id}`,
+      ).toHaveLength(0)
+      expect(await salidos()).toEqual([])
+    } finally {
+      await tdb.client`delete from email_log`
+    }
+    // con el día de vuelta, se aprueba
+    expect((await adminPost(`/api/admin/users/${id}/approve`)).statusCode).toBe(200)
+    expect((await salidos()).map((m) => m.to)).toEqual(['tarde@example.com'])
+  })
 })

@@ -145,8 +145,12 @@ const EN_SU_TEST: Readonly<Record<string, string>> = {
   'POST /api/me/reveal/:raceKey/:day': 'routes/me.test.ts',
   'PUT /api/me/follow/:raceKey': 'routes/me.test.ts',
   'PUT /api/me/spoiler-scope': 'routes/me.test.ts',
+  // la fecha se da una vez (409 `already_set` a quien ya la tiene, como el jugador de aquí)
+  'PUT /api/me/birth-date': 'birthDate.test.ts',
   'POST /api/races/:raceId/stages/:day/broadcast/finish': 'routes/broadcast.test.ts',
   'POST /api/races/:raceId/stages/:day/broadcast/seek': 'routes/broadcast.test.ts',
+  // sin cuenta por confirmar en este mundo; su 200 lo pide el test de los enlaces (E4, PR 8)
+  'POST /api/account/verify-email': 'emailLinks.test.ts',
 }
 
 /** Las claves de `a` que no están en `b`, a cualquier profundidad: lo que el serializador quitaría. */

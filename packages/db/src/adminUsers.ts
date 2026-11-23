@@ -1,5 +1,5 @@
 import type { UserStatus } from '@cyclingstar/shared'
-import { and, asc, desc, eq, ilike, inArray, isNull, ne } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { type AdminAuditEntry, forgetAuditEmails, writeAdminAudit } from './adminAudit.js'
 import { addBlocked, removeBlocked } from './blocklist.js'
 import type { Database } from './client.js'
@@ -156,6 +156,11 @@ export interface AdminUserPatch {
   email?: string | undefined
   /** Con un correo nuevo, cerrar todas las sesiones de la cuenta; por defecto, sí (§8.5). */
   signOutEverywhere?: boolean | undefined
+  /**
+   * La fecha de nacimiento rectificada (§4.5), ya validada con `birthDateSchema` por la ruta. Su fila de
+   * `admin_audit` no guarda el valor: `Recent changes` dice `date of birth · changed`.
+   */
+  birthDate?: string | undefined
 }
 
 export type AdminUserPatchResult =
@@ -185,6 +190,7 @@ export async function updateUserAsAdmin(
         emailVerified: users.emailVerified,
         isAdmin: users.isAdmin,
         premium: users.premium,
+        birthDate: users.birthDate,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -193,16 +199,18 @@ export async function updateUserAsAdmin(
 
     const set: {
       email?: string
+      emailUndeliverableAt?: Date | null
       emailVerified?: boolean
       isAdmin?: boolean
       premium?: boolean
+      birthDate?: string
     } = {}
     const filas: AdminAuditEntry[] = []
     const apunta = (
       action: AdminAuditEntry['action'],
       field: string,
-      from: string | boolean,
-      to: string | boolean,
+      from: string | boolean | null,
+      to: string | boolean | null,
     ) => filas.push({ action, targetUserId: userId, detail: { field, from, to } })
 
     const email = patch.email?.trim().toLowerCase()
@@ -218,6 +226,8 @@ export async function updateUserAsAdmin(
         .limit(1)
       if (ocupado.length > 0) return { ok: false, reason: 'correo_ocupado' }
       set.email = email
+      // El correo nuevo no ha rebotado: la marca del buzón que no recibe se va con el viejo (§9.3; 9-d).
+      set.emailUndeliverableAt = null
       apunta('user.email', 'email', antes.email, email)
     }
     const verificado = cambiaCorreo ? true : patch.emailVerified
@@ -233,15 +243,25 @@ export async function updateUserAsAdmin(
       set.premium = patch.premium
       apunta('user.premium', 'premium', antes.premium, patch.premium)
     }
+    // La fecha, sin el valor en la fila: es un dato personal y el registro lo leen todos los administradores.
+    if (patch.birthDate !== undefined && patch.birthDate !== antes.birthDate) {
+      set.birthDate = patch.birthDate
+      apunta('user.birth_date', 'birthDate', null, null)
+    }
     if (filas.length === 0) return { ok: true }
 
     await tx
       .update(users)
       .set({ ...set, updatedAt: new Date() })
       .where(eq(users.id, userId))
-    // `Sign out everywhere` (§5.5): hasta el PR 6 solo cierra las sesiones.
+    // `Sign out everywhere` (§5.5): cierra las sesiones y, desde el PR 6, sube `device_epoch`, así que
+    // ningún navegador sigue contando como aparato conocido de esa cuenta (§7.5).
     if (cambiaCorreo && patch.signOutEverywhere !== false) {
       await tx.delete(sessions).where(eq(sessions.userId, userId))
+      await tx
+        .update(users)
+        .set({ deviceEpoch: sql`${users.deviceEpoch} + 1` })
+        .where(eq(users.id, userId))
     }
     await writeAdminAudit(tx as unknown as Database, opts.actor, filas)
     return { ok: true }

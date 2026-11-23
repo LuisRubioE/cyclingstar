@@ -148,6 +148,8 @@ export interface AdminUserPatch {
   /** El correo nuevo (§5.5); `signOutEverywhere` solo va con él. */
   email?: string
   signOutEverywhere?: boolean
+  /** La fecha de nacimiento rectificada (§4.5), `YYYY-MM-DD`; la regla es la del registro. */
+  birthDate?: string
 }
 
 /** Cambia el nombre de cualquier equipo (8-e), con las reglas de su dueño. */

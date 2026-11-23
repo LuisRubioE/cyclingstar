@@ -17,12 +17,14 @@ import { RenameTeam } from '../components/RenameTeam'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
 import { Chip } from '../components/ui/Chip'
+import { DateField, type DateFieldValue, EMPTY_DATE, toIsoDate } from '../components/ui/DateField'
 import { Field } from '../components/ui/Field'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { QueryView } from '../components/ui/QueryView'
 import { TextLink } from '../components/ui/TextLink'
 import { DELETE_ROOT, DELETE_YOURSELF, adminErrorMessage } from '../domain/adminErrors'
+import { birthDateEntryProblem } from '../domain/entryForms'
 
 /**
  * Panel de administración (cuentas). Sólo entra quien la API reconoce como admin por su SESIÓN:
@@ -41,8 +43,8 @@ import { DELETE_ROOT, DELETE_YOURSELF, adminErrorMessage } from '../domain/admin
  *
  * Con E4 (docs/cuenta.md §8.5; PR 5): abre con la cola de aprobación, `Waiting for approval (<n>)`, de la
  * más vieja a la más nueva; cada cuenta gana `Change email` y, si tiene equipo, `Rename team`; y debajo de la
- * lista, `Recent changes`, las 50 últimas filas del registro del panel. `Change date of birth` llega con el
- * PR 9, con la columna.
+ * lista, `Recent changes`, las 50 últimas filas del registro del panel. Con el PR 9, `Change date of birth`
+ * (`DateField` y `Save`), que no enseña la fecha que había: nadie la enseña (§4.3).
  */
 
 const USERS_KEY = 'admin-users'
@@ -330,7 +332,7 @@ function RecentChanges() {
 }
 
 /** Lo que hace cada botón de una cuenta, para saber cuál está ocupado. */
-type Accion = 'verify' | 'premium' | 'admin' | 'delete' | 'email'
+type Accion = 'verify' | 'premium' | 'admin' | 'delete' | 'email' | 'birthDate'
 
 /**
  * Una cuenta, con sus acciones: un `li` de la lista del `Panel` de las cuentas. Se exporta para su test, con
@@ -342,18 +344,22 @@ export function UserCard({
   isMe,
   initialError = null,
   initialEmail = null,
+  initialBirthDate = false,
 }: {
   readonly user: AdminUser
   readonly isMe: boolean
   readonly initialError?: string | null
   /** `Change email` abierto en estático, para su test: el campo y, si `confirm`, la pregunta */
   readonly initialEmail?: { readonly value: string; readonly confirm: boolean } | null
+  /** `Change date of birth` abierto en estático, para su test */
+  readonly initialBirthDate?: boolean
 }) {
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState<Accion | null>(null)
   const [error, setError] = useState<string | null>(initialError)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [emailOpen, setEmailOpen] = useState(initialEmail !== null)
+  const [birthOpen, setBirthOpen] = useState(initialBirthDate)
 
   async function run(accion: Accion, action: () => Promise<void>): Promise<boolean> {
     // una a la vez: mientras una acción está en marcha, las otras no actúan
@@ -459,6 +465,18 @@ export function UserCard({
             Change email
           </Button>
         )}
+        {!birthOpen && (
+          <Button
+            size="sm"
+            ariaLabel={`Change date of birth for ${user.email}`}
+            onClick={() => {
+              setError(null)
+              setBirthOpen(true)
+            }}
+          >
+            Change date of birth
+          </Button>
+        )}
         {user.team && <RenameTeam teamId={user.team.id} teamName={user.team.name} />}
         <Borrado
           email={user.email}
@@ -484,6 +502,19 @@ export function UserCard({
               updateAdminUser(null, user.id, { email, signOutEverywhere }),
             )
             if (hecho) setEmailOpen(false)
+          }}
+        />
+      )}
+      {birthOpen && (
+        <ChangeBirthDate
+          email={user.email}
+          busy={busy === 'birthDate'}
+          onCancel={() => setBirthOpen(false)}
+          onSave={async (birthDate) => {
+            const hecho = await run('birthDate', () =>
+              updateAdminUser(null, user.id, { birthDate }),
+            )
+            if (hecho) setBirthOpen(false)
           }}
         />
       )}
@@ -576,6 +607,68 @@ function ChangeEmail({
           variant="quiet"
           size="sm"
           ariaLabel={`Cancel changing the email of ${oldEmail}`}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+/**
+ * `Change date of birth` (docs/cuenta.md §4.5 y §8.5): `DateField` y `Save`, sin enseñar la que había. Lo que
+ * falta o no vale lo dice el campo, con la regla del registro; un menor lo rechaza la API (400
+ * `UNDER_MINIMUM_AGE`) y no guarda nada.
+ */
+function ChangeBirthDate({
+  email,
+  busy,
+  onCancel,
+  onSave,
+}: {
+  readonly email: string
+  readonly busy: boolean
+  readonly onCancel: () => void
+  readonly onSave: (birthDate: string) => Promise<void>
+}) {
+  const [value, setValue] = useState<DateFieldValue>(EMPTY_DATE)
+  const [problem, setProblem] = useState<string | null>(null)
+
+  function onSubmit(event: FormEvent) {
+    event.preventDefault()
+    // el menor no es un fallo del campo: lo dice la API, con su texto
+    const p = birthDateEntryProblem(value)
+    if (p !== null && p.kind !== 'underage') return setProblem(p.msg)
+    void onSave(toIsoDate(value) ?? '')
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="mt-3 grid max-w-form gap-2">
+      <DateField
+        id={`birth-date-${email}`}
+        label="Date of birth"
+        value={value}
+        onChange={(v) => {
+          setValue(v)
+          setProblem(null)
+        }}
+        {...(problem !== null ? { error: problem } : {})}
+      />
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="primary"
+          size="sm"
+          type="submit"
+          busy={busy}
+          ariaLabel={`Save the date of birth of ${email}`}
+        >
+          Save
+        </Button>
+        <Button
+          variant="quiet"
+          size="sm"
+          ariaLabel={`Cancel changing the date of birth of ${email}`}
           onClick={onCancel}
         >
           Cancel

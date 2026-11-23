@@ -1,65 +1,51 @@
-import { describe, expect, it } from 'vitest'
-import { authErrorMessage, readResetLink, readVerificationLink } from './authLinks'
+import { describe, expect, it, vi } from 'vitest'
+import { forgetLinkToken, readEmailLink } from './authLinks'
 
-describe('readResetLink', () => {
-  it('saca el token del enlace bueno', () => {
-    expect(readResetLink('?token=abc123')).toEqual({ kind: 'token', token: 'abc123' })
+/** Lo que trae un enlace de correo al llegar a su página de botón (docs/cuenta.md §5.2; PR 8). */
+describe('readEmailLink', () => {
+  it('el token va en el fragmento, que el navegador no manda al servidor', () => {
+    expect(readEmailLink('#token=eyJ.abc.def', '')).toEqual({ kind: 'token', token: 'eyJ.abc.def' })
   })
 
-  /* El caso MÁS probable de todos: los enlaces de better-auth caducan en una hora. */
-  it('traduce el enlace caducado a qué hacer ahora', () => {
-    const out = readResetLink('?error=TOKEN_EXPIRED')
-    expect(out.kind).toBe('error')
-    expect(out).toMatchObject({ message: expect.stringContaining('expired') })
+  /* La gracia de los enlaces viejos (LEGACY_LINK_GRACE_DAYS, hasta el PR 19). */
+  it('el enlace viejo, con ?token=, sigue valiendo', () => {
+    expect(readEmailLink('', '?token=abc123')).toEqual({ kind: 'token', token: 'abc123' })
   })
 
-  it('el error manda aunque venga también un token', () => {
-    expect(readResetLink('?error=INVALID_TOKEN&token=abc').kind).toBe('error')
-  })
-
-  /* Sin token no hay formulario posible: pedir una contraseña nueva ahí sería mentir al usuario. */
-  it('sin token ni error no enseña formulario', () => {
-    expect(readResetLink('')).toEqual({
+  it('el enlace viejo que ya no valía trae su código, y el error manda sobre el token de la consulta', () => {
+    expect(readEmailLink('', '?error=TOKEN_EXPIRED')).toEqual({
       kind: 'error',
-      message: 'Open this page from the link in your email.',
+      code: 'TOKEN_EXPIRED',
     })
+    expect(readEmailLink('', '?error=INVALID_TOKEN&token=abc')).toEqual({
+      kind: 'error',
+      code: 'INVALID_TOKEN',
+    })
+  })
+
+  it('el fragmento manda sobre la consulta', () => {
+    expect(readEmailLink('#token=nuevo', '?error=INVALID_TOKEN')).toEqual({
+      kind: 'token',
+      token: 'nuevo',
+    })
+  })
+
+  it('sin nada, no trae nada', () => {
+    expect(readEmailLink('', '')).toEqual({ kind: 'none' })
+    expect(readEmailLink('#token=', '')).toEqual({ kind: 'none' })
   })
 })
 
-describe('readVerificationLink', () => {
-  /* Aquí lo normal es llegar SIN parámetros: el servidor redirige limpio cuando todo fue bien. */
-  it('sin parámetros es que ha ido bien', () => {
-    expect(readVerificationLink('')).toEqual({ kind: 'ok' })
-  })
-
-  it('con error, lo cuenta', () => {
-    expect(readVerificationLink('?error=EMAIL_ALREADY_VERIFIED')).toMatchObject({ kind: 'error' })
-  })
-
-  /* El primer paso de un cambio de correo NO es «confirmado»: falta el enlace de la nueva. */
-  it('el cambio aprobado en la vieja se distingue del cambio hecho', () => {
-    expect(readVerificationLink('?step=approved')).toEqual({ kind: 'approved' })
-  })
-
-  it('si el enlace de aprobación ya no valía, gana el error', () => {
-    expect(readVerificationLink('?step=approved&error=TOKEN_EXPIRED')).toMatchObject({
-      kind: 'error',
-    })
-  })
-})
-
-describe('authErrorMessage', () => {
-  it('un código desconocido no deja al usuario sin instrucciones', () => {
-    expect(authErrorMessage('ALGO_NUEVO')).toContain('Ask for a new one')
-  })
-
-  it('el enlace caducado y el ya usado, con el texto de authErrorText (docs/cuenta.md §12.3)', () => {
-    for (const code of ['TOKEN_EXPIRED', 'INVALID_TOKEN'])
-      expect(authErrorMessage(code)).toBe('This link has expired or has already been used.')
-  })
-
-  it('cada código conocido dice algo distinto', () => {
-    const codes = ['INVALID_TOKEN', 'USER_NOT_FOUND', 'EMAIL_ALREADY_VERIFIED', 'INVALID_USER']
-    expect(new Set(codes.map(authErrorMessage)).size).toBe(codes.length)
+describe('forgetLinkToken', () => {
+  it('borra el token de la barra con replaceState, y solo si lo lleva', () => {
+    const replaceState = vi.fn()
+    const h = { replaceState } as unknown as History
+    forgetLinkToken({ pathname: '/verify-email', search: '', hash: '#token=abc' }, h)
+    expect(replaceState).toHaveBeenCalledWith(null, '', '/verify-email')
+    forgetLinkToken({ pathname: '/reset-password', search: '?token=abc', hash: '' }, h)
+    expect(replaceState).toHaveBeenLastCalledWith(null, '', '/reset-password')
+    replaceState.mockClear()
+    forgetLinkToken({ pathname: '/verify-email', search: '?error=INVALID_TOKEN', hash: '' }, h)
+    expect(replaceState).not.toHaveBeenCalled()
   })
 })

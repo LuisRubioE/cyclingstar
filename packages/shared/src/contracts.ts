@@ -69,6 +69,23 @@ export const teamKitSchema = kitCodeSchema
 export const okResponseSchema = z.object({ ok: z.boolean() })
 export type OkResponse = z.infer<typeof okResponseSchema>
 
+/**
+ * `GET /api/me/account` (docs/cuenta.md §4.5; 4-f): nace en el PR 9 de E4 con `birthDateSet`, que la web lee
+ * en lugar de la sesión porque la fecha ya no viaja en ella (`returned: false`). El PR 11 le añade el resto.
+ */
+export const meAccountResponseSchema = z.object({ ok: z.literal(true), birthDateSet: z.boolean() })
+export type MeAccountResponse = z.infer<typeof meAccountResponseSchema>
+
+/** `PUT /api/me/birth-date` (§4.5): la fecha en `YYYY-MM-DD`; la regla es `birthDateSchema`. */
+export const birthDateBodySchema = z.object({ birthDate: z.string().max(10) }).strict()
+
+/**
+ * El 200 de `POST /api/account/verify-email` (docs/cuenta.md §5.2): el `status` de better-auth. Si abrió
+ * sesión lo dice su `Set-Cookie`, y la web pregunta por ella antes de hablar.
+ */
+export const verifyEmailResponseSchema = z.object({ status: z.boolean() })
+export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>
+
 /** Respuesta de un guardado en bloque: cuántos elementos aceptó el servidor. */
 export const savedResponseSchema = z.object({ ok: z.boolean(), saved: z.number().int() })
 export type SavedResponse = z.infer<typeof savedResponseSchema>
@@ -2106,6 +2123,9 @@ export const adminUserPatchSchema = z
     premium: z.boolean().optional(),
     email: z.string().trim().email().max(200).optional(),
     signOutEverywhere: z.boolean().optional(),
+    // la rectificación de la fecha (docs/cuenta.md §4.5 y §8.5): la regla la aplica la ruta, con
+    // `birthDateSchema`, para responder su código (`UNDER_MINIMUM_AGE`)
+    birthDate: z.string().max(10).optional(),
   })
   .strict()
   .refine(
@@ -2113,7 +2133,8 @@ export const adminUserPatchSchema = z
       p.emailVerified !== undefined ||
       p.isAdmin !== undefined ||
       p.premium !== undefined ||
-      p.email !== undefined,
+      p.email !== undefined ||
+      p.birthDate !== undefined,
   )
   .refine((p) => p.signOutEverywhere === undefined || p.email !== undefined)
 export type AdminUserPatchBody = z.infer<typeof adminUserPatchSchema>

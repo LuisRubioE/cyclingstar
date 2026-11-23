@@ -1,6 +1,8 @@
 import {
   type Database,
   accounts,
+  bumpDeviceEpoch,
+  clearAttempts,
   deleteUserVerifications,
   forgetAuditEmails,
   releaseUserToWorld,
@@ -12,8 +14,17 @@ import {
 import { betterAuth } from 'better-auth'
 import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S, type UserStatus } from '@cyclingstar/shared'
+import {
+  EMAIL_JWT_TTL_S,
+  RESET_TOKEN_TTL_S,
+  SESSION_EXPIRES_S,
+  SESSION_UPDATE_AGE_S,
+  TERMS_VERSION,
+  type UserStatus,
+  birthDateSchema,
+} from '@cyclingstar/shared'
 import { resetPasswordEmail, verifyEmailEmail } from './emails.js'
+import { limitKeys } from './limitKeys.js'
 import type { Mailer } from './mailer.js'
 import { type MailQueue, mailQueue as colaDelProceso } from './mailQueue.js'
 import { AUTH_ALLOWED_PATHS } from './security.js'
@@ -22,19 +33,19 @@ import { AUTH_ALLOWED_PATHS } from './security.js'
  * Las recuperaciones de contraseña que acaban de terminar bien, por petición: `onPasswordReset`
  * apunta el correo de la cuenta en la misma `Request` que el proxy pasó a `auth.handler`
  * (better-auth la reenvía como `ctx.request`), y el proxy lo lee al ver el 200 (docs/cuenta.md
- * §5.4). Hoy solo se apunta; la cookie de aparato que se emite con él llega con el PR 6.
+ * §5.4) y emite a ese navegador su `cs_device` (§7.5).
  */
 export const resetRequests = new WeakMap<Request, string>()
 
 /**
- * A DÓNDE LLEVAN LOS ENLACES DE VERIFICACIÓN, DECIDIDO AQUÍ Y NO EN EL NAVEGADOR.
- *
- * better-auth construye el enlace con el `callbackURL` que mande el cliente (o `/` si no manda
- * ninguno, como pasa en el reenvío al intentar entrar y al aprobar una cuenta desde el panel). El
- * servidor fija el destino: la verificación vuelve SIEMPRE a `/verify-email`. El cambio de correo de
- * autoservicio, que tenía un segundo destino, se fue con el PR 5 (docs/cuenta.md §5.5).
+ * La ruta de better-auth que confirma un correo (`GET /api/auth/verify-email?token=`). Desde el PR 8 de
+ * E4 solo la llaman los enlaces viejos y `POST /api/account/verify-email`, dentro del proceso (§5.2).
  */
 export const VERIFY_EMAIL_PATH = '/verify-email'
+
+/** Las dos páginas de botón de la web, a las que llevan los correos (docs/cuenta.md §5.2). */
+export const VERIFY_EMAIL_PAGE = '/verify-email'
+export const RESET_PASSWORD_PAGE = '/reset-password'
 
 /**
  * LO QUE `better-auth` NO SIRVE NUNCA (docs/cuenta.md §8.1; D-29, X-14, 8-l). `disabledPaths` es el
@@ -62,15 +73,25 @@ export function disabledAuthPaths(
  */
 export const CLOSED_AUTH_TEMPLATES: ReadonlySet<string> = new Set(['/callback/:id'])
 
-/** Sustituye el `callbackURL` de un enlace de better-auth; si el enlace no se entiende, lo deja. */
-export function withCallbackURL(url: string, callbackURL: string): string {
-  try {
-    const u = new URL(url)
-    u.searchParams.set('callbackURL', callbackURL)
-    return u.toString()
-  } catch {
-    return url
-  }
+/**
+ * EL ENLACE DE UN CORREO, HACIA LA PÁGINA DE BOTÓN (docs/cuenta.md §5.2; D-12, I-04). Lo construye el
+ * servidor con `APP_URL` y el token que better-auth le pasa, y no con su `url`, que apuntaba a la API con
+ * el token en la consulta: aquí va en el fragmento (`#token=`), que el navegador no manda al servidor, así
+ * que no queda en ningún registro HTTP. Hace el papel del `withCallbackURL` de antes (el servidor decide a
+ * dónde lleva cada enlace), ahora hacia `#token=`.
+ */
+export function emailLink(appUrl: string, page: string, token: string): string {
+  return `${appUrl.replace(/\/+$/, '')}${page}#token=${encodeURIComponent(token)}`
+}
+
+/**
+ * EL IDIOMA DE UNA CUENTA NUEVA (docs/cuenta.md §4.7; D-07): la etiqueta primaria de `Accept-Language` en dos
+ * letras minúsculas (`es-ES,es;q=0.9` da `es`), o `'en'` si no hay. Traducir es de E10; esto solo lo apunta.
+ */
+export function localeFrom(acceptLanguage: string | null | undefined): string {
+  const primera = (acceptLanguage ?? '').split(',')[0]?.split(';')[0]?.trim() ?? ''
+  const etiqueta = primera.split('-')[0]?.toLowerCase() ?? ''
+  return /^[a-z]{2}$/.test(etiqueta) ? etiqueta : 'en'
 }
 
 /**
@@ -150,6 +171,7 @@ export function createAuth(
   // Se llena al acabar de construir, con `auth.api` delante (ver `disabledAuthPaths`). better-auth
   // la lee en cada petición de la misma referencia que recibe.
   const disabledPaths: string[] = []
+  const claves = limitKeys(opts.secret)
   const auth = betterAuth({
     secret: opts.secret,
     baseURL: opts.baseURL,
@@ -174,35 +196,54 @@ export function createAuth(
       // Recuperar la contraseña. Sin esta función, better-auth registra «Reset password
       // isn't enabled» y devuelve un error: la pantalla de «he olvidado mi contraseña» no existía
       // porque no había a dónde mandar el enlace.
-      sendResetPassword: async ({ user, url }) => {
+      // El correo lleva a `/reset-password#token=` (§5.2), no al `url` de better-auth.
+      sendResetPassword: async ({ user, token }) => {
         if (!(await aprobada(user.id))) return
-        await mailer.send({ to: user.email, ...resetPasswordEmail(url) })
+        await mailer.send({
+          to: user.email,
+          kind: 'reset_password',
+          userId: user.id,
+          ...resetPasswordEmail(emailLink(opts.baseURL, RESET_PASSWORD_PAGE, token)),
+        })
       },
+      // Una hora (§5.1; D-11).
+      resetPasswordTokenExpiresIn: RESET_TOKEN_TTL_S,
       // Quien recupera la contraseña cierra TODAS las sesiones: si alguien se había colado, sale
       // (docs/cuenta.md §5.4; X-21). Y luego `onPasswordReset`: los otros enlaces de recuperación
       // que sigan vivos en el buzón dejan de valer, y la petición queda apuntada para el proxy.
       revokeSessionsOnPasswordReset: true,
       onPasswordReset: async ({ user }, request) => {
         await deleteUserVerifications(db, user.id)
+        // L1 a cero y el techo de L3 por cuenta también (§7.4): quien recupera sale del cierre aunque el
+        // atacante lo siga gastando, porque además recibe su `cs_device` (la emite el proxy al ver el
+        // 200). Y `device_epoch` sube: todas las `cs_device` de esta cuenta dejan de valer (§7.5).
+        await clearAttempts(db, [claves.acct(user.email), claves.pwu(user.id)])
+        await bumpDeviceEpoch(db, user.id)
         if (request) resetRequests.set(request, user.email)
       },
     },
     emailVerification: {
       // Una cuenta pendiente no recibe nada: el `verify_signup` sale cuando un administrador la
       // aprueba (`POST /api/admin/users/:id/approve`), que vuelve a pasar por aquí.
-      sendVerificationEmail: async ({ user, url }) => {
+      // El correo lleva a `/verify-email#token=` (§5.2): abrirlo no confirma nada; el botón de esa página
+      // manda el token en el cuerpo de `POST /api/account/verify-email` (5-h).
+      sendVerificationEmail: async ({ user, token }) => {
         if (!(await aprobada(user.id))) return
         await mailer.send({
           to: user.email,
-          ...verifyEmailEmail(withCallbackURL(url, VERIFY_EMAIL_PATH)),
+          kind: 'verify_signup',
+          userId: user.id,
+          ...verifyEmailEmail(emailLink(opts.baseURL, VERIFY_EMAIL_PAGE, token)),
         })
       },
+      // 24 horas: el correo del registro se lee al día siguiente (§5.1; D-11).
+      expiresIn: EMAIL_JWT_TTL_S,
       sendOnSignUp: true,
       // Quien intenta entrar sin haber confirmado recibe un enlace nuevo en ese momento. better-auth
       // lo hace DESPUÉS de comprobar la contraseña, así que no sirve para saber qué correos existen
       // ni para llenarle el buzón a otro.
       sendOnSignIn: true,
-      // Abrir el enlace deja la sesión abierta: es el final natural del registro.
+      // Confirmar deja la sesión abierta en ese navegador: es el final natural del registro.
       autoSignInAfterVerification: true,
     },
     user: {
@@ -213,6 +254,27 @@ export function createAuth(
       additionalFields: {
         status: { type: 'string', input: false, returned: false, defaultValue: 'pending' },
         approvedAt: { type: 'date', input: false, returned: false, required: false },
+        // El buzón que no recibe (§9.3): `Account` abre con su `Notice` mientras esté puesta. Solo la
+        // escriben el webhook de Resend y el cambio de correo del administrador.
+        emailUndeliverableAt: { type: 'date', input: false, returned: true, required: false },
+        // LA FECHA DE NACIMIENTO (docs/cuenta.md §4.2; D-06, 4-f): obligatoria en el registro y validada con
+        // `birthDateSchema` en `parseUserInput`, ANTES de buscar el correo, así que el menor recibe el mismo
+        // 400 exista o no la cuenta (X-09). No viaja en `get-session` ni en el 200 del registro
+        // (`returned: false`); la web pregunta `GET /api/me/account`. OJO: con `input: true`, `update-user`
+        // la podría reescribir; lo impide que esa ruta dé 404 (§8.1, `authRoutes.test.ts`). No la abras sin
+        // cerrar antes este campo.
+        birthDate: {
+          type: 'string',
+          required: true,
+          input: true,
+          returned: false,
+          validator: { input: birthDateSchema },
+        },
+        // Los escribe solo `databaseHooks.user.create.before` (§4.6 y §4.7); declarados para que el
+        // adaptador los guarde, y con `input: false` para que nadie los mande.
+        locale: { type: 'string', input: false, returned: false, required: false },
+        termsVersion: { type: 'string', input: false, returned: false, required: false },
+        termsAcceptedAt: { type: 'date', input: false, returned: false, required: false },
       },
       // Borrar la cuenta desde ajustes. El corredor y el equipo NO se borran: pasan a NPC antes de
       // que el usuario desaparezca (ver `releaseUserToWorld`), porque son las dos referencias a
@@ -244,14 +306,24 @@ export function createAuth(
     rateLimit: { enabled: false },
     // Solo avisos y errores (D-30): lo de nivel `info` de better-auth puede llevar datos de la cuenta.
     logger: { level: 'warn' },
-    // El correo de `ADMIN_EMAIL` entra aprobado y su enlace sale al registrarse (§4.9), como
+    // La cuenta nueva (docs/cuenta.md §4.6 y §4.7): el nombre fijo `'Player'` (nadie lo lee; la web manda
+    // `''`), el idioma de `Accept-Language` y la versión de las condiciones aceptadas, con su hora. Y el
+    // correo de `ADMIN_EMAIL` entra aprobado y su enlace sale al registrarse (§4.9), como
     // `twilightstruggle` aprueba a la llegada a quien está en `AI_ADMINS`.
     databaseHooks: {
       user: {
         create: {
-          before: async (user) => {
-            if (adminEmail === undefined || user.email.toLowerCase() !== adminEmail) return
-            return { data: { ...user, status: 'approved', approvedAt: new Date() } }
+          before: async (user, context) => {
+            const cabeceras = context?.request?.headers ?? context?.headers
+            const data = {
+              ...user,
+              name: 'Player',
+              locale: localeFrom(cabeceras?.get('accept-language')),
+              termsVersion: TERMS_VERSION,
+              termsAcceptedAt: new Date(),
+            }
+            if (adminEmail === undefined || user.email.toLowerCase() !== adminEmail) return { data }
+            return { data: { ...data, status: 'approved', approvedAt: new Date() } }
           },
         },
       },
@@ -266,6 +338,17 @@ export function createAuth(
       before: createAuthMiddleware(async (ctx) => {
         // El segundo cerrojo de las rutas con parámetros (8-g): `disabledPaths` no las alcanza.
         if (CLOSED_AUTH_TEMPLATES.has(ctx.path)) throw new APIError('NOT_FOUND')
+        // La foto no se guarda (§4.7): el registro que la trae da 400; `update-user`, la otra puerta, da 404.
+        if (ctx.path === '/sign-up/email') {
+          const cuerpo: unknown = ctx.body
+          if (typeof cuerpo === 'object' && cuerpo !== null && 'image' in cuerpo) {
+            throw new APIError('BAD_REQUEST', {
+              code: 'FIELD_NOT_ALLOWED',
+              message: 'image is not allowed to be set',
+            })
+          }
+          return
+        }
         if (ctx.path !== '/delete-user') return
         const body: unknown = ctx.body
         const password =

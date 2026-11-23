@@ -8,7 +8,9 @@ import fastifyStatic from '@fastify/static'
 import {
   type Database,
   ProgressMemory,
+  applyEmailEvent,
   type TickSummary,
+  hasBirthDate,
   isUserAdmin,
   userStatusOf,
 } from '@cyclingstar/db'
@@ -23,8 +25,11 @@ import Fastify, {
 import { validatorCompiler } from 'fastify-type-provider-zod'
 import type { Auth } from './auth.js'
 import type { GeoIpLookup } from './geoIp.js'
+import { registerBirthDateGate } from './birthDateGate.js'
 import { apiError } from './http.js'
 import { adminRoutes, verificationSender } from './routes/admin.js'
+import { clientIp, ipBucket } from './clientIp.js'
+import { accountVerifyRoutes } from './routes/accountVerify.js'
 import { authProxyRoutes } from './routes/authProxy.js'
 import { broadcastRoutes } from './routes/broadcast.js'
 import { calendarRoutes } from './routes/calendar.js'
@@ -32,11 +37,13 @@ import { type RouteContext, createCurrentUserId } from './routes/context.js'
 import { geoRoutes } from './routes/geo.js'
 import { healthRoutes } from './routes/health.js'
 import { meRoutes } from './routes/me.js'
+import { meAccountRoutes } from './routes/meAccount.js'
 import { raceRoutes } from './routes/races.js'
 import { rankingRoutes } from './routes/rankings.js'
 import { riderRoutes } from './routes/riders.js'
 import { teamRoutes } from './routes/teams.js'
 import { worldRoutes } from './routes/world.js'
+import { resendWebhookRoutes } from './routes/resendWebhook.js'
 import { GLOBAL_RATE_LIMIT, createAdminGuard } from './security.js'
 import {
   type ViteManifest,
@@ -104,6 +111,15 @@ export interface AppDeps {
   webManifest?: ViteManifest
   /** La carpeta de la web compilada. Lo pasan los tests; sin él, `apps/web/dist`. */
   webRoot?: string
+  /** `MAIL_DAILY_BUDGET` (docs/cuenta.md §7.6): los 503 de presupuesto. Sin él, 90. */
+  mailDailyBudget?: number
+  /** `RESEND_WEBHOOK_SECRET` (§9.2): sin él, `POST /api/webhooks/resend` no se monta y da 404. */
+  resendWebhookSecret?: string
+  /**
+   * Si una cuenta tiene fecha de nacimiento, para la puerta de la fecha (docs/cuenta.md §4.5); por defecto,
+   * de la base. Los tests con una base fingida lo fingen.
+   */
+  hasBirthDate?: (userId: string) => Promise<boolean | null>
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -165,7 +181,10 @@ type RateLimitError = Error & { statusCode: number; retryAfterS: number }
 
 export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // trustProxy: detrás del proxy de Railway (TLS terminado), para resolver bien
-  // protocolo (https), host e IP de cliente a partir de las cabeceras X-Forwarded-*.
+  // protocolo (https), host e IP de cliente a partir de las cabeceras X-Forwarded-*. Se queda en
+  // `true` (docs/cuenta.md §7.1): el borde de Railway reescribe `X-Forwarded-For` con una sola IP (PR
+  // #348). `trustProxy: 1` está prohibido: desde Fastify 5.12.1 da siempre la del socket, que es
+  // Railway. Los límites no leen `request.ip` a pelo, sino `clientIp`, que la valida.
   const app = Fastify({ logger: deps.logger ?? false, trustProxy: true })
 
   // Zod como validador/serializador en los bordes: las rutas validan su entrada con esquemas Zod, y desde
@@ -216,7 +235,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   void app.register(fastifyRateLimit, {
     global: true,
     ...GLOBAL_RATE_LIMIT,
-    // trustProxy ya está activo: la clave es la IP real del cliente, no la del proxy de Railway.
+    // trustProxy ya está activo: la clave es la IP real del cliente, no la del proxy de Railway, y
+    // validada (`clientIp`); una IPv6 cuenta por su /64 (docs/cuenta.md §7.1; 7-i).
+    keyGenerator: (request) => ipBucket(clientIp(request)),
     // El plugin LANZA lo que devuelva este constructor, así que hay que devolver un Error con
     // statusCode; el manejador de errores lo traduce al formato uniforme `{ ok, error }`. Desde E4
     // lleva además cuánto esperar, en segundos (`retryAfterS`, lo mismo que la cabecera `retry-after`),
@@ -291,6 +312,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       : null,
   )
 
+  // La puerta de la fecha (docs/cuenta.md §4.5; 4-g): un gancho de la app, global, que alcanza a todas
+  // las rutas; usa `request.viewer()` del sin destripe, así que va detrás de él.
+  if (db && currentUserId)
+    registerBirthDateGate(app, deps.hasBirthDate ?? ((userId) => hasBirthDate(db, userId)))
+
   void app.register(healthRoutes, {
     ...(deps.db ? { db: deps.db } : {}),
     ...(deps.migrationsApplied !== undefined ? { migrationsApplied: deps.migrationsApplied } : {}),
@@ -312,6 +338,18 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       ...(deps.onAdminTick ? { onAdminTick: deps.onAdminTick } : {}),
       ...(deps.onAdminAdvance ? { onAdminAdvance: deps.onAdminAdvance } : {}),
       ...(deps.auth ? { sendVerification: verificationSender(deps.auth) } : {}),
+      ...(deps.mailDailyBudget !== undefined ? { mailDailyBudget: deps.mailDailyBudget } : {}),
+    })
+  }
+
+  // El webhook de Resend (docs/cuenta.md §9.2), en su propio contexto con el cuerpo crudo (9-f).
+  if (deps.db && deps.resendWebhookSecret) {
+    const webhookDb = deps.db
+    void app.register(resendWebhookRoutes, {
+      secret: deps.resendWebhookSecret,
+      onEvent: async (resendId, status) => {
+        await applyEmailEvent(webhookDb, resendId, status, new Date())
+      },
     })
   }
 
@@ -320,9 +358,13 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     const statusDb = deps.db
     void app.register(authProxyRoutes, {
       auth: deps.auth,
+      ...(statusDb ? { db: statusDb } : {}),
       ...(statusDb ? { statusByEmail: (email: string) => userStatusOf(statusDb, { email }) } : {}),
       ...(deps.secureCookies !== undefined ? { secureCookies: deps.secureCookies } : {}),
+      ...(deps.mailDailyBudget !== undefined ? { mailDailyBudget: deps.mailDailyBudget } : {}),
     })
+    // El botón de `VerifyEmail`: el token en el cuerpo, no en la URL (docs/cuenta.md §5.2; 5-h).
+    void app.register(accountVerifyRoutes, { auth: deps.auth })
   }
 
   // Rutas de juego: requieren sesión (better-auth) y base de datos.
@@ -351,6 +393,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     void app.register(broadcastRoutes, ctx)
     // Lo visto (E2, §14.2; paso 7a): el progreso, revelar, seguir, el alcance y el horizonte de cada uno.
     void app.register(meRoutes, ctx)
+    // La cuenta: `birthDateSet` y dar la fecha (docs/cuenta.md §4.5; PR 9 de E4).
+    void app.register(meAccountRoutes, ctx)
     void app.register(calendarRoutes, ctx)
     void app.register(rankingRoutes, ctx)
     if (deps.onAdminAdvance) {

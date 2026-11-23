@@ -168,6 +168,7 @@ describe('las rutas de /api/me (§14.2)', () => {
         email: `${name}@example.com`,
         name: name!,
         emailVerified: true,
+        birthDate: '1990-01-01',
       })),
     )
     await t.db.insert(users).values({
@@ -175,6 +176,7 @@ describe('las rutas de /api/me (§14.2)', () => {
       email: 'admin@example.com',
       name: 'Admin',
       emailVerified: true,
+      birthDate: '1990-01-01',
       isAdmin: true,
     })
     await t.db.insert(teams).values(

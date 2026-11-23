@@ -193,9 +193,28 @@ describe('las rutas de la retransmisión (§14.2)', () => {
     worldId = world!.id
     clearHorizonCaches()
     await t.db.insert(users).values([
-      { id: PLAYER, email: 'jugador@example.com', name: 'Jugador', emailVerified: true },
-      { id: PLAYER_2, email: 'otra@example.com', name: 'Otra', emailVerified: true },
-      { id: ADMIN, email: 'admin@example.com', name: 'Admin', emailVerified: true, isAdmin: true },
+      {
+        id: PLAYER,
+        email: 'jugador@example.com',
+        name: 'Jugador',
+        emailVerified: true,
+        birthDate: '1990-01-01',
+      },
+      {
+        id: PLAYER_2,
+        email: 'otra@example.com',
+        name: 'Otra',
+        emailVerified: true,
+        birthDate: '1990-01-01',
+      },
+      {
+        id: ADMIN,
+        email: 'admin@example.com',
+        name: 'Admin',
+        emailVerified: true,
+        birthDate: '1990-01-01',
+        isAdmin: true,
+      },
     ])
     await t.db.insert(teams).values(
       TEAM_IDS.map((id, k) => ({
@@ -1001,6 +1020,7 @@ describe('las rutas de la retransmisión (§14.2)', () => {
           email: `b18-${k}@example.com`,
           name: `B18 ${k}`,
           emailVerified: true,
+          birthDate: '1990-01-01',
         })),
       )
       for (const [user, how] of [
@@ -1215,6 +1235,7 @@ describe('las rutas de la retransmisión (§14.2)', () => {
           email: `seek-${k}@example.com`,
           name: `Seek ${k}`,
           emailVerified: true,
+          birthDate: '1990-01-01',
         })),
       )
       for (const [user, how] of [

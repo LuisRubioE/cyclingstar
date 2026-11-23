@@ -241,7 +241,12 @@ export async function startSpoilerWorld(baseSeed: string): Promise<SpoilerWorld>
     })
   /** Una cuenta con su sesión de verdad: alta, correo verificado y entrada. */
   const signUp = async (email: string): Promise<{ userId: string; cookie: string }> => {
-    await post('/sign-up/email', { name: 'Player', email, password: 'contrasena-larga' })
+    await post('/sign-up/email', {
+      name: 'Player',
+      email,
+      password: 'contrasena-larga',
+      birthDate: '1990-01-01',
+    })
     await t.client`update users set email_verified = true where email = ${email}`
     const [row] = await t.client<{ id: string }[]>`select id from users where email = ${email}`
     const login = await post('/sign-in/email', { email, password: 'contrasena-larga' })

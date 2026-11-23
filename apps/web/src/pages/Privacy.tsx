@@ -19,6 +19,9 @@ function Puntos({ children }: { children: ReactNode }) {
  * siguiente añade la suya. Se retira `Ask and your account and rider data will be removed.`, que
  * prometía un canal que no existe (§11.2; D-00b), y no hay copias de seguridad (plan Hobby), así que
  * la frase de las copias es `Backups are not kept.`
+ *
+ * El PR 9 añade la fecha de nacimiento y las condiciones (`users.birth_date`, `terms_version`) y la lengua del
+ * navegador al registrarse (`users.locale`); la zona horaria de esa frase llega con los avisos (PR 14).
  */
 export function Privacy() {
   return (
@@ -33,6 +36,11 @@ export function Privacy() {
           <li>
             Your email address, and your password stored as a one-way hash (we can&apos;t read it).
           </li>
+          <li>
+            Your date of birth, only to check you&apos;re 16 or over, and the version of the terms
+            you accepted. Nobody else sees them.
+          </li>
+          <li>The language your browser asked for when you signed up.</li>
           <li>
             Your rider, your team and everything you do in the game: training, plans, the races you
             follow and how far you&apos;ve watched them, and your settings.

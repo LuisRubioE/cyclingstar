@@ -7,9 +7,11 @@
 export interface Arrival {
   readonly title: string
   readonly body: string
+  /** `good` salvo que se diga; L3 cerró la sesión es `warn` (§12.4) */
+  readonly tone?: 'good' | 'warn'
 }
 
-export type ArrivalKey = 'password-saved' | 'account-deleted'
+export type ArrivalKey = 'password-saved' | 'account-deleted' | 'signed-out-passwords'
 
 export const ARRIVALS: Readonly<Record<ArrivalKey, Arrival>> = {
   'password-saved': {
@@ -17,6 +19,12 @@ export const ARRIVALS: Readonly<Record<ArrivalKey, Arrival>> = {
     body: 'Log in with your new password. You have been signed out everywhere else.',
   },
   'account-deleted': { title: 'Your account is deleted', body: 'Thanks for playing.' },
+  // L3 cerró esta sesión al décimo intento malo del día (docs/cuenta.md §7.4 y §12.4)
+  'signed-out-passwords': {
+    title: 'Signed out',
+    body: 'You were signed out after too many wrong passwords.',
+    tone: 'warn',
+  },
 }
 
 /** La clave de `sessionStorage` del final que cruza una recarga. */

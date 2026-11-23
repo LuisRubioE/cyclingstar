@@ -9,6 +9,7 @@ import {
   respuestas,
   titulo,
 } from './__fixtures__/markup'
+import { ARRIVALS, arrivalOf } from '../domain/arrivals'
 import { Login } from './Login'
 
 /**
@@ -134,6 +135,14 @@ describe('Login en E4 (docs/cuenta.md §12.3 y §12.4; PR 1)', () => {
       'Log in with your new password. You have been signed out everywhere else.',
     )
     expect(pinta()).not.toContain('Password saved')
+  })
+
+  it('llegando de L3 (el décimo intento malo del día cerró la sesión): un Notice warn con su frase', () => {
+    const html = pinta({ arrival: ARRIVALS['signed-out-passwords'] })
+    const aviso = pieza(html, 'Notice', 'Signed out')
+    expect(aviso).toMatch(/data-variant="warn"[^>]*role="status"/)
+    expect(aviso).toContain('You were signed out after too many wrong passwords.')
+    expect(arrivalOf({ arrival: 'signed-out-passwords' })).toBe(ARRIVALS['signed-out-passwords'])
   })
 
   it('la contraseña, con Show (reveal)', () => {

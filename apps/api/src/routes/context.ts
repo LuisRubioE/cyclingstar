@@ -50,6 +50,8 @@ export interface AdminRouteContext {
    * sesión, encuentra la cuenta sin confirmar y lo manda. Sin better-auth, aprobar no manda nada.
    */
   sendVerification?: (email: string) => Promise<void>
+  /** `MAIL_DAILY_BUDGET` (§7.6): aprobar con el día gastado da 503 y no cambia nada. Por defecto, 90. */
+  mailDailyBudget?: number
 }
 
 /** Un plugin de rutas de dominio. */

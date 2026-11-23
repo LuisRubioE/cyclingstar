@@ -1094,3 +1094,129 @@ describe('db: la 0055 deja aprobadas las cuentas de antes', () => {
     expect(audit!.n).toBe(0)
   }, 120_000)
 })
+
+/**
+ * LA 0056 (docs/cuenta.md §15.2 y §19.1): las columnas de E4 en `users` (15-b), `auth_limits` y los dos
+ * `UPDATE` que no se pueden deshacer, la IP de las sesiones vaciada y el nombre de hoy, `'Player'`.
+ */
+describe('db: la 0056, con datos y vacía', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('con datos: la IP vaciada, el nombre Player, el locale como estaba y las columnas nuevas en su defecto', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0055_auditoria_admin')))
+    const [u] = await t.client<{ id: string }[]>`
+      insert into users (email, name, locale) values ('antes@example.com', 'Ana', 'es') returning id`
+    await t.client`insert into sessions (token, expires_at, ip_address, user_id)
+      values ('tok', now() + interval '1 day', '203.0.113.7', ${u!.id})`
+    await t.detached((url) => runMigrations(url))
+
+    const [antes] = await t.client<Record<string, unknown>[]>`
+      select name, locale, device_epoch, notice_prefs, birth_date, away_since, away_until,
+             welcome_back_from, time_zone, terms_version, terms_accepted_at, email_undeliverable_at
+      from users where email = 'antes@example.com'`
+    expect(antes).toEqual({
+      name: 'Player',
+      locale: 'es',
+      device_epoch: 0,
+      notice_prefs: {},
+      birth_date: null,
+      away_since: null,
+      away_until: null,
+      welcome_back_from: null,
+      time_zone: null,
+      terms_version: null,
+      terms_accepted_at: null,
+      email_undeliverable_at: null,
+    })
+    const [sesion] = await t.client<{ ip_address: string }[]>`select ip_address from sessions`
+    expect(sesion!.ip_address).toBe('')
+
+    // una cuenta nueva nace en inglés; la ausencia va en pareja y termina después de empezar
+    await t.client`insert into users (email) values ('nueva@example.com')`
+    const [nueva] = await t.client<{ locale: string; name: string }[]>`
+      select locale, name from users where email = 'nueva@example.com'`
+    expect(nueva).toEqual({ locale: 'en', name: '' })
+    await expect(
+      t.client`update users set away_since = now() where email = 'nueva@example.com'`,
+    ).rejects.toThrow(/users_away_pair/)
+    await expect(
+      t.client`update users set away_since = now(), away_until = now() - interval '1 day'
+        where email = 'nueva@example.com'`,
+    ).rejects.toThrow(/users_away_pair/)
+    await t.client`update users set away_since = now(), away_until = now() + interval '7 days'
+      where email = 'nueva@example.com'`
+    const [limites] = await t.client<{ n: number }[]>`select count(*)::int as n from auth_limits`
+    expect(limites!.n).toBe(0)
+  }, 120_000)
+})
+
+/**
+ * LA 0057 (docs/cuenta.md §9.2 y §15.2): `email_log` nace vacía, con sus dos índices, y una cuenta que se
+ * borra deja sus filas con `user_id` nulo (`on delete set null`): el registro de lo enviado sobrevive a la
+ * cuenta sin decir de quién era.
+ */
+describe('db: la 0057, con datos y vacía', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('con datos: las cuentas siguen, email_log nace vacía y el borrado de una cuenta deja user_id nulo', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0056_cuenta_e4')))
+    const [u] = await t.client<{ id: string }[]>`
+      insert into users (email, status) values ('antes@example.com', 'approved') returning id`
+    await t.detached((url) => runMigrations(url))
+
+    const [n] = await t.client<{ n: number }[]>`select count(*)::int as n from email_log`
+    expect(n!.n).toBe(0)
+    const [cuenta] = await t.client<{ status: string }[]>`
+      select status from users where id = ${u!.id}`
+    expect(cuenta!.status).toBe('approved')
+
+    const indices = await t.client<{ indexname: string }[]>`
+      select indexname from pg_indexes where tablename = 'email_log' order by indexname`
+    expect(indices.map((i) => i.indexname)).toEqual([
+      'email_log_created',
+      'email_log_pkey',
+      'email_log_recipient',
+      'email_log_resend_id_unique',
+    ])
+
+    await t.client`insert into email_log (kind, recipient_hash, user_id, resend_id)
+      values ('verify_signup', 'h', ${u!.id}, 're_1')`
+    const [fila] = await t.client<{ status: string }[]>`select status from email_log`
+    expect(fila!.status).toBe('queued')
+    await expect(
+      t.client`insert into email_log (kind, recipient_hash, resend_id) values ('reset_password', 'h', 're_1')`,
+    ).rejects.toThrow(/email_log_resend_id_unique/)
+
+    await t.client`delete from users where id = ${u!.id}`
+    const [tras] = await t.client<{ user_id: string | null; resend_id: string }[]>`
+      select user_id, resend_id from email_log`
+    expect(tras).toEqual({ user_id: null, resend_id: 're_1' })
+  }, 120_000)
+
+  it('vacía: de cero, la tabla existe y no tiene filas', async () => {
+    const vacia = await startEmptyTestDb()
+    try {
+      await vacia.detached((url) => runMigrations(url))
+      const [n] = await vacia.client<{ n: number }[]>`select count(*)::int as n from email_log`
+      expect(n!.n).toBe(0)
+    } finally {
+      await vacia.close()
+    }
+  }, 120_000)
+})

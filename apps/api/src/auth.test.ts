@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@cyclingstar/db'
-import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S, type UserStatus } from '@cyclingstar/shared'
-import { createAuth, trustedOriginsFor, withCallbackURL } from './auth.js'
+import {
+  EMAIL_JWT_TTL_S,
+  RESET_TOKEN_TTL_S,
+  SESSION_EXPIRES_S,
+  SESSION_UPDATE_AGE_S,
+  type UserStatus,
+} from '@cyclingstar/shared'
+import { createAuth, emailLink, trustedOriginsFor } from './auth.js'
 import type { MailMessage, Mailer } from './mailer.js'
 
 const USER = {
@@ -54,7 +60,9 @@ describe('createAuth: correos', () => {
 
     expect(mailer.sent).toHaveLength(1)
     expect(mailer.sent[0]!.to).toBe('luis@example.com')
-    expect(mailer.sent[0]!.text).toContain('/reset-password/tok')
+    // a la página de botón, con el token en el fragmento (docs/cuenta.md §5.2), y no al `url` de la API
+    expect(mailer.sent[0]!.text).toContain('https://www.cyclingstar.app/reset-password#token=tok')
+    expect(mailer.sent[0]!.text).not.toContain('/api/auth/')
   })
 
   it('manda el enlace de verificación a la dirección del usuario', async () => {
@@ -67,7 +75,8 @@ describe('createAuth: correos', () => {
     })
 
     expect(mailer.sent[0]!.to).toBe('luis@example.com')
-    expect(mailer.sent[0]!.text).toContain('verify-email?token=tok')
+    expect(mailer.sent[0]!.text).toContain('https://www.cyclingstar.app/verify-email#token=tok')
+    expect(mailer.sent[0]!.text).not.toContain('/api/auth/')
   })
 
   /* El registro por aprobación (docs/cuenta.md §4.9): a una cuenta pendiente no le sale nada. */
@@ -103,19 +112,13 @@ describe('createAuth: correos', () => {
     expect(opciones.emailVerification!.autoSignInAfterVerification).toBe(true)
   })
 
-  /*
-    El reenvío al entrar llega con `callbackURL=/` (el cliente no manda ninguno): el servidor lo
-    endereza para que el enlace vuelva a la página que dice «confirmado».
-  */
-  it('el enlace de verificación vuelve siempre a /verify-email', async () => {
-    const mailer = spyMailer()
-    await auth(mailer).options.emailVerification!.sendVerificationEmail!({
-      user: USER,
-      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2F',
-      token: 'tok',
-    })
-    expect(mailer.sent[0]!.text).toContain('callbackURL=%2Fverify-email')
-    expect(mailer.sent[0]!.text).not.toContain('step%3Dapproved')
+  /* Las vidas de los dos tokens (§5.1; D-11): 24 horas para confirmar, una hora para recuperar. */
+  it('el enlace de confirmar vive EMAIL_JWT_TTL_S y el de recuperar RESET_TOKEN_TTL_S', () => {
+    const opciones = auth(spyMailer()).options
+    expect(opciones.emailVerification!.expiresIn).toBe(EMAIL_JWT_TTL_S)
+    expect(EMAIL_JWT_TTL_S).toBe(86_400)
+    expect(opciones.emailAndPassword!.resetPasswordTokenExpiresIn).toBe(RESET_TOKEN_TTL_S)
+    expect(RESET_TOKEN_TTL_S).toBe(3_600)
   })
 
   it('las cookies de sesión son seguras tras https y no lo son en local', () => {
@@ -204,19 +207,11 @@ describe('trustedOriginsFor', () => {
   })
 })
 
-describe('withCallbackURL', () => {
-  it('sustituye el destino y conserva el token', () => {
-    const out = withCallbackURL(
-      'https://x.app/api/auth/verify-email?token=abc&callbackURL=%2F',
-      '/verify-email?step=approved',
+describe('emailLink', () => {
+  it('el token va en el fragmento, codificado, y sin barra doble', () => {
+    expect(emailLink('https://x.app/', '/verify-email', 'a.b+c')).toBe(
+      'https://x.app/verify-email#token=a.b%2Bc',
     )
-    const u = new URL(out)
-    expect(u.searchParams.get('token')).toBe('abc')
-    expect(u.searchParams.get('callbackURL')).toBe('/verify-email?step=approved')
-  })
-
-  it('deja intacto lo que no es una URL', () => {
-    expect(withCallbackURL('no es una url', '/x')).toBe('no es una url')
   })
 })
 

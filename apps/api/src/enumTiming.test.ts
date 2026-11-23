@@ -43,7 +43,13 @@ describe('sign-up/email: el mismo cuerpo con un correo nuevo y con uno que exist
       method: 'POST',
       url: '/api/auth/sign-up/email',
       headers: { origin: BASE },
-      payload: { name: 'luis', email, password: 'contrasena-larga', callbackURL: '/verify-email' },
+      payload: {
+        name: 'luis',
+        email,
+        password: 'contrasena-larga',
+        birthDate: '1990-01-01',
+        callbackURL: '/verify-email',
+      },
     })
 
   it('cuerpos iguales byte a byte, y fijos', async () => {

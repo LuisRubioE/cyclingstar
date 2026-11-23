@@ -3,6 +3,7 @@ import { ENGINE_VERSION } from '@cyclingstar/engine'
 import { buildApp } from './app.js'
 import { createAuth } from './auth.js'
 import { loadEnv } from './env.js'
+import { createMailJournal } from './mailBudget.js'
 import { createMailer } from './mailer.js'
 import { mailQueue } from './mailQueue.js'
 import { loggerOptions } from './redact.js'
@@ -22,8 +23,14 @@ async function main(): Promise<void> {
 
   const { db } = createDb(env.DATABASE_URL)
   // Correo transaccional: con RESEND_API_KEY y MAIL_FROM sale por Resend; sin ellas queda
-  // un mailer que sólo deja constancia, para que un entorno local arranque igual.
-  const mailer = createMailer(env)
+  // un mailer que sólo deja constancia, para que un entorno local arranque igual. Cada envío pasa por
+  // `email_log`, con L5 y el presupuesto del día (docs/cuenta.md §7.6 y §9.2).
+  const mailer = createMailer(env, {
+    journal: createMailJournal(db, {
+      secret: env.SESSION_SECRET,
+      dailyBudget: env.MAIL_DAILY_BUDGET,
+    }),
+  })
   const auth = createAuth(db, {
     secret: env.SESSION_SECRET,
     baseURL: env.APP_URL,
@@ -41,6 +48,8 @@ async function main(): Promise<void> {
     tickIntervalMinutes: env.TICK_INTERVAL_MINUTES,
     adminToken: env.ADMIN_TOKEN,
     ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
+    mailDailyBudget: env.MAIL_DAILY_BUDGET,
+    ...(env.RESEND_WEBHOOK_SECRET ? { resendWebhookSecret: env.RESEND_WEBHOOK_SECRET } : {}),
     // Los interruptores de E2 (§14.6). SPOILER_MODE, desde el 7a: `admins` lo enciende para el dueño.
     switches: { broadcastWatch: env.BROADCAST_WATCH, spoilerMode: env.SPOILER_MODE },
     // La cookie que solo restringe (§10.8): firmada con el secreto de sesión, Secure en https como la de

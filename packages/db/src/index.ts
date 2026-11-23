@@ -8,6 +8,28 @@ export { createDb, type Database, type DbClient } from './client.js'
 export { runMigrations } from './migrate.js'
 export { deleteUserVerifications } from './verifications.js'
 export {
+  type AttemptResult,
+  type AttemptRule,
+  bumpDeviceEpoch,
+  clearAttempts,
+  deviceOwnerByEmail,
+  reserveAttempt,
+} from './authLimits.js'
+export {
+  EMAIL_KINDS,
+  EMAIL_STATUSES,
+  applyEmailEvent,
+  dailyCapFor,
+  emailsToday,
+  queueEmail,
+  settleEmail,
+  type EmailEventStatus,
+  type EmailKind,
+  type EmailStatus,
+  type MailBudgetRule,
+  type QueueEmailResult,
+} from './emailLog.js'
+export {
   DEFAULT_MAX_DAYS_PER_RUN,
   POISON_PILL_ATTEMPTS,
   GENESIS_WORLD_SEED,
@@ -216,6 +238,7 @@ export {
 } from './horizon.js'
 // El modo del jugador (E3, docs/visual.md §3.3, D-00i; paso 23): en la cuenta.
 export { readTheme, setTheme } from './theme.js'
+export { hasBirthDate, setBirthDateOnce } from './birthDate.js'
 // Lo visto (E2, §10.3; paso 7a): las cuatro escrituras de race_watch, sus dos lecturas y la memoria del
 // proceso de lo alcanzado (D-55).
 export {

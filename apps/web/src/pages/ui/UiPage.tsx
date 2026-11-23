@@ -24,6 +24,7 @@ import { Disclosure } from '../../components/ui/Disclosure'
 import { Expander } from '../../components/ui/Expander'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { DateField, type DateFieldValue, EMPTY_DATE } from '../../components/ui/DateField'
 import { Field } from '../../components/ui/Field'
 import { Flag } from '../../components/ui/Flag'
 import { Icon } from '../../components/ui/Icon'
@@ -354,6 +355,51 @@ function Campos() {
       </Estado>
       <Estado name="textarea">
         <Field kind="textarea" id="ui-note" label="Note" value={nota} onChange={setNota} rows={3} />
+      </Estado>
+    </Demo>
+  )
+}
+
+/** `DateField` (docs/cuenta.md §12.5; PR 9 de E4): sus cuatro estados. */
+function Fechas() {
+  const [fecha, setFecha] = useState<DateFieldValue>(EMPTY_DATE)
+  const ayuda = "We only use it to check you're old enough to play."
+  return (
+    <Demo name="DateField">
+      <Estado name="empty">
+        <DateField
+          id="ui-dob"
+          label="Date of birth"
+          hint={ayuda}
+          value={fecha}
+          onChange={setFecha}
+        />
+      </Estado>
+      <Estado name="filled">
+        <DateField
+          id="ui-dob-filled"
+          label="Date of birth"
+          value={{ day: '1', month: '7', year: '2008' }}
+          onChange={nada}
+        />
+      </Estado>
+      <Estado name="error">
+        <DateField
+          id="ui-dob-error"
+          label="Date of birth"
+          value={{ day: '31', month: '4', year: '2001' }}
+          onChange={nada}
+          error="Enter a real date of birth."
+        />
+      </Estado>
+      <Estado name="disabled">
+        <DateField
+          id="ui-dob-disabled"
+          label="Date of birth"
+          value={{ day: '9', month: '9', year: '1999' }}
+          onChange={nada}
+          disabled
+        />
       </Estado>
     </Demo>
   )
@@ -1610,6 +1656,7 @@ export function UiPage() {
       <Botones />
       <Enlaces />
       <Campos />
+      <Fechas />
       <Elecciones />
       <Casillas />
       <Porques />

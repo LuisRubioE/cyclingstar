@@ -97,10 +97,24 @@ describe('las rutas del editor del maillot (§8.7; PR 18a)', () => {
         email: 'jugador@example.com',
         name: 'Jugador',
         emailVerified: true,
+        birthDate: '1990-01-01',
         premium: true,
       },
-      { id: LOOSE, email: 'suelto@example.com', name: 'Suelto', emailVerified: true },
-      { id: TAKER, email: 'nuevo@example.com', name: 'Nuevo', emailVerified: true, premium: true },
+      {
+        id: LOOSE,
+        email: 'suelto@example.com',
+        name: 'Suelto',
+        emailVerified: true,
+        birthDate: '1990-01-01',
+      },
+      {
+        id: TAKER,
+        email: 'nuevo@example.com',
+        name: 'Nuevo',
+        emailVerified: true,
+        birthDate: '1990-01-01',
+        premium: true,
+      },
     ])
     const equipos = [
       ['A', 'Noord Cycling', 4_000_000, 'plain.navy'],

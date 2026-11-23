@@ -2,8 +2,8 @@ import { type PreStageInfo, stageReadyNotice } from '@cyclingstar/shared'
 import type { MailMessage } from './mailer.js'
 
 /**
- * Los tres correos que manda la app, y la plantilla del de «etapa lista» (E2), que todavía no manda
- * nadie (abajo). Son PLANTILLAS PURAS: reciben un enlace y devuelven
+ * Los dos correos de cuenta que manda la app (docs/cuenta.md §5.7), y la plantilla del de «etapa lista»
+ * (E2), que todavía no manda nadie (abajo; sale con el PR 14). Son PLANTILLAS PURAS: reciben un enlace y devuelven
  * asunto, texto y HTML. Ni red, ni entorno, ni reloj — así se pueden probar enteras.
  *
  * Van en inglés porque la web está en inglés; el comentario es castellano, como el resto del
@@ -38,8 +38,14 @@ function layout(opts: {
   body: string
   cta: { label: string; url: string }
   footer: string
+  /** Las líneas de debajo de la tarjeta; por defecto, la de antes (la usa `stageReadyEmail`). */
+  pie?: readonly string[]
+  /** El color del botón; por defecto, el índigo de antes. */
+  accent?: string
 }): string {
   const url = escapeHtml(opts.cta.url)
+  const pie = opts.pie ?? [`${APP_NAME} — a fictional cycling-manager game.`]
+  const accent = opts.accent ?? '#4f46e5'
   return [
     '<!doctype html>',
     '<html lang="en"><body style="margin:0;padding:24px;background:#f8fafc;font-family:Helvetica,Arial,sans-serif;color:#0f172a">',
@@ -47,11 +53,11 @@ function layout(opts: {
     '<tr><td style="padding:32px">',
     `<h1 style="margin:0 0 12px;font-size:20px;line-height:1.3">${escapeHtml(opts.title)}</h1>`,
     `<p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#334155">${opts.body}</p>`,
-    `<p style="margin:0 0 20px"><a href="${url}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600">${escapeHtml(opts.cta.label)}</a></p>`,
+    `<p style="margin:0 0 20px"><a href="${url}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600">${escapeHtml(opts.cta.label)}</a></p>`,
     `<p style="margin:0 0 20px;font-size:12px;line-height:1.6;color:#64748b">If the button does not work, copy this link into your browser:<br><span style="word-break:break-all">${url}</span></p>`,
     `<p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8">${escapeHtml(opts.footer)}</p>`,
     '</td></tr></table>',
-    `<p style="max-width:520px;margin:16px auto 0;font-size:11px;color:#94a3b8;text-align:center">${APP_NAME} — a fictional cycling-manager game.</p>`,
+    `<p style="max-width:520px;margin:16px auto 0;font-size:11px;color:#94a3b8;text-align:center">${pie.map(escapeHtml).join('<br>')}</p>`,
     '</body></html>',
   ].join('')
 }
@@ -60,52 +66,77 @@ function layout(opts: {
 export type MailBody = Omit<MailMessage, 'to'>
 
 /**
- * Recuperar la contraseña. El enlace caduca en una hora (el defecto de better-auth) y se dice,
- * porque si no el usuario que lo abre al día siguiente cree que la app está rota.
+ * El pie de los dos correos de cuenta, sin raya (docs/cuenta.md §5.7): qué es el juego y que no manda
+ * más que esto. Va al final del texto plano y debajo de la tarjeta en el HTML.
  */
-export function resetPasswordEmail(url: string): MailBody {
+const PIE_CUENTA = [
+  `${APP_NAME} · a fictional cycling-manager game.`,
+  `This is an account email. ${APP_NAME} never sends newsletters or game emails.`,
+] as const
+
+/** El `accent` de la web (`--color-accent`, tema claro), y no el índigo de antes (mapa 05 §9). */
+const ACCENT = '#0b6e8a'
+
+/**
+ * `reset_password` (§5.7). El enlace lleva a la página de botón con el token en el fragmento
+ * (`/reset-password#token=`, §5.2): nada cambia hasta que se guarda la contraseña nueva. Caduca en una
+ * hora (`RESET_TOKEN_TTL_S`) y se dice, porque si no quien lo abre al día siguiente cree que la app
+ * está rota.
+ */
+export function resetPasswordEmail(link: string): MailBody {
+  const aviso = 'Saving a new password signs you out on every device.'
+  const siNo = 'If it was not you, ignore this email: your password stays as it is.'
   return {
     subject: `Reset your ${APP_NAME} password`,
     text: [
       `Someone asked to reset the password of your ${APP_NAME} account.`,
       '',
       'Open this link to choose a new one (it expires in one hour):',
-      url,
+      link,
       '',
-      'If it was not you, ignore this email: your password stays as it is.',
+      aviso,
+      siNo,
+      '',
+      ...PIE_CUENTA,
     ].join('\n'),
     html: layout({
       title: 'Reset your password',
-      body: `Someone asked to reset the password of your ${escapeHtml(APP_NAME)} account. The link below expires in one hour.`,
-      cta: { label: 'Choose a new password', url },
-      footer: 'If it was not you, ignore this email: your password stays as it is.',
+      body: `Someone asked to reset the password of your ${escapeHtml(APP_NAME)} account. Open this link to choose a new one (it expires in one hour).`,
+      cta: { label: 'Choose a new password', url: link },
+      footer: `${aviso} ${siNo}`,
+      pie: PIE_CUENTA,
+      accent: ACCENT,
     }),
   }
 }
 
 /**
- * Verificar la dirección. Se manda al registrarse, al intentar entrar sin haber confirmado y al
- * cambiar de correo (a la dirección NUEVA). Confirmar ya no es opcional: sin ello no se entra, y
- * en el cambio de correo el enlace es lo que APLICA el cambio. Por eso el texto dice «para usarla
- * en tu cuenta» y no sólo «verificar».
+ * `verify_signup` (§5.7). Sale cuando la cuenta ya está aprobada (§4.9): al aprobarla un administrador,
+ * al pedir otro enlace y al entrar sin confirmar. El enlace lleva a la página de botón
+ * (`/verify-email#token=`, §5.2): abrirlo no confirma nada, lo hace el botón. Caduca en 24 horas
+ * (`EMAIL_JWT_TTL_S`).
  */
-export function verifyEmailEmail(url: string): MailBody {
+export function verifyEmailEmail(link: string): MailBody {
+  const siNo = 'If you did not ask for an account, ignore this email and nothing will happen.'
   return {
     subject: `Confirm your ${APP_NAME} email`,
     text: [
-      `Confirm this address to use it with your ${APP_NAME} account.`,
-      'You need to do it before you can log in with it.',
+      `Your ${APP_NAME} account has been approved. Confirm this address to finish creating it.`,
       '',
-      'Open this link (it expires in one hour):',
-      url,
+      'Open this link and tap the button (it expires in 24 hours):',
+      link,
       '',
-      'If you did not ask for this, ignore this email.',
+      siNo,
+      '',
+      ...PIE_CUENTA,
     ].join('\n'),
     html: layout({
       title: 'Confirm your email',
-      body: `Confirm this address to use it with your ${escapeHtml(APP_NAME)} account. You need to do it before you can log in with it. The link below expires in one hour.`,
-      cta: { label: 'Confirm my email', url },
-      footer: 'If you did not ask for this, ignore this email.',
+      body: `Your ${escapeHtml(APP_NAME)} account has been approved. Confirm this address to finish creating it. Open this link and tap the button (it expires in 24 hours).`,
+      cta: { label: 'Confirm my email', url: link },
+      footer: siNo,
+      pie: PIE_CUENTA,
+      accent: ACCENT,
     }),
   }
 }
@@ -115,7 +146,7 @@ const READY_FOOTER = 'Results stay hidden until you watch the stage.'
 
 /**
  * «ETAPA LISTA PARA VER» (E2, docs/retransmision.md §11.9; D-42, 11-d; paso 9a). Plantilla pura, como
- * las otras tres: sin red, sin entorno y sin reloj. Nace con el `locale` delante (12-q) y solo recibe
+ * las otras dos: sin red, sin entorno y sin reloj. Nace con el `locale` delante (12-q) y solo recibe
  * la `PreStageInfo` de la etapa y si el corredor propio está en la LISTA DE SALIDA, así que por tipo no
  * cabe un resultado; el asunto y la primera línea son los de `stageReadyNotice`, que también usarán un
  * aviso del navegador o un contador, si E4 los crea.

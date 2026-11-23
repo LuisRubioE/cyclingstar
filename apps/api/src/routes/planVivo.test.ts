@@ -67,9 +67,13 @@ describe('PUT /api/riders/me/plan: un solo plan vivo (§11.5)', () => {
       .insert(worlds)
       .values({ worldSeed: 'plan-vivo-ruta', engineVersion: 1 })
       .returning({ id: worlds.id })
-    await t.db
-      .insert(users)
-      .values({ id: PLAYER, email: 'jugador@example.com', name: 'Jugador', emailVerified: true })
+    await t.db.insert(users).values({
+      id: PLAYER,
+      email: 'jugador@example.com',
+      name: 'Jugador',
+      emailVerified: true,
+      birthDate: '1990-01-01',
+    })
     const [rider] = await t.db
       .insert(riders)
       .values({

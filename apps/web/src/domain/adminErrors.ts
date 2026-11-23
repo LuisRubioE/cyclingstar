@@ -21,6 +21,9 @@ const POR_CODIGO: Readonly<Record<string, string>> = {
   nombre_invalido: "That team name isn't allowed.",
   no_pendiente: 'This request was already decided.',
   MAIL_BUDGET_EXHAUSTED: "Today's email budget is used up. Approve again tomorrow.",
+  // la fecha rectificada (§4.5): la regla del registro
+  INVALID_BIRTH_DATE: 'Enter a real date of birth.',
+  UNDER_MINIMUM_AGE: 'Cycling Star is for people aged 16 or over.',
 }
 
 export function adminErrorMessage(err: unknown, accion?: 'delete'): string {

@@ -135,7 +135,13 @@ async function withApi(fn) {
     return cookie
   }
   const signUp = async (name, email) => {
-    await call('POST', '/api/auth/sign-up/email', null, { name, email, password: PASSWORD }, 200)
+    await call(
+      'POST',
+      '/api/auth/sign-up/email',
+      null,
+      { name, email, password: PASSWORD, birthDate: '1990-01-01' },
+      200,
+    )
     await client`update users set email_verified = true where email = ${email}`
     return signIn(email)
   }
