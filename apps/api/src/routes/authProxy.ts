@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type { Auth } from '../auth.js'
+import { apiError } from '../http.js'
 import { AUTH_RATE_LIMIT, CREDENTIAL_AUTH_PATHS, CREDENTIAL_RATE_LIMIT } from '../security.js'
 import { viewerCookieHeader } from '../viewerCookie.js'
 import { toWebHeaders } from './context.js'
@@ -29,12 +30,42 @@ const CLEARS_VIEWER_COOKIE: ReadonlySet<string> = new Set([
 const SIGN_UP_PATH = '/api/auth/sign-up/email'
 export const SIGN_UP_OK_BODY = '{"token":null,"user":null}'
 
+/** Lo que nunca lleva una ruta en su forma normal, en crudo o escapado (sin mirar mayúsculas). */
+const RUTA_SOSPECHOSA = /\/\/|\/\.\/|\/\.\.\/|%2e|%2f|%5c/i
+
+/**
+ * ¿La ruta cruda de la petición está ya en su forma normal? (docs/cuenta.md §7.2, 7-j)
+ *
+ * find-my-way recibe la ruta tal cual y elige el límite por ella: `/api/auth/x/../sign-in/email` no
+ * casaba con la ruta estática del límite estricto y caía en el comodín, y después `new URL(...)` la
+ * normalizaba y better-auth atendía `sign-in/email` igual. Una ruta que no es igual a su
+ * normalización, o que lleva `//`, `/./`, `/../`, `%2e`, `%2f` o `%5c`, no es de nadie: 404.
+ */
+export function isNormalAuthPath(rawUrl: string): boolean {
+  const corte = rawUrl.indexOf('?')
+  const ruta = corte === -1 ? rawUrl : rawUrl.slice(0, corte)
+  if (RUTA_SOSPECHOSA.test(ruta)) return false
+  try {
+    return new URL(ruta, 'http://x').pathname === ruta
+  } catch {
+    return false
+  }
+}
+
 /**
  * Montaje de better-auth en /api/auth/* (Paso 9). Reconstruye una Request web a partir de la
  * petición de Fastify y reenvía la respuesta, preservando las cookies de sesión.
  */
 export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app, ctx) => {
   const { auth } = ctx
+
+  // Antes del límite y del proxy: los ganchos del plugin van antes que los que @fastify/rate-limit
+  // cuelga de cada ruta, así que el atajo ni gasta ni burla ningún contador.
+  app.addHook('onRequest', async (request, reply) => {
+    if (!isNormalAuthPath(request.raw.url ?? '')) {
+      return reply.status(404).send(apiError('no_encontrado'))
+    }
+  })
 
   const forwardToAuth = async (
     request: FastifyRequest,
