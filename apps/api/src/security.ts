@@ -43,6 +43,36 @@ export const AUTH_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const
 export const CREDENTIAL_RATE_LIMIT = { max: 10, timeWindow: '5 minutes' } as const
 
 /**
+ * LA LISTA BLANCA DE `/api/auth/*` (docs/cuenta.md §8.1; D-29, I-06, O-21, 8-a): las once rutas de
+ * better-auth que sirve el proxy. Todo lo demás bajo `/api/auth/*` da 404 sin llegar a better-auth, y
+ * better-auth lo cierra otra vez con `disabledPaths` (auth.ts). Ningún plugin ni ruta nueva entra sin
+ * decidirlo aquí. `:token` es un segmento cualquiera.
+ */
+export const AUTH_ALLOWED_PATHS = [
+  { method: 'POST', path: '/sign-up/email' },
+  { method: 'POST', path: '/sign-in/email' },
+  { method: 'GET', path: '/get-session' },
+  { method: 'POST', path: '/sign-out' },
+  { method: 'GET', path: '/verify-email' },
+  { method: 'POST', path: '/send-verification-email' },
+  { method: 'POST', path: '/request-password-reset' },
+  { method: 'GET', path: '/reset-password/:token' },
+  { method: 'POST', path: '/reset-password' },
+  { method: 'POST', path: '/change-password' },
+  { method: 'POST', path: '/delete-user' },
+] as const satisfies readonly { method: 'GET' | 'POST'; path: string }[]
+
+/** ¿Sirve el proxy esta ruta? `ruta` es la de después de `/api/auth`, ya normalizada y sin `?`. */
+export function isAllowedAuthPath(method: string, ruta: string): boolean {
+  return AUTH_ALLOWED_PATHS.some((r) => {
+    if (r.method !== method) return false
+    if (!r.path.includes('/:')) return r.path === ruta
+    const base = r.path.slice(0, r.path.indexOf('/:') + 1)
+    return ruta.startsWith(base) && /^[^/]+$/.test(ruta.slice(base.length))
+  })
+}
+
+/**
  * Rutas de better-auth que reciben o cambian credenciales, o que disparan un correo. Se registran explícitamente (además del
  * comodín /api/auth/*) solo para colgarles el límite estricto: find-my-way resuelve la ruta estática
  * antes que el comodín, así que el resto de endpoints de auth sigue por el comodín sin cambios.
@@ -61,7 +91,6 @@ export const CREDENTIAL_AUTH_PATHS = [
   '/api/auth/send-verification-email',
   '/api/auth/reset-password',
   '/api/auth/change-password',
-  '/api/auth/change-email',
   // Comprueba la contraseña igual que el login: sin límite estricto sería otra puerta para
   // probarlas por fuerza bruta desde una sesión robada.
   '/api/auth/delete-user',

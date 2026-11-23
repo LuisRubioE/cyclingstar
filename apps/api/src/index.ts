@@ -30,6 +30,7 @@ async function main(): Promise<void> {
     mailer,
     mailQueue,
     ...(env.EXTRA_TRUSTED_ORIGINS ? { extraTrustedOrigins: env.EXTRA_TRUSTED_ORIGINS } : {}),
+    ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
   })
   const msPerGameDay = env.TICK_INTERVAL_MINUTES * 60_000
 

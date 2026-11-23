@@ -2,18 +2,21 @@ import {
   type Database,
   accounts,
   deleteUserVerifications,
+  forgetAuditEmails,
   releaseUserToWorld,
   sessions,
+  userStatusOf,
   users,
   verifications,
 } from '@cyclingstar/db'
 import { betterAuth } from 'better-auth'
 import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S } from '@cyclingstar/shared'
-import { changeEmailConfirmationEmail, resetPasswordEmail, verifyEmailEmail } from './emails.js'
+import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S, type UserStatus } from '@cyclingstar/shared'
+import { resetPasswordEmail, verifyEmailEmail } from './emails.js'
 import type { Mailer } from './mailer.js'
 import { type MailQueue, mailQueue as colaDelProceso } from './mailQueue.js'
+import { AUTH_ALLOWED_PATHS } from './security.js'
 
 /**
  * Las recuperaciones de contraseña que acaban de terminar bien, por petición: `onPasswordReset`
@@ -27,18 +30,37 @@ export const resetRequests = new WeakMap<Request, string>()
  * A DÓNDE LLEVAN LOS ENLACES DE VERIFICACIÓN, DECIDIDO AQUÍ Y NO EN EL NAVEGADOR.
  *
  * better-auth construye el enlace con el `callbackURL` que mande el cliente (o `/` si no manda
- * ninguno, como pasa en el reenvío al intentar entrar). Y el cambio de correo tiene DOS enlaces que
- * comparten ese destino: el aviso a la dirección vieja y la verificación de la nueva. Con el mismo
- * destino, la página de vuelta no puede distinguir «cambio aprobado, falta abrir el segundo correo»
- * de «cambio hecho», y le diría «Email confirmed» a quien todavía no ha terminado.
- *
- * Así que el servidor fija el destino de cada enlace: la verificación vuelve SIEMPRE a
- * `/verify-email`, y el aviso de cambio a `/verify-email?step=approved`. Al aprobar, better-auth
- * construye el segundo enlace con ese mismo destino, pero ese segundo enlace vuelve a pasar por
- * `sendVerificationEmail` y aquí queda otra vez limpio.
+ * ninguno, como pasa en el reenvío al intentar entrar y al aprobar una cuenta desde el panel). El
+ * servidor fija el destino: la verificación vuelve SIEMPRE a `/verify-email`. El cambio de correo de
+ * autoservicio, que tenía un segundo destino, se fue con el PR 5 (docs/cuenta.md §5.5).
  */
 export const VERIFY_EMAIL_PATH = '/verify-email'
-export const CHANGE_APPROVED_PATH = '/verify-email?step=approved'
+
+/**
+ * LO QUE `better-auth` NO SIRVE NUNCA (docs/cuenta.md §8.1; D-29, X-14, 8-l). `disabledPaths` es el
+ * complemento de `AUTH_ALLOWED_PATHS` sobre `auth.api`, menos `/verify-email`, que la ruta interna
+ * de §5.2 llama dentro del proceso. Da 404 antes del limitador y de los ganchos, sin variante de URL
+ * que lo esquive; es el segundo cerrojo, por si el proxy se monta mal algún día.
+ */
+export function disabledAuthPaths(
+  endpoints: Readonly<Record<string, { path?: string | undefined }>>,
+): string[] {
+  const abiertas = new Set<string>([...AUTH_ALLOWED_PATHS.map((r) => r.path), VERIFY_EMAIL_PATH])
+  const fuera = new Set<string>()
+  for (const endpoint of Object.values(endpoints)) {
+    const ruta = endpoint.path
+    if (ruta !== undefined && !abiertas.has(ruta)) fuera.add(ruta)
+  }
+  return [...fuera].sort()
+}
+
+/**
+ * LAS PLANTILLAS CON PARÁMETROS QUE SE CIERRAN EN EL GANCHO (8-g). `disabledPaths` compara la ruta
+ * ya resuelta (`/callback/google`) con la lista, así que `/callback/:id` nunca casa: el `hooks.before`
+ * mira `ctx.path`, que es la plantilla. Solo estas, y no la lista entera, porque los ganchos corren
+ * también en `auth.api.*` (`verifyPassword`, `revokeOtherSessions`), que el servidor sigue usando.
+ */
+export const CLOSED_AUTH_TEMPLATES: ReadonlySet<string> = new Set(['/callback/:id'])
 
 /** Sustituye el `callbackURL` de un enlace de better-auth; si el enlace no se entiende, lo deja. */
 export function withCallbackURL(url: string, callbackURL: string): string {
@@ -105,6 +127,10 @@ export function createAuth(
     extraTrustedOrigins?: string | undefined
     /** Dónde esperan los correos que salen después de responder; por defecto, la del proceso. */
     mailQueue?: MailQueue
+    /** `ADMIN_EMAIL`: quien se registra con él entra aprobado (docs/cuenta.md §4.9). */
+    adminEmail?: string | undefined
+    /** Cómo se lee el estado de una cuenta; por defecto, de la base. Los tests de opciones lo fingen. */
+    statusOf?: (userId: string) => Promise<UserStatus | null>
   },
 ) {
   // Cookies seguras cuando la app se sirve por https (producción tras el proxy de Railway).
@@ -113,7 +139,18 @@ export function createAuth(
   const secureCookies = opts.baseURL.startsWith('https://')
   const { mailer } = opts
   const cola = opts.mailQueue ?? colaDelProceso
-  return betterAuth({
+  const statusOf = opts.statusOf ?? ((id: string) => userStatusOf(db, { id }))
+  // EL REGISTRO POR APROBACIÓN (docs/cuenta.md §4.9): ningún correo sale a una cuenta que no esté
+  // aprobada. Se lee de la base por el id, sin fiarse del objeto que pasa better-auth; así lo cumplen
+  // a la vez el registro, el reenvío al entrar, `send-verification-email` y la recuperación, con la
+  // misma respuesta que si hubiera salido.
+  const aprobada = async (userId: string): Promise<boolean> =>
+    (await statusOf(userId)) === 'approved'
+  const adminEmail = opts.adminEmail?.trim().toLowerCase()
+  // Se llena al acabar de construir, con `auth.api` delante (ver `disabledAuthPaths`). better-auth
+  // la lee en cada petición de la misma referencia que recibe.
+  const disabledPaths: string[] = []
+  const auth = betterAuth({
     secret: opts.secret,
     baseURL: opts.baseURL,
     trustedOrigins: trustedOriginsFor(opts.baseURL, opts.extraTrustedOrigins),
@@ -138,6 +175,7 @@ export function createAuth(
       // isn't enabled» y devuelve un error: la pantalla de «he olvidado mi contraseña» no existía
       // porque no había a dónde mandar el enlace.
       sendResetPassword: async ({ user, url }) => {
+        if (!(await aprobada(user.id))) return
         await mailer.send({ to: user.email, ...resetPasswordEmail(url) })
       },
       // Quien recupera la contraseña cierra TODAS las sesiones: si alguien se había colado, sale
@@ -150,12 +188,10 @@ export function createAuth(
       },
     },
     emailVerification: {
-      // Esta es la pieza que faltaba y que rompía TAMBIÉN el cambio de correo: en better-auth
-      // 1.6, `POST /change-email` exige que exista `sendVerificationEmail` (o
-      // `updateEmailWithoutVerification`) y, si no hay ninguna, responde 400 «Verification email
-      // isn't enabled». Es decir: el formulario de ajustes fallaba siempre, no «aplicaba el
-      // cambio directamente» como decía el comentario que había aquí.
+      // Una cuenta pendiente no recibe nada: el `verify_signup` sale cuando un administrador la
+      // aprueba (`POST /api/admin/users/:id/approve`), que vuelve a pasar por aquí.
       sendVerificationEmail: async ({ user, url }) => {
+        if (!(await aprobada(user.id))) return
         await mailer.send({
           to: user.email,
           ...verifyEmailEmail(withCallbackURL(url, VERIFY_EMAIL_PATH)),
@@ -170,18 +206,13 @@ export function createAuth(
       autoSignInAfterVerification: true,
     },
     user: {
-      // Cambio de correo desde ajustes (SPEC 7). La dirección nueva SIEMPRE se verifica: hasta que
-      // se abre el enlace que llega a ella, el correo de la cuenta no cambia. Si la actual ya está
-      // verificada, antes sale un aviso a ELLA (`sendChangeEmailConfirmation`), que es lo que
-      // permite frenar a quien se haya colado en una sesión; al aprobarlo sale el enlace a la nueva.
-      changeEmail: {
-        enabled: true,
-        sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
-          await mailer.send({
-            to: user.email,
-            ...changeEmailConfirmationEmail(withCallbackURL(url, CHANGE_APPROVED_PATH), newEmail),
-          })
-        },
+      // El correo lo cambia solo un administrador, desde el panel (docs/cuenta.md §5.5).
+      changeEmail: { enabled: false },
+      // El estado del registro por aprobación (§4.9): nadie lo escribe por `sign-up/email` y no sale
+      // en ninguna respuesta. La clave es la de Drizzle (`status`), o 1.7 lanza `SchemaMismatchError`.
+      additionalFields: {
+        status: { type: 'string', input: false, returned: false, defaultValue: 'pending' },
+        approvedAt: { type: 'date', input: false, returned: false, required: false },
       },
       // Borrar la cuenta desde ajustes. El corredor y el equipo NO se borran: pasan a NPC antes de
       // que el usuario desaparezca (ver `releaseUserToWorld`), porque son las dos referencias a
@@ -190,6 +221,7 @@ export function createAuth(
         enabled: true,
         beforeDelete: async (user) => {
           await releaseUserToWorld(db, user.id)
+          await forgetAuditEmails(db, user.id)
         },
       },
     },
@@ -212,6 +244,19 @@ export function createAuth(
     rateLimit: { enabled: false },
     // Solo avisos y errores (D-30): lo de nivel `info` de better-auth puede llevar datos de la cuenta.
     logger: { level: 'warn' },
+    // El correo de `ADMIN_EMAIL` entra aprobado y su enlace sale al registrarse (§4.9), como
+    // `twilightstruggle` aprueba a la llegada a quien está en `AI_ADMINS`.
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => {
+            if (adminEmail === undefined || user.email.toLowerCase() !== adminEmail) return
+            return { data: { ...user, status: 'approved', approvedAt: new Date() } }
+          },
+        },
+      },
+    },
+    disabledPaths,
     hooks: {
       /*
         Borrar una cuenta pide SIEMPRE la contraseña. Sin ella, better-auth lo permite con una
@@ -219,6 +264,8 @@ export function createAuth(
         llevarse la cuenta de otro por delante. Es irreversible: la puerta se cierra aquí.
       */
       before: createAuthMiddleware(async (ctx) => {
+        // El segundo cerrojo de las rutas con parámetros (8-g): `disabledPaths` no las alcanza.
+        if (CLOSED_AUTH_TEMPLATES.has(ctx.path)) throw new APIError('NOT_FOUND')
         if (ctx.path !== '/delete-user') return
         const body: unknown = ctx.body
         const password =
@@ -268,6 +315,8 @@ export function createAuth(
       },
     },
   })
+  disabledPaths.push(...disabledAuthPaths(auth.api))
+  return auth
 }
 
 export type Auth = ReturnType<typeof createAuth>

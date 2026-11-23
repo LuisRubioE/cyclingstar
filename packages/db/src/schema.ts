@@ -5,7 +5,12 @@ import type {
   StageProfile,
   TriggerCond,
 } from '@cyclingstar/engine'
-import { BIB_STYLES, type NewsPayload } from '@cyclingstar/shared'
+import {
+  type AdminAuditDetail,
+  BIB_STYLES,
+  type NewsPayload,
+  type UserStatus,
+} from '@cyclingstar/shared'
 import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
@@ -97,39 +102,47 @@ export const themeEnum = pgEnum('theme', ['light', 'dark'])
  * (Paso 9): la contraseña se guarda cifrada en `accounts`, no aquí. Los campos
  * `locale` e `isAdmin` son propios del juego; el resto los usa better-auth.
  */
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull().default(''),
-  email: citext('email').notNull().unique(),
-  emailVerified: boolean('email_verified').notNull().default(false),
-  image: text('image'),
-  // Sin uso con better-auth (la contraseña cifrada vive en accounts.password). Se conserva
-  // para no forzar una migración de borrado frágil; se puede retirar en un paso dedicado.
-  passwordHash: text('password_hash'),
-  locale: text('locale').notNull().default('es'),
-  isAdmin: boolean('is_admin').notNull().default(false),
-  // Cuenta premium: a futuro de pago; al principio, admin y personas de confianza. Habilita tomar
-  // el control de un equipo bot y convertirlo en equipo humano (SPEC 7).
-  premium: boolean('premium').notNull().default(false),
-  /** Qué carreras se protegen sin pedirlo (E2, D-30; la 0048); por defecto, `guarded` (DD-01). */
-  spoilerScope: spoilerScopeEnum('spoiler_scope').notNull().default('guarded'),
-  /**
-   * Sube con cada cambio de lo conocido o de la guardia (E2, D-33; la 0048): la mitad de `Horizon.rev`
-   * y de la clave del memo de `computeHorizon`. Solo la escriben las cuatro funciones de `watch.ts`.
-   */
-  horizonRev: integer('horizon_rev').notNull().default(0),
-  /**
-   * La última petición con sesión (E2, §10.7; la 0048), escrita como mucho una vez por hora
-   * (`touchLastSeen`). No sirve al horizonte: la pide E7, y no se reconstruye hacia atrás.
-   */
-  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
-  /** Confirmar antes de revelar (E2, DD-17; la 0048): `Don't ask again` lo pone a false. */
-  revealConfirm: boolean('reveal_confirm').notNull().default(true),
-  /** El modo del jugador (E3, D-00i; la 0054): claro por defecto (`GET` y `PUT /api/me/theme`). */
-  theme: themeEnum('theme').notNull().default('light'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull().default(''),
+    email: citext('email').notNull().unique(),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    image: text('image'),
+    // Sin uso con better-auth (la contraseña cifrada vive en accounts.password). Se conserva
+    // para no forzar una migración de borrado frágil; se puede retirar en un paso dedicado.
+    passwordHash: text('password_hash'),
+    locale: text('locale').notNull().default('es'),
+    isAdmin: boolean('is_admin').notNull().default(false),
+    // Cuenta premium: a futuro de pago; al principio, admin y personas de confianza. Habilita tomar
+    // el control de un equipo bot y convertirlo en equipo humano (SPEC 7).
+    premium: boolean('premium').notNull().default(false),
+    /** Qué carreras se protegen sin pedirlo (E2, D-30; la 0048); por defecto, `guarded` (DD-01). */
+    spoilerScope: spoilerScopeEnum('spoiler_scope').notNull().default('guarded'),
+    /**
+     * Sube con cada cambio de lo conocido o de la guardia (E2, D-33; la 0048): la mitad de `Horizon.rev`
+     * y de la clave del memo de `computeHorizon`. Solo la escriben las cuatro funciones de `watch.ts`.
+     */
+    horizonRev: integer('horizon_rev').notNull().default(0),
+    /**
+     * La última petición con sesión (E2, §10.7; la 0048), escrita como mucho una vez por hora
+     * (`touchLastSeen`). No sirve al horizonte: la pide E7, y no se reconstruye hacia atrás.
+     */
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+    /** Confirmar antes de revelar (E2, DD-17; la 0048): `Don't ask again` lo pone a false. */
+    revealConfirm: boolean('reveal_confirm').notNull().default(true),
+    /** El modo del jugador (E3, D-00i; la 0054): claro por defecto (`GET` y `PUT /api/me/theme`). */
+    theme: themeEnum('theme').notNull().default('light'),
+    /** `pending` hasta que un administrador aprueba; `approved` después (docs/cuenta.md §4.9; la 0055). */
+    status: text('status').$type<UserStatus>().notNull().default('pending'),
+    /** Cuándo se aprobó; nula en las pendientes. La purga de DD-17 cuenta desde aquí (§15.4). */
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check('users_status', sql`${t.status} in ('pending', 'approved')`)],
+)
 
 /** Sesiones de better-auth (cookies respaldadas en Postgres). */
 export const sessions = pgTable('sessions', {
@@ -1322,4 +1335,25 @@ export const blockedNames = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('blocked_names_kind_norm_idx').on(t.kind, t.valueNorm)],
+)
+
+/**
+ * EL REGISTRO DEL PANEL (docs/cuenta.md §8.5; la 0055): una fila por campo que cambia un administrador,
+ * en la misma transacción que el cambio, como `ai_user_edits` de `twilightstruggle`. Sin IP.
+ */
+export const adminAudit = pgTable(
+  'admin_audit',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    /** Id de la cuenta que actúa, o `'token'` con `ADMIN_TOKEN` (8-d). */
+    actor: text('actor').notNull(),
+    /** `user.status`, `user.email`, `user.email_verified`, `user.is_admin`, `user.premium`, `user.birth_date`, `user.delete`, `team.name`, `team.kit_revert`, `blocklist.add`, `blocklist.remove`, `world.tick`, `world.advance` (§8.5). */
+    action: text('action').notNull(),
+    /** Sin clave ajena: la fila sobrevive al borrado del objetivo. */
+    targetUserId: uuid('target_user_id'),
+    /** `{ field, from, to }`; para un equipo, también `teamId`. */
+    detail: jsonb('detail').$type<AdminAuditDetail>().notNull(),
+  },
+  (t) => [index('admin_audit_at').on(t.at.desc()), index('admin_audit_target').on(t.targetUserId)],
 )

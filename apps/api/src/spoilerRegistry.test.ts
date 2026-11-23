@@ -38,7 +38,7 @@ import {
 
 /** N: ningún dato de juego (lo de toda `safe` que no dice otra cosa). */
 const N: VeilSpec = { by: ['N'] }
-/** Las catorce de administración: `horizon` con L y el mismo motivo (§11.3, primera nota; §14.5). */
+/** Las de administración: `horizon` con L y el mismo motivo (§11.3, primera nota; §14.5). */
 const ADMIN: VeilSpec = {
   by: ['L'],
   why: 'solo administradores (requireAdmin): ven el mundo con worldHorizon',
@@ -52,7 +52,8 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'GET /api/names/generate': ['safe', N], // l. 132
   // routes/geo.ts
   'GET /api/geo/country': ['safe', N], // l. 75
-  // routes/authProxy.ts: el comodín (l. 66-71) y las ocho de credenciales (l. 63, CREDENTIAL_AUTH_PATHS)
+  // routes/authProxy.ts: el comodín y las siete de credenciales (CREDENTIAL_AUTH_PATHS; change-email
+  // salió con el PR 5 de E4, docs/cuenta.md §5.5)
   'GET /api/auth/*': ['safe', N],
   'POST /api/auth/*': ['safe', N],
   'POST /api/auth/sign-in/email': ['safe', N],
@@ -61,13 +62,17 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'POST /api/auth/send-verification-email': ['safe', N],
   'POST /api/auth/reset-password': ['safe', N],
   'POST /api/auth/change-password': ['safe', N],
-  'POST /api/auth/change-email': ['safe', N],
   'POST /api/auth/delete-user': ['safe', N],
   // routes/admin.ts
   'GET /api/admin/whoami': ['horizon', ADMIN], // l. 64-65
   'GET /api/admin/users': ['horizon', ADMIN], // l. 75-76
   'PATCH /api/admin/users/:id': ['horizon', ADMIN], // l. 86-87
   'DELETE /api/admin/users/:id': ['horizon', ADMIN], // l. 104-105
+  // la cola de aprobación, el nombre de un equipo y el registro del panel (E4, PR 5)
+  'POST /api/admin/users/:id/approve': ['horizon', ADMIN],
+  'POST /api/admin/users/:id/reject': ['horizon', ADMIN],
+  'PATCH /api/admin/teams/:id': ['horizon', ADMIN],
+  'GET /api/admin/audit': ['horizon', ADMIN],
   'POST /admin/tick': ['horizon', ADMIN], // l. 128-129
   'POST /admin/advance': ['horizon', ADMIN], // l. 143-144
   'GET /api/admin/blocklist': ['horizon', ADMIN], // l. 157-158

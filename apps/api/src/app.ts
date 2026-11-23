@@ -5,7 +5,13 @@ import fastifyCompress from '@fastify/compress'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyRateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
-import { type Database, ProgressMemory, type TickSummary, isUserAdmin } from '@cyclingstar/db'
+import {
+  type Database,
+  ProgressMemory,
+  type TickSummary,
+  isUserAdmin,
+  userStatusOf,
+} from '@cyclingstar/db'
 import { BROADCAST, type SwitchMode } from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
@@ -18,7 +24,7 @@ import { validatorCompiler } from 'fastify-type-provider-zod'
 import type { Auth } from './auth.js'
 import type { GeoIpLookup } from './geoIp.js'
 import { apiError } from './http.js'
-import { adminRoutes } from './routes/admin.js'
+import { adminRoutes, verificationSender } from './routes/admin.js'
 import { authProxyRoutes } from './routes/authProxy.js'
 import { broadcastRoutes } from './routes/broadcast.js'
 import { calendarRoutes } from './routes/calendar.js'
@@ -305,13 +311,16 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       ...(deps.adminEmail ? { rootEmail: deps.adminEmail } : {}),
       ...(deps.onAdminTick ? { onAdminTick: deps.onAdminTick } : {}),
       ...(deps.onAdminAdvance ? { onAdminAdvance: deps.onAdminAdvance } : {}),
+      ...(deps.auth ? { sendVerification: verificationSender(deps.auth) } : {}),
     })
   }
 
   // Montaje de better-auth en /api/auth/* (Paso 9).
   if (deps.auth) {
+    const statusDb = deps.db
     void app.register(authProxyRoutes, {
       auth: deps.auth,
+      ...(statusDb ? { statusByEmail: (email: string) => userStatusOf(statusDb, { email }) } : {}),
       ...(deps.secureCookies !== undefined ? { secureCookies: deps.secureCookies } : {}),
     })
   }

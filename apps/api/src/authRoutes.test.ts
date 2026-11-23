@@ -4,7 +4,8 @@ import { startTestDb, type TestDb } from '@cyclingstar/db/test'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from './app.js'
-import { createAuth } from './auth.js'
+import { createAuth, disabledAuthPaths } from './auth.js'
+import { AUTH_ALLOWED_PATHS } from './security.js'
 
 /**
  * UNA RUTA QUE NO ESTÁ EN SU FORMA NORMAL DA 404, ANTES DEL LÍMITE Y DEL PROXY (docs/cuenta.md §7.2, 7-j).
@@ -115,5 +116,154 @@ describe('/api/auth/*: la ruta cruda tiene que ser la normalizada', () => {
       password: 'intento',
     })
     expect(status).toBe(401)
+  })
+})
+
+/**
+ * LA LISTA BLANCA Y LOS DOS CERROJOS (docs/cuenta.md §8.1; D-29, X-14, 8-a, 8-g, 8-l). El proxy solo
+ * deja pasar las once rutas de `AUTH_ALLOWED_PATHS`; `disabledPaths` cierra lo demás dentro de
+ * better-auth (salvo `/verify-email`, que usa la ruta interna de §5.2), y el `hooks.before` cierra las
+ * plantillas con parámetros. Los ganchos corren también en `auth.api.*`, así que lo que el servidor
+ * llama por dentro (`verifyPassword` para la exportación, `revokeOtherSessions` para cerrar las otras)
+ * tiene que seguir funcionando.
+ */
+describe('/api/auth/*: la lista blanca', () => {
+  let tdb: TestDb
+  let app: FastifyInstance
+  let auth: ReturnType<typeof createAuth>
+  const BASE = 'http://localhost:3000'
+  const EMAIL = 'lista@example.com'
+  const PASSWORD = 'contrasena-larga'
+  const poolBefore = process.env.DB_POOL_MAX
+
+  beforeAll(async () => {
+    // PGlite admite UNA sesión (testDb.ts), y el correo de better-auth sale en segundo plano.
+    process.env.DB_POOL_MAX = '1'
+    tdb = await startTestDb()
+    auth = createAuth(tdb.db, {
+      secret: 's'.repeat(32),
+      baseURL: BASE,
+      mailer: { send: async () => true },
+    })
+    app = buildApp({ db: tdb.db, migrationsApplied: true, serveWeb: false, auth })
+    await app.ready()
+  }, 120_000)
+
+  afterAll(async () => {
+    await app?.close()
+    await tdb?.close()
+    if (poolBefore === undefined) delete process.env.DB_POOL_MAX
+    else process.env.DB_POOL_MAX = poolBefore
+  })
+
+  const pedir = (method: 'GET' | 'POST', path: string, cookie?: string) =>
+    app.inject({
+      method,
+      url: `/api/auth${path}`,
+      headers: {
+        origin: BASE,
+        ...(cookie ? { cookie } : {}),
+        ...(method === 'POST' ? { 'content-type': 'application/json' } : {}),
+      },
+      ...(method === 'POST' ? { payload: '{}' } : {}),
+    })
+
+  /** Todas las plantillas de `auth.api`, con los parámetros sustituidos por `x`. */
+  const rutasDeBetterAuth = (): string[] =>
+    [
+      ...new Set(
+        Object.values(auth.api as Record<string, { path?: string }>)
+          .map((e) => e.path)
+          .filter((p): p is string => typeof p === 'string'),
+      ),
+    ].sort()
+
+  const permitidas = new Set<string>(AUTH_ALLOWED_PATHS.map((r) => `${r.method} ${r.path}`))
+  const conX = (p: string) => p.replace(/:[^/]+/g, 'x')
+
+  it('son once', () => {
+    expect(AUTH_ALLOWED_PATHS).toHaveLength(11)
+  })
+
+  it('todo punto de auth.api fuera de la lista da 404 por HTTP, por GET y por POST', async () => {
+    const rutas = rutasDeBetterAuth()
+    expect(rutas.length).toBeGreaterThan(20)
+    for (const ruta of rutas) {
+      for (const method of ['GET', 'POST'] as const) {
+        if (permitidas.has(`${method} ${ruta}`)) continue
+        const res = await pedir(method, conX(ruta))
+        expect(res.statusCode, `${method} ${ruta}`).toBe(404)
+      }
+    }
+  })
+
+  it('las once llegan a better-auth: 200 o el error esperado, nunca 404', async () => {
+    for (const { method, path } of AUTH_ALLOWED_PATHS) {
+      const res = await pedir(method, conX(path))
+      expect(res.statusCode, `${method} ${path}`).not.toBe(404)
+    }
+  })
+
+  it('change-email, update-user y /callback/x dan 404', async () => {
+    for (const ruta of ['/change-email', '/update-user', '/callback/x', '/verify-password']) {
+      expect((await pedir('POST', ruta)).statusCode, ruta).toBe(404)
+    }
+    expect((await pedir('GET', '/callback/x')).statusCode).toBe(404)
+  })
+
+  it('las variantes de una ruta buena tampoco pasan: /sign-in/email/, //sign-in/email, /Sign-in/email', async () => {
+    for (const ruta of ['/sign-in/email/', '//sign-in/email', '/Sign-in/email']) {
+      expect((await pedir('POST', ruta)).statusCode, ruta).toBe(404)
+    }
+  })
+
+  it('el segundo cerrojo: sin el proxy, better-auth da 404 a lo cerrado y deja /verify-email', async () => {
+    const cerradas = disabledAuthPaths(auth.api as Record<string, { path?: string }>)
+    expect(cerradas).toContain('/change-email')
+    expect(cerradas).toContain('/update-user')
+    expect(cerradas).not.toContain('/verify-email')
+    for (const ruta of cerradas) {
+      for (const method of ['GET', 'POST'] as const) {
+        const res = await auth.handler(
+          new Request(`${BASE}/api/auth${conX(ruta)}`, {
+            method,
+            headers: { origin: BASE, 'content-type': 'application/json' },
+            ...(method === 'POST' ? { body: '{}' } : {}),
+          }),
+        )
+        expect(res.status, `${method} ${ruta}`).toBe(404)
+      }
+    }
+    const verify = await auth.handler(new Request(`${BASE}/api/auth/verify-email?token=x`))
+    expect(verify.status).not.toBe(404)
+  })
+
+  it('desde el servidor siguen valiendo verifyPassword (la exportación) y revokeOtherSessions (sign-out-others)', async () => {
+    await auth.api.signUpEmail({ body: { name: '', email: EMAIL, password: PASSWORD } })
+    await tdb.client`update users set email_verified = true, status = 'approved' where email = ${EMAIL}`
+    const entrar = async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/sign-in/email',
+        headers: { origin: BASE, 'content-type': 'application/json' },
+        payload: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+      })
+      expect(res.statusCode).toBe(200)
+      const setCookie = res.headers['set-cookie']
+      const lista = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : []
+      return lista.map((c) => c.split(';')[0]).join('; ')
+    }
+    const una = await entrar()
+    await entrar()
+    const headers = new Headers({ cookie: una, origin: BASE })
+    await expect(
+      auth.api.verifyPassword({ body: { password: PASSWORD }, headers }),
+    ).resolves.toMatchObject({ status: true })
+    await expect(auth.api.revokeOtherSessions({ headers })).resolves.toMatchObject({
+      status: true,
+    })
+    const [quedan] = await tdb.client<{ n: number }[]>`
+      select count(*)::int as n from sessions s join users u on u.id = s.user_id where u.email = ${EMAIL}`
+    expect(quedan!.n).toBe(1)
   })
 })

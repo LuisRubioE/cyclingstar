@@ -260,6 +260,7 @@ export {
   releaseUserToWorld,
   setUserPremium,
   takeOverBotTeam,
+  teamNameProblem,
   updateOwnedTeam,
   type AccountControl,
   type TakeOverResult,
@@ -267,15 +268,35 @@ export {
   type TeamEditResult,
 } from './teamControl.js'
 export {
+  addBlockedAsAdmin,
+  approvePendingUser,
   deleteUserAsAdmin,
   isRootAdmin,
   isRootAdminUser,
   isUserAdmin,
   listUsersForAdmin,
+  rejectPendingUser,
+  removeBlockedAsAdmin,
+  renameTeamAsAdmin,
+  setUserPremiumAsAdmin,
+  teamOwnerOf,
   updateUserAsAdmin,
+  userStatusOf,
   type AdminUserPatch,
+  type AdminUserPatchResult,
   type AdminUserRow,
+  type DecideResult,
+  type TeamRenameResult,
 } from './adminUsers.js'
+export {
+  ADMIN_AUDIT_MAX_ROWS,
+  forgetAuditEmails,
+  listAdminAudit,
+  writeAdminAudit,
+  type AdminAuditAction,
+  type AdminAuditEntry,
+  type AdminAuditRow,
+} from './adminAudit.js'
 export { isRiderNameTaken, generateUniqueRiderName } from './nameService.js'
 export {
   addBlocked,

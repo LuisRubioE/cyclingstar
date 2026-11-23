@@ -407,6 +407,18 @@ describe('la ficha del equipo (§17.21; PR 21k)', () => {
     expect(html({ ...control, premium: false })).not.toContain('Take over this team')
   })
 
+  /* `Rename team` también en la página del equipo para un administrador (docs/cuenta.md §8.5, 8-j). */
+  it('Rename team, solo para un administrador con sesión', () => {
+    const comoAdmin = pinta('/world/teams/t1', '/world/teams/:id', <Team />, [
+      [key('team', 't1'), DETALLE],
+      [['team-control'], null],
+      [key('team-news', 't1', false), NOTICIAS],
+      [['admin-whoami'], { ok: true, via: 'session', userId: 'u-admin' }],
+    ])
+    expect(pieza(comoAdmin, 'Panel', 'Admin')).toContain(`aria-label="Rename team ${DETALLE.name}"`)
+    expect(html(null)).not.toContain('Rename team')
+  })
+
   it('las noticias, en su Panel, con su día en meta y sin la paleta', () => {
     const s = html(null)
     const panel = pieza(s, 'Panel', 'Recent news')

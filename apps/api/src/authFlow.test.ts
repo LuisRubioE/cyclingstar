@@ -19,6 +19,25 @@ import { createMailQueue } from './mailQueue.js'
  * La base es PGlite (Postgres en proceso, sin Docker) con TODAS las migraciones aplicadas, que es
  * la misma que usan los tests de integración de `packages/db`.
  */
+/*
+  PGlite admite UNA sesión (testDb.ts), y los correos de better-auth, en segundo plano, leen el estado de la
+  cuenta (docs/cuenta.md §4.9) mientras sigue la petición siguiente: una sola conexión para todo el fichero.
+*/
+const poolBefore = process.env.DB_POOL_MAX
+beforeAll(() => {
+  process.env.DB_POOL_MAX = '1'
+})
+afterAll(() => {
+  if (poolBefore === undefined) delete process.env.DB_POOL_MAX
+  else process.env.DB_POOL_MAX = poolBefore
+})
+
+/**
+ * Aquí las cuentas cuentan como aprobadas (`statusOf`): lo que se sella es el camino de los correos de una
+ * cuenta que ya puede jugar. La puerta del registro por aprobación la sella `signupApproval.test.ts`.
+ */
+const APROBADA = { statusOf: async () => 'approved' as const }
+
 describe('correo: el camino completo contra una base real', () => {
   let tdb: TestDb
   let auth: ReturnType<typeof createAuth>
@@ -54,7 +73,13 @@ describe('correo: el camino completo contra una base real', () => {
         return true
       },
     }
-    auth = createAuth(tdb.db, { secret: 's'.repeat(32), baseURL: BASE, mailer, mailQueue: queue })
+    auth = createAuth(tdb.db, {
+      secret: 's'.repeat(32),
+      baseURL: BASE,
+      mailer,
+      mailQueue: queue,
+      ...APROBADA,
+    })
   }, 120_000)
 
   afterAll(async () => {
@@ -194,56 +219,23 @@ describe('correo: el camino completo contra una base real', () => {
   })
 
   /*
-    El cambio de correo con la dirección actual YA confirmada: dos enlaces. El primero, a la VIEJA,
-    aprueba (y frena a un intruso); el segundo, a la NUEVA, la verifica y es el que aplica el cambio.
-    Hasta abrir el segundo, la cuenta sigue con su correo de siempre.
+    El cambio de correo de autoservicio ya no existe (docs/cuenta.md §5.5): lo hace un administrador desde
+    el panel. Incluso sin el proxy delante, better-auth da 404 (`disabledPaths`) y no sale nada.
   */
-  it('cambiar de correo exige aprobarlo en la vieja y verificar la nueva', async () => {
+  it('change-email da 404 y no manda nada', async () => {
     const login = await post('/sign-in/email', {
       email: 'luis@example.com',
       password: 'contrasena-nueva',
     })
     expect(login.status).toBe(200)
-    const cookie = cookieOf(login)
-    expect(cookie).not.toBe('')
-
     sent.length = 0
     const res = await post(
       '/change-email',
       { newEmail: 'otro@example.com', callbackURL: '/verify-email' },
-      cookie,
+      cookieOf(login),
     )
-    expect(res.status).toBe(200)
-    expect(sent).toHaveLength(1)
-    expect(sent[0]!.to).toBe('luis@example.com')
-    expect(sent[0]!.text).toContain('otro@example.com')
-
-    const aviso = linkIn(sent[0])
-    sent.length = 0
-    const aprobado = await open(aviso, cookie)
-    expect(aprobado.status).toBe(302)
-    expect(aprobado.headers.get('location')).toBe('/verify-email?step=approved')
-    expect(sent).toHaveLength(1)
-    expect(sent[0]!.to).toBe('otro@example.com')
-    // El segundo enlace vuelve a la página de «hecho», no a la de «falta un paso».
-    expect(new URL(linkIn(sent[0])).searchParams.get('callbackURL')).toBe('/verify-email')
-
-    // Aún no ha cambiado: con el correo nuevo no se entra.
-    const antes = await post('/sign-in/email', {
-      email: 'otro@example.com',
-      password: 'contrasena-nueva',
-    })
-    expect(antes.status).toBe(401)
-
-    const hecho = await open(linkIn(sent[0]), cookie)
-    expect(hecho.status).toBe(302)
-    expect(hecho.headers.get('location')).toBe('/verify-email')
-
-    const despues = await post('/sign-in/email', {
-      email: 'otro@example.com',
-      password: 'contrasena-nueva',
-    })
-    expect(despues.status).toBe(200)
+    expect(res.status).toBe(404)
+    expect(sent).toHaveLength(0)
   })
 
   /*
@@ -533,6 +525,7 @@ describe('recuperar, sesiones y cuerpos: el PR 3 de E4', () => {
         },
       },
       mailQueue: queue,
+      ...APROBADA,
     })
     app = buildApp({ migrationsApplied: true, serveWeb: false, auth })
   }, 120_000)

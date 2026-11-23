@@ -27,6 +27,8 @@ interface LoginState {
   readonly error: string | null
   /** el correo al que fue el enlace nuevo, el del envío; null, sin aviso */
   readonly unverified: string | null
+  /** la cuenta espera que un administrador la apruebe (403 `ACCOUNT_PENDING`, docs/cuenta.md §4.9) */
+  readonly pending: boolean
   /** el aviso de llegada (docs/cuenta.md §12.4): el de la contraseña nueva; si no, el del estado del router */
   readonly arrival: Arrival | null
   /** los segundos que quedan tras un 429 */
@@ -43,6 +45,7 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
   const [problem, setProblem] = useState(initial.problem ?? null)
   const [error, setError] = useState<string | null>(initial.error ?? null)
   const [unverified, setUnverified] = useState<string | null>(initial.unverified ?? null)
+  const [pending, setPending] = useState(initial.pending ?? false)
   const [loading, setLoading] = useState(false)
 
   // el foco, al campo que falta: su error se oye con él
@@ -55,6 +58,7 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
     if (loading) return
     setError(null)
     setUnverified(null)
+    setPending(false)
     const falta = loginProblem(email, password)
     setProblem(falta)
     if (falta !== null) return
@@ -66,6 +70,11 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
       // el intento (`sendOnSignIn`), así que aquí sólo hay que decirlo.
       if (fallo.code === 'EMAIL_NOT_VERIFIED') {
         setUnverified(email)
+        return
+      }
+      // La contraseña era buena, pero nadie la ha aprobado todavía: no sale ningún correo (§4.9).
+      if (fallo.code === 'ACCOUNT_PENDING') {
+        setPending(true)
         return
       }
       // un 429 dice cuánto esperar, nunca «contraseña mala» (§12.3, captura 35)
@@ -122,6 +131,12 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
             <p role="alert" className="text-meta text-bad">
               {error}
             </p>
+          )}
+          {pending && (
+            <Notice tone="info" title="Your account is waiting for approval" role="alert">
+              An administrator reviews new accounts by hand. When yours is approved, we&apos;ll
+              email you a link to finish signing up.
+            </Notice>
           )}
           {unverified !== null && (
             <Notice tone="warn" title="Confirm your email first" role="alert">

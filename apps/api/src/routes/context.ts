@@ -45,6 +45,11 @@ export interface AdminRouteContext {
   rootEmail?: string
   onAdminTick?: () => Promise<TickSummary>
   onAdminAdvance?: (days: number) => Promise<TickSummary>
+  /**
+   * Manda el `verify_signup` de una cuenta recién aprobada (docs/cuenta.md §4.9): better-auth, sin
+   * sesión, encuentra la cuenta sin confirmar y lo manda. Sin better-auth, aprobar no manda nada.
+   */
+  sendVerification?: (email: string) => Promise<void>
 }
 
 /** Un plugin de rutas de dominio. */

@@ -86,6 +86,16 @@ describe('entrar (§17.21; PR 21j)', () => {
     expect(pinta()).not.toContain('data-ui="Notice"')
   })
 
+  /* La cuenta que espera aprobación (docs/cuenta.md §4.9): el 403 `ACCOUNT_PENDING`, con el texto de §12.3. */
+  it('con la cuenta pendiente, un Notice en alert: Your account is waiting for approval', () => {
+    const notice = pieza(pinta({ pending: true }), 'Notice', 'Your account is waiting for approval')
+    expect(notice).toMatch(/role="alert"/)
+    expect(notice).toContain(
+      'An administrator reviews new accounts by hand. When yours is approved, we&#x27;ll email you a link to finish signing up.',
+    )
+    expect(pinta()).not.toContain('waiting for approval')
+  })
+
   it('ningún campo ni botón a mano, y ninguna clase de la paleta ni la caja de antes', () => {
     const html = pinta({ unverified: 'ana@example.com', error: 'x' })
     expect(cuantas(html, /<input/)).toBe(2)

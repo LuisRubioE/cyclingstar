@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@cyclingstar/db'
-import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S } from '@cyclingstar/shared'
+import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S, type UserStatus } from '@cyclingstar/shared'
 import { createAuth, trustedOriginsFor, withCallbackURL } from './auth.js'
 import type { MailMessage, Mailer } from './mailer.js'
 
@@ -25,13 +25,14 @@ function spyMailer(): Mailer & { sent: MailMessage[] } {
   }
 }
 
-function auth(mailer: Mailer) {
+function auth(mailer: Mailer, status: UserStatus = 'approved') {
   // La base de datos no se toca: sólo se leen las opciones con las que se construyó better-auth,
-  // que es donde viven los tres callbacks de correo.
+  // que es donde viven los callbacks de correo. El estado de la cuenta se finge (§4.9).
   return createAuth({} as unknown as Database, {
     secret: 's'.repeat(32),
     baseURL: 'https://www.cyclingstar.app',
     mailer,
+    statusOf: async () => status,
   })
 }
 
@@ -69,19 +70,25 @@ describe('createAuth: correos', () => {
     expect(mailer.sent[0]!.text).toContain('verify-email?token=tok')
   })
 
-  /* El aviso de cambio va a la dirección ACTUAL: es lo que permite frenar un cambio no pedido. */
-  it('el aviso de cambio de correo va a la dirección vieja y nombra la nueva', async () => {
+  /* El registro por aprobación (docs/cuenta.md §4.9): a una cuenta pendiente no le sale nada. */
+  it('una cuenta pendiente no recibe ni el enlace de verificación ni el de recuperación', async () => {
     const mailer = spyMailer()
-    const opciones = auth(mailer).options
-    await opciones.user!.changeEmail!.sendChangeEmailConfirmation!({
+    const opciones = auth(mailer, 'pending').options
+    await opciones.emailVerification!.sendVerificationEmail!({
       user: USER,
-      newEmail: 'otro@example.com',
-      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2Faccount',
+      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok',
       token: 'tok',
     })
+    await opciones.emailAndPassword!.sendResetPassword!({
+      user: USER,
+      url: 'https://www.cyclingstar.app/api/auth/reset-password/tok',
+      token: 'tok',
+    })
+    expect(mailer.sent).toHaveLength(0)
+  })
 
-    expect(mailer.sent[0]!.to).toBe('luis@example.com')
-    expect(mailer.sent[0]!.text).toContain('otro@example.com')
+  it('el cambio de correo de autoservicio está apagado (§5.5)', () => {
+    expect(auth(spyMailer()).options.user!.changeEmail!.enabled).toBe(false)
   })
 
   /*
@@ -109,17 +116,6 @@ describe('createAuth: correos', () => {
     })
     expect(mailer.sent[0]!.text).toContain('callbackURL=%2Fverify-email')
     expect(mailer.sent[0]!.text).not.toContain('step%3Dapproved')
-  })
-
-  it('el aviso de cambio vuelve a la página que dice «falta el segundo correo»', async () => {
-    const mailer = spyMailer()
-    await auth(mailer).options.user!.changeEmail!.sendChangeEmailConfirmation!({
-      user: USER,
-      newEmail: 'otro@example.com',
-      url: 'https://www.cyclingstar.app/api/auth/verify-email?token=tok&callbackURL=%2Fverify-email',
-      token: 'tok',
-    })
-    expect(mailer.sent[0]!.text).toContain('callbackURL=%2Fverify-email%3Fstep%3Dapproved')
   })
 
   it('las cookies de sesión son seguras tras https y no lo son en local', () => {

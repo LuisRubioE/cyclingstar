@@ -4,8 +4,8 @@ import { CheckInbox, Register } from './Register'
 
 /**
  * CREAR LA CUENTA CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21j): la cabecera en
- * `PageHeader`, el formulario en el `Panel` que contesta a la 32 (§7.3), y después, mirar el correo, con su
- * `Send it again`.
+ * `PageHeader`, el formulario en el `Panel` que contesta a la 32 (§7.3), y después, desde el PR 5 de E4, la
+ * petición recibida (`CheckInbox`), sin `Send it again`.
  */
 
 const pinta = (initial?: NonNullable<Parameters<typeof Register>[0]>['initial']) =>
@@ -68,60 +68,32 @@ describe('crear la cuenta (§17.21; PR 21j)', () => {
   })
 })
 
-describe('mirar el correo (§17.21; PR 21j)', () => {
-  const pintaBuzon = (resend?: 'sending' | 'sent' | 'failed') =>
-    pintaEn(
-      '/register',
-      <CheckInbox
-        email="ana@example.com"
-        {...(resend === undefined ? {} : { initialResend: resend })}
-      />,
-    )
+describe('la petición recibida (docs/cuenta.md §4.9 y §5.3; PR 5)', () => {
+  const pintaBuzon = () => pintaEn('/register', <CheckInbox email="ana@example.com" />)
 
-  it('su cabecera, el único h1, y su Panel, que contesta, con el correo al que fue el enlace', () => {
+  it('su cabecera, Request received, el único h1, y su Panel, que contesta, con el correo al que irá el enlace', () => {
     const html = pintaBuzon()
-    expect(titulo(html)).toBe('Check your inbox')
+    expect(titulo(html)).toBe('Request received')
     expect(respuestas(html)).toBe(1)
-    expect(html).toMatch(/<section data-ui="Panel"[^>]*aria-label="The link we sent"/)
+    expect(html).toMatch(/<section data-ui="Panel"[^>]*aria-label="Your request"/)
     expect(html).toContain(
-      'We have sent a link to <strong class="font-semibold text-ink">ana@example.com</strong>. Open it to confirm your email and start playing. It expires in one hour.',
+      'An administrator reviews new accounts by hand, a few each day. When yours is approved, we&#x27;ll email <strong class="font-semibold text-ink">ana@example.com</strong> a link to finish signing up.',
     )
-    expect(html).toContain(
-      'Nothing there? Check the spam folder, or make sure the address above is right.',
-    )
+    expect(html).toContain('Nothing yet? Check the spam folder once you&#x27;ve been approved.')
     expect(pieza(html, 'TextLink', 'Log in')).toMatch(/href="\/login"/)
   })
 
-  it('reenviarlo, un Button secundario en reposo, con su región de estado vacía y en el lector desde el principio', () => {
+  it('sin Send it again: no hay nada que reenviar hasta que un administrador apruebe', () => {
     const html = pintaBuzon()
-    expect(pieza(html, 'Button', 'Send it again')).toMatch(
-      /data-variant="secondary" data-state="ready"/,
-    )
-    expect(html).toMatch(/<p role="status" class="[^"]*empty:sr-only[^"]*"><\/p>/)
+    expect(html).not.toContain('Send it again')
     expect(html).not.toContain('role="alert"')
-  })
-
-  it('enviando, ocupado y sin decir nada todavía; enviado, lo dice su región; y si el servidor no lo manda, en alert', () => {
-    const enviando = pintaBuzon('sending')
-    expect(pieza(enviando, 'Button', 'Send it again')).toMatch(/aria-busy="true"/)
-    expect(enviando).toMatch(/<p role="status"[^>]*><\/p>/)
-    const enviado = pintaBuzon('sent')
-    expect(enviado).toMatch(/<p role="status"[^>]*>Sent again\. Give it a minute to arrive\.<\/p>/)
-    // enviado o fallido, el botón vuelve a estar en reposo, para mandar otro
-    expect(pieza(enviado, 'Button', 'Send it again')).toMatch(/data-state="ready"/)
-    const fallo = pintaBuzon('failed')
-    expect(fallo).toMatch(
-      /<p role="alert"[^>]*>Could not send it again\. Try again in a few minutes\.<\/p>/,
-    )
-    expect(fallo).toMatch(/<p role="status"[^>]*><\/p>/)
-    expect(pieza(fallo, 'Button', 'Send it again')).toMatch(/data-state="ready"/)
   })
 })
 
 describe('Register y CheckInbox en E4 (docs/cuenta.md §5.3 y §12.3; PR 1)', () => {
   it('con el correo que espera (cs.pendingEmail), CheckInbox y no el formulario: sobrevive a recargar', () => {
     const html = pinta({ pending: 'ana@example.com' })
-    expect(titulo(html)).toBe('Check your inbox')
+    expect(titulo(html)).toBe('Request received')
     expect(html).toContain('ana@example.com')
     expect(html).not.toContain('<form')
   })
@@ -133,14 +105,6 @@ describe('Register y CheckInbox en E4 (docs/cuenta.md §5.3 y §12.3; PR 1)', ()
     expect(html).toContain(
       'Already have an account with this email? Nothing is sent: log in or reset your password.',
     )
-  })
-
-  it('reenviar tras un 429: el botón espera con su cuenta atrás', () => {
-    const html = pintaEn(
-      '/register',
-      <CheckInbox email="ana@example.com" initialResend="failed" initialWaitS={238} />,
-    )
-    expect(html).toContain('You can try again in 3:58.')
   })
 
   it('crear la cuenta tras un 429: el botón deshabilitado con su cuenta atrás; la contraseña con Show', () => {

@@ -26,6 +26,8 @@ const POR_CODIGO: Readonly<Record<string, string | null>> = {
   INVALID_PASSWORD: "That's not your current password.",
   // el `Notice` de §5.3, con el correo del envío: lo pinta `Login`
   EMAIL_NOT_VERIFIED: null,
+  // el `Notice` de §4.9, la cuenta que espera aprobación: lo pinta `Login`
+  ACCOUNT_PENDING: null,
   PASSWORD_TOO_SHORT: 'Use at least 8 characters.',
   PASSWORD_TOO_LONG: 'Your password can be at most 128 characters.',
   INVALID_TOKEN: ENLACE_GASTADO,

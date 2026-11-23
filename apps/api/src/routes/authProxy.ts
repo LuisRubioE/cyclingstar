@@ -1,7 +1,13 @@
+import type { UserStatus } from '@cyclingstar/shared'
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import type { Auth } from '../auth.js'
 import { apiError } from '../http.js'
-import { AUTH_RATE_LIMIT, CREDENTIAL_AUTH_PATHS, CREDENTIAL_RATE_LIMIT } from '../security.js'
+import {
+  AUTH_RATE_LIMIT,
+  CREDENTIAL_AUTH_PATHS,
+  CREDENTIAL_RATE_LIMIT,
+  isAllowedAuthPath,
+} from '../security.js'
 import { viewerCookieHeader } from '../viewerCookie.js'
 import { deleteSessionByToken, isPastSessionCeiling, toWebHeaders } from './context.js'
 
@@ -9,6 +15,8 @@ export interface AuthProxyContext {
   auth: Auth
   /** APP_URL va por https: la cookie que se borra lleva Secure, como la que se puso (E2, §10.8). */
   secureCookies?: boolean
+  /** El estado de una cuenta por su correo, para el 403 `ACCOUNT_PENDING` (docs/cuenta.md §4.9). */
+  statusByEmail?: (email: string) => Promise<UserStatus | null>
 }
 
 /**
@@ -28,6 +36,23 @@ const CLEARS_VIEWER_COOKIE: ReadonlySet<string> = new Set([
  * todo 200 de `sign-up/email` sale con este cuerpo, igual byte a byte; la web solo lee `error`.
  */
 const SIGN_UP_PATH = '/api/auth/sign-up/email'
+const SIGN_IN_PATH = '/api/auth/sign-in/email'
+
+/**
+ * ENTRAR ESTANDO PENDIENTE (docs/cuenta.md §4.9). better-auth comprueba la contraseña antes que la
+ * confirmación y responde 403 `EMAIL_NOT_VERIFIED`; solo en ese 403 (la contraseña ya era buena, así que
+ * no delata nada a quien no la sabe) el proxy mira el estado y, si la cuenta espera, cambia el código.
+ */
+export const ACCOUNT_PENDING_BODY = JSON.stringify({
+  code: 'ACCOUNT_PENDING',
+  message: 'Your account is waiting for approval.',
+})
+
+/** El correo del cuerpo de `sign-in/email`, si lo trae. */
+function correoDe(cuerpo: unknown): string | null {
+  if (cuerpo === null || typeof cuerpo !== 'object' || !('email' in cuerpo)) return null
+  return typeof cuerpo.email === 'string' ? cuerpo.email : null
+}
 export const SIGN_UP_OK_BODY = '{"token":null,"user":null}'
 
 /**
@@ -94,8 +119,15 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
 
   // Antes del límite y del proxy: los ganchos del plugin van antes que los que @fastify/rate-limit
   // cuelga de cada ruta, así que el atajo ni gasta ni burla ningún contador.
+  // Y la lista blanca (§8.1): lo que no está en `AUTH_ALLOWED_PATHS` no llega a better-auth.
   app.addHook('onRequest', async (request, reply) => {
-    if (!isNormalAuthPath(request.raw.url ?? '')) {
+    const raw = request.raw.url ?? ''
+    if (!isNormalAuthPath(raw)) {
+      return reply.status(404).send(apiError('no_encontrado'))
+    }
+    const corte = raw.indexOf('?')
+    const ruta = (corte === -1 ? raw : raw.slice(0, corte)).replace(/^\/api\/auth/, '')
+    if (!isAllowedAuthPath(request.method, ruta)) {
       return reply.status(404).send(apiError('no_encontrado'))
     }
   })
@@ -128,6 +160,17 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
       reply.header('set-cookie', viewerCookieHeader(null, ctx.secureCookies ?? false))
     }
     const body = await response.text()
+    if (response.status === 403 && url.pathname === SIGN_IN_PATH && ctx.statusByEmail) {
+      const email = correoDe(request.body)
+      if (
+        body.includes('"EMAIL_NOT_VERIFIED"') &&
+        email !== null &&
+        (await ctx.statusByEmail(email)) === 'pending'
+      ) {
+        reply.header('content-type', 'application/json')
+        return reply.send(ACCOUNT_PENDING_BODY)
+      }
+    }
     if (response.status === 200 && url.pathname === SIGN_UP_PATH) {
       reply.header('content-type', 'application/json')
       return reply.send(SIGN_UP_OK_BODY)
