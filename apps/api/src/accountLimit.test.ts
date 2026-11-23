@@ -156,7 +156,7 @@ describe('límites por cuenta, aparato y sesión, contra una base real', () => {
       (await post('/request-password-reset', { email, redirectTo: '/reset-password' })).statusCode,
     ).toBe(200)
     await cola.drain()
-    const token = /\/api\/auth\/reset-password\/([^?\s]+)\?/.exec(sent[0]!.text)?.[1]
+    const token = /\/reset-password#token=(\w+)/.exec(sent[0]!.text)?.[1]
     expect(token).toBeDefined()
     const nueva = 'contrasena-nueva'
     const reset = await post('/reset-password', { token, newPassword: nueva })

@@ -147,6 +147,8 @@ const EN_SU_TEST: Readonly<Record<string, string>> = {
   'PUT /api/me/spoiler-scope': 'routes/me.test.ts',
   'POST /api/races/:raceId/stages/:day/broadcast/finish': 'routes/broadcast.test.ts',
   'POST /api/races/:raceId/stages/:day/broadcast/seek': 'routes/broadcast.test.ts',
+  // sin cuenta por confirmar en este mundo; su 200 lo pide el test de los enlaces (E4, PR 8)
+  'POST /api/account/verify-email': 'emailLinks.test.ts',
 }
 
 /** Las claves de `a` que no están en `b`, a cualquier profundidad: lo que el serializador quitaría. */

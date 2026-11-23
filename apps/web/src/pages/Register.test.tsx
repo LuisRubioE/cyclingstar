@@ -77,8 +77,10 @@ describe('la petición recibida (docs/cuenta.md §4.9 y §5.3; PR 5)', () => {
     expect(respuestas(html)).toBe(1)
     expect(html).toMatch(/<section data-ui="Panel"[^>]*aria-label="Your request"/)
     expect(html).toContain(
-      'An administrator reviews new accounts by hand, a few each day. When yours is approved, we&#x27;ll email <strong class="font-semibold text-ink">ana@example.com</strong> a link to finish signing up.',
+      'An administrator reviews new accounts by hand, a few each day. When yours is approved, we&#x27;ll email <strong class="font-semibold text-ink">ana@example.com</strong> a link to finish signing up. The link expires in 24 hours.',
     )
+    // la vida del enlace de confirmar es EMAIL_JWT_TTL_S (docs/cuenta.md §5.1 y §5.3; PR 8)
+    expect(html).not.toContain('one hour')
     expect(html).toContain('Nothing yet? Check the spam folder once you&#x27;ve been approved.')
     expect(pieza(html, 'TextLink', 'Log in')).toMatch(/href="\/login"/)
   })

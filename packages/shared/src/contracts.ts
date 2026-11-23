@@ -69,6 +69,13 @@ export const teamKitSchema = kitCodeSchema
 export const okResponseSchema = z.object({ ok: z.boolean() })
 export type OkResponse = z.infer<typeof okResponseSchema>
 
+/**
+ * El 200 de `POST /api/account/verify-email` (docs/cuenta.md §5.2): el `status` de better-auth. Si abrió
+ * sesión lo dice su `Set-Cookie`, y la web pregunta por ella antes de hablar.
+ */
+export const verifyEmailResponseSchema = z.object({ status: z.boolean() })
+export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>
+
 /** Respuesta de un guardado en bloque: cuántos elementos aceptó el servidor. */
 export const savedResponseSchema = z.object({ ok: z.boolean(), saved: z.number().int() })
 export type SavedResponse = z.infer<typeof savedResponseSchema>

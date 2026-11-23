@@ -39,7 +39,7 @@ export function CheckInbox({
           <p className="text-body text-ink-2">
             An administrator reviews new accounts by hand, a few each day. When yours is approved,
             we&apos;ll email <strong className="font-semibold text-ink">{email}</strong> a link to
-            finish signing up. The link expires in one hour.
+            finish signing up. The link expires in 24 hours.
           </p>
           <p className="text-meta text-ink-2">
             Nothing yet? Check the spam folder once you&apos;ve been approved.

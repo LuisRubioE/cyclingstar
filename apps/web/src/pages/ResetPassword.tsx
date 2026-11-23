@@ -6,22 +6,29 @@ import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
-import { readResetLink } from '../domain/authLinks'
+import { authErrorText } from '../domain/authErrors'
+import { forgetLinkToken, readEmailLink } from '../domain/authLinks'
 import { type FieldProblem, newPasswordProblem } from '../domain/entryForms'
 
 /**
- * Destino del enlace de recuperación: el servidor valida el token y redirige aquí con
- * `?token=…`, o con `?error=…` si el enlace ya no vale. Lo de leer eso está en `domain/authLinks`,
- * probado aparte; esta página sólo pinta el resultado.
+ * LA PÁGINA DE BOTÓN DE RECUPERAR LA CONTRASEÑA (docs/cuenta.md §5.2 y §5.4; D-12, I-04; PR 8 de E4).
  *
- * Con el sistema desde el 21j (E3, docs/visual.md §17.21): la cabecera en `PageHeader`; las dos contraseñas en
- * su `Field`, dentro del `Panel` que contesta, y guardarla en un `Button` ocupado mientras pregunta; lo que
- * falta lo dice su campo (`newPasswordProblem`), y lo que dice el servidor, en `role="alert"`; y el enlace que
- * ya no vale, lo que pasó y pedir otro, un `Button` primario.
+ * El correo trae `/reset-password#token=…`. La página lee el token del fragmento, lo borra de la barra y no
+ * cambia nada hasta que se guarda: `Save my new password` manda el token en el cuerpo de
+ * `POST /api/auth/reset-password`, nunca en la URL. Un solo campo con `Show` (sin `Repeat it`, principio 6).
+ * Al 200, `/login` con su final (`Password saved`). El token caducado o usado (`INVALID_TOKEN`) cambia la
+ * página a lo que pasó y sus dos salidas; sin token, la de pedir otro.
+ *
+ * El enlace viejo (`LEGACY_LINK_GRACE_DAYS`, hasta el PR 19) pasa por la API, que redirige aquí con
+ * `?token=…` o con `?error=…`: lo lee `readEmailLink`, como el nuevo.
  */
 
+/** Con el token, el enlace gastado (`INVALID_TOKEN`) o el incompleto (sin token). */
+export type ResetPhase = 'form' | 'expired' | 'incomplete'
+
 interface ResetState {
-  readonly problem: FieldProblem<'password' | 'confirm'> | null
+  readonly phase: ResetPhase
+  readonly problem: FieldProblem<'password'> | null
   readonly error: string | null
   /** los segundos que quedan tras un 429 */
   readonly waitS: number
@@ -29,25 +36,35 @@ interface ResetState {
 
 export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> } = {}) {
   const navigate = useNavigate()
-  const link = readResetLink(useLocation().search)
+  const location = useLocation()
+  // el token se lee una vez: la barra lo pierde enseguida (`forgetLinkToken`)
+  const [link] = useState(() => readEmailLink(location.hash, location.search))
+  const [phase, setPhase] = useState<ResetPhase>(
+    initial.phase ??
+      (link.kind === 'token' ? 'form' : link.kind === 'error' ? 'expired' : 'incomplete'),
+  )
   const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
   const [problem, setProblem] = useState(initial.problem ?? null)
   const [error, setError] = useState<string | null>(initial.error ?? null)
   const [loading, setLoading] = useState(false)
   const espera = useRetryWait(initial.waitS)
 
+  useEffect(() => {
+    forgetLinkToken(window.location, window.history)
+  }, [])
+
   // el foco, al campo que falta: su error se oye con él
   useEffect(() => {
-    if (problem !== null) document.getElementById(`reset-${problem.field}`)?.focus()
+    if (problem !== null) document.getElementById('reset-password')?.focus()
   }, [problem])
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     if (link.kind !== 'token' || loading) return
     setError(null)
-    const falta = newPasswordProblem(password, confirm)
-    setProblem(falta)
+    // un solo campo: la repetida es la misma
+    const falta = newPasswordProblem(password, password)
+    setProblem(falta === null ? null : { field: 'password', msg: falta.msg })
     if (falta !== null) return
     setLoading(true)
     const fallo = await authCall(() =>
@@ -55,6 +72,10 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
     )
     setLoading(false)
     if (fallo !== null) {
+      if (fallo.code === 'INVALID_TOKEN' || fallo.code === 'TOKEN_EXPIRED') {
+        setPhase('expired')
+        return
+      }
       setError(fallo.text)
       if (fallo.retryAfterS !== null) espera.start(fallo.retryAfterS, () => setError(null))
       return
@@ -64,21 +85,32 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
     navigate('/login', { state: { arrival: 'password-saved' } })
   }
 
-  const errorOf = (field: 'password' | 'confirm') =>
-    problem?.field === field ? { error: problem.msg } : {}
-
   return (
     <section className="mx-auto grid max-w-form gap-4">
       <PageHeader title="Choose a new password" />
       <Panel ariaLabel="Your new password" answer>
-        {link.kind === 'error' ? (
+        {phase !== 'form' ? (
           <div className="grid gap-3">
             <p role="alert" className="text-body text-bad">
-              {link.message}
+              {phase === 'expired'
+                ? authErrorText({ code: 'INVALID_TOKEN' }, 400, null)
+                : 'This link is incomplete.'}
             </p>
-            <Button to="/forgot-password" variant="primary" layout="justify-self-start">
-              Ask for a new link
-            </Button>
+            <p className="text-meta text-ink-2">
+              {phase === 'expired'
+                ? 'If you just set a new password, log in with it.'
+                : 'Open it again from the email, or ask for a new one.'}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {phase === 'expired' && (
+                <Button to="/login" variant="primary">
+                  Log in
+                </Button>
+              )}
+              <Button to="/forgot-password" variant={phase === 'expired' ? 'secondary' : 'primary'}>
+                Ask for a new link
+              </Button>
+            </div>
           </div>
         ) : (
           <form onSubmit={onSubmit} className="grid gap-3">
@@ -95,21 +127,7 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
                 setPassword(v)
                 setProblem(null)
               }}
-              {...errorOf('password')}
-            />
-            <Field
-              kind="input"
-              type="password"
-              id="reset-confirm"
-              label="Repeat it"
-              autoComplete="new-password"
-              reveal
-              value={confirm}
-              onChange={(v) => {
-                setConfirm(v)
-                setProblem(null)
-              }}
-              {...errorOf('confirm')}
+              {...(problem !== null ? { error: problem.msg } : {})}
             />
             {error !== null && (
               <p role="alert" className="text-meta text-bad">

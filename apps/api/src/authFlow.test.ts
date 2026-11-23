@@ -7,7 +7,7 @@ import type { MailMessage, Mailer } from './mailer.js'
 import { createMailQueue } from './mailQueue.js'
 
 /**
- * LOS TRES CORREOS, DE PUNTA A PUNTA Y CONTRA UNA BASE DE VERDAD.
+ * LOS CORREOS DE CUENTA, DE PUNTA A PUNTA Y CONTRA UNA BASE DE VERDAD.
  *
  * `auth.test.ts` comprueba que los callbacks están puestos; esto comprueba que better-auth LOS
  * LLAMA, que es otra cosa. La diferencia no es teórica: el cambio de correo llevaba tiempo
@@ -92,6 +92,9 @@ describe('correo: el camino completo contra una base real', () => {
     if (!url) throw new Error('el correo no trae enlace')
     return url
   }
+  /** El token del fragmento (`#token=`), como lo lee la página de botón (docs/cuenta.md §5.2). */
+  const tokenIn = (m: MailMessage | undefined): string =>
+    new URLSearchParams(new URL(linkIn(m)).hash.slice(1)).get('token') ?? ''
   /** Abre un enlace del correo como lo haría un navegador (sin seguir la redirección). */
   const open = async (url: string, cookie?: string) => {
     const res = await auth.handler(new Request(url, { headers: cookie ? { cookie } : {} }))
@@ -115,7 +118,7 @@ describe('correo: el camino completo contra una base real', () => {
     expect(((await res.json()) as { token: string | null }).token).toBeNull()
     const verificacion = sent.find((m) => m.to === 'luis@example.com')
     expect(verificacion).toBeDefined()
-    expect(verificacion!.text).toContain('/api/auth/verify-email?token=')
+    expect(verificacion!.text).toContain(`${BASE}/verify-email#token=`)
   })
 
   /*
@@ -132,7 +135,8 @@ describe('correo: el camino completo contra una base real', () => {
     expect(((await res.json()) as { code: string }).code).toBe('EMAIL_NOT_VERIFIED')
     expect(sent).toHaveLength(1)
     expect(sent[0]!.to).toBe('luis@example.com')
-    expect(new URL(linkIn(sent[0])).searchParams.get('callbackURL')).toBe('/verify-email')
+    expect(new URL(linkIn(sent[0])).pathname).toBe('/verify-email')
+    expect(new URL(linkIn(sent[0])).hash).toMatch(/^#token=/)
   })
 
   /* Con la contraseña mala no sale nada: el reenvío no sirve para llenarle el buzón a otro. */
@@ -146,15 +150,16 @@ describe('correo: el camino completo contra una base real', () => {
     expect(sent).toHaveLength(0)
   })
 
-  it('abrir el enlace confirma el correo, abre sesión y deja entrar', async () => {
+  /* Lo que arma `POST /api/account/verify-email` dentro del proceso: el GET sin `callbackURL` (§5.2). */
+  it('confirmar con el token del enlace abre sesión y deja entrar', async () => {
     sent.length = 0
     await post('/send-verification-email', {
       email: 'luis@example.com',
       callbackURL: '/verify-email',
     })
-    const res = await open(linkIn(sent[0]))
-    expect(res.status).toBe(302)
-    expect(res.headers.get('location')).toBe('/verify-email')
+    const res = await open(`${BASE}/api/auth/verify-email?token=${tokenIn(sent[0])}`)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: true, user: null })
     // autoSignInAfterVerification: el enlace deja la sesión puesta.
     expect(cookieOf(res)).toContain('session_token')
 
@@ -174,7 +179,7 @@ describe('correo: el camino completo contra una base real', () => {
     expect(res.status).toBe(200)
     expect(sent).toHaveLength(1)
     expect(sent[0]!.to).toBe('luis@example.com')
-    expect(sent[0]!.text).toMatch(/\/api\/auth\/reset-password\/[^?\s]+\?callbackURL=/)
+    expect(sent[0]!.text).toMatch(/\/reset-password#token=\w+\n/)
   })
 
   /*
@@ -198,11 +203,7 @@ describe('correo: el camino completo contra una base real', () => {
       email: 'luis@example.com',
       redirectTo: '/reset-password',
     })
-    const res = await open(linkIn(sent[0]))
-    expect(res.status).toBe(302)
-    const location = res.headers.get('location') ?? ''
-    expect(new URL(location, BASE).pathname).toBe('/reset-password')
-    const token = new URL(location, BASE).searchParams.get('token')
+    const token = tokenIn(sent[0])
 
     const reset = await post('/reset-password', { token, newPassword: 'contrasena-nueva' })
     expect(reset.status).toBe(200)
@@ -552,10 +553,19 @@ describe('recuperar, sesiones y cuerpos: el PR 3 de E4', () => {
     if (!url) throw new Error('el correo no trae enlace')
     return url
   }
-  /** Abre un enlace del correo por el proxy, sin seguir la redirección. */
-  const open = (link: string, cookie?: string) => {
-    const u = new URL(link)
-    return call('GET', `${u.pathname.replace(/^\/api\/auth/, '')}${u.search}`, undefined, cookie)
+  /** El token del fragmento (`#token=`), como lo lee la página de botón (docs/cuenta.md §5.2). */
+  const tokenIn2 = (m: MailMessage | undefined): string =>
+    new URLSearchParams(new URL(linkIn(m)).hash.slice(1)).get('token') ?? ''
+  /** El botón de `VerifyEmail`: el token en el cuerpo de `POST /api/account/verify-email`. */
+  const confirm = async (token: string) => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/account/verify-email',
+      headers: { origin: BASE, 'content-type': 'application/json' },
+      payload: JSON.stringify({ token }),
+    })
+    cuerpos.push(res.body)
+    return res
   }
   const cookieOf = (res: { headers: Record<string, unknown> }): string => {
     const raw = res.headers['set-cookie']
@@ -579,8 +589,7 @@ describe('recuperar, sesiones y cuerpos: el PR 3 de E4', () => {
       email: 'eva@example.com',
       redirectTo: '/reset-password',
     })
-    const res = await open(linkIn(sent[0]))
-    const token = new URL(res.headers.location as string, BASE).searchParams.get('token')
+    const token = tokenIn2(sent[0])
     if (!token) throw new Error('sin token')
     return token
   }
@@ -595,8 +604,8 @@ describe('recuperar, sesiones y cuerpos: el PR 3 de E4', () => {
       callbackURL: '/verify-email',
     })
     expect(alta.statusCode).toBe(200)
-    const res = await open(linkIn(sent.find((m) => m.to === 'eva@example.com')))
-    expect(res.statusCode).toBe(302)
+    const res = await confirm(tokenIn2(sent.find((m) => m.to === 'eva@example.com')))
+    expect(res.statusCode).toBe(200)
     sesionDelEnlace = cookieOf(res)
     expect(sesionDelEnlace).toContain('session_token=')
     const sesion = await call('GET', '/get-session', undefined, sesionDelEnlace)

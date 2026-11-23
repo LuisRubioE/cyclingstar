@@ -14,7 +14,13 @@ import {
 import { betterAuth } from 'better-auth'
 import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S, type UserStatus } from '@cyclingstar/shared'
+import {
+  EMAIL_JWT_TTL_S,
+  RESET_TOKEN_TTL_S,
+  SESSION_EXPIRES_S,
+  SESSION_UPDATE_AGE_S,
+  type UserStatus,
+} from '@cyclingstar/shared'
 import { resetPasswordEmail, verifyEmailEmail } from './emails.js'
 import { limitKeys } from './limitKeys.js'
 import type { Mailer } from './mailer.js'
@@ -30,14 +36,14 @@ import { AUTH_ALLOWED_PATHS } from './security.js'
 export const resetRequests = new WeakMap<Request, string>()
 
 /**
- * A DÓNDE LLEVAN LOS ENLACES DE VERIFICACIÓN, DECIDIDO AQUÍ Y NO EN EL NAVEGADOR.
- *
- * better-auth construye el enlace con el `callbackURL` que mande el cliente (o `/` si no manda
- * ninguno, como pasa en el reenvío al intentar entrar y al aprobar una cuenta desde el panel). El
- * servidor fija el destino: la verificación vuelve SIEMPRE a `/verify-email`. El cambio de correo de
- * autoservicio, que tenía un segundo destino, se fue con el PR 5 (docs/cuenta.md §5.5).
+ * La ruta de better-auth que confirma un correo (`GET /api/auth/verify-email?token=`). Desde el PR 8 de
+ * E4 solo la llaman los enlaces viejos y `POST /api/account/verify-email`, dentro del proceso (§5.2).
  */
 export const VERIFY_EMAIL_PATH = '/verify-email'
+
+/** Las dos páginas de botón de la web, a las que llevan los correos (docs/cuenta.md §5.2). */
+export const VERIFY_EMAIL_PAGE = '/verify-email'
+export const RESET_PASSWORD_PAGE = '/reset-password'
 
 /**
  * LO QUE `better-auth` NO SIRVE NUNCA (docs/cuenta.md §8.1; D-29, X-14, 8-l). `disabledPaths` es el
@@ -65,15 +71,15 @@ export function disabledAuthPaths(
  */
 export const CLOSED_AUTH_TEMPLATES: ReadonlySet<string> = new Set(['/callback/:id'])
 
-/** Sustituye el `callbackURL` de un enlace de better-auth; si el enlace no se entiende, lo deja. */
-export function withCallbackURL(url: string, callbackURL: string): string {
-  try {
-    const u = new URL(url)
-    u.searchParams.set('callbackURL', callbackURL)
-    return u.toString()
-  } catch {
-    return url
-  }
+/**
+ * EL ENLACE DE UN CORREO, HACIA LA PÁGINA DE BOTÓN (docs/cuenta.md §5.2; D-12, I-04). Lo construye el
+ * servidor con `APP_URL` y el token que better-auth le pasa, y no con su `url`, que apuntaba a la API con
+ * el token en la consulta: aquí va en el fragmento (`#token=`), que el navegador no manda al servidor, así
+ * que no queda en ningún registro HTTP. Hace el papel del `withCallbackURL` de antes (el servidor decide a
+ * dónde lleva cada enlace), ahora hacia `#token=`.
+ */
+export function emailLink(appUrl: string, page: string, token: string): string {
+  return `${appUrl.replace(/\/+$/, '')}${page}#token=${encodeURIComponent(token)}`
 }
 
 /**
@@ -178,15 +184,18 @@ export function createAuth(
       // Recuperar la contraseña. Sin esta función, better-auth registra «Reset password
       // isn't enabled» y devuelve un error: la pantalla de «he olvidado mi contraseña» no existía
       // porque no había a dónde mandar el enlace.
-      sendResetPassword: async ({ user, url }) => {
+      // El correo lleva a `/reset-password#token=` (§5.2), no al `url` de better-auth.
+      sendResetPassword: async ({ user, token }) => {
         if (!(await aprobada(user.id))) return
         await mailer.send({
           to: user.email,
           kind: 'reset_password',
           userId: user.id,
-          ...resetPasswordEmail(url),
+          ...resetPasswordEmail(emailLink(opts.baseURL, RESET_PASSWORD_PAGE, token)),
         })
       },
+      // Una hora (§5.1; D-11).
+      resetPasswordTokenExpiresIn: RESET_TOKEN_TTL_S,
       // Quien recupera la contraseña cierra TODAS las sesiones: si alguien se había colado, sale
       // (docs/cuenta.md §5.4; X-21). Y luego `onPasswordReset`: los otros enlaces de recuperación
       // que sigan vivos en el buzón dejan de valer, y la petición queda apuntada para el proxy.
@@ -204,21 +213,25 @@ export function createAuth(
     emailVerification: {
       // Una cuenta pendiente no recibe nada: el `verify_signup` sale cuando un administrador la
       // aprueba (`POST /api/admin/users/:id/approve`), que vuelve a pasar por aquí.
-      sendVerificationEmail: async ({ user, url }) => {
+      // El correo lleva a `/verify-email#token=` (§5.2): abrirlo no confirma nada; el botón de esa página
+      // manda el token en el cuerpo de `POST /api/account/verify-email` (5-h).
+      sendVerificationEmail: async ({ user, token }) => {
         if (!(await aprobada(user.id))) return
         await mailer.send({
           to: user.email,
           kind: 'verify_signup',
           userId: user.id,
-          ...verifyEmailEmail(withCallbackURL(url, VERIFY_EMAIL_PATH)),
+          ...verifyEmailEmail(emailLink(opts.baseURL, VERIFY_EMAIL_PAGE, token)),
         })
       },
+      // 24 horas: el correo del registro se lee al día siguiente (§5.1; D-11).
+      expiresIn: EMAIL_JWT_TTL_S,
       sendOnSignUp: true,
       // Quien intenta entrar sin haber confirmado recibe un enlace nuevo en ese momento. better-auth
       // lo hace DESPUÉS de comprobar la contraseña, así que no sirve para saber qué correos existen
       // ni para llenarle el buzón a otro.
       sendOnSignIn: true,
-      // Abrir el enlace deja la sesión abierta: es el final natural del registro.
+      // Confirmar deja la sesión abierta en ese navegador: es el final natural del registro.
       autoSignInAfterVerification: true,
     },
     user: {

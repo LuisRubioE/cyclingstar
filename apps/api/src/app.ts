@@ -27,6 +27,7 @@ import type { GeoIpLookup } from './geoIp.js'
 import { apiError } from './http.js'
 import { adminRoutes, verificationSender } from './routes/admin.js'
 import { clientIp, ipBucket } from './clientIp.js'
+import { accountVerifyRoutes } from './routes/accountVerify.js'
 import { authProxyRoutes } from './routes/authProxy.js'
 import { broadcastRoutes } from './routes/broadcast.js'
 import { calendarRoutes } from './routes/calendar.js'
@@ -349,6 +350,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       ...(deps.secureCookies !== undefined ? { secureCookies: deps.secureCookies } : {}),
       ...(deps.mailDailyBudget !== undefined ? { mailDailyBudget: deps.mailDailyBudget } : {}),
     })
+    // El botón de `VerifyEmail`: el token en el cuerpo, no en la URL (docs/cuenta.md §5.2; 5-h).
+    void app.register(accountVerifyRoutes, { auth: deps.auth })
   }
 
   // Rutas de juego: requieren sesión (better-auth) y base de datos.

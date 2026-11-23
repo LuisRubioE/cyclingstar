@@ -54,6 +54,8 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'GET /api/geo/country': ['safe', N], // l. 75
   // routes/resendWebhook.ts (E4, PR 7; docs/cuenta.md §9.2): solo con RESEND_WEBHOOK_SECRET
   'POST /api/webhooks/resend': ['safe', N],
+  // routes/accountVerify.ts (E4, PR 8; docs/cuenta.md §5.2): el botón de VerifyEmail, con el token en el cuerpo
+  'POST /api/account/verify-email': ['safe', N],
   // routes/authProxy.ts: el comodín y las siete de credenciales (CREDENTIAL_AUTH_PATHS; change-email
   // salió con el PR 5 de E4, docs/cuenta.md §5.5)
   'GET /api/auth/*': ['safe', N],
