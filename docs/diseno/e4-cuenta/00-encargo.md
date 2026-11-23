@@ -414,3 +414,17 @@ El refutador de código y seguridad encontró dos fallos que ya están en produc
 existe, y una ruta con `..` salta el límite estricto de las credenciales, comprobado en producción con
 GET). Preguntado si los arreglaba un PR urgente aparte, el dueño: «no, primero el plan de E4». **Los
 dos entran en el plan de E4, en su primer PR de seguridad**, y el documento lo dice.
+
+### 9.5 Las tandas y el iPhone (23 de noviembre de 2026)
+
+1. El registro por tandas. «Ok, si, de momento hagamos igual». **Como en twilightstruggle**: quien se
+   registra queda `pending`; un administrador aprueba desde el panel, al ritmo que quiera; y al
+   aprobar sale el correo para terminar el registro (uno de los dos correos de §9.3). Referencia:
+   `/home/user/twilightstruggle/ai/src/pvp/auth.ts` (l. 19, 45, 362 a 411 y 526 a 541: `UserStatus`
+   `pending | approved | rejected | disabled`, la cuenta de un administrador de la lista entra ya
+   aprobada).
+2. El iPhone. «ok». **Un manifiesto mínimo, como el de twilightstruggle**
+   (`<link rel="manifest" href="/play/manifest.webmanifest">` en `ai/ui/online/index.html` l. 11),
+   solo para que el iPhone reciba avisos desde iOS 16.4 con la web en la pantalla de inicio. Sin
+   nada más de lo que quitó D-00p: ni funcionar sin red, ni caché, ni ofrecer instalar.
+3. Lo demás del refutador de cobertura, lo arregla el corrector. «Ok».
