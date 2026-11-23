@@ -95,6 +95,10 @@ describe('authErrorText', () => {
     expect(authErrorText({ code: 'EMAIL_NOT_VERIFIED' }, 403, null)).toBeNull()
   })
 
+  it('403 ACCOUNT_PENDING: ningún texto, lo dice el Notice de Login (§4.9)', () => {
+    expect(authErrorText({ code: 'ACCOUNT_PENDING' }, 403, null)).toBeNull()
+  })
+
   it('400 PASSWORD_TOO_SHORT y PASSWORD_TOO_LONG', () => {
     expect(authErrorText({ code: 'PASSWORD_TOO_SHORT' }, 400, null)).toBe(
       'Use at least 8 characters.',

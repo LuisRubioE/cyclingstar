@@ -83,6 +83,9 @@ const POSTERIORES: readonly string[] = [
   // borrado en cascada, así que el TRUNCATE … CASCADE de la 0044 y de la restauración la vacía con ellos;
   // el mundo 1 no tenía maillots, y nadie la escribe hasta el 17b.
   'team_kits',
+  // 0055_auditoria_admin (E4, PR 5): el registro del panel. No cuelga de ninguna tabla (sin clave ajena,
+  // sobrevive al borrado del objetivo) y es de las cuentas, no del mundo: un reinicio no la toca.
+  'admin_audit',
 ]
 
 /**

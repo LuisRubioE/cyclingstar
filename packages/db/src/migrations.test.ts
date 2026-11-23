@@ -1055,3 +1055,42 @@ describe('db: la 0054 deja a los usuarios de antes en el modo claro', () => {
     ])
   }, 120_000)
 })
+
+/**
+ * EL REGISTRO POR APROBACIÓN (docs/cuenta.md §4.9 y §15.2; la 0055): `users.status` nace `pending` por
+ * defecto, pero las cuentas que ya existían entraron con el registro abierto y quedan `approved`, con su
+ * fecha; y `admin_audit` nace vacía.
+ */
+describe('db: la 0055 deja aprobadas las cuentas de antes', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('las cuentas de antes, approved con approved_at; una nueva, pending; y el CHECK', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0054_modo_oscuro')))
+    await t.client`insert into users (email, email_verified) values ('antes@example.com', true)`
+    await t.client`insert into users (email) values ('sin-confirmar@example.com')`
+    await t.detached((url) => runMigrations(url))
+    const antes = await t.client<{ email: string; status: string; approved: boolean }[]>`
+      select email, status, approved_at is not null as approved from users order by email`
+    expect(antes).toEqual([
+      { email: 'antes@example.com', status: 'approved', approved: true },
+      { email: 'sin-confirmar@example.com', status: 'approved', approved: true },
+    ])
+    await t.client`insert into users (email) values ('nueva@example.com')`
+    const [nueva] = await t.client<{ status: string; approved_at: Date | null }[]>`
+      select status, approved_at from users where email = 'nueva@example.com'`
+    expect(nueva).toEqual({ status: 'pending', approved_at: null })
+    await expect(
+      t.client`update users set status = 'rejected' where email = 'nueva@example.com'`,
+    ).rejects.toThrow(/users_status/)
+    const [audit] = await t.client<{ n: number }[]>`select count(*)::int as n from admin_audit`
+    expect(audit!.n).toBe(0)
+  }, 120_000)
+})

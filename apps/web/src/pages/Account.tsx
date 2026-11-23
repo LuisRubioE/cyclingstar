@@ -127,83 +127,26 @@ function VerifyEmailNotice({ email }: { email: string }) {
   )
 }
 
-function ChangeEmail({
+/**
+ * `Account › Email` (docs/cuenta.md §5.5 y §12.2; 12-a): el correo, sin formulario. El jugador ya no lo cambia;
+ * lo cambia un administrador desde el panel, y `change-email` da 404 desde el PR 5.
+ */
+function EmailPanel({
   current,
-  verified,
   answer,
 }: {
   current: string
-  verified: boolean
   /** la respuesta de la 28 cuando no hay protección de resultados (§7.3) */
   answer: boolean
 }) {
-  const [email, setEmail] = useState('')
-  const [status, setStatus] = useState<Status>({ kind: 'idle' })
-  const espera = useRetryWait()
-  const [fieldError, setFieldError] = useState<string | null>(null)
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (status.kind === 'saving') return
-    if (!email || email === current) {
-      // lo que contestó el servidor antes ya no vale (la revisión del 21f)
-      setStatus({ kind: 'idle' })
-      setFieldError('Enter a new, different email.')
-      return
-    }
-    setFieldError(null)
-    setStatus({ kind: 'saving' })
-    // callbackURL: a dónde vuelve quien abre el enlace de confirmación.
-    const res = await authCall(() =>
-      authClient.changeEmail({ newEmail: email, callbackURL: '/verify-email' }),
-    )
-    if (res !== null) {
-      fallar(res, setStatus, espera)
-    } else {
-      // La dirección nueva SIEMPRE se verifica antes de aplicarse. Si la actual está confirmada,
-      // el primer correo va a ELLA (para aprobar el cambio) y sólo después sale el de la nueva.
-      setStatus({
-        kind: 'ok',
-        msg: verified
-          ? `We have sent an approval link to ${current}. Once you approve, a confirmation link goes to ${email}; your email changes when you open it.`
-          : `We have sent a confirmation link to ${email}. Your email changes when you open it.`,
-      })
-      setEmail('')
-    }
-  }
-
   return (
     <Panel title="Email" answer={answer}>
-      <form onSubmit={onSubmit} className="grid gap-3">
+      <div className="grid gap-3">
         <p className="text-meta text-ink-2">
-          Signed in as <span className="font-semibold text-ink">{current}</span>. A new address has
-          to be confirmed by email before it replaces this one.
+          Signed in as <span className="font-semibold text-ink">{current}</span>.
         </p>
-        <Field
-          kind="input"
-          type="email"
-          id="new-email"
-          label="New email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(v) => {
-            setEmail(v)
-            setFieldError(null)
-          }}
-          {...(fieldError !== null ? { error: fieldError } : {})}
-        />
-        <Resultado status={status} />
-        <Button
-          variant="primary"
-          type="submit"
-          busy={status.kind === 'saving'}
-          layout="justify-self-start"
-          {...espera.button}
-        >
-          Update email
-        </Button>
-      </form>
+        <p className="text-meta text-ink-2">Your email can only be changed by an administrator.</p>
+      </div>
     </Panel>
   )
 }
@@ -437,13 +380,7 @@ export function Account() {
       <Appearance />
 
       {email && data?.user.emailVerified === false && <VerifyEmailNotice email={email} />}
-      {email && (
-        <ChangeEmail
-          current={email}
-          verified={data?.user.emailVerified === true}
-          answer={!conVelo}
-        />
-      )}
+      {email && <EmailPanel current={email} answer={!conVelo} />}
       <ChangePassword answer={!conVelo && !email} />
 
       <Button onClick={() => void onLogout()}>Sign out</Button>

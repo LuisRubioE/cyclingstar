@@ -1,9 +1,12 @@
-import type { AdminUser, AdminWhoami } from '@cyclingstar/shared'
+import type { AdminAuditEntryView, AdminUser, AdminWhoami } from '@cyclingstar/shared'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
-import { AdminPanel, Borrado, UserCard } from './AdminPanel'
+import { ApiError } from '../api/request'
+import { RenameTeam } from '../components/RenameTeam'
+import { adminErrorMessage } from '../domain/adminErrors'
+import { AdminPanel, Borrado, PendingRow, UserCard, auditLine, panelDate } from './AdminPanel'
 import {
   PALETA,
   campo,
@@ -32,6 +35,7 @@ const cuenta = (c: Partial<AdminUser> & Pick<AdminUser, 'id' | 'email'>): AdminU
   isAdmin: false,
   isRootAdmin: false,
   premium: false,
+  status: 'approved',
   createdAt: ALTA,
   rider: null,
   team: null,
@@ -57,10 +61,49 @@ const CUENTAS: readonly AdminUser[] = [
   cuenta({ id: 'u-cris', email: 'cris@example.com', isAdmin: true }),
 ]
 
+/** La cola de aprobación (§4.9): dos peticiones, la más vieja primero. */
+const COLA: readonly AdminUser[] = [
+  cuenta({
+    id: 'p1',
+    email: 'eva@example.com',
+    status: 'pending',
+    emailVerified: false,
+    createdAt: '2026-11-19T10:00:00Z',
+  }),
+  cuenta({
+    id: 'p2',
+    email: 'fer@example.com',
+    status: 'pending',
+    emailVerified: false,
+    createdAt: '2026-11-20T10:00:00Z',
+  }),
+]
+
+const fila = (
+  e: Partial<AdminAuditEntryView> & Pick<AdminAuditEntryView, 'action' | 'detail'>,
+): AdminAuditEntryView => ({
+  id: `a-${e.action}`,
+  at: '2026-11-19T18:42:00',
+  actor: 'u-me',
+  actorEmail: 'me@cyclingstar.test',
+  targetUserId: 'u-ana',
+  ...e,
+})
+
+/** `Recent changes`: un cambio de correo y una aprobación. */
+const REGISTRO: readonly AdminAuditEntryView[] = [
+  fila({
+    action: 'user.email',
+    detail: { field: 'email', from: 'old@example.com', to: 'new@example.com' },
+  }),
+  fila({ action: 'user.status', detail: { field: 'status', from: 'pending', to: 'approved' } }),
+]
+
 /** La página en `/admin`, con el acceso y las cuentas en la caché, cargando o con un fallo. */
 function pinta(
   acceso: AdminWhoami | null | 'cargando' = SESION,
   cuentas: readonly AdminUser[] | 'cargando' | 'falla' = CUENTAS,
+  cola: readonly AdminUser[] = COLA,
 ): string {
   // sin reintentar al montar, para que una consulta que falla se pinte con su fallo (como `playerPages.test.tsx`)
   const client = new QueryClient({
@@ -73,6 +116,8 @@ function pinta(
       .build(client, { queryKey: ['admin-users', ''] })
       .setState({ status: 'error', error: new Error('500'), fetchStatus: 'idle' })
   else if (cuentas !== 'cargando') client.setQueryData(['admin-users', ''], cuentas)
+  client.setQueryData(['admin-pending'], cola)
+  client.setQueryData(['admin-audit'], REGISTRO)
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/admin']}>
@@ -159,7 +204,8 @@ describe('el panel de administración con el sistema (§17.21; PR 21m)', () => {
 
   it('las cuentas, en un solo Panel: cada una, un li de su lista, con su correo y sus chapas en Chip', () => {
     const markup = pinta()
-    expect(cuantas(markup, /data-ui="Panel"/)).toBe(1)
+    // la cola, las cuentas y el registro: tres `Panel`, y las cuentas en uno solo
+    expect(cuantas(markup, /data-ui="Panel"/)).toBe(3)
     const lista = pieza(markup, 'Panel', 'aria-label="Accounts"')
     expect(lista).toMatch(/^<section data-ui="Panel"[^>]*aria-label="Accounts"/)
     expect(lista).toMatch(/<ul class="divide-y divide-line">(?:<li class="[^"]*">)/)
@@ -321,5 +367,133 @@ describe('el fallo de una acción (PR 21m)', () => {
     )
     expect(con).toMatch(/<p role="alert" class="[^"]*text-bad[^"]*">Could not save\.<\/p>/)
     expect(pintaEn('/admin', <UserCard user={una} isMe={false} />)).not.toContain('role="alert"')
+  })
+})
+
+/**
+ * EL PANEL DE E4 (docs/cuenta.md §8.5; PR 5): la cola de aprobación arriba, `Change email` y `Rename team` en
+ * cada cuenta, y `Recent changes` debajo de la lista; con los textos de la tabla del panel.
+ */
+describe('el panel de E4: la cola, el correo, el equipo y el registro (PR 5)', () => {
+  it('abre con Waiting for approval (n), de la más vieja a la más nueva, con Requested y Approve y Reject…', () => {
+    const markup = pinta()
+    const cola = pieza(markup, 'Panel', 'Waiting for approval')
+    expect(texto(cola)).toContain('Waiting for approval (2)')
+    expect(markup.indexOf('Waiting for approval')).toBeLessThan(
+      markup.indexOf('aria-label="Accounts"'),
+    )
+    expect(texto(cola).indexOf('eva@example.com')).toBeLessThan(
+      texto(cola).indexOf('fer@example.com'),
+    )
+    expect(texto(cola)).toContain(`Requested ${panelDate('2026-11-19T10:00:00Z')}`)
+    expect(panelDate('2026-11-19T10:00:00Z')).toBe('19 Nov 2026')
+    expect(cola).toContain('aria-label="Approve eva@example.com"')
+    expect(cola).toContain('aria-label="Reject eva@example.com…"')
+    const vacia = pinta(SESION, CUENTAS, [])
+    expect(texto(pieza(vacia, 'Panel', 'Waiting for approval'))).toContain(
+      'Waiting for approval (0)',
+    )
+    expect(vacia).toContain('Nobody is waiting.')
+  })
+
+  it('rechazar pregunta antes, con su frase, y un fallo se dice con el texto de la tabla', () => {
+    const pregunta = pintaEn('/admin', <PendingRow user={COLA[0]!} initialConfirm />)
+    expect(texto(pregunta)).toContain(
+      'Reject eva@example.com? The request is deleted and nothing is sent.',
+    )
+    expect(pieza(pregunta, 'Button', '>Reject<')).toContain('data-variant="danger"')
+    const fallo = pintaEn(
+      '/admin',
+      <PendingRow
+        user={COLA[0]!}
+        initialError={adminErrorMessage(new ApiError('x', 409, 'no_pendiente'))}
+      />,
+    )
+    expect(fallo).toMatch(/role="alert"[^>]*>This request was already decided\.</)
+  })
+
+  it('cada cuenta tiene Change email, y Rename team si tiene equipo', () => {
+    const markup = pinta()
+    const ana = tarjeta(markup, 'ana@example.com')
+    expect(ana).toContain('aria-label="Change email for ana@example.com"')
+    expect(ana).toContain('aria-label="Rename team Mistral Racing"')
+    const bo = tarjeta(markup, 'bo@example.com')
+    expect(bo).toContain('aria-label="Change email for bo@example.com"')
+    expect(bo).not.toContain('Rename team')
+    expect(markup).not.toContain('Change date of birth')
+  })
+
+  it('Change email: New email, Sign out everywhere encendida, Save y Cancel; y la pregunta antes de cambiar', () => {
+    const una = cuenta({ id: 'u1', email: 'ana@example.com' })
+    const form = pintaEn(
+      '/admin',
+      <UserCard user={una} isMe={false} initialEmail={{ value: '', confirm: false }} />,
+    )
+    expect(form).toMatch(/<label for="new-email-ana@example.com"[^>]*>New email<\/label>/)
+    expect(form).toMatch(/data-ui="Checkbox"[^>]*data-state="active"[\s\S]*?Sign out everywhere/)
+    expect(pieza(form, 'Button', '>Save<')).toContain('type="submit"')
+    expect(form).toContain('>Cancel<')
+    const pregunta = pintaEn(
+      '/admin',
+      <UserCard
+        user={una}
+        isMe={false}
+        initialEmail={{ value: ' New@Example.com ', confirm: true }}
+      />,
+    )
+    expect(texto(pregunta)).toContain(
+      'Change ana@example.com to new@example.com? No email is sent to either address.',
+    )
+  })
+
+  it('Rename team, abierto: Team name, Save y Cancel; los nombres que no valen, con su texto', () => {
+    const abierto = pintaEn(
+      '/admin',
+      <RenameTeam
+        teamId="t1"
+        teamName="Mistral Racing"
+        initialOpen
+        initialError="That team name is taken in this world."
+      />,
+    )
+    expect(abierto).toMatch(/<label for="rename-team-t1"[^>]*>Team name<\/label>/)
+    expect(abierto).toContain('value="Mistral Racing"')
+    expect(abierto).toContain('That team name is taken in this world.')
+    const error = (code: string) => adminErrorMessage(new ApiError('x', 400, code))
+    expect(error('nombre_repetido')).toBe('That team name is taken in this world.')
+    expect(error('nombre_bloqueado')).toBe("That team name isn't allowed.")
+    expect(error('admin_email_fijo')).toBe(
+      "The email of a fixed administrator (ADMIN_EMAIL) can't be changed or given here.",
+    )
+    expect(error('correo_ocupado')).toBe('Another account already uses this email.')
+    expect(error('es_el_admin_raiz')).toBe(
+      "The fixed administrator's account can't be changed here.",
+    )
+    expect(adminErrorMessage(new ApiError('x', 409, 'es_el_admin_raiz'), 'delete')).toBe(
+      'That is the root admin (ADMIN_EMAIL): it cannot be deleted from here.',
+    )
+  })
+
+  it('Recent changes, debajo de la lista: fecha y hora · quién · campo · antes → después', () => {
+    const markup = pinta()
+    expect(markup.indexOf('aria-label="Accounts"')).toBeLessThan(markup.indexOf('Recent changes'))
+    expect(texto(pieza(markup, 'Panel', 'Recent changes'))).toContain(
+      '19 Nov 2026, 18:42 · me@cyclingstar.test · email · old@example.com → new@example.com',
+    )
+    expect(
+      auditLine(
+        fila({ action: 'user.birth_date', detail: { field: 'birthDate', from: null, to: null } }),
+      ),
+    ).toBe('19 Nov 2026, 18:42 · me@cyclingstar.test · date of birth · changed')
+    expect(
+      auditLine(
+        fila({
+          action: 'world.tick',
+          actor: 'token',
+          actorEmail: null,
+          detail: { field: 'days', from: null, to: 1 },
+        }),
+      ),
+    ).toBe('19 Nov 2026, 18:42 · token · tick · 1 day')
   })
 })

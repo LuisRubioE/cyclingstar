@@ -110,32 +110,6 @@ export function verifyEmailEmail(url: string): MailBody {
   }
 }
 
-/**
- * Confirmar un cambio de correo. Este va a la dirección ACTUAL (la ya verificada), no a la nueva:
- * es el aviso que permite frenar a quien haya entrado en una sesión ajena, así que nombra la
- * dirección de destino.
- */
-export function changeEmailConfirmationEmail(url: string, newEmail: string): MailBody {
-  return {
-    subject: `Confirm the new email of your ${APP_NAME} account`,
-    text: [
-      `Someone asked to move your ${APP_NAME} account to ${newEmail}.`,
-      '',
-      'Open this link to approve the change:',
-      url,
-      '',
-      'If it was not you, ignore this email and change your password: your address stays as it is.',
-    ].join('\n'),
-    html: layout({
-      title: 'Confirm your new email',
-      body: `Someone asked to move your ${escapeHtml(APP_NAME)} account to <strong>${escapeHtml(newEmail)}</strong>.`,
-      cta: { label: 'Approve the change', url },
-      footer:
-        'If it was not you, ignore this email and change your password: your address stays as it is.',
-    }),
-  }
-}
-
 /** El pie del correo de etapa lista: la promesa de no destripar, dicha donde se lee. */
 const READY_FOOTER = 'Results stay hidden until you watch the stage.'
 

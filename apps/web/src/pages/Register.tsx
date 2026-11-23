@@ -16,78 +16,34 @@ import { type FieldProblem, registerProblem } from '../domain/entryForms'
  * servidor, debajo, en `role="alert"`.
  */
 
-type Resend = 'idle' | 'sending' | 'sent' | 'failed'
-
-const SIN_REENVIO = 'Could not send it again. Try again in a few minutes.'
-
 /**
- * Después de registrarse: la cuenta existe pero NO hay sesión hasta confirmar el correo. Se dice
- * a qué dirección ha ido el enlace (una errata en el correo es la causa más común de «no me
- * llega») y se ofrece reenviarlo. Desde el 21j, reenviado lo dice su región de estado, que está desde el
- * principio para que el lector la oiga, y el botón sigue donde estaba: deshabilitado, el catálogo lo pinta de
- * nuevo y el foco se perdería. Si el servidor no lo manda (un límite de diez cada cinco minutos), lo dice, en
- * `role="alert"` (la revisión del 21j).
+ * Después de registrarse, la PETICIÓN RECIBIDA (docs/cuenta.md §4.9 y §5.3; PR 5): la cuenta queda `pending` y
+ * no sale ningún correo hasta que un administrador la aprueba; entonces sale el enlace para terminar. La misma
+ * pantalla para un correo nuevo, para uno que ya existe y para el de `ADMIN_EMAIL`, así que no dice nada de
+ * quién juega. Sin `Send it again`: no hay nada que reenviar hasta la aprobación. La caducidad es la de hoy,
+ * una hora; las 24 horas de §5.1 llegan con `EMAIL_JWT_TTL_S`, en su PR.
  */
 export function CheckInbox({
   email,
-  initialResend = 'idle',
-  initialWaitS,
   onStartAgain,
 }: {
   email: string
-  initialResend?: Resend
-  /** los segundos que quedan tras un 429: para los tests */
-  initialWaitS?: number
   /** `Start again`: el correo deja de esperar y vuelve el formulario */
   onStartAgain?: () => void
 }) {
-  const [resend, setResend] = useState<Resend>(initialResend)
-  const [fallo, setFallo] = useState(SIN_REENVIO)
-  const espera = useRetryWait(initialWaitS)
-
-  async function onResend() {
-    if (resend === 'sending') return
-    setResend('sending')
-    const res = await authCall(() =>
-      authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' }),
-    )
-    if (res !== null) {
-      // traducido por la tabla única, y tras un 429 el botón espera (docs/cuenta.md §12.3)
-      setFallo(res.text ?? SIN_REENVIO)
-      setResend('failed')
-      if (res.retryAfterS !== null) espera.start(res.retryAfterS, () => setResend('idle'))
-    } else setResend('sent')
-  }
-
   return (
     <section className="mx-auto grid max-w-form gap-4">
-      <PageHeader title="Check your inbox" />
-      <Panel ariaLabel="The link we sent" answer>
+      <PageHeader title="Request received" />
+      <Panel ariaLabel="Your request" answer>
         <div className="grid gap-3">
           <p className="text-body text-ink-2">
-            We have sent a link to <strong className="font-semibold text-ink">{email}</strong>. Open
-            it to confirm your email and start playing. It expires in one hour.
+            An administrator reviews new accounts by hand, a few each day. When yours is approved,
+            we&apos;ll email <strong className="font-semibold text-ink">{email}</strong> a link to
+            finish signing up. The link expires in one hour.
           </p>
           <p className="text-meta text-ink-2">
-            Nothing there? Check the spam folder, or make sure the address above is right.
+            Nothing yet? Check the spam folder once you&apos;ve been approved.
           </p>
-          <Button
-            onClick={() => void onResend()}
-            busy={resend === 'sending'}
-            busyLabel="Sending…"
-            layout="justify-self-start"
-            {...espera.button}
-          >
-            Send it again
-          </Button>
-          <p role="status" className="text-meta text-good empty:sr-only">
-            {resend === 'sent' ? 'Sent again. Give it a minute to arrive.' : ''}
-          </p>
-          {resend === 'failed' && (
-            <p role="alert" className="text-meta text-bad">
-              {fallo}
-            </p>
-          )}
           <div className="flex flex-wrap items-center gap-x-2">
             <p className="text-meta text-ink-2">Wrong address?</p>
             <Button
@@ -107,7 +63,6 @@ export function CheckInbox({
         </div>
       </Panel>
       <p className="text-meta text-ink-2">
-        Already confirmed?{' '}
         <TextLink to="/login" inline>
           Log in
         </TextLink>

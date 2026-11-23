@@ -22,6 +22,8 @@ import {
   type WorldHealth,
   blocklistAddResponseSchema,
   blocklistResponseSchema,
+  adminAuditResponseSchema,
+  type AdminAuditEntryView,
   adminUsersResponseSchema,
   okResponseSchema,
   worldHealthResponseSchema,
@@ -29,7 +31,15 @@ import {
 import type { ZodType } from 'zod'
 import { ApiError, type RequestOptions, request } from './request'
 
-export type { AdminUser, AdminWhoami, BlockedKind, BlockedName, TickLogRow, WorldHealth }
+export type {
+  AdminAuditEntryView,
+  AdminUser,
+  AdminWhoami,
+  BlockedKind,
+  BlockedName,
+  TickLogRow,
+  WorldHealth,
+}
 
 /** Cómo se identifica el admin: `null` con su sesión, o el ADMIN_TOKEN pegado a mano. */
 export type AdminKey = string | null
@@ -110,11 +120,52 @@ export async function fetchAdminUsers(token: AdminKey, search: string): Promise<
   return data.users
 }
 
-/** Lo que el panel puede cambiar de una cuenta. */
+/** La cola de aprobación (docs/cuenta.md §4.9): las pendientes, de la más vieja a la más nueva. */
+export async function fetchPendingUsers(token: AdminKey): Promise<AdminUser[]> {
+  const data = await adminRequest(
+    token,
+    '/api/admin/users?status=pending',
+    adminUsersResponseSchema,
+  )
+  return data.users
+}
+
+/** Aprueba la petición: sale el `verify_signup` para terminar el registro. */
+export async function approveUser(token: AdminKey, id: string): Promise<void> {
+  await adminRequest(token, `/api/admin/users/${id}/approve`, okResponseSchema, { method: 'POST' })
+}
+
+/** Rechaza la petición: la cuenta se borra y no sale ningún correo. */
+export async function rejectUser(token: AdminKey, id: string): Promise<void> {
+  await adminRequest(token, `/api/admin/users/${id}/reject`, okResponseSchema, { method: 'POST' })
+}
+
+/** Lo que el panel puede cambiar de una cuenta (§8.5). */
 export interface AdminUserPatch {
   emailVerified?: boolean
   isAdmin?: boolean
   premium?: boolean
+  /** El correo nuevo (§5.5); `signOutEverywhere` solo va con él. */
+  email?: string
+  signOutEverywhere?: boolean
+}
+
+/** Cambia el nombre de cualquier equipo (8-e), con las reglas de su dueño. */
+export async function renameTeamAsAdmin(token: AdminKey, id: string, name: string): Promise<void> {
+  await adminRequest(token, `/api/admin/teams/${id}`, okResponseSchema, {
+    method: 'PATCH',
+    json: { name },
+  })
+}
+
+/** Las últimas filas del registro del panel (`Recent changes`), las más nuevas primero. */
+export async function fetchAdminAudit(token: AdminKey, limit = 50): Promise<AdminAuditEntryView[]> {
+  const data = await adminRequest(
+    token,
+    `/api/admin/audit?limit=${limit}`,
+    adminAuditResponseSchema,
+  )
+  return data.entries
 }
 
 export async function updateAdminUser(

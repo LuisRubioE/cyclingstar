@@ -277,6 +277,8 @@ describe('api: lista de bloqueo de nombres (admin)', () => {
 describe('api: guarda de ADMIN_TOKEN', () => {
   const summary = { currentDay: 3, daysProcessed: 2 } as unknown as TickSummary
   const adminApp = buildTestApp({
+    // El tick y el avance dejan su fila en `admin_audit` (docs/cuenta.md §8.5, 8-i): basta un `insert`.
+    db: { insert: () => ({ values: async () => undefined }) } as never,
     onAdminTick: async () => summary,
     onAdminAdvance: async () => summary,
   })

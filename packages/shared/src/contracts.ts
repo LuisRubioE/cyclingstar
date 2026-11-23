@@ -25,6 +25,7 @@
  */
 
 import { z } from 'zod'
+import { USER_STATUSES } from './account/constants.js'
 // Solo tipos (14-a): `import type` se borra al compilar y este fichero no carga nada de broadcast/.
 import type { StageRef } from './broadcast/timeline.js'
 import type { PreStageInfo, StageGate, SwitchMode, WatchState } from './broadcast/wire.js'
@@ -2082,6 +2083,8 @@ export const adminUserSchema = z.object({
   isAdmin: z.boolean(),
   isRootAdmin: z.boolean(),
   premium: z.boolean(),
+  /** El registro por aprobación (docs/cuenta.md §4.9). */
+  status: z.enum(USER_STATUSES),
   createdAt: z.string(),
   rider: z.object({ id: z.string(), name: z.string() }).nullable(),
   team: z.object({ id: z.string(), name: z.string() }).nullable(),
@@ -2090,6 +2093,53 @@ export type AdminUser = z.infer<typeof adminUserSchema>
 export const adminUsersResponseSchema = z.object({
   ok: z.boolean(),
   users: z.array(adminUserSchema),
+})
+
+/**
+ * `PATCH /api/admin/users/:id` (docs/cuenta.md §8.5): al menos un campo que cambie algo. `email` se
+ * normaliza en la base; `signOutEverywhere` solo vale con `email` y por defecto es `true` (§5.5).
+ */
+export const adminUserPatchSchema = z
+  .object({
+    emailVerified: z.boolean().optional(),
+    isAdmin: z.boolean().optional(),
+    premium: z.boolean().optional(),
+    email: z.string().trim().email().max(200).optional(),
+    signOutEverywhere: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (p) =>
+      p.emailVerified !== undefined ||
+      p.isAdmin !== undefined ||
+      p.premium !== undefined ||
+      p.email !== undefined,
+  )
+  .refine((p) => p.signOutEverywhere === undefined || p.email !== undefined)
+export type AdminUserPatchBody = z.infer<typeof adminUserPatchSchema>
+
+/** `PATCH /api/admin/teams/:id` (§8.5, 8-e): el nombre nuevo; las reglas son las de su dueño. */
+export const adminTeamPatchSchema = z.object({ name: z.string().max(200) }).strict()
+
+/** Una fila de `admin_audit` tal como la lee `Recent changes` (§8.5). */
+export const adminAuditEntrySchema = z.object({
+  id: z.string(),
+  at: z.string(),
+  actor: z.string(),
+  actorEmail: z.string().nullable(),
+  action: z.string(),
+  targetUserId: z.string().nullable(),
+  detail: z.object({
+    field: z.string(),
+    from: z.union([z.string(), z.number(), z.boolean()]).nullable(),
+    to: z.union([z.string(), z.number(), z.boolean()]).nullable(),
+    teamId: z.string().optional(),
+  }),
+})
+export type AdminAuditEntryView = z.infer<typeof adminAuditEntrySchema>
+export const adminAuditResponseSchema = z.object({
+  ok: z.literal(true),
+  entries: z.array(adminAuditEntrySchema),
 })
 
 // --- /api/me/theme: el modo del jugador (E3, docs/visual.md §3.3, D-00i; paso 23) ---------------------

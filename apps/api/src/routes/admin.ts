@@ -1,26 +1,37 @@
 import {
   type BlockedKind,
-  addBlocked,
+  type Database,
+  ADMIN_AUDIT_MAX_ROWS,
+  addBlockedAsAdmin,
+  approvePendingUser,
   deleteUserAsAdmin,
   getCurrentWorld,
   getRaceRiderIdentities,
   getStageSnapshot,
   getWorldHealth,
   isRootAdminUser,
+  listAdminAudit,
   listBlocked,
   listUsersForAdmin,
-  removeBlocked,
+  rejectPendingUser,
+  removeBlockedAsAdmin,
+  renameTeamAsAdmin,
   revertTeamKit,
-  setUserPremium,
+  setUserPremiumAsAdmin,
+  teamOwnerOf,
   teamsOfTheDay,
   updateUserAsAdmin,
   worldHorizon,
+  writeAdminAudit,
 } from '@cyclingstar/db'
 import { type StageInput, checkReplay } from '@cyclingstar/engine'
 import {
   currentSeason,
   kitRevertBodySchema,
   kitRevertResponseSchema,
+  adminAuditResponseSchema,
+  adminTeamPatchSchema,
+  adminUserPatchSchema,
   adminUsersResponseSchema,
   adminWhoamiResponseSchema,
   blocklistAddResponseSchema,
@@ -30,7 +41,9 @@ import {
 } from '@cyclingstar/shared'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import type { Auth } from '../auth.js'
 import { badRequest, notFound, sendError } from '../http.js'
+import type { AdminActor } from '../security.js'
 import { ADMIN_VEIL } from '../spoiler.js'
 import type { AdminRouteContext } from './context.js'
 import { isCalendarRaceId, parseRaceId, parseStageDay } from './params.js'
@@ -47,15 +60,30 @@ const premiumSchema = z.object({
 })
 const userIdSchema = z.string().uuid()
 const userSearchSchema = z.string().trim().max(200).optional()
-/** Al menos un campo: un PATCH vacío es un error del cliente, no un «no hacer nada» silencioso. */
-const userPatchSchema = z
-  .object({
-    emailVerified: z.boolean().optional(),
-    isAdmin: z.boolean().optional(),
-    premium: z.boolean().optional(),
-  })
-  .strict()
-  .refine((p) => Object.keys(p).length > 0)
+const userStatusQuerySchema = z.enum(['pending']).optional()
+/** `?limit=` hasta 500 y `?before=` un instante (8-f). */
+const auditQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(ADMIN_AUDIT_MAX_ROWS).default(50),
+  before: z.string().datetime({ offset: true }).optional(),
+})
+
+/** Quién firma una fila de `admin_audit`: el id de la cuenta, o `'token'` (8-d). */
+function actorId(actor: AdminActor): string {
+  return actor.via === 'token' ? 'token' : actor.userId
+}
+
+/** Los campos que la cuenta raíz no deja cambiar desde el panel (8-h). */
+const ROOT_LOCKED_FIELDS = ['emailVerified', 'isAdmin', 'email'] as const
+
+/**
+ * Manda el `verify_signup` de una cuenta recién aprobada (docs/cuenta.md §4.9): `sendVerificationEmail`
+ * sin sesión encuentra la cuenta sin confirmar y lo manda, ya aprobada; es el mismo correo del registro.
+ */
+export function verificationSender(auth: Auth): (email: string) => Promise<void> {
+  return async (email) => {
+    await auth.api.sendVerificationEmail({ body: { email } })
+  }
+}
 /** Temporada de la clave de carrera; si no viene, la del mundo. */
 const seasonSchema = z.coerce.number().int().min(0).max(9999)
 
@@ -88,7 +116,7 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
   )
 
   // Cuentas (panel de administración): listar con búsqueda por correo, cambiar y borrar.
-  app.get<{ Querystring: { q?: string } }>(
+  app.get<{ Querystring: { q?: string; status?: string } }>(
     '/api/admin/users',
     {
       config: { response: { 200: adminUsersResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL },
@@ -96,8 +124,12 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
     async (request, reply) => {
       if (!(await requireAdmin(request, reply))) return
       const q = userSearchSchema.safeParse(request.query.q)
-      if (!q.success) return badRequest(reply)
-      return { ok: true, users: await listUsersForAdmin(db, { search: q.data, rootEmail }) }
+      const status = userStatusQuerySchema.safeParse(request.query.status)
+      if (!q.success || !status.success) return badRequest(reply)
+      return {
+        ok: true,
+        users: await listUsersForAdmin(db, { search: q.data, rootEmail, status: status.data }),
+      }
     },
   )
 
@@ -108,13 +140,28 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       const actor = await requireAdmin(request, reply)
       if (!actor) return
       const id = userIdSchema.safeParse(request.params.id)
-      const patch = userPatchSchema.safeParse(request.body)
+      const patch = adminUserPatchSchema.safeParse(request.body)
       if (!id.success || !patch.success) return badRequest(reply)
       // Quitarse el permiso a uno mismo es la forma más tonta de quedarse sin administrador.
       if (actor.via === 'session' && actor.userId === id.data && patch.data.isAdmin === false) {
         return sendError(reply, 409, 'no_puedes_quitarte_admin')
       }
-      if (!(await updateUserAsAdmin(db, id.data, patch.data))) return notFound(reply)
+      // La cuenta raíz la pone el despliegue (8-h): quitarle la confirmación, el permiso o el correo
+      // la dejaría fuera, como ya impide el DELETE. Premium sí se le puede cambiar.
+      if (
+        ROOT_LOCKED_FIELDS.some((f) => patch.data[f] !== undefined) &&
+        (await isRootAdminUser(db, id.data, rootEmail))
+      ) {
+        return sendError(reply, 409, 'es_el_admin_raiz')
+      }
+      const out = await updateUserAsAdmin(db, id.data, patch.data, {
+        actor: actorId(actor),
+        rootEmail,
+      })
+      if (!out.ok) {
+        if (out.reason === 'no_existe') return notFound(reply)
+        return sendError(reply, out.reason === 'admin_email_fijo' ? 400 : 409, out.reason)
+      }
       return { ok: true }
     },
   )
@@ -135,8 +182,97 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       if (await isRootAdminUser(db, id.data, rootEmail)) {
         return sendError(reply, 409, 'es_el_admin_raiz')
       }
-      if (!(await deleteUserAsAdmin(db, id.data))) return notFound(reply)
+      if (!(await deleteUserAsAdmin(db, id.data, actorId(actor)))) return notFound(reply)
       return { ok: true }
+    },
+  )
+
+  /*
+    LA COLA DE APROBACIÓN (docs/cuenta.md §4.9; 8-k). Aprobar y rechazar solo valen sobre una cuenta
+    `pending` (409 `no_pendiente` si otro administrador ya decidió). Aprobar manda después el
+    `verify_signup`; rechazar borra la cuenta y no manda nada.
+  */
+  app.post<{ Params: { id: string } }>(
+    '/api/admin/users/:id/approve',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
+      const id = userIdSchema.safeParse(request.params.id)
+      if (!id.success) return badRequest(reply)
+      // Hasta el PR 7 no hay presupuesto de correo que mirar (el 503 `MAIL_BUDGET_EXHAUSTED`).
+      const out = await approvePendingUser(db, id.data, actorId(actor))
+      if (!out.ok) {
+        return out.reason === 'no_existe' ? notFound(reply) : sendError(reply, 409, out.reason)
+      }
+      if (ctx.sendVerification) {
+        try {
+          await ctx.sendVerification(out.email)
+        } catch (err) {
+          // La cuenta ya está aprobada: el enlace se puede volver a pedir al intentar entrar.
+          request.log.error({ err, userId: id.data }, 'aprobada, pero el enlace no salió')
+        }
+      }
+      return { ok: true }
+    },
+  )
+
+  app.post<{ Params: { id: string } }>(
+    '/api/admin/users/:id/reject',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
+      const id = userIdSchema.safeParse(request.params.id)
+      if (!id.success) return badRequest(reply)
+      const out = await rejectPendingUser(db, id.data, actorId(actor))
+      if (!out.ok) {
+        return out.reason === 'no_existe' ? notFound(reply) : sendError(reply, 409, out.reason)
+      }
+      return { ok: true }
+    },
+  )
+
+  /*
+    Un administrador cambia el nombre de cualquier equipo (8-e, DD-14 B), también el de una cuenta
+    borrada o el de un bot, con las reglas de su dueño.
+  */
+  app.patch<{ Params: { id: string } }>(
+    '/api/admin/teams/:id',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
+    async (request, reply) => {
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
+      const id = z.string().uuid().safeParse(request.params.id)
+      const body = adminTeamPatchSchema.safeParse(request.body)
+      if (!id.success || !body.success) return badRequest(reply)
+      const out = await renameTeamAsAdmin(db, id.data, body.data.name, actorId(actor))
+      if (!out.ok) {
+        if (out.reason === 'no_existe') return notFound(reply)
+        return sendError(reply, out.reason === 'nombre_repetido' ? 409 : 400, out.reason)
+      }
+      return { ok: true }
+    },
+  )
+
+  /*
+    EL REGISTRO DEL PANEL (8-f): las más nuevas primero, hasta 500, y la página anterior con `before`.
+    Solo administradores; E7 la abrirá a un papel más.
+  */
+  app.get<{ Querystring: { limit?: string; before?: string } }>(
+    '/api/admin/audit',
+    {
+      config: { response: { 200: adminAuditResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL },
+    },
+    async (request, reply) => {
+      if (!(await requireAdmin(request, reply))) return
+      const q = auditQuerySchema.safeParse(request.query)
+      if (!q.success) return badRequest(reply)
+      const entries = await listAdminAudit(db, {
+        limit: q.data.limit,
+        before: q.data.before ? new Date(q.data.before) : undefined,
+      })
+      return { ok: true as const, entries }
     },
   )
 
@@ -147,8 +283,17 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       '/admin/tick',
       { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
       async (request, reply) => {
-        if (!(await requireAdmin(request, reply))) return
+        const actor = await requireAdmin(request, reply)
+        if (!actor) return
         const summary = await onAdminTick()
+        // El tick corre en sus propias transacciones: la fila va detrás, cuando ya ha corrido (8-i).
+        await writeAdminAudit(db, actorId(actor), [
+          {
+            action: 'world.tick',
+            targetUserId: null,
+            detail: { field: 'days', from: null, to: 1 },
+          },
+        ])
         return reply.send({ ok: true, ...summary })
       },
     )
@@ -162,9 +307,17 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       '/admin/advance',
       { config: { spoiler: 'horizon', veil: ADMIN_VEIL } },
       async (request, reply) => {
-        if (!(await requireAdmin(request, reply))) return
+        const actor = await requireAdmin(request, reply)
+        if (!actor) return
         const days = Math.min(30, Math.max(1, Number(request.query.days ?? 1) || 1))
         const summary = await onAdminAdvance(days)
+        await writeAdminAudit(db, actorId(actor), [
+          {
+            action: 'world.advance',
+            targetUserId: null,
+            detail: { field: 'days', from: null, to: days },
+          },
+        ])
         return reply.send({ ok: true, ...summary })
       },
     )
@@ -181,7 +334,9 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       if (!(await requireAdmin(request, reply))) return
       const kind = kindSchema.safeParse(request.query.kind)
       if (!kind.success) return badRequest(reply)
-      return { ok: true, items: await listBlocked(db, kind.data as BlockedKind) }
+      // `createdAt` sale como texto: el esquema de la respuesta no acepta un `Date` (daba 500).
+      const items = await listBlocked(db, kind.data as BlockedKind)
+      return { ok: true, items: items.map((i) => ({ ...i, createdAt: i.createdAt.toISOString() })) }
     },
   )
 
@@ -195,11 +350,12 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       },
     },
     async (request, reply) => {
-      if (!(await requireAdmin(request, reply))) return
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
       const parsed = addSchema.safeParse(request.body)
       if (!parsed.success) return badRequest(reply)
       const { kind, value, note } = parsed.data
-      const { inserted } = await addBlocked(db, kind as BlockedKind, value, note ?? null)
+      const { inserted } = await addBlockedAsAdmin(db, kind, value, note ?? null, actorId(actor))
       return reply.status(inserted ? 201 : 200).send({ ok: true, inserted })
     },
   )
@@ -208,10 +364,11 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
     '/api/admin/blocklist/:id',
     { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
     async (request, reply) => {
-      if (!(await requireAdmin(request, reply))) return
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
       const id = z.string().uuid().safeParse(request.params.id)
       if (!id.success) return badRequest(reply)
-      await removeBlocked(db, id.data)
+      await removeBlockedAsAdmin(db, id.data, actorId(actor))
       return { ok: true }
     },
   )
@@ -230,7 +387,21 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       const id = z.string().uuid().safeParse(request.params.id)
       const body = kitRevertBodySchema.safeParse(request.body)
       if (!id.success || !body.success) return badRequest(reply)
-      const result = await revertTeamKit(db, id.data, body.data.reason)
+      const teamId = id.data
+      const result = await db.transaction(async (tx) => {
+        const t = tx as unknown as Database
+        const hecho = await revertTeamKit(t, teamId, body.data.reason)
+        if (hecho) {
+          await writeAdminAudit(t, actorId(actor), [
+            {
+              action: 'team.kit_revert',
+              targetUserId: await teamOwnerOf(t, teamId),
+              detail: { field: 'kit', from: null, to: hecho.kit, teamId },
+            },
+          ])
+        }
+        return hecho
+      })
       if (!result) return notFound(reply)
       request.log.info(
         { teamId: id.data, kit: result.kit, reason: body.data.reason, via: actor.via },
@@ -261,10 +432,12 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
     '/api/admin/premium',
     { config: { response: { 200: okResponseSchema }, spoiler: 'horizon', veil: ADMIN_VEIL } },
     async (request, reply) => {
-      if (!(await requireAdmin(request, reply))) return
+      const actor = await requireAdmin(request, reply)
+      if (!actor) return
       const parsed = premiumSchema.safeParse(request.body)
       if (!parsed.success) return badRequest(reply)
-      const { updated } = await setUserPremium(db, parsed.data.email, parsed.data.premium)
+      const { email, premium } = parsed.data
+      const { updated } = await setUserPremiumAsAdmin(db, email, premium, actorId(actor))
       if (!updated) return notFound(reply, 'usuario_no_encontrado')
       return { ok: true }
     },

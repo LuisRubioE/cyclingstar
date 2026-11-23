@@ -17,7 +17,11 @@ describe('sign-up/email: el mismo cuerpo con un correo nuevo y con uno que exist
   let app: FastifyInstance
   const BASE = 'http://localhost:3000'
 
+  const poolBefore = process.env.DB_POOL_MAX
+
   beforeAll(async () => {
+    // PGlite admite UNA sesión (testDb.ts), y el correo del registro, en segundo plano, lee el estado.
+    process.env.DB_POOL_MAX = '1'
     tdb = await startTestDb()
     const auth = createAuth(tdb.db, {
       secret: 's'.repeat(32),
@@ -30,6 +34,8 @@ describe('sign-up/email: el mismo cuerpo con un correo nuevo y con uno que exist
   afterAll(async () => {
     await app?.close()
     await tdb?.close()
+    if (poolBefore === undefined) delete process.env.DB_POOL_MAX
+    else process.env.DB_POOL_MAX = poolBefore
   })
 
   const signUp = (email: string) =>

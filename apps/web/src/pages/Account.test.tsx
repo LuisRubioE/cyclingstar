@@ -206,21 +206,13 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
     ])
   })
 
-  it('el correo, en su Panel: con quién entro, un Field con su rótulo y su autocompletado, y Update email, que envía', () => {
+  it('el correo, en su Panel: con quién entro y sin formulario, porque solo lo cambia un administrador (§5.5)', () => {
     const email = panel(page(), 'Email')
     expect(email).toContain('luis@example.com')
-    expect(email).toMatch(/<form[^>]*>[\s\S]*data-ui="Field"[\s\S]*<\/form>/)
-    expect(email).toMatch(/<label for="new-email"[^>]*>New email<\/label>/)
-    expect(email).toMatch(/<input id="new-email"[^>]*type="email"[^>]*autoComplete="email"/)
-    // el botón, dentro de su form: fuera, no enviaría nada (la revisión del 21f)
-    expect(email).toMatch(
-      /<form[^>]*>(?:(?!<\/form>)[\s\S])*<button type="submit" data-ui="Button" data-variant="primary"(?:(?!<\/form>)[\s\S])*?Update email/,
-    )
-    // lo que conteste el servidor, en su región de estado, que está desde el principio, vacía: insertada ya
-    // llena, el lector no siempre la lee (la revisión del 21f)
-    expect(email).toMatch(/<p role="status" class="[^"]*"><\/p>/)
-    // vacía, fuera de la vista pero en el lector: `hidden` la sacaría también de él (la revisión del 21j)
-    expect(email).toMatch(/<p role="status" class="[^"]*empty:sr-only[^"]*"><\/p>/)
+    expect(email).toContain('Your email can only be changed by an administrator.')
+    expect(email).not.toContain('<form')
+    expect(email).not.toContain('<input')
+    expect(email).not.toContain('Update email')
   })
 
   it('la contraseña, en su Panel: los tres campos con su rótulo y su autocompletado, y Update password', () => {

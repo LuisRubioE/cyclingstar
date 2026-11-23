@@ -2,6 +2,7 @@ import { COUNTRIES, parseKit } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
+import { RenameTeam } from '../components/RenameTeam'
 import { DiagnosticStrip } from '../components/StageGate'
 import { SquadTable } from '../components/SquadTable'
 import { TeamFeed } from '../components/TeamFeed'
@@ -36,8 +37,9 @@ export function Team() {
     enabled: rev !== undefined,
   })
   const veiled = (teamNews.data ?? []).some((n) => n.kind === 'stage_ready')
-  // solo para `Diagnostic view`: el feed del equipo no cambia con `Watch` (`needWatch` falso)
-  const { isAdmin } = useWatchOn(diag || veiled, false)
+  // para `Diagnostic view` y para `Rename team` (docs/cuenta.md §8.5, 8-j): el feed del equipo no cambia con
+  // `Watch` (`needWatch` falso); quien no es administrador por la pista de este navegador no pregunta
+  const { isAdmin } = useWatchOn(true, false)
   const diagOn = diag && isAdmin
   const takeOver = useMutation({
     mutationFn: takeOverTeam,
@@ -80,6 +82,13 @@ export function Team() {
           {kit !== null && <p>{bibWords(kit, data.bib)}</p>}
         </KitShowcase>
       </UiPanel>
+
+      {/* `Rename team` para un administrador (8-j): también los equipos sin fila de cuenta en el panel */}
+      {isAdmin && (
+        <UiPanel title="Admin">
+          <RenameTeam teamId={data.id} teamName={data.name} />
+        </UiPanel>
+      )}
 
       {/* tomarlo, un `Notice` con su acción, ocupada mientras pregunta (E3, PR 21k); su fallo, en `alert` */}
       {canTakeOver && (

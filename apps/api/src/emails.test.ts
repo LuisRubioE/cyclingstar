@@ -1,12 +1,6 @@
 import type { PreStageInfo } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import {
-  changeEmailConfirmationEmail,
-  escapeHtml,
-  resetPasswordEmail,
-  stageReadyEmail,
-  verifyEmailEmail,
-} from './emails.js'
+import { escapeHtml, resetPasswordEmail, stageReadyEmail, verifyEmailEmail } from './emails.js'
 
 const URL_RESET =
   'https://www.cyclingstar.app/api/auth/reset-password/tok?callbackURL=%2Freset-password'
@@ -21,7 +15,6 @@ describe('plantillas de correo', () => {
   const todas = [
     ['recuperar contraseña', resetPasswordEmail(URL_RESET)],
     ['verificar correo', verifyEmailEmail(URL_RESET)],
-    ['confirmar cambio', changeEmailConfirmationEmail(URL_RESET, 'nuevo@example.com')],
   ] as const
 
   for (const [nombre, mail] of todas) {
@@ -49,22 +42,6 @@ describe('plantillas de correo', () => {
       })
     })
   }
-
-  it('el aviso de cambio nombra la dirección de destino, que es lo que permite frenarlo', () => {
-    const mail = changeEmailConfirmationEmail(URL_RESET, 'nuevo@example.com')
-    expect(mail.text).toContain('nuevo@example.com')
-    expect(mail.html).toContain('nuevo@example.com')
-  })
-
-  /*
-    El correo nuevo es texto de usuario y se incrusta en el HTML: sin escapar, una dirección con
-    marcado dentro rompe (o secuestra) el mensaje que lee la víctima de un cambio no pedido.
-  */
-  it('escapa el correo nuevo antes de meterlo en el HTML', () => {
-    const mail = changeEmailConfirmationEmail(URL_RESET, '"><script>alert(1)</script>@x.com')
-    expect(mail.html).not.toContain('<script>')
-    expect(mail.html).toContain('&lt;script&gt;')
-  })
 
   it('el de recuperación dice que el enlace caduca, para que nadie crea que la app está rota', () => {
     expect(resetPasswordEmail(URL_RESET).text).toContain('expires in one hour')

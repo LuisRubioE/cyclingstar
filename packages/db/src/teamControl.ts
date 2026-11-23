@@ -148,6 +148,22 @@ async function isTeamNameTaken(
 }
 
 /**
+ * Las reglas del nombre de un equipo, las mismas para su dueño y para un administrador (docs/cuenta.md
+ * §8.5, 8-e): de 2 a 40 caracteres ya recortado, no bloqueado y no repetido en el mundo. Null si vale.
+ */
+export async function teamNameProblem(
+  db: Database,
+  worldId: string,
+  name: string,
+  teamId: string,
+): Promise<'nombre_invalido' | 'nombre_bloqueado' | 'nombre_repetido' | null> {
+  if (name.length < 2 || name.length > 40) return 'nombre_invalido'
+  if (isBlockedName(name) || (await isNameBlocked(db, 'team', name))) return 'nombre_bloqueado'
+  if (await isTeamNameTaken(db, worldId, name, teamId)) return 'nombre_repetido'
+  return null
+}
+
+/**
  * Edita el equipo que gestiona el usuario (dueño): nombre, país y maillot. El nombre se valida
  * como el de un corredor: no puede ser un nombre real bloqueado ni repetir el de otro equipo. El
  * país debe existir en el juego. Solo el dueño puede editar su equipo (SPEC 7).
@@ -169,11 +185,8 @@ export async function updateOwnedTeam(
 
   if (edit.name !== undefined) {
     const name = edit.name.trim()
-    if (name.length < 2 || name.length > 40) return { ok: false, reason: 'nombre_invalido' }
-    if (isBlockedName(name) || (await isNameBlocked(db, 'team', name)))
-      return { ok: false, reason: 'nombre_bloqueado' }
-    if (await isTeamNameTaken(db, team.worldId, name, team.id))
-      return { ok: false, reason: 'nombre_repetido' }
+    const problema = await teamNameProblem(db, team.worldId, name, team.id)
+    if (problema !== null) return { ok: false, reason: problema }
     patch.name = name
   }
 
