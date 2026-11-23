@@ -21,6 +21,15 @@ const CLEARS_VIEWER_COOKIE: ReadonlySet<string> = new Set([
 ])
 
 /**
+ * EL CUERPO FIJO DEL REGISTRO (docs/cuenta.md §5.3, 5-i). better-auth responde 200 también a un
+ * correo que ya tiene cuenta, con un usuario inventado, pero el cuerpo lo delata: el id inventado es
+ * el `generateId()` de 32 caracteres de better-auth y el de verdad el uuid de Postgres (36). Así que
+ * todo 200 de `sign-up/email` sale con este cuerpo, igual byte a byte; la web solo lee `error`.
+ */
+const SIGN_UP_PATH = '/api/auth/sign-up/email'
+export const SIGN_UP_OK_BODY = '{"token":null,"user":null}'
+
+/**
  * Montaje de better-auth en /api/auth/* (Paso 9). Reconstruye una Request web a partir de la
  * petición de Fastify y reenvía la respuesta, preservando las cookies de sesión.
  */
@@ -43,7 +52,9 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
 
     reply.status(response.status)
     for (const [key, value] of response.headers.entries()) {
-      if (key.toLowerCase() === 'set-cookie') continue
+      // La longitud la pone Fastify: el cuerpo puede cambiar aquí abajo.
+      const nombre = key.toLowerCase()
+      if (nombre === 'set-cookie' || nombre === 'content-length') continue
       reply.header(key, value)
     }
     for (const cookie of response.headers.getSetCookie()) {
@@ -53,6 +64,10 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
       reply.header('set-cookie', viewerCookieHeader(null, ctx.secureCookies ?? false))
     }
     const body = await response.text()
+    if (response.status === 200 && url.pathname === SIGN_UP_PATH) {
+      reply.header('content-type', 'application/json')
+      return reply.send(SIGN_UP_OK_BODY)
+    }
     return reply.send(body.length > 0 ? body : null)
   }
 
