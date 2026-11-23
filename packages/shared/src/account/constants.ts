@@ -69,3 +69,15 @@ export const MIN_BIRTH_YEAR = 1900
  * para volver a pedir la aceptación el día que cambie el texto. Es un borrador.
  */
 export const TERMS_VERSION = '2026-11-draft'
+
+/**
+ * Exportaciones de los datos por cuenta en 24 horas (docs/cuenta.md §10.5; D-39): una exportación es una
+ * consulta grande, y tres bastan a quien la quiere. La cuarta da 429 `EXPORT_LIMIT` (12-f).
+ */
+export const EXPORTS_PER_DAY = 3
+
+/**
+ * Días reales sin visita a partir de los que la portada dice `Welcome back` (§14.5; D-55): una semana real son
+ * 28 días de juego. `touchLastSeen` guarda en `welcome_back_from` la visita anterior si es así de vieja (14-d).
+ */
+export const RETURN_NOTICE_AFTER_DAYS = 7

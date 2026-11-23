@@ -294,6 +294,7 @@ export {
 export {
   addBlockedAsAdmin,
   approvePendingUser,
+  deleteAccount,
   deleteUserAsAdmin,
   isRootAdmin,
   isRootAdminUser,
@@ -312,6 +313,15 @@ export {
   type DecideResult,
   type TeamRenameResult,
 } from './adminUsers.js'
+// La purga de la cuenta y el registro de correos (docs/cuenta.md §15.4) y la exportación (§10.5), del PR 12 de E4.
+export {
+  AUTH_LIMITS_RETENTION_DAYS,
+  EMAIL_LOG_RETENTION_DAYS,
+  PURGE_UNCONFIRMED_DAYS,
+  purgeAccounts,
+  type PurgeSummary,
+} from './purge.js'
+export { accountExportData, type AccountExportData } from './accountExport.js'
 export {
   ADMIN_AUDIT_MAX_ROWS,
   forgetAuditEmails,

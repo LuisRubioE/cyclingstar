@@ -365,6 +365,12 @@ const EXCEPCIONES: ReadonlyMap<string, string> = new Map([
     'calendarRun.ts:recomputeWorldRanking',
     'el tick y la administración: rehacen el ranking del mundo con todas las etapas',
   ],
+  // La copia de los datos de una cuenta (docs/cuenta.md §10.5; D-39): las filas tal cual, para su dueño, como
+  // las tiene la base; no es una pantalla del juego y no pasa por el velo.
+  [
+    'accountExport.ts:accountExportData',
+    'la exportación de la cuenta: las filas del jugador tal como se guardan, no una lectura del juego',
+  ],
   ['callups.ts:runCallups', 'el tick: las convocatorias, con los puntos del mundo al día'],
   ['contracts.ts:runMarket', 'el tick: el mercado, con los presupuestos del mundo al día'],
   ['rollover.ts:runRollover', 'el tick: el cambio de temporada, con el palmarés y los puntos'],

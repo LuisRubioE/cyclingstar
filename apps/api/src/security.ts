@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
+import { EXPORTS_PER_DAY } from '@cyclingstar/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { clientIp, ipBucket } from './clientIp.js'
 import { unauthorized } from './http.js'
@@ -64,6 +65,17 @@ export const ACCOUNT_PASSWORD_FAILS_DAY = {
 export const MAIL_ROUTES_PER_IP_DAY = {
   windowS: 86_400,
   max: 20,
+  dayMax: null,
+  lockS: 900,
+} as const
+
+/**
+ * Exportar los datos (docs/cuenta.md §7.4 y §10.5; D-39): `EXPORTS_PER_DAY` en 24 horas por cuenta, contadas
+ * solo las servidas (se reserva con la contraseña ya comprobada). La espera es la de la ventana.
+ */
+export const EXPORT_RULE = {
+  windowS: 86_400,
+  max: EXPORTS_PER_DAY,
   dayMax: null,
   lockS: 900,
 } as const

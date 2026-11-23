@@ -269,13 +269,39 @@ describe('Devices (§12.2; 12-g)', () => {
   })
 })
 
-describe('Your data (§12.2)', () => {
-  it('sin acción hasta el PR 12: la frase, sin contraseña ni botón', () => {
+describe('Your data (§12.2; PR 12)', () => {
+  it('la frase, la contraseña con Show y Download my data', () => {
     const markup = pinta('/account/data', <AccountData />)
     cabecera(markup, 'Your data')
     expect(markup).toContain('Download a copy of everything we keep about you, as a JSON file.')
-    expect(markup).not.toContain('<input')
-    expect(markup).not.toContain('<button')
+    const f = campo(markup, 'data-pw')
+    expect(f).toMatch(/<label for="data-pw"[^>]*>Password<\/label>/)
+    expect(f).toMatch(/type="password"[^>]*autoComplete="current-password"/)
+    expect(f).toMatch(/>Show</)
+    expect(pieza(markup, 'Button', 'Download my data')).toMatch(/type="submit"/)
+  })
+
+  it('vacía, en su campo; mala y la cuarta del día, como alert con la tabla única (§12.3)', () => {
+    const vacia = pinta(
+      '/account/data',
+      <AccountData initial={{ fieldError: 'Enter your password to download your data.' }} />,
+    )
+    expect(estado(campo(vacia, 'data-pw'))).toBe('error')
+    expect(campo(vacia, 'data-pw')).toContain('Enter your password to download your data.')
+    const cuarta = pinta(
+      '/account/data',
+      <AccountData
+        initial={{
+          status: {
+            kind: 'err',
+            msg: "You've downloaded your data 3 times today. Try again tomorrow.",
+          },
+        }}
+      />,
+    )
+    expect(cuarta).toContain(
+      '<p role="alert" class="text-meta text-bad">You&#x27;ve downloaded your data 3 times today. Try again tomorrow.</p>',
+    )
   })
 })
 

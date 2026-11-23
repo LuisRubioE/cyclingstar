@@ -22,6 +22,10 @@ function Puntos({ children }: { children: ReactNode }) {
  *
  * El PR 9 añade la fecha de nacimiento y las condiciones (`users.birth_date`, `terms_version`) y la lengua del
  * navegador al registrarse (`users.locale`); la zona horaria de esa frase llega con los avisos (PR 14).
+ *
+ * El PR 12 añade la última visita (`last_seen_at` en toda visita, §10.6) y la copia de los datos
+ * (`POST /api/me/export`, §10.5). El borrado de una vez con el equipo que conserva su nombre ya lo decía el
+ * PR 3 y ahora lo hace `deleteAccount` (§10.4).
  */
 export function Privacy() {
   return (
@@ -45,6 +49,7 @@ export function Privacy() {
             Your rider, your team and everything you do in the game: training, plans, the races you
             follow and how far you&apos;ve watched them, and your settings.
           </li>
+          <li>When you last visited, so the game knows if you&apos;ve been away.</li>
           <li>
             For each device you&apos;re signed in on: the browser and system it reported, and when
             you signed in and last used it.
@@ -77,6 +82,7 @@ export function Privacy() {
       </Panel>
       <Panel title="Your data, your choice">
         <Puntos>
+          <li>Download a copy of everything we keep about you: Account, Your data.</li>
           <li>
             Delete your account: Account, Delete account. Your email, password, sessions, devices
             and settings are deleted at once. Your rider and your team stay in the world, run by the

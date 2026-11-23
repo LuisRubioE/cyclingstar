@@ -1,5 +1,4 @@
 import {
-  type AttemptResult,
   type Database,
   bumpDeviceEpoch,
   clearAttempts,
@@ -16,8 +15,12 @@ import { apiError, unauthorized } from '../http.js'
 import { limitKeys } from '../limitKeys.js'
 import { MAIL_BUDGET_EXHAUSTED_BODY, mailBudgetOpen } from '../mailBudget.js'
 import {
+  PASSWORD_ATTEMPTS_LOCKED_MESSAGE,
+  failureClosesSession,
+  reserveSessionPassword,
+} from '../passwordAttempts.js'
+import {
   ACCOUNT_FAILS,
-  ACCOUNT_PASSWORD_FAILS_DAY,
   AUTH_RATE_LIMIT,
   CREDENTIAL_AUTH_PATHS,
   CREDENTIAL_RATE_LIMIT,
@@ -87,16 +90,16 @@ const MAIL_PATHS: ReadonlySet<string> = new Set([
 ])
 const RESET_PASSWORD_PATH = '/api/auth/reset-password'
 const CHANGE_PASSWORD_PATH = '/api/auth/change-password'
-/** Las que piden la contraseña con una sesión abierta: L3 (§7.4; 7-c). Exportar llega con el PR 12. */
+const DELETE_USER_PATH = '/api/auth/delete-user'
+/** Las que piden la contraseña con una sesión abierta: L3 (§7.4; 7-c). Exportar, en `meAccount.ts` (§10.5). */
 const SESSION_PASSWORD_PATHS: ReadonlySet<string> = new Set([
   CHANGE_PASSWORD_PATH,
-  '/api/auth/delete-user',
+  DELETE_USER_PATH,
 ])
 
 /** Los 429 propios de la cuenta (§12.3): el texto lo pone la web por `code`; aquí va en inglés igual. */
 const ACCOUNT_LOCKED_MESSAGE =
   'Too many failed attempts on this account. Try again in 15 minutes, or reset your password.'
-const PASSWORD_ATTEMPTS_LOCKED_MESSAGE = 'Too many wrong passwords. Try again in 15 minutes.'
 
 /** Responde un 429 con su espera en el cuerpo y en `retry-after` (§7.8). */
 function demasiados(reply: FastifyReply, retryAfterS: number, cuerpo: object): FastifyReply {
@@ -269,36 +272,28 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
     } else if (db !== undefined && SESSION_PASSWORD_PATHS.has(ruta)) {
       const sesion = await auth.api.getSession({ headers: toWebHeaders(request) })
       if (sesion !== null) {
-        const porSesion = keys.pw(sesion.session.id)
-        const porCuenta = keys.pwu(sesion.user.id)
-        let r: AttemptResult = await reserveAttempt(db, porSesion, SESSION_PASSWORD_FAILS, ahora)
-        if (r.allowed) {
-          const dia = r.dayCount
-          r = await reserveAttempt(db, porCuenta, ACCOUNT_PASSWORD_FAILS_DAY, ahora)
-          if (r.allowed) {
-            sesionL3 = {
-              token: sesion.session.token,
-              userId: sesion.user.id,
-              email: sesion.user.email,
-              dayCount: dia,
-            }
-          }
-        } else if (r.byDay) {
+        const r = await reserveSessionPassword(
+          db,
+          keys,
+          { id: sesion.session.id, userId: sesion.user.id },
+          ahora,
+        )
+        if (!r.ok) {
           // Pasado el tope diario de la sesión, se cierra esa sesión, no las otras del dueño (7-k).
-          await deleteSessionByToken(auth, sesion.session.token)
+          if (r.signedOut) await deleteSessionByToken(auth, sesion.session.token)
           return demasiados(reply, r.retryAfterS, {
             code: 'PASSWORD_ATTEMPTS_LOCKED',
             message: PASSWORD_ATTEMPTS_LOCKED_MESSAGE,
-            signedOut: true,
+            ...(r.signedOut ? { signedOut: true } : {}),
           })
         }
-        if (!r.allowed) {
-          return demasiados(reply, r.retryAfterS, {
-            code: 'PASSWORD_ATTEMPTS_LOCKED',
-            message: PASSWORD_ATTEMPTS_LOCKED_MESSAGE,
-          })
+        sesionL3 = {
+          token: sesion.session.token,
+          userId: sesion.user.id,
+          email: sesion.user.email,
+          dayCount: r.dayCount,
         }
-        alAcertar.push(porSesion, porCuenta)
+        alAcertar.push(...r.keys)
       }
     }
 
@@ -316,6 +311,10 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
         await bumpDeviceEpoch(db, sesionL3.userId)
         correoCookie = sesionL3.email
       }
+      // Borrada la cuenta (§10.4), su entrada sale de la `cs_device` de este navegador; las otras se quedan.
+      if (ruta === DELETE_USER_PATH && sesionL3 !== null) {
+        cookiesPropias.push(devices.forget(devices.read(request.headers.cookie), sesionL3.email))
+      }
       if (correoCookie !== null) {
         const dueño = await deviceOwnerByEmail(db, correoCookie)
         if (dueño !== null) {
@@ -328,7 +327,7 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
       db !== undefined &&
       sesionL3 !== null &&
       response.status !== 429 &&
-      sesionL3.dayCount >= SESSION_PASSWORD_FAILS.dayMax
+      failureClosesSession(sesionL3.dayCount)
     ) {
       // El décimo fallo del día con esta sesión: se cierra y la web lleva a `/login` (§7.4; 7-k).
       await deleteSessionByToken(auth, sesionL3.token)

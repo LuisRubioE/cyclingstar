@@ -67,3 +67,40 @@ export async function forgetDevice(): Promise<OkResponse> {
     errorMessage: 'Could not forget this device.',
   })
 }
+
+/** El fichero de la exportación, listo para guardar. */
+export interface ExportFile {
+  readonly blob: Blob
+  readonly filename: string
+}
+
+/**
+ * Pide la copia de los datos (`POST /api/me/export` con `{ password }`, docs/cuenta.md §10.5; D-39). Con la
+ * forma de las llamadas de better-auth (`{ error }` con su `status`), para que `authCall` traduzca el fallo con
+ * la tabla única (§12.3): `INVALID_PASSWORD`, `PASSWORD_ATTEMPTS_LOCKED` (con `signedOut`) y `EXPORT_LIMIT`.
+ * Sin red, lanza, y `authCall` lo cuenta como status 0.
+ */
+export async function postExport(
+  password: string,
+): Promise<{ error: null; file: ExportFile } | { error: Record<string, unknown> }> {
+  const res = await fetch('/api/me/export', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ password }),
+  })
+  if (!res.ok) {
+    let cuerpo: unknown = null
+    try {
+      cuerpo = await res.json()
+    } catch {
+      cuerpo = null
+    }
+    const campos = typeof cuerpo === 'object' && cuerpo !== null ? cuerpo : {}
+    return { error: { ...campos, status: res.status } }
+  }
+  const nombre = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1]
+  return {
+    error: null,
+    file: { blob: await res.blob(), filename: nombre ?? 'cycling-star.json' },
+  }
+}
