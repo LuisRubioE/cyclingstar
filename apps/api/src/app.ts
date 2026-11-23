@@ -154,6 +154,9 @@ function webCacheHeaders(webRoot: string): (reply: FastifyReply, path: string) =
  * hace efectivo el rate limiting: los hooks de Fastify solo alcanzan a las rutas declaradas
  * DESPUÉS del plugin que los instala, y los plugins se cargan en el orden en que se registran.
  */
+/** El error que lanza el límite de peticiones: su estado y cuánto esperar, en segundos. */
+type RateLimitError = Error & { statusCode: number; retryAfterS: number }
+
 export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // trustProxy: detrás del proxy de Railway (TLS terminado), para resolver bien
   // protocolo (https), host e IP de cliente a partir de las cabeceras X-Forwarded-*.
@@ -209,10 +212,13 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     ...GLOBAL_RATE_LIMIT,
     // trustProxy ya está activo: la clave es la IP real del cliente, no la del proxy de Railway.
     // El plugin LANZA lo que devuelva este constructor, así que hay que devolver un Error con
-    // statusCode; el manejador de errores lo traduce al formato uniforme `{ ok, error }`.
+    // statusCode; el manejador de errores lo traduce al formato uniforme `{ ok, error }`. Desde E4
+    // lleva además cuánto esperar, en segundos (`retryAfterS`, lo mismo que la cabecera `retry-after`),
+    // para que la web lo diga y ponga la cuenta atrás en el botón (docs/cuenta.md §7.2 y §12.3; D-25).
     errorResponseBuilder: (_request, context) => {
-      const err = new Error('demasiadas_peticiones') as Error & { statusCode: number }
+      const err = new Error('demasiadas_peticiones') as RateLimitError
       err.statusCode = context.statusCode
+      err.retryAfterS = Math.max(1, Math.ceil(context.ttl / 1000))
       return err
     },
   })
@@ -245,6 +251,17 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     if (statusCode >= 500) {
       request.log.error(error)
       reply.status(500).send(apiError('interno'))
+      return
+    }
+    const retryAfterS = (error as Partial<RateLimitError>).retryAfterS
+    if (statusCode === 429 && typeof retryAfterS === 'number') {
+      // el 429 del límite: el mismo `{ ok, error }`, con el texto en inglés y la espera; la web no pinta
+      // el `message`, traduce por código (docs/cuenta.md §12.3)
+      reply.status(429).send({
+        ...apiError(error.message),
+        message: 'Too many requests. Try again later.',
+        retryAfterS,
+      })
       return
     }
     reply.status(statusCode).send(apiError(error.message))
