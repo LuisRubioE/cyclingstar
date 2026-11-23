@@ -10,8 +10,9 @@ Cada contradicción de hecho o de diseño entre las tres propuestas queda cerrad
 > §9.2). DD-01 A, con el panel como en twilightstruggle; DD-02 A solo por push; DD-03 A; DD-04 con
 > detección del iPhone y explicación de la pantalla de inicio, como twilightstruggle; DD-12, 28 días
 > reales; DD-10 B; DD-11 C; DD-14 B y un administrador puede cambiar siempre el nombre; DD-16 por push
-> y nunca por correo; el resto, por defecto; DD-15 y el alcance de «sin correo» en los correos de
-> seguridad, pendientes.
+> y nunca por correo; el resto, por defecto. Y §9.3: **solo dos correos** (recuperar la contraseña y
+> confirmar el registro); **sin cambio de correo de autoservicio**, lo cambia un administrador desde el
+> panel; DD-15 C, sin informes DMARC.
 
 ## 0. Lo que decidió el dueño el 19 de noviembre de 2026 (manda sobre todo lo de abajo)
 

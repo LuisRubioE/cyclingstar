@@ -359,8 +359,10 @@ recomendación delante. Respuestas textuales y lo que deciden (mandan sobre `00-
 
 1. TOTP del panel. «Ok. Mira como resolví eso en hereistand y en twikightstruggle.app y me gustaría
    que sea parecido». **Sin TOTP (DD-01 A)**, y el panel **como en twilightstruggle**
-   (`/home/user/twilightstruggle`, clon de `LuisRubioE/twilightstruggle` en `cea2de5`; `hereistand` no
-   está entre los repositorios accesibles): administradores fijos por una lista del entorno que el
+   (`/home/user/twilightstruggle`, clon de `LuisRubioE/twilightstruggle` en `cea2de5`; `hereistand` es
+   `LuisRubioE/his`, clonado en `/home/user/his` en `a1fb340`, con el mismo modelo: papeles `admin` y
+   `moderator` en `backend/app/auth.py` l. 180 a 195 y un registro de auditoría que leen los dos,
+   `backend/app/routers/admin_log.py`; sin TOTP): administradores fijos por una lista del entorno que el
    panel no puede cambiar, ni su correo (`ai/src/pvp/roles.ts` l. 1 a 60; `ai/src/pvp/admin.ts`
    l. 213 a 217); nadie se quita su propio papel; cada edición de un administrador queda escrita con
    el valor viejo y el nuevo (`ai_user_edits`, `admin.ts` l. 233 a 235). El papel de moderador existe
@@ -390,3 +392,17 @@ recomendación delante. Respuestas textuales y lo que deciden (mandan sobre `00-
 VAPID, apagado sin claves, enviado tras el commit y en segundo plano, no a quien mira la pestaña, y la
 lista de servicios de push permitidos `PUSH_HOSTS`, l. 356 a 373, que cierra la SSRF),
 `ai/ui/src/online/push.ts` (373 l.) y `ai/ui/public/sw.js` (71 l.). El diseño de E4 parte de ella.
+
+### 9.3 Las dos que quedaban (23 de noviembre de 2026)
+
+1. El alcance del correo. «Solo correo para forgot password y para acabar el registro (igual que en
+   el de Twilight Stuggle)». **El juego manda dos correos y ninguno más: recuperar la contraseña y
+   confirmar el registro.** Ningún correo de seguridad (contraseña cambiada, entrada nueva), que van
+   por push si el jugador lo tiene. Lectura del orquestador, con twilightstruggle delante: allí el
+   jugador no cambia su correo, se lo cambia un administrador (`ai/ui/src/online/profile.ts` l. 4 y
+   l. 55, «To change your name, email, phone or flag, ask an administrator.»). Así que **el cambio de
+   correo de autoservicio se retira** (y con él sus dos correos, el aviso a la vieja y la verificación
+   de la nueva): lo hace un administrador desde el panel, con su edición escrita, y el correo de
+   `ADMIN_EMAIL` no se cambia allí. Se le dice al dueño para que lo corrija si no era eso.
+2. DMARC. «No sabia que se podia hacer eso... pero ok, de momento lo dejamos». **Sin informes DMARC
+   por ahora (DD-15 C).**
