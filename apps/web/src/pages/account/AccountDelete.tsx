@@ -89,7 +89,8 @@ export function AccountDelete({ initial = {} }: { initial?: Partial<DeleteState>
               busy={status.kind === 'saving'}
               {...espera.button}
             >
-              Delete my account for good
+              {/* «for good» sobraba: a 320 px el botón, que no encoge, pasaba 12 px del panel */}
+              Delete my account
             </Button>
             <Button variant="quiet" to="/account">
               Cancel

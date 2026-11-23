@@ -320,7 +320,7 @@ describe('Delete account (§12.2; 12-d)', () => {
     expect(f).toMatch(/<label for="delete-pw"[^>]*>Password<\/label>/)
     expect(f).toMatch(/type="password"[^>]*autoComplete="current-password"/)
     expect(f).toMatch(/>Show</)
-    expect(pieza(markup, 'Button', 'Delete my account for good')).toMatch(
+    expect(pieza(markup, 'Button', 'Delete my account')).toMatch(
       /type="submit"[^>]*data-variant="danger"/,
     )
     expect(pieza(markup, 'Button', 'Cancel')).toMatch(/href="\/account"/)
