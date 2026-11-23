@@ -6,6 +6,13 @@ Cada contradicción de hecho o de diseño entre las tres propuestas queda cerrad
 
 ---
 
+> **Manda sobre esta tabla: las respuestas del dueño del 23 de noviembre de 2026** (`00-encargo.md`
+> §9.2). DD-01 A, con el panel como en twilightstruggle; DD-02 A solo por push; DD-03 A; DD-04 con
+> detección del iPhone y explicación de la pantalla de inicio, como twilightstruggle; DD-12, 28 días
+> reales; DD-10 B; DD-11 C; DD-14 B y un administrador puede cambiar siempre el nombre; DD-16 por push
+> y nunca por correo; el resto, por defecto; DD-15 y el alcance de «sin correo» en los correos de
+> seguridad, pendientes.
+
 ## 0. Lo que decidió el dueño el 19 de noviembre de 2026 (manda sobre todo lo de abajo)
 
 `00-encargo.md` §9.1, citas textuales allí. Donde algo de abajo diga otra cosa, manda esto.

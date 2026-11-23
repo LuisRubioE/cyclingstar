@@ -351,3 +351,42 @@ Lo que queda decidido, y que manda sobre el encargo y sobre cualquier otro texto
    mundo haga con una ausencia larga es de E7.
 6. **Solo correo y contraseña.** Nada de OAuth, enlace mágico ni código por correo en E4; los tres
    avisos de `better-auth` (§3) se leen para la subida de versión, no para añadir esos accesos.
+
+### 9.2 Las respuestas a las decisiones de la síntesis (23 de noviembre de 2026)
+
+El orquestador le planteó diez preguntas sobre las `DD-nn` de `borrador/00-decisiones.md`, con su
+recomendación delante. Respuestas textuales y lo que deciden (mandan sobre `00-decisiones.md`):
+
+1. TOTP del panel. «Ok. Mira como resolví eso en hereistand y en twikightstruggle.app y me gustaría
+   que sea parecido». **Sin TOTP (DD-01 A)**, y el panel **como en twilightstruggle**
+   (`/home/user/twilightstruggle`, clon de `LuisRubioE/twilightstruggle` en `cea2de5`; `hereistand` no
+   está entre los repositorios accesibles): administradores fijos por una lista del entorno que el
+   panel no puede cambiar, ni su correo (`ai/src/pvp/roles.ts` l. 1 a 60; `ai/src/pvp/admin.ts`
+   l. 213 a 217); nadie se quita su propio papel; cada edición de un administrador queda escrita con
+   el valor viejo y el nuevo (`ai_user_edits`, `admin.ts` l. 233 a 235). El papel de moderador existe
+   allí; aquí es de E7, y E4 solo deja el sitio.
+2. Avisos de serie. «Esos avisos son pushup notification? Si es así, ok». **Los cinco de DD-02 A,
+   solo por aviso push.**
+3. Cuándo se pide el permiso. «ok». **DD-03 A.**
+4. El iPhone. «si detecta que es un iPhone, que permita pero explique cómo hacerlo». **Se detecta el
+   iPhone y se explica cómo añadir la web a la pantalla de inicio para recibir avisos**, como hace
+   twilightstruggle (`ai/ui/src/online/push.ts` l. 48 a 54 y l. 230). Lo mínimo que esto pida a la web
+   (y si choca con D-00p de `docs/visual.md`) lo escribe el diseño con su frontera.
+5. Ausencia máxima. «ok 28 días reales». **28 días reales.**
+6. Resend. «de momento nos quedamos en el gratis y abrimos registro por tandas pequeñas». **DD-10 B.**
+7. El equipo de quien se borra. «dejamos el que puso, pero un admin o moderador podria modificarlo
+   siempre (especialmente si es algo inapropiado)». **Se queda el nombre que puso (DD-14 B), y un
+   administrador puede cambiarlo siempre** desde el panel, con su edición escrita (punto 1). El
+   moderador, cuando E7 lo cree.
+8. Contraseñas filtradas. «no entraría ahí... Si alguien quiere usar una pass comprometida aqui pues
+   allá el». **Sin comprobación de contraseñas filtradas (DD-11 C).**
+9. El resto por defecto. «ok pero cuando dices correo... Sin correo, solo notificación push».
+   **Todas las demás `DD-nn` con su valor por defecto, y el aviso de entrada nueva (DD-16) por push,
+   nunca por correo.** Pendiente de confirmar si esto alcanza también a los correos de seguridad de
+   la cuenta (contraseña cambiada, correo cambiado).
+10. El destino de DMARC. «no entiendo esta». **Pendiente**, se le vuelve a explicar.
+
+**La referencia de twilightstruggle para los avisos**: `ai/src/pvp/push.ts` (459 l.: `web-push` con
+VAPID, apagado sin claves, enviado tras el commit y en segundo plano, no a quien mira la pestaña, y la
+lista de servicios de push permitidos `PUSH_HOSTS`, l. 356 a 373, que cierra la SSRF),
+`ai/ui/src/online/push.ts` (373 l.) y `ai/ui/public/sw.js` (71 l.). El diseño de E4 parte de ella.
