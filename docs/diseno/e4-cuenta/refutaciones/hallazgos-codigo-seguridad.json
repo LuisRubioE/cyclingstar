@@ -1,0 +1,138 @@
+[
+  {
+    "id": "Rcodigo-seguridad-001",
+    "seccion": "§5.3 (borrador/05-enlaces.md l. 57), §2.2 A7 (borrador/02-amenazas.md), §4.7 (borrador/04-registro.md)",
+    "gravedad": "alta",
+    "que": "El cuerpo del 200 de `sign-up/email` dice si el correo ya tiene cuenta, hoy y con E4. Que la respuesta sea «la misma 200 con un usuario inventado» es falso: con un correo nuevo, `user.id` es el uuid que pone Postgres (36 caracteres); con uno que existe, es el `generateId()` de 32 caracteres alfanuméricos de `better-auth`, porque `advanced.database.generateId: false` hace que `ctx.context.generateId` no dé nada y la rama sintética caiga en el genérico. Basta una petición por correo, sin medir tiempos, y ningún límite lo frena más allá de su cuota por IP. E4 añade un segundo oráculo: el gancho `databaseHooks.user.create.before` pone `name = 'Player'` en la fila creada, que vuelve en el 200, mientras la respuesta sintética devuelve el `name: ''` del cuerpo (`sign-up.mjs` l. 163). El freno de A7 (§2.2) solo mira el tiempo, y `enumTiming.test.ts` (§17) no compara cuerpos. Con la lista de cuentas reales, A6 también gasta la reserva de recuperar sin cuentas propias (Rcodigo-seguridad-003).",
+    "evidencia": "Medido con el arnés del mapa 01: <scratchpad>/refutador-1/sintetico.mjs. better-auth 1.7.26 (sintetico.json): nuevo {idLen 36, idIsUuid true}, existente {idLen 32, idIsUuid false}, mismas claves y name ''. 1.6.25, lo de producción (sintetico16.json): el mismo resultado. Código: ba17/api/routes/sign-up.mjs l. 161 (`ctx.context.generateId({ model: \"user\" }) || generateId()`) y l. 208; apps/api/src/auth.ts l. 219 a 220 (`generateId: false`).",
+    "arreglo": "Que el proxy cambie el cuerpo de todo 200 de `/api/auth/sign-up/email` por uno fijo, `{ \"token\": null, \"user\": null }`: `Register.tsx` l. 119 a 127 solo lee `result.error`. Otra vía que vale: `emailAndPassword.customSyntheticUser` que devuelva `id: crypto.randomUUID()` y `name: 'Player'`, aunque se rompe en cuanto el gancho cambie otro campo. Corregir §5.3 y §2.2 A7, y añadir a `enumTiming.test.ts` un caso que exija cuerpos iguales, sin contar fechas, para un correo nuevo y uno que existe. Entra en el PR 3, porque el oráculo ya está en producción."
+  },
+  {
+    "id": "Rcodigo-seguridad-002",
+    "seccion": "§7.2 y §7.3 (borrador/07-limites.md l. 14 y 22), §8.1 (borrador/08-rutas.md)",
+    "gravedad": "alta",
+    "que": "Una ruta con un segmento `..` o `.` se salta hoy el límite estricto de credenciales, y puede saltarse los límites nuevos de E4. find-my-way recibe la ruta tal cual: `/api/auth/x/../sign-in/email` no casa con la ruta estática y cae en el comodín, que tiene `AUTH_RATE_LIMIT` (60 por minuto). Después, `forwardToAuth` arma `new URL(request.url, …)`, que normaliza la ruta, y `better-auth` atiende `sign-in/email` igual. Medido: desde una sola IP, 25 fallos sin un 429, y después la contraseña buena entra. El diseño cuelga sus frenos de la ruta: deja la capa de Fastify «sin cambio», reserva en el proxy «antes de reenviar» sin decir qué ruta mira, aplica L4 y el 503 del presupuesto «antes de llegar a better-auth» y compara la lista blanca contra una ruta. Todo lo que se decida por la ruta cruda o por la configuración de la ruta estática cae igual. No sé si el borde de Railway normaliza los `..` (`curl --path-as-is` los manda crudos).",
+    "evidencia": "<scratchpad>/refutador-1/puntos.mjs, con node:http, que no normaliza (fetch sí), contra el arnés de 1.7.26; salida en puntos.txt: `/api/auth/sign-in/email` da 401 ×10 y luego 429 429; `/api/auth/x/../sign-in/email` da 401 ×25 desde la misma IP y luego la buena 200; `/api/auth/./sign-in/email` da 401 ×25; `/api/auth/x/../request-password-reset` da 200 y manda el correo. Código: apps/api/src/routes/authProxy.ts l. 34 (`new URL`), l. 62 a 71 (estáticas y comodín). | Comprobado en producción por el orquestador el 23 de noviembre de 2026, solo con GET: `curl --path-as-is https://www.cyclingstar.app/api/auth/x/../../health` da 404 de better-auth con `x-ratelimit-limit: 60` (el comodín), y `/health` da 200; el borde de Railway NO normaliza los `..`, así que el salto del límite estricto funciona hoy en producción.",
+    "arreglo": "En un `onRequest` de `/api/auth/*`, antes del límite y del proxy: si la ruta cruda (`request.raw.url` sin la consulta) no es igual a `new URL(...).pathname`, o si lleva `//`, `/./`, `/../`, `%2e`, `%2f` o `%5c` (sin mirar mayúsculas), responder 404 `no_encontrado`. Después, la lista blanca, L1 a L4, el presupuesto y el límite de Fastify se deciden en un solo sitio y con la ruta normalizada, nunca con la configuración de la ruta estática. `authRoutes.test.ts` repite con node:http las tres variantes medidas contra `sign-in/email`, `request-password-reset` y `change-password`, y exige 404. Entra en el PR 3, porque el agujero ya está abierto; el PR 5 lo deja dentro de la lista blanca."
+  },
+  {
+    "id": "Rcodigo-seguridad-003",
+    "seccion": "§7.6 (borrador/07-limites.md l. 107), §2.4 (borrador/02-amenazas.md l. 53), §9.4",
+    "gravedad": "media",
+    "que": "Las 30 de reserva no «siguen sirviendo a quien recupera». Se gastan con cualquier `request-password-reset` de una cuenta confirmada, la pida quien la pida. Un atacante con k cuentas confirmadas suyas (cada una cuesta un `verify_signup` que ya gasta del cupo de 60) gasta 3k recuperaciones por hora antes de chocar con L5: con 10 cuentas son 30 en una hora, y con L4 (20 al día por IP) le bastan dos IP. Con el oráculo de Rcodigo-seguridad-001 no necesita ni cuentas propias: usa las de jugadores de verdad, que además reciben los enlaces. Sumado a L1, que un tercero mantiene cerrado con 10 intentos cada 15 minutos desde una sola IP (le sobran los 10 cada 5 minutos de Fastify), el jugador que esté en un navegador nuevo no entra ni recupera en todo el día UTC. §2.4 y §7.6 dicen lo contrario.",
+    "evidencia": "ba17/api/routes/password.mjs l. 59 a 86: el correo sale para toda cuenta que existe, sin mirar quién lo pide; las cifras son de borrador/07-limites.md §7.4 (L4, L5) y §7.6 (60 más 30), y el cálculo es estimado.",
+    "arreglo": "Que cada destinatario pueda gastar la reserva una sola vez por día UTC (la primera recuperación del día de un `recipient_hash` puede salir de las 30; las siguientes, solo del cupo general). Así gastar la reserva pide 30 cuentas confirmadas distintas en el día, y no 10 en una hora. Una alarma en §19.4 si la reserva pasa de 10 en un día. Reescribir §2.4 y §7.6 con lo que queda: con 30 cuentas confirmadas, o con 30 correos de jugadores sacados de un oráculo, el día se agota igual."
+  },
+  {
+    "id": "Rcodigo-seguridad-004",
+    "seccion": "§2.3 (borrador/02-amenazas.md l. 42), §5.5 (borrador/05-enlaces.md l. 80), §8.5",
+    "gravedad": "media",
+    "que": "El freno que §2.3 pone al «administrador engañado» no existe. Cuando el administrador cambia el correo, el atacante pide recuperar en el correo nuevo y guarda una contraseña. `revokeSessionsOnPasswordReset` borra entonces todas las sesiones, también la de la víctima, y §5.4 borra todas sus suscripciones de avisos. La «sesión de la víctima que sigue abierta y le enseña el correo nuevo» dura lo que tarda el atacante en abrir su enlace. El cambio hecho por el administrador no avisa por ningún canal (§5.5: ni correo ni push), y el único rastro para la víctima es un `password_changed` que llega una vez antes de que se borren sus suscripciones. Al revés pasa lo mismo: si quien pide el cambio es la víctima de A4, que ha perdido el buzón, «no se cierra ninguna sesión» deja dentro al intruso, que además sabe la contraseña.",
+    "evidencia": "ba17/utils/password.mjs l. 31 a 34 (`deleteUserSessions` dentro de `resetCredentialPassword`); borrador/05-enlaces.md §5.4 punto 3 (DELETE de `push_targets`) y §5.5 («no se cierra ninguna sesión… no sale ningún correo»).",
+    "arreglo": "En `PATCH /api/admin/users/:id` con `email`: (1) antes de cambiarlo, encolar a todas las suscripciones de la cuenta el aviso push `email_changed` (pantalla: `Your account email was changed by an administrator` / `If you didn't ask for this, sign in and check Account.`), que es lo que el dueño dejó para la seguridad: push si lo tiene; (2) una casilla en la confirmación, `Sign out everywhere`, encendida por defecto, que cierre las sesiones y suba `device_epoch`, porque el caso normal es alguien que ha perdido el buzón; (3) reescribir §2.3 sin la sesión abierta como freno: lo que queda es `admin_audit` y la prudencia del administrador."
+  },
+  {
+    "id": "Rcodigo-seguridad-005",
+    "seccion": "§7.5 (borrador/07-limites.md l. 99), §5.4 (borrador/05-enlaces.md l. 70)",
+    "gravedad": "media",
+    "que": "`new_sign_in` calla justo en los dos casos de A2 y A3 que importan. Solo suena desde un navegador sin `cs_device` válida, y la cookie dura 180 días, sobrevive a `Sign out` y sobrevive a `change-password`: `device_epoch` solo sube al recuperar y con `sign-out-others`. Primer caso, el ordenador compartido de A3: quien llegue después y sepa o adivine la contraseña entra sin aviso, y además pasa por L2 y no por L1. Segundo caso, la expareja que entró alguna vez: la víctima cambia la contraseña porque sospecha, el navegador de la otra persona sigue «conocido», y si consigue la nueva contraseña entra sin aviso. Sin correos de seguridad (`00-encargo.md` §9.3), ese aviso es la única señal que le queda al jugador.",
+    "evidencia": "borrador/07-limites.md l. 93 a 101 (formato, «Sobrevive a `Sign out`», emisión y aviso); borrador/05-enlaces.md l. 70 y borrador/06-sesiones.md l. 77: solo recuperar y `sign-out-others` suben `device_epoch`.",
+    "arreglo": "Que `change-password` con éxito suba `device_epoch` y vuelva a emitir la entrada de este navegador, igual que `sign-out-others`. Junto a `Sign out`, la opción (pantalla) `Shared computer? Forget this device`, que quita del `cs_device` la entrada de ese correo. Escribir en §2.3 lo que queda: en un ordenador compartido en el que nadie pulsa esa opción, 180 días de aparato conocido."
+  },
+  {
+    "id": "Rcodigo-seguridad-006",
+    "seccion": "§6.5 (borrador/06-sesiones.md l. 77) frente a §7.5 (borrador/07-limites.md l. 93 y 7-e)",
+    "gravedad": "baja",
+    "que": "`POST /api/me/devices/sign-out-others` tiene que «reemitir la `cs_device` de este navegador», pero la cookie lleva `Path=/api/auth` y el navegador no la manda a `/api/me/*`. El servidor no puede leer las otras hasta cuatro entradas del navegador: el `Set-Cookie` las pisa, y las otras cuentas de ese navegador pierden su protección frente a L1 sin que nadie lo sepa.",
+    "evidencia": "Lectura: la cookie va con `Path=/api/auth` (7-e) y la ruta es `/api/me/devices/sign-out-others` (§6.5).",
+    "arreglo": "Montar la ruta en `POST /api/auth/devices/sign-out-others`, atendida por Fastify y sin pasar por `better-auth` (la ruta estática gana al comodín, como ya hacen las de `CREDENTIAL_AUTH_PATHS`), incluida en la lista del proxy como ruta propia. Otra vía es emitir la cookie con `Path=/api`, a cambio de unos 490 bytes en cada petición. `deviceCookie.test.ts` comprueba que, con dos cuentas en la cookie, cerrar las otras sesiones de una deja intacta la entrada de la otra."
+  },
+  {
+    "id": "Rcodigo-seguridad-007",
+    "seccion": "§7.5 (borrador/07-limites.md l. 93)",
+    "gravedad": "baja",
+    "que": "La firma de `cs_device` es HMAC de `v1.<hmac del correo>.<nonce>.<device_epoch>` y no lleva el id de la cuenta. `device_epoch` vale 0 por defecto en todas las cuentas. Si un correo cambia de dueño (una cuenta borrada y otra registrada con el mismo correo, o un correo que un administrador ha liberado), la entrada que guarda el navegador del dueño anterior vale para la cuenta nueva: la protege de L1 y le ahorra el aviso `new_sign_in`.",
+    "evidencia": "borrador/07-limites.md l. 93 (qué se firma); borrador/15-datos.md §15.1 (`deviceEpoch … default(0)`).",
+    "arreglo": "Firmar `v1.<hmac>.<nonce>.<userId>.<device_epoch>` y comprobar con el id de la cuenta encontrada por el correo; un caso en `deviceCookie.test.ts`: borrar la cuenta, registrar otra con el mismo correo y comprobar que la entrada vieja no vale."
+  },
+  {
+    "id": "Rcodigo-seguridad-008",
+    "seccion": "§8.5 (borrador/08-rutas.md l. 49)",
+    "gravedad": "baja",
+    "que": "«El panel no lo puede quitar» es falso. Un administrador dado desde el panel manda `PATCH /api/admin/users/<id del raíz>` con `{ emailVerified: false }`. Como `isRootAdmin` exige el correo confirmado, el raíz deja de serlo, y además no puede entrar (403 `EMAIL_NOT_VERIFIED`) hasta que abra un enlace nuevo. E4 añade `email` al mismo PATCH y solo protege ese campo.",
+    "evidencia": "apps/api/src/routes/admin.ts l. 51 a 58 (`emailVerified` en el PATCH) y l. 104 a 119 (sin comprobación del raíz); packages/db/src/adminUsers.ts l. 21 a 27 (`user.emailVerified && …`) y l. 145 a 162.",
+    "arreglo": "En el PATCH, si la cuenta es la del raíz (`isRootAdminUser`, como ya hace el DELETE en l. 134 a 136), 409 `es_el_admin_raiz` para `emailVerified`, `isAdmin` y `email`; caso en `adminPanel.test.ts`."
+  },
+  {
+    "id": "Rcodigo-seguridad-009",
+    "seccion": "§7.4 L3 (borrador/07-limites.md l. 83)",
+    "gravedad": "baja",
+    "que": "L3 se cuenta por cuenta (`pw:<hmac del id de usuario>`), no por sesión. El ladrón de una sesión (A3) gasta 10 contraseñas malas y le cierra al dueño, en todas sus sesiones y hasta que acabe la ventana de 24 horas, `change-password`, `delete-user` y la exportación. Justo cambiar la contraseña es la reacción natural de quien sospecha. Le quedan `sign-out-others` y recuperar, pero recuperar no borra `pw:` (§5.4 solo pone L1 a cero).",
+    "evidencia": "borrador/07-limites.md l. 83 (clave `pw:` por usuario, 10 en 86.400 s) y la consulta de §7.3: tras el tope diario, cada intento vuelve a cerrar hasta que `day_start` caduca.",
+    "arreglo": "Clave `pw:<hmac del id de sesión>` con 5 en 900 s y 10 al día, más un techo por cuenta mayor (30 al día) para el que reparte intentos entre sesiones; `clearAttempts` de las claves `pw:` de la cuenta al recuperar y en `sign-out-others`."
+  },
+  {
+    "id": "Rcodigo-seguridad-010",
+    "seccion": "§6.3 (borrador/06-sesiones.md l. 20), §2.2 A3 (borrador/02-amenazas.md l. 28)",
+    "gravedad": "baja",
+    "que": "«El token no llega al JavaScript» no se cumple: el proxy solo lo quita de `get-session`, y el 200 de `sign-in/email` lo sigue llevando en el cuerpo (`token: session.token`).",
+    "evidencia": "ba17/api/routes/sign-in.mjs l. 365 a 370.",
+    "arreglo": "Que el proxy quite `token` del 200 de `sign-in/email` también, y en general todo `token` y `session.token` de cualquier JSON de `/api/auth/*`; `authFlow.test.ts` comprueba que ningún cuerpo de las once rutas contiene el valor de la cookie de sesión."
+  },
+  {
+    "id": "Rcodigo-seguridad-011",
+    "seccion": "§4.5 (borrador/04-registro.md l. 122)",
+    "gravedad": "baja",
+    "que": "La puerta de la fecha en la API solo cubre `/api/riders/*` y `/api/me/*`. Una cuenta sin `birth_date` sigue jugando por `POST /api/teams/take-over`, `PUT /api/teams/me`, `PUT /api/teams/me/kit`, `POST` y `DELETE /api/teams/me/calendar/:raceId` y `PUT /api/my-orders`.",
+    "evidencia": "apps/api/src/routes/teams.ts l. 70, 86, 133, 198 y 214; apps/api/src/routes/races.ts l. 182.",
+    "arreglo": "Un `preHandler` global para todo lo que no sea `GET` bajo `/api/`, salvo `/api/auth/*`, `/api/admin/*`, `/api/webhooks/*` y la lista de excepciones de D-09; `birthDate.test.ts` recorre las rutas registradas en la app (`printRoutes` o `onRoute`) y exige el 403 en cada una que no esté en la lista."
+  },
+  {
+    "id": "Rcodigo-seguridad-012",
+    "seccion": "§4.2 (borrador/04-registro.md l. 99), §4.3",
+    "gravedad": "baja",
+    "que": "`birthDate` con `returned: true` viaja en cada `get-session` y en cada 200 del registro, y vive en la memoria de toda página: contradice «Nadie la enseña» y la idea de guardar lo mínimo de un dato que puede ser de un menor. Con `input: true`, lo único que impide reescribirla por `update-user` (que la pasa por `parseUserInput(…, \"update\")`) es el 404 de esa ruta. El 409 `already_set` de `PUT /api/me/birth-date` depende de que nadie la vuelva a abrir.",
+    "evidencia": "ba17/api/routes/update-user.mjs l. 56; ba17/db/schema.mjs l. 65 a 85 (en `update`, `input: true` deja escribir el campo).",
+    "arreglo": "`returned: false`. La web sabe que falta la fecha por `GET /api/me/account` (`birthDateSet: boolean`). `authRoutes.test.ts` fija que `update-user` siga en 404, con un comentario junto a `additionalFields` que diga por qué."
+  },
+  {
+    "id": "Rcodigo-seguridad-013",
+    "seccion": "§7.1 (borrador/07-limites.md l. 8), §7.4 L4",
+    "gravedad": "baja",
+    "que": "Con más de dos entradas en `X-Forwarded-For`, `clientIp` devuelve la IP del socket, que es el borde de Railway: un cubo compartido. Un atacante que mande dos entradas falsas cae en ese cubo a propósito, gasta L4 (20 al día) y deja sin registro ni recuperación a todo el que llegue detrás de una cadena de proxys. Además, con IPv6 cada dirección es una clave, y un solo equipo rota por su /64 sin límite práctico. No sé si Railway acepta IPv6 de entrada.",
+    "evidencia": "borrador/07-limites.md l. 8; con `(addr, hop) => hop === 0`, `request.ip` ya es la última entrada, la que pone el borde (`fastify` 5.12.8 lib/request.js l. 45 a 57 y proxy-addr), así que bajar al socket no gana nada.",
+    "arreglo": "Con más de dos entradas, usar `request.ip` y solo apuntar `xff_varias`; en L4 y en el `keyGenerator` de Fastify, una IPv6 cuenta por su /64."
+  },
+  {
+    "id": "Rcodigo-seguridad-014",
+    "seccion": "§10.3 y §10.1 (borrador/10-privacidad.md l. 24 y 88), §5.2",
+    "gravedad": "baja",
+    "que": "El botón de `VerifyEmail` llama a `GET /api/auth/verify-email?token=<JWT>`. `redactUrl` limpia nuestros logs, pero no los registros HTTP del borde de Railway, que no pasan por Fastify. No sé si guardan la consulta. Si la guardan, el JWT vive allí 24 horas y abre sesión (`autoSignInAfterVerification`) en una cuenta sin confirmar, y Privacy promete `Links from our emails are removed from those logs.`",
+    "evidencia": "borrador/05-enlaces.md §5.2 (el botón hace un GET con el token en la consulta); ba17/api/routes/email-verification.mjs l. 289 a 300 (crea la sesión).",
+    "arreglo": "Que la web mande el token en el cuerpo de `POST /api/account/verify-email` (Fastify), y que esa ruta llame a `auth.handler` dentro del proceso con un `Request` GET armado allí, devolviendo su `Set-Cookie`. Así el token no cruza el borde en una URL. `GET verify-email` se queda solo para el enlace viejo durante `LEGACY_LINK_GRACE_DAYS`. Hasta que se compruebe en el panel de Railway, la frase de Privacy dice «our server logs»."
+  },
+  {
+    "id": "Rcodigo-seguridad-015",
+    "seccion": "§8.1 (borrador/08-rutas.md l. 23 y 33), §18 PR 19",
+    "gravedad": "baja",
+    "que": "`disabledPaths` no cierra ninguna ruta con parámetros. `better-auth` compara la ruta normalizada con `includes`, así que `/callback/:id` y, desde el PR 19, `/reset-password/:token` nunca casan con `/callback/google` ni con `/reset-password/abc`. El «segundo cerrojo» no existe para ellas, y «sin variante de URL que lo esquive» solo vale para las rutas fijas.",
+    "evidencia": "ba17/api/index.mjs l. 169 a 171 (`disabledPaths.includes(normalizedPath)`).",
+    "arreglo": "Decirlo en §8.1. Para las rutas con parámetros, el segundo cerrojo es un `hooks.before` que lance 404 cuando la ruta de la plantilla del punto (`ctx.path`) no esté en la lista; `authRoutes.test.ts` prueba `/callback/x` y, desde el PR 19, `/reset-password/abc`."
+  },
+  {
+    "id": "Rcodigo-seguridad-016",
+    "seccion": "§18.2 PR 12 y §10.5 (borrador/10-privacidad.md l. 131 y 148)",
+    "gravedad": "baja",
+    "que": "El PR 12 no se puede desplegar solo: `AccountExport` lee `notificationDevices` de `push_targets`, que crea la 0058 del PR 14, posterior al 12 (el 14 depende del 13, y el 13 del 12), y `emails` de `email_log`, que crea la 0057 del PR 7, que no está entre sus dependencias (12 depende de 11, 11 de 1 y 6, 6 de 3 y 5).",
+    "evidencia": "borrador/18-plan.md, tabla de §18.2 (columna «Depende de») y borrador/15-datos.md §15.2.",
+    "arreglo": "En el PR 12, añadir el 7 a sus dependencias; que `notificationDevices` entre en el tipo y en el test con el PR 14, o que hasta entonces sea `[]` fijo con un `it.todo`."
+  },
+  {
+    "id": "Rcodigo-seguridad-017",
+    "seccion": "§9.2 (borrador/09-correo.md l. 24) y 9-e",
+    "gravedad": "baja",
+    "que": "En Fastify no hay «un `addContentTypeParser` propio para esa ruta»: los analizadores son de un contexto de encapsulación. Puesto en la raíz, cambia el JSON de toda la API. Además, «un `svix-id` repetido se acepta sin volver a aplicar» no tiene dónde guardarse: §15 no añade ninguna columna ni tabla de `svix-id`.",
+    "evidencia": "borrador/09-correo.md l. 24 y 81; borrador/15-datos.md §15.1 (`email_log` sin `svix_id`).",
+    "arreglo": "Registrar la ruta dentro de su propio `app.register(async (s) => { s.addContentTypeParser('application/json', { parseAs: 'buffer' }, …); s.post('/api/webhooks/resend', …) })`, y un test que compruebe que otra ruta sigue recibiendo JSON analizado. Para el repetido: o se quita la promesa (aplicar dos veces el mismo estado no hace daño si `status` no retrocede: `delivered` no pisa a `bounced`), o se añade `last_svix_id` a `email_log`."
+  }
+]
