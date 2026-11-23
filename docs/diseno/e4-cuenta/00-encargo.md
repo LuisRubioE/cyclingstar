@@ -403,6 +403,6 @@ lista de servicios de push permitidos `PUSH_HOSTS`, l. 356 a 373, que cierra la 
    l. 55, «To change your name, email, phone or flag, ask an administrator.»). Así que **el cambio de
    correo de autoservicio se retira** (y con él sus dos correos, el aviso a la vieja y la verificación
    de la nueva): lo hace un administrador desde el panel, con su edición escrita, y el correo de
-   `ADMIN_EMAIL` no se cambia allí. Se le dice al dueño para que lo corrija si no era eso.
+   `ADMIN_EMAIL` no se cambia allí. El dueño lo confirmó el mismo día: «si, esta bien asi».
 2. DMARC. «No sabia que se podia hacer eso... pero ok, de momento lo dejamos». **Sin informes DMARC
    por ahora (DD-15 C).**
