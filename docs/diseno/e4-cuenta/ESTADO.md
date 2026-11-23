@@ -1,6 +1,6 @@
 # E4 · Estado del proceso de diseño
 
-Estado: **EN PAUSA por orden del dueño** (19 de noviembre de 2026, 15:40 UTC), a mitad de la fase 3a. El arquitecto se paró tras escribir `juicios/veredicto.json` (sin revisar) y antes del glosario, las decisiones y el esqueleto. Para seguir: relanzarlo o reanudarlo con el encargo de `03-fase-sintesis.md` §3a, que lea el veredicto ya escrito y escriba los otros tres ficheros.
+Estado: **fase 3a, el arquitecto, reanudada el 23 de noviembre de 2026 en modo ahorro** (el dueño: «despacito sin gastar mucho token»).
 Empezado el 19 de noviembre de 2026 sobre `2a29e6d` (`main`, con E2 en producción, E3 en
 implementación y el motor v91). El documento final será `docs/cuenta.md`. Se actualiza este fichero
 al terminar cada fase, con commit y push en la rama de desarrollo, para poder retomar el trabajo si la
@@ -83,6 +83,10 @@ sesión se corta.
    corrección, la coherencia, la auditoría y el ensamblado (`00-encargo.md` §6).
 
 ## Decisiones del proceso
+
+- **Modo ahorro desde el 23 de noviembre** (pedido del dueño): un solo agente a la vez; documento de
+  1.500 a 2.000 líneas en dos lotes; dos refutadores en lugar de cuatro (uno contra el código y de
+  seguridad, otro por cobertura y contra el dueño), un corrector y un auditor.
 
 - Tres propuestas y no cuatro, y dos correctores y dos auditores y no tres: E4 es mediano y la mitad
   es ejecución. Los cuatro refutadores se quedan, con uno de seguridad.
