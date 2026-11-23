@@ -156,6 +156,11 @@ export interface AdminUserPatch {
   email?: string | undefined
   /** Con un correo nuevo, cerrar todas las sesiones de la cuenta; por defecto, sí (§8.5). */
   signOutEverywhere?: boolean | undefined
+  /**
+   * La fecha de nacimiento rectificada (§4.5), ya validada con `birthDateSchema` por la ruta. Su fila de
+   * `admin_audit` no guarda el valor: `Recent changes` dice `date of birth · changed`.
+   */
+  birthDate?: string | undefined
 }
 
 export type AdminUserPatchResult =
@@ -185,6 +190,7 @@ export async function updateUserAsAdmin(
         emailVerified: users.emailVerified,
         isAdmin: users.isAdmin,
         premium: users.premium,
+        birthDate: users.birthDate,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -197,13 +203,14 @@ export async function updateUserAsAdmin(
       emailVerified?: boolean
       isAdmin?: boolean
       premium?: boolean
+      birthDate?: string
     } = {}
     const filas: AdminAuditEntry[] = []
     const apunta = (
       action: AdminAuditEntry['action'],
       field: string,
-      from: string | boolean,
-      to: string | boolean,
+      from: string | boolean | null,
+      to: string | boolean | null,
     ) => filas.push({ action, targetUserId: userId, detail: { field, from, to } })
 
     const email = patch.email?.trim().toLowerCase()
@@ -235,6 +242,11 @@ export async function updateUserAsAdmin(
     if (patch.premium !== undefined && patch.premium !== antes.premium) {
       set.premium = patch.premium
       apunta('user.premium', 'premium', antes.premium, patch.premium)
+    }
+    // La fecha, sin el valor en la fila: es un dato personal y el registro lo leen todos los administradores.
+    if (patch.birthDate !== undefined && patch.birthDate !== antes.birthDate) {
+      set.birthDate = patch.birthDate
+      apunta('user.birth_date', 'birthDate', null, null)
     }
     if (filas.length === 0) return { ok: true }
 

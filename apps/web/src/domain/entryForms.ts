@@ -1,3 +1,6 @@
+import { birthDateProblem } from '@cyclingstar/shared'
+import { type DateFieldValue, firstEmptyPart, toIsoDate } from '../components/ui/DateField'
+
 /**
  * LO QUE FALTA EN UN FORMULARIO DE LA ENTRADA (E3, PR 21j): entrar, crear la cuenta, pedir el enlace y elegir la
  * contraseña nueva. Lo dice el campo, con su rótulo y su error (`Field`, §4.3), y no el globo del navegador de
@@ -50,5 +53,31 @@ export function newPasswordProblem(
 ): FieldProblem<'password' | 'confirm'> | null {
   if (password.length < MIN_PASSWORD) return { field: 'password', msg: CORTA }
   if (password !== confirm) return { field: 'confirm', msg: 'The two passwords do not match.' }
+  return null
+}
+
+/**
+ * LA FECHA DE NACIMIENTO EN LA PÁGINA (docs/cuenta.md §4.8; PR 9 de E4), con la misma regla que el servidor
+ * (`birthDateSchema`): falta un trozo (el foco, al primero vacío), una fecha que no vale, o menos de 16, que no
+ * es un error del campo sino la pantalla del menor (§4.4).
+ */
+export type BirthDateEntryProblem =
+  | { readonly kind: 'missing'; readonly part: keyof DateFieldValue; readonly msg: string }
+  | { readonly kind: 'invalid'; readonly msg: string }
+  | { readonly kind: 'underage' }
+
+export const BIRTH_DATE_MISSING = 'Enter your date of birth.'
+export const BIRTH_DATE_INVALID = 'Enter a real date of birth.'
+
+export function birthDateEntryProblem(
+  value: DateFieldValue,
+  now: Date = new Date(),
+): BirthDateEntryProblem | null {
+  const part = firstEmptyPart(value)
+  if (part !== null) return { kind: 'missing', part, msg: BIRTH_DATE_MISSING }
+  const iso = toIsoDate(value)
+  const problema = iso === null ? 'INVALID_BIRTH_DATE' : birthDateProblem(iso, now)
+  if (problema === 'UNDER_MINIMUM_AGE') return { kind: 'underage' }
+  if (problema !== null) return { kind: 'invalid', msg: BIRTH_DATE_INVALID }
   return null
 }

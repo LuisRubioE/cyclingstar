@@ -15,6 +15,11 @@ export interface AuthFailure {
   /** el texto de la tabla; null si la página lo dice a su manera (`EMAIL_NOT_VERIFIED`) */
   readonly text: string | null
   readonly code: string | undefined
+  /**
+   * el `message` de better-auth, solo para leer el código de una regla (`VALIDATION_ERROR` de la fecha trae
+   * `UNDER_MINIMUM_AGE` o `INVALID_BIRTH_DATE`, docs/cuenta.md §4.2); nunca se pinta
+   */
+  readonly message?: string
   readonly status: number
   /** los segundos de la cuenta atrás, solo con un 429 */
   readonly retryAfterS: number | null
@@ -38,6 +43,7 @@ export async function authCall(
   return {
     text: authErrorText(body, status, null),
     code: body.code,
+    ...(typeof body.message === 'string' ? { message: body.message } : {}),
     status,
     retryAfterS: status === 429 ? retryAfterOf(body, null) : null,
     ...(status === 429 && body.signedOut === true ? { signedOut: true } : {}),

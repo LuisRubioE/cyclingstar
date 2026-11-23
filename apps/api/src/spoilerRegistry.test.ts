@@ -123,6 +123,9 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // el modo del jugador (E3, docs/visual.md §3.3; paso 23): no nace de ninguna etapa
   'GET /api/me/theme': ['safe', N],
   'PUT /api/me/theme': ['safe', N],
+  // la cuenta y la fecha de nacimiento (docs/cuenta.md §4.5; PR 9 de E4)
+  'GET /api/me/account': ['safe', N],
+  'PUT /api/me/birth-date': ['safe', N],
   'GET /api/me/horizon': ['horizon', N], // l. 207-208
   // routes/rankings.ts
   'GET /api/rankings': ['horizon', { by: ['R'] }], // l. 32-33

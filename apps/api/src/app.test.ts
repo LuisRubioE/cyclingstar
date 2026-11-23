@@ -32,6 +32,8 @@ function buildTestApp(opts: { session?: { user: { id: string } } | null } & Part
     db: {} as never,
     auth: fakeAuth(session),
     adminToken: ADMIN_TOKEN,
+    // la base es fingida: la cuenta ya dio su fecha (la puerta la sella `birthDate.test.ts`)
+    hasBirthDate: async () => true,
     ...rest,
   })
 }

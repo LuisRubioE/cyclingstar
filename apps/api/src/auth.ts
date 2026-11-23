@@ -19,7 +19,9 @@ import {
   RESET_TOKEN_TTL_S,
   SESSION_EXPIRES_S,
   SESSION_UPDATE_AGE_S,
+  TERMS_VERSION,
   type UserStatus,
+  birthDateSchema,
 } from '@cyclingstar/shared'
 import { resetPasswordEmail, verifyEmailEmail } from './emails.js'
 import { limitKeys } from './limitKeys.js'
@@ -80,6 +82,16 @@ export const CLOSED_AUTH_TEMPLATES: ReadonlySet<string> = new Set(['/callback/:i
  */
 export function emailLink(appUrl: string, page: string, token: string): string {
   return `${appUrl.replace(/\/+$/, '')}${page}#token=${encodeURIComponent(token)}`
+}
+
+/**
+ * EL IDIOMA DE UNA CUENTA NUEVA (docs/cuenta.md §4.7; D-07): la etiqueta primaria de `Accept-Language` en dos
+ * letras minúsculas (`es-ES,es;q=0.9` da `es`), o `'en'` si no hay. Traducir es de E10; esto solo lo apunta.
+ */
+export function localeFrom(acceptLanguage: string | null | undefined): string {
+  const primera = (acceptLanguage ?? '').split(',')[0]?.split(';')[0]?.trim() ?? ''
+  const etiqueta = primera.split('-')[0]?.toLowerCase() ?? ''
+  return /^[a-z]{2}$/.test(etiqueta) ? etiqueta : 'en'
 }
 
 /**
@@ -245,6 +257,24 @@ export function createAuth(
         // El buzón que no recibe (§9.3): `Account` abre con su `Notice` mientras esté puesta. Solo la
         // escriben el webhook de Resend y el cambio de correo del administrador.
         emailUndeliverableAt: { type: 'date', input: false, returned: true, required: false },
+        // LA FECHA DE NACIMIENTO (docs/cuenta.md §4.2; D-06, 4-f): obligatoria en el registro y validada con
+        // `birthDateSchema` en `parseUserInput`, ANTES de buscar el correo, así que el menor recibe el mismo
+        // 400 exista o no la cuenta (X-09). No viaja en `get-session` ni en el 200 del registro
+        // (`returned: false`); la web pregunta `GET /api/me/account`. OJO: con `input: true`, `update-user`
+        // la podría reescribir; lo impide que esa ruta dé 404 (§8.1, `authRoutes.test.ts`). No la abras sin
+        // cerrar antes este campo.
+        birthDate: {
+          type: 'string',
+          required: true,
+          input: true,
+          returned: false,
+          validator: { input: birthDateSchema },
+        },
+        // Los escribe solo `databaseHooks.user.create.before` (§4.6 y §4.7); declarados para que el
+        // adaptador los guarde, y con `input: false` para que nadie los mande.
+        locale: { type: 'string', input: false, returned: false, required: false },
+        termsVersion: { type: 'string', input: false, returned: false, required: false },
+        termsAcceptedAt: { type: 'date', input: false, returned: false, required: false },
       },
       // Borrar la cuenta desde ajustes. El corredor y el equipo NO se borran: pasan a NPC antes de
       // que el usuario desaparezca (ver `releaseUserToWorld`), porque son las dos referencias a
@@ -276,14 +306,24 @@ export function createAuth(
     rateLimit: { enabled: false },
     // Solo avisos y errores (D-30): lo de nivel `info` de better-auth puede llevar datos de la cuenta.
     logger: { level: 'warn' },
-    // El correo de `ADMIN_EMAIL` entra aprobado y su enlace sale al registrarse (§4.9), como
+    // La cuenta nueva (docs/cuenta.md §4.6 y §4.7): el nombre fijo `'Player'` (nadie lo lee; la web manda
+    // `''`), el idioma de `Accept-Language` y la versión de las condiciones aceptadas, con su hora. Y el
+    // correo de `ADMIN_EMAIL` entra aprobado y su enlace sale al registrarse (§4.9), como
     // `twilightstruggle` aprueba a la llegada a quien está en `AI_ADMINS`.
     databaseHooks: {
       user: {
         create: {
-          before: async (user) => {
-            if (adminEmail === undefined || user.email.toLowerCase() !== adminEmail) return
-            return { data: { ...user, status: 'approved', approvedAt: new Date() } }
+          before: async (user, context) => {
+            const cabeceras = context?.request?.headers ?? context?.headers
+            const data = {
+              ...user,
+              name: 'Player',
+              locale: localeFrom(cabeceras?.get('accept-language')),
+              termsVersion: TERMS_VERSION,
+              termsAcceptedAt: new Date(),
+            }
+            if (adminEmail === undefined || user.email.toLowerCase() !== adminEmail) return { data }
+            return { data: { ...data, status: 'approved', approvedAt: new Date() } }
           },
         },
       },
@@ -298,6 +338,17 @@ export function createAuth(
       before: createAuthMiddleware(async (ctx) => {
         // El segundo cerrojo de las rutas con parámetros (8-g): `disabledPaths` no las alcanza.
         if (CLOSED_AUTH_TEMPLATES.has(ctx.path)) throw new APIError('NOT_FOUND')
+        // La foto no se guarda (§4.7): el registro que la trae da 400; `update-user`, la otra puerta, da 404.
+        if (ctx.path === '/sign-up/email') {
+          const cuerpo: unknown = ctx.body
+          if (typeof cuerpo === 'object' && cuerpo !== null && 'image' in cuerpo) {
+            throw new APIError('BAD_REQUEST', {
+              code: 'FIELD_NOT_ALLOWED',
+              message: 'image is not allowed to be set',
+            })
+          }
+          return
+        }
         if (ctx.path !== '/delete-user') return
         const body: unknown = ctx.body
         const password =

@@ -62,7 +62,12 @@ describe('los enlaces de correo, contra una base real', () => {
 
   /** Una cuenta aprobada sin confirmar, y el `verify_signup` que le llega. */
   async function cuentaPorConfirmar(email: string): Promise<URL> {
-    await post('/api/auth/sign-up/email', { name: '', email, password: PASSWORD })
+    await post('/api/auth/sign-up/email', {
+      name: '',
+      email,
+      password: PASSWORD,
+      birthDate: '1990-01-01',
+    })
     await tdb.client`update users set status = 'approved', approved_at = now() where email = ${email}`
     await salidos()
     await post('/api/auth/send-verification-email', { email })

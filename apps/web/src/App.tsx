@@ -69,6 +69,10 @@ const Market = lazyPage(() => import('./pages/Market').then((m) => ({ default: m
 const MyRaces = lazyPage(() => import('./pages/MyRaces').then((m) => ({ default: m.MyRaces })))
 const News = lazyPage(() => import('./pages/News').then((m) => ({ default: m.News })))
 const Privacy = lazyPage(() => import('./pages/Privacy').then((m) => ({ default: m.Privacy })))
+const Terms = lazyPage(() => import('./pages/Terms').then((m) => ({ default: m.Terms })))
+const AccountBirthDate = lazyPage(() =>
+  import('./pages/AccountBirthDate').then((m) => ({ default: m.AccountBirthDate })),
+)
 const Race = lazyPage(() => import('./pages/Race').then((m) => ({ default: m.Race })))
 const RaceOrders = lazyPage(() =>
   import('./pages/RaceOrders').then((m) => ({ default: m.RaceOrders })),
@@ -305,6 +309,7 @@ export function App() {
               {/* Páginas sueltas, sin sección */}
               <Route path="/how-to-play" element={<HowToPlay />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               {/*
@@ -317,6 +322,27 @@ export function App() {
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route
                 path="/account"
+                element={
+                  <Private>
+                    <Account />
+                  </Private>
+                }
+              />
+              {/*
+                La puerta de la fecha (docs/cuenta.md §4.5; PR 9 de E4), y borrar la cuenta, que la puerta no
+                cierra: hasta que el PR 11 parta `Account` en subpáginas, `/account/delete` es `Account`, que
+                lleva `Delete account`.
+              */}
+              <Route
+                path="/account/birth-date"
+                element={
+                  <Private>
+                    <AccountBirthDate />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/delete"
                 element={
                   <Private>
                     <Account />
@@ -405,6 +431,9 @@ export function App() {
               className="inline-flex min-h-11 min-w-11 items-center hover:text-ink"
             >
               Privacy
+            </Link>
+            <Link to="/terms" className="inline-flex min-h-11 min-w-11 items-center hover:text-ink">
+              Terms
             </Link>
           </div>
           <p className="w-full leading-5 text-ink-2">

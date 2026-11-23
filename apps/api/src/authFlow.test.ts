@@ -112,6 +112,7 @@ describe('correo: el camino completo contra una base real', () => {
       name: 'luis',
       email: 'luis@example.com',
       password: 'contrasena-larga',
+      birthDate: '1990-01-01',
       callbackURL: '/verify-email',
     })
     expect(res.status).toBe(200)
@@ -317,6 +318,7 @@ describe('borrar la cuenta, contra una base real', () => {
       name: 'primario',
       email: 'primario@example.com',
       password: 'contrasena-larga',
+      birthDate: '1990-01-01',
     })
     await tdb.client`update users set email_verified = true where email = 'primario@example.com'`
     const login = await post('/sign-in/email', {
@@ -411,6 +413,7 @@ describe('borrar la cuenta, contra una base real', () => {
       name: 'otra',
       email: 'primario@example.com',
       password: 'contrasena-larga',
+      birthDate: '1990-01-01',
     })
     expect(res.status).toBe(200)
     const n = await count(tdb.client<{ n: number }[]>`
@@ -469,6 +472,7 @@ describe('orígenes de confianza, contra el handler de verdad', () => {
           name: 'origen',
           email: 'origen@example.com',
           password: 'contrasena-larga',
+          birthDate: '1990-01-01',
         }),
       }),
     )
@@ -601,6 +605,7 @@ describe('recuperar, sesiones y cuerpos: el PR 3 de E4', () => {
       name: 'eva',
       email: 'eva@example.com',
       password: 'contrasena-larga',
+      birthDate: '1990-01-01',
       callbackURL: '/verify-email',
     })
     expect(alta.statusCode).toBe(200)

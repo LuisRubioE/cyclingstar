@@ -250,6 +250,7 @@ describe('el presupuesto en las rutas de /api/auth', () => {
       name: '',
       email: 'nuevo@example.com',
       password: 'contrasena-larga',
+      birthDate: '1990-01-01',
     })
     expect(alta.statusCode).toBe(200)
     const reset = await authPost('/request-password-reset', {

@@ -412,7 +412,7 @@ describe('el panel de E4: la cola, el correo, el equipo y el registro (PR 5)', (
     expect(fallo).toMatch(/role="alert"[^>]*>This request was already decided\.</)
   })
 
-  it('cada cuenta tiene Change email, y Rename team si tiene equipo', () => {
+  it('cada cuenta tiene Change email, Change date of birth (PR 9) y Rename team si tiene equipo', () => {
     const markup = pinta()
     const ana = tarjeta(markup, 'ana@example.com')
     expect(ana).toContain('aria-label="Change email for ana@example.com"')
@@ -420,7 +420,22 @@ describe('el panel de E4: la cola, el correo, el equipo y el registro (PR 5)', (
     const bo = tarjeta(markup, 'bo@example.com')
     expect(bo).toContain('aria-label="Change email for bo@example.com"')
     expect(bo).not.toContain('Rename team')
-    expect(markup).not.toContain('Change date of birth')
+    expect(ana).toContain('aria-label="Change date of birth for ana@example.com"')
+    expect(bo).toContain('aria-label="Change date of birth for bo@example.com"')
+  })
+
+  it('Change date of birth: DateField vacío (nadie enseña la que había), Save y Cancel; los fallos, con su texto', () => {
+    const una = cuenta({ id: 'u1', email: 'ana@example.com' })
+    const form = pintaEn('/admin', <UserCard user={una} isMe={false} initialBirthDate />)
+    const fecha = pieza(form, 'DateField', 'Date of birth')
+    expect(fecha).toContain('id="birth-date-ana@example.com-day"')
+    expect(fecha.match(/value=""/g)).toHaveLength(3)
+    expect(pieza(form, 'Button', '>Save<')).toContain('type="submit"')
+    expect(form).toContain('aria-label="Cancel changing the date of birth of ana@example.com"')
+    expect(form).not.toContain('aria-label="Change date of birth for ana@example.com"')
+    const error = (code: string) => adminErrorMessage(new ApiError('x', 400, code))
+    expect(error('UNDER_MINIMUM_AGE')).toBe('Cycling Star is for people aged 16 or over.')
+    expect(error('INVALID_BIRTH_DATE')).toBe('Enter a real date of birth.')
   })
 
   it('Change email: New email, Sign out everywhere encendida, Save y Cancel; y la pregunta antes de cambiar', () => {

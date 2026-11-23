@@ -32,7 +32,12 @@ describe('panel de administración, contra una base real', () => {
 
   /** Da de alta una cuenta, la confirma si se pide, y guarda su cookie de sesión. */
   async function alta(nombre: string, email: string, confirmar = true): Promise<void> {
-    await authPost('/sign-up/email', { name: nombre, email, password: 'contrasena-larga' })
+    await authPost('/sign-up/email', {
+      name: nombre,
+      email,
+      password: 'contrasena-larga',
+      birthDate: '1990-01-01',
+    })
     if (confirmar) {
       await tdb.client`update users set email_verified = true where email = ${email}`
     }

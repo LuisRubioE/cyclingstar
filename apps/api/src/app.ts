@@ -10,6 +10,7 @@ import {
   ProgressMemory,
   applyEmailEvent,
   type TickSummary,
+  hasBirthDate,
   isUserAdmin,
   userStatusOf,
 } from '@cyclingstar/db'
@@ -24,6 +25,7 @@ import Fastify, {
 import { validatorCompiler } from 'fastify-type-provider-zod'
 import type { Auth } from './auth.js'
 import type { GeoIpLookup } from './geoIp.js'
+import { registerBirthDateGate } from './birthDateGate.js'
 import { apiError } from './http.js'
 import { adminRoutes, verificationSender } from './routes/admin.js'
 import { clientIp, ipBucket } from './clientIp.js'
@@ -35,6 +37,7 @@ import { type RouteContext, createCurrentUserId } from './routes/context.js'
 import { geoRoutes } from './routes/geo.js'
 import { healthRoutes } from './routes/health.js'
 import { meRoutes } from './routes/me.js'
+import { meAccountRoutes } from './routes/meAccount.js'
 import { raceRoutes } from './routes/races.js'
 import { rankingRoutes } from './routes/rankings.js'
 import { riderRoutes } from './routes/riders.js'
@@ -112,6 +115,11 @@ export interface AppDeps {
   mailDailyBudget?: number
   /** `RESEND_WEBHOOK_SECRET` (§9.2): sin él, `POST /api/webhooks/resend` no se monta y da 404. */
   resendWebhookSecret?: string
+  /**
+   * Si una cuenta tiene fecha de nacimiento, para la puerta de la fecha (docs/cuenta.md §4.5); por defecto,
+   * de la base. Los tests con una base fingida lo fingen.
+   */
+  hasBirthDate?: (userId: string) => Promise<boolean | null>
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -304,6 +312,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       : null,
   )
 
+  // La puerta de la fecha (docs/cuenta.md §4.5; 4-g): un gancho de la app, global, que alcanza a todas
+  // las rutas; usa `request.viewer()` del sin destripe, así que va detrás de él.
+  if (db && currentUserId)
+    registerBirthDateGate(app, deps.hasBirthDate ?? ((userId) => hasBirthDate(db, userId)))
+
   void app.register(healthRoutes, {
     ...(deps.db ? { db: deps.db } : {}),
     ...(deps.migrationsApplied !== undefined ? { migrationsApplied: deps.migrationsApplied } : {}),
@@ -380,6 +393,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     void app.register(broadcastRoutes, ctx)
     // Lo visto (E2, §14.2; paso 7a): el progreso, revelar, seguir, el alcance y el horizonte de cada uno.
     void app.register(meRoutes, ctx)
+    // La cuenta: `birthDateSet` y dar la fecha (docs/cuenta.md §4.5; PR 9 de E4).
+    void app.register(meAccountRoutes, ctx)
     void app.register(calendarRoutes, ctx)
     void app.register(rankingRoutes, ctx)
     if (deps.onAdminAdvance) {

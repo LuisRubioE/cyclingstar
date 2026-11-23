@@ -112,6 +112,7 @@ describe('POST /api/riders/me/plan/preview y GET /api/riders/me/orders (§11.2)'
         email: `jugador${i}@example.com`,
         name: `Jugador ${i}`,
         emailVerified: true,
+        birthDate: '1990-01-01',
       })
       await t.db.insert(riders).values({
         id: quien.rider,

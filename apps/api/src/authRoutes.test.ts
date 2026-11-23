@@ -239,7 +239,9 @@ describe('/api/auth/*: la lista blanca', () => {
   })
 
   it('desde el servidor siguen valiendo verifyPassword (la exportación) y revokeOtherSessions (sign-out-others)', async () => {
-    await auth.api.signUpEmail({ body: { name: '', email: EMAIL, password: PASSWORD } })
+    await auth.api.signUpEmail({
+      body: { name: '', email: EMAIL, password: PASSWORD, birthDate: '1990-01-01' },
+    })
     await tdb.client`update users set email_verified = true, status = 'approved' where email = ${EMAIL}`
     const entrar = async () => {
       const res = await app.inject({

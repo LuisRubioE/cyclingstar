@@ -54,3 +54,18 @@ export interface AdminAuditDetail {
   readonly to: string | number | boolean | null
   readonly teamId?: string
 }
+
+/**
+ * La edad mínima para jugar (docs/cuenta.md §4; D-00a): 16 años cumplidos, declarados con la fecha de
+ * nacimiento. El dueño la fijó sin abogado (`00-encargo.md` §9.6, punto 1).
+ */
+export const MIN_AGE_YEARS = 16
+
+/** Una fecha de nacimiento anterior es un error de teclado (D-06). */
+export const MIN_BIRTH_YEAR = 1900
+
+/**
+ * La versión de las condiciones que acepta quien se registra (§4.6; D-10): se guarda en `users.terms_version`
+ * para volver a pedir la aceptación el día que cambie el texto. Es un borrador.
+ */
+export const TERMS_VERSION = '2026-11-draft'

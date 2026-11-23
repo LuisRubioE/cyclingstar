@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PALETA, campo, estado, pieza, pintaEn, respuestas, titulo } from './__fixtures__/markup'
-import { CheckInbox, Register } from './Register'
+import { AgeGate, CheckInbox, Register } from './Register'
 
 /**
  * CREAR LA CUENTA CON EL SISTEMA (E3, docs/visual.md §17.21, la cola larga; PR 21j): la cabecera en
@@ -114,5 +114,48 @@ describe('Register y CheckInbox en E4 (docs/cuenta.md §5.3 y §12.3; PR 1)', ()
     expect(html).toContain('You can try again in 1:00.')
     expect(html).toMatch(/<button [^>]*type="submit"[^>]*aria-disabled="true"/)
     expect(campo(pinta(), 'register-password')).toMatch(/aria-pressed="false"[^>]*>Show</)
+  })
+})
+
+describe('la edad en el registro (docs/cuenta.md §4.1, §4.4 y §4.8; PR 9 de E4)', () => {
+  it('la fecha, un DateField con su ayuda neutra, que no nombra la edad mínima', () => {
+    const html = pinta()
+    const fecha = pieza(html, 'DateField', 'Date of birth')
+    expect(fecha).toMatch(/<legend[^>]*>Date of birth<\/legend>/)
+    expect(fecha).toContain('autoComplete="bday-day"')
+    expect(fecha).toContain('autoComplete="bday-year"')
+    expect(fecha).toContain('We only use it to check you&#x27;re old enough to play.')
+    expect(fecha.replace(/<[^>]+>/g, ' ')).not.toMatch(/16|sixteen/i)
+  })
+
+  it('bajo el botón, las condiciones y la privacidad, sin casilla', () => {
+    const html = pinta()
+    expect(html).toContain('By creating an account you agree to the')
+    expect(pieza(html, 'TextLink', 'Terms')).toMatch(/href="\/terms"/)
+    expect(pieza(html, 'TextLink', 'Privacy notice')).toMatch(/href="\/privacy"/)
+    expect(html).not.toContain('type="checkbox"')
+  })
+
+  it('el error de la fecha, en su campo', () => {
+    const html = pinta({ problem: { field: 'birthDate', msg: 'Enter a real date of birth.' } })
+    expect(pieza(html, 'DateField', 'Date of birth')).toMatch(
+      /data-state="error"[\s\S]*Enter a real date of birth\./,
+    )
+    expect(estado(campo(html, 'register-email'))).toBe('ready')
+  })
+
+  it('con cs.ageGate, la pantalla del menor y no el formulario', () => {
+    const html = pinta({ ageGate: true })
+    expect(titulo(html)).toBe('Sorry, you can&#x27;t play yet')
+    expect(html).not.toContain('<form')
+  })
+
+  it('la pantalla del menor: lo que dice y la vuelta al inicio', () => {
+    const html = pintaEn('/register', <AgeGate />)
+    expect(titulo(html)).toBe('Sorry, you can&#x27;t play yet')
+    expect(html).toContain(
+      'Cycling Star is for people aged 16 or over. We have not kept anything you typed.',
+    )
+    expect(pieza(html, 'Button', 'Back to the home page')).toMatch(/href="\/"/)
   })
 })

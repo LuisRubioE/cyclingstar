@@ -64,7 +64,7 @@ describe('límites por cuenta, aparato y sesión, contra una base real', () => {
 
   /** Una cuenta aprobada y confirmada, lista para entrar. */
   async function cuenta(email: string): Promise<void> {
-    await post('/sign-up/email', { name: '', email, password: BUENA })
+    await post('/sign-up/email', { name: '', email, password: BUENA, birthDate: '1990-01-01' })
     await tdb.client`update users set status = 'approved', email_verified = true where email = ${email}`
   }
 
