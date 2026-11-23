@@ -4,6 +4,10 @@ import { buildApp } from './app.js'
 import { createAuth } from './auth.js'
 import { loadEnv } from './env.js'
 import { createMailer } from './mailer.js'
+import { mailQueue } from './mailQueue.js'
+
+/** Lo más que espera el apagado a los correos en cola antes de salir. */
+const MAIL_DRAIN_TIMEOUT_MS = 8_000
 
 /**
  * Arranque del servicio `web` de Railway: `node apps/api/dist/index.js` (SPEC 12).
@@ -23,6 +27,7 @@ async function main(): Promise<void> {
     secret: env.SESSION_SECRET,
     baseURL: env.APP_URL,
     mailer,
+    mailQueue,
     ...(env.EXTRA_TRUSTED_ORIGINS ? { extraTrustedOrigins: env.EXTRA_TRUSTED_ORIGINS } : {}),
   })
   const msPerGameDay = env.TICK_INTERVAL_MINUTES * 60_000
@@ -64,6 +69,20 @@ async function main(): Promise<void> {
     logger: { level: env.LOG_LEVEL },
   })
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
+
+  // Un despliegue manda `SIGTERM`: se deja de aceptar peticiones y se espera a los correos que
+  // better-auth encoló después de responder (mailQueue.ts), con un tope, antes de salir.
+  process.once('SIGTERM', () => {
+    void (async () => {
+      app.log.info({ pending: mailQueue.pending }, 'SIGTERM: draining mail queue')
+      await app.close().catch((err: unknown) => app.log.error({ err }, 'close failed'))
+      await Promise.race([
+        mailQueue.drain(),
+        new Promise((resolve) => setTimeout(resolve, MAIL_DRAIN_TIMEOUT_MS).unref()),
+      ])
+      process.exit(0)
+    })()
+  })
 
   /*
    * AUTO_TICK=off (E2, docs/retransmision.md §18.3 y 18-k; paso 5): con el servicio `tick` del cron en

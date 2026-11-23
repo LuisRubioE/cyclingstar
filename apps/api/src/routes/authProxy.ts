@@ -3,7 +3,7 @@ import type { Auth } from '../auth.js'
 import { apiError } from '../http.js'
 import { AUTH_RATE_LIMIT, CREDENTIAL_AUTH_PATHS, CREDENTIAL_RATE_LIMIT } from '../security.js'
 import { viewerCookieHeader } from '../viewerCookie.js'
-import { toWebHeaders } from './context.js'
+import { deleteSessionByToken, isPastSessionCeiling, toWebHeaders } from './context.js'
 
 export interface AuthProxyContext {
   auth: Auth
@@ -29,6 +29,39 @@ const CLEARS_VIEWER_COOKIE: ReadonlySet<string> = new Set([
  */
 const SIGN_UP_PATH = '/api/auth/sign-up/email'
 export const SIGN_UP_OK_BODY = '{"token":null,"user":null}'
+
+/**
+ * LO QUE NO SALE EN NINGÚN JSON DE `/api/auth/*` (docs/cuenta.md §6.3; 6-f; D-19).
+ *
+ * El 200 de `sign-in/email` lleva el token de la sesión en el cuerpo, y `get-session` lleva además
+ * la IP y el agente. La web no lee ninguno, y una XSS futura no debe poder llevarse un token
+ * reutilizable: se quitan, a cualquier profundidad, de todo JSON que responda better-auth.
+ */
+const CAMPOS_RETIRADOS: ReadonlySet<string> = new Set(['token', 'ipAddress', 'userAgent'])
+
+export function scrubAuthJson(valor: unknown): unknown {
+  if (Array.isArray(valor)) return valor.map(scrubAuthJson)
+  if (valor !== null && typeof valor === 'object') {
+    const limpio: Record<string, unknown> = {}
+    for (const [clave, dentro] of Object.entries(valor)) {
+      if (!CAMPOS_RETIRADOS.has(clave)) limpio[clave] = scrubAuthJson(dentro)
+    }
+    return limpio
+  }
+  return valor
+}
+
+const GET_SESSION_PATH = '/api/auth/get-session'
+
+/** La sesión que trae un cuerpo de `get-session`, si la trae. */
+function sesionDe(cuerpo: unknown): { token: string; createdAt: string } | null {
+  if (cuerpo === null || typeof cuerpo !== 'object' || !('session' in cuerpo)) return null
+  const sesion: unknown = cuerpo.session
+  if (sesion === null || typeof sesion !== 'object') return null
+  if (!('token' in sesion) || !('createdAt' in sesion)) return null
+  const { token, createdAt } = sesion
+  return typeof token === 'string' && typeof createdAt === 'string' ? { token, createdAt } : null
+}
 
 /** Lo que nunca lleva una ruta en su forma normal, en crudo o escapado (sin mirar mayúsculas). */
 const RUTA_SOSPECHOSA = /\/\/|\/\.\/|\/\.\.\/|%2e|%2f|%5c/i
@@ -99,7 +132,23 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
       reply.header('content-type', 'application/json')
       return reply.send(SIGN_UP_OK_BODY)
     }
-    return reply.send(body.length > 0 ? body : null)
+    if (!(response.headers.get('content-type') ?? '').includes('application/json')) {
+      return reply.send(body.length > 0 ? body : null)
+    }
+    let cuerpo: unknown
+    try {
+      cuerpo = JSON.parse(body)
+    } catch {
+      return reply.send(body.length > 0 ? body : null)
+    }
+    // El techo de 90 días (docs/cuenta.md §6.1): la sesión que lo pasó responde `null` y se borra,
+    // como hace `createCurrentUserId` con el resto de la API.
+    const sesion = url.pathname === GET_SESSION_PATH ? sesionDe(cuerpo) : null
+    if (sesion !== null && isPastSessionCeiling(sesion.createdAt)) {
+      await deleteSessionByToken(auth, sesion.token)
+      return reply.send('null')
+    }
+    return reply.send(JSON.stringify(scrubAuthJson(cuerpo)))
   }
 
   // Rutas de credenciales: mismo handler, límite estricto contra la fuerza bruta (security.ts).

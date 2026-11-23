@@ -1,9 +1,10 @@
-import { riders, teams, worlds } from '@cyclingstar/db'
+import { riders, teams, verifications, worlds } from '@cyclingstar/db'
 import { startTestDb, type TestDb } from '@cyclingstar/db/test'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from './app.js'
 import { createAuth } from './auth.js'
 import type { MailMessage, Mailer } from './mailer.js'
+import { createMailQueue } from './mailQueue.js'
 
 /**
  * LOS TRES CORREOS, DE PUNTA A PUNTA Y CONTRA UNA BASE DE VERDAD.
@@ -24,8 +25,11 @@ describe('correo: el camino completo contra una base real', () => {
   let sent: MailMessage[]
 
   const BASE = 'http://localhost:3000'
-  const post = (path: string, body: unknown, cookie?: string) =>
-    auth.handler(
+  // Los correos salen después de responder (`backgroundTasks`): cada llamada espera a la cola, así
+  // que lo enviado ya está en `sent` al volver.
+  const queue = createMailQueue()
+  const post = async (path: string, body: unknown, cookie?: string) => {
+    const res = await auth.handler(
       new Request(`${BASE}/api/auth${path}`, {
         method: 'POST',
         headers: {
@@ -37,6 +41,9 @@ describe('correo: el camino completo contra una base real', () => {
         body: JSON.stringify(body),
       }),
     )
+    await queue.drain()
+    return res
+  }
 
   beforeAll(async () => {
     tdb = await startTestDb()
@@ -47,7 +54,7 @@ describe('correo: el camino completo contra una base real', () => {
         return true
       },
     }
-    auth = createAuth(tdb.db, { secret: 's'.repeat(32), baseURL: BASE, mailer })
+    auth = createAuth(tdb.db, { secret: 's'.repeat(32), baseURL: BASE, mailer, mailQueue: queue })
   }, 120_000)
 
   afterAll(async () => {
@@ -61,8 +68,11 @@ describe('correo: el camino completo contra una base real', () => {
     return url
   }
   /** Abre un enlace del correo como lo haría un navegador (sin seguir la redirección). */
-  const open = (url: string, cookie?: string) =>
-    auth.handler(new Request(url, { headers: cookie ? { cookie } : {} }))
+  const open = async (url: string, cookie?: string) => {
+    const res = await auth.handler(new Request(url, { headers: cookie ? { cookie } : {} }))
+    await queue.drain()
+    return res
+  }
   const cookieOf = (res: Response) =>
     res.headers
       .getSetCookie()
@@ -491,5 +501,186 @@ describe('orígenes de confianza, contra el handler de verdad', () => {
   it('desde un sitio ajeno que empieza igual NO se entra', async () => {
     const res = await entrar('https://cyclingstar.app.evil.example')
     expect(res.status).toBe(403)
+  })
+})
+
+/**
+ * LO QUE TRAE EL PR 3 DE E4 (docs/cuenta.md §5.4, §6.1, §6.3), contra una base real y por el proxy.
+ *
+ * Recuperar la contraseña cierra todas las sesiones y deja sin valor los otros enlaces; la tabla
+ * `verifications` no guarda el enlace en claro; ningún cuerpo de `/api/auth/*` lleva el token de la
+ * cookie de sesión; y el enlace de verificación sigue abriendo sesión con todo eso puesto.
+ */
+describe('recuperar, sesiones y cuerpos: el PR 3 de E4', () => {
+  let tdb: TestDb
+  let auth: ReturnType<typeof createAuth>
+  let app: ReturnType<typeof buildApp>
+  const sent: MailMessage[] = []
+  const queue = createMailQueue()
+  const BASE = 'http://localhost:3000'
+  /** Todos los cuerpos que han salido del proxy en este bloque. */
+  const cuerpos: string[] = []
+
+  beforeAll(async () => {
+    tdb = await startTestDb()
+    auth = createAuth(tdb.db, {
+      secret: 's'.repeat(32),
+      baseURL: BASE,
+      mailer: {
+        async send(message) {
+          sent.push(message)
+          return true
+        },
+      },
+      mailQueue: queue,
+    })
+    app = buildApp({ migrationsApplied: true, serveWeb: false, auth })
+  }, 120_000)
+
+  afterAll(async () => {
+    await app?.close()
+    await tdb?.close()
+  })
+
+  /** Una petición por el proxy, como la haría el navegador; espera a la cola de correo. */
+  const call = async (method: 'GET' | 'POST', path: string, body?: unknown, cookie?: string) => {
+    const res = await app.inject({
+      method,
+      url: `/api/auth${path}`,
+      headers: { origin: BASE, ...(cookie ? { cookie } : {}) },
+      ...(body === undefined ? {} : { payload: body as Record<string, unknown> }),
+    })
+    await queue.drain()
+    cuerpos.push(res.body)
+    return res
+  }
+  const linkIn = (m: MailMessage | undefined): string => {
+    const url = m?.text.match(/https?:\/\/\S+/)?.[0]
+    if (!url) throw new Error('el correo no trae enlace')
+    return url
+  }
+  /** Abre un enlace del correo por el proxy, sin seguir la redirección. */
+  const open = (link: string, cookie?: string) => {
+    const u = new URL(link)
+    return call('GET', `${u.pathname.replace(/^\/api\/auth/, '')}${u.search}`, undefined, cookie)
+  }
+  const cookieOf = (res: { headers: Record<string, unknown> }): string => {
+    const raw = res.headers['set-cookie']
+    const lista = Array.isArray(raw) ? raw : typeof raw === 'string' ? [raw] : []
+    const cookie = lista
+      .map((c: string) => c.split(';')[0]!)
+      .filter((c) => c.includes('session_token=') && !c.endsWith('='))
+      .join('; ')
+    if (cookie !== '') tokensVistos.add(tokenOf(cookie))
+    return cookie
+  }
+  /** El token de la sesión: lo que va antes de la firma en el valor de la cookie. */
+  const tokenOf = (cookie: string): string =>
+    decodeURIComponent(cookie.split('=')[1] ?? '').split('.')[0] ?? ''
+  /** Los tokens de todas las cookies de sesión que han salido en este bloque. */
+  const tokensVistos = new Set<string>()
+  /** Pide un enlace de recuperación y devuelve su token. */
+  const resetToken = async (): Promise<string> => {
+    sent.length = 0
+    await call('POST', '/request-password-reset', {
+      email: 'eva@example.com',
+      redirectTo: '/reset-password',
+    })
+    const res = await open(linkIn(sent[0]))
+    const token = new URL(res.headers.location as string, BASE).searchParams.get('token')
+    if (!token) throw new Error('sin token')
+    return token
+  }
+
+  let sesionDelEnlace = ''
+
+  it('el enlace de verificación sigue abriendo sesión', async () => {
+    const alta = await call('POST', '/sign-up/email', {
+      name: 'eva',
+      email: 'eva@example.com',
+      password: 'contrasena-larga',
+      callbackURL: '/verify-email',
+    })
+    expect(alta.statusCode).toBe(200)
+    const res = await open(linkIn(sent.find((m) => m.to === 'eva@example.com')))
+    expect(res.statusCode).toBe(302)
+    sesionDelEnlace = cookieOf(res)
+    expect(sesionDelEnlace).toContain('session_token=')
+    const sesion = await call('GET', '/get-session', undefined, sesionDelEnlace)
+    expect((sesion.json() as { user: { email: string } }).user.email).toBe('eva@example.com')
+  })
+
+  it('get-session no lleva token, IP ni agente', async () => {
+    const res = await call('GET', '/get-session', undefined, sesionDelEnlace)
+    const { session } = res.json() as { session: Record<string, unknown> }
+    expect(session.id).toEqual(expect.any(String))
+    expect(session).not.toHaveProperty('token')
+    expect(session).not.toHaveProperty('ipAddress')
+    expect(session).not.toHaveProperty('userAgent')
+  })
+
+  it('verifications guarda el enlace de recuperación por su hash, no en claro', async () => {
+    const token = await resetToken()
+    const filas = await tdb.db.select().from(verifications)
+    expect(filas.length).toBeGreaterThan(0)
+    for (const fila of filas) expect(fila.identifier).not.toContain(token)
+  })
+
+  it('tras recuperar la contraseña, la sesión anterior da null y los otros enlaces no valen', async () => {
+    const entrada = await call('POST', '/sign-in/email', {
+      email: 'eva@example.com',
+      password: 'contrasena-larga',
+    })
+    expect(entrada.statusCode).toBe(200)
+    const otraSesion = cookieOf(entrada)
+
+    const primero = await resetToken()
+    const segundo = await resetToken()
+    const reset = await call('POST', '/reset-password', {
+      token: primero,
+      newPassword: 'contrasena-nueva',
+    })
+    expect(reset.statusCode).toBe(200)
+
+    for (const cookie of [sesionDelEnlace, otraSesion]) {
+      const sesion = await call('GET', '/get-session', undefined, cookie)
+      expect(sesion.json()).toBeNull()
+    }
+    const otraVez = await call('POST', '/reset-password', {
+      token: segundo,
+      newPassword: 'contrasena-del-intruso',
+    })
+    expect(otraVez.statusCode).toBe(400)
+    const nueva = await call('POST', '/sign-in/email', {
+      email: 'eva@example.com',
+      password: 'contrasena-nueva',
+    })
+    expect(nueva.statusCode).toBe(200)
+    // Y su cuerpo tampoco lleva el token, que better-auth sí pone (`token: session.token`).
+    expect(nueva.json()).not.toHaveProperty('token')
+    sesionDelEnlace = cookieOf(nueva)
+  })
+
+  it('una sesión de más de 90 días cuenta como ninguna y se borra', async () => {
+    const token = tokenOf(sesionDelEnlace)
+    await tdb.client`UPDATE sessions SET created_at = now() - interval '91 days' WHERE token = ${token}`
+    const res = await call('GET', '/get-session', undefined, sesionDelEnlace)
+    expect(res.json()).toBeNull()
+    const quedan = await tdb.client`SELECT 1 FROM sessions WHERE token = ${token}`
+    expect(quedan).toHaveLength(0)
+  })
+
+  it('ningún cuerpo de /api/auth/* lleva el valor de la cookie de sesión', async () => {
+    const entrada = await call('POST', '/sign-in/email', {
+      email: 'eva@example.com',
+      password: 'contrasena-nueva',
+    })
+    await call('GET', '/get-session', undefined, cookieOf(entrada))
+    expect(tokensVistos.size).toBeGreaterThanOrEqual(3)
+    expect(cuerpos.length).toBeGreaterThan(10)
+    for (const cuerpo of cuerpos) {
+      for (const token of tokensVistos) expect(cuerpo).not.toContain(token)
+      expect(cuerpo).not.toMatch(/"token":"/)
+    }
   })
 })
