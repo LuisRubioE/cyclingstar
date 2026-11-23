@@ -1,6 +1,7 @@
 import { riders, teams, worlds } from '@cyclingstar/db'
 import { startTestDb, type TestDb } from '@cyclingstar/db/test'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { buildApp } from './app.js'
 import { createAuth } from './auth.js'
 import type { MailMessage, Mailer } from './mailer.js'
 
@@ -234,6 +235,44 @@ describe('correo: el camino completo contra una base real', () => {
     })
     expect(despues.status).toBe(200)
   })
+
+  /*
+    El 429 dice cuánto esperar (docs/cuenta.md §7.2 y §12.3; D-25): la web lo traduce con `authErrorText` y
+    pone la cuenta atrás en el botón. Contra la app de verdad, con el better-auth de verdad detrás: el límite
+    de las rutas de credenciales (10 cada 5 minutos por IP y ruta) corta antes de llegar a él.
+  */
+  it('el 429 de Fastify trae message y retryAfterS sin romper el formato { ok, error }', async () => {
+    const app = buildApp({ migrationsApplied: true, serveWeb: false, auth })
+    try {
+      let last = await app.inject({
+        method: 'POST',
+        url: '/api/auth/sign-in/email',
+        headers: { origin: BASE },
+        payload: { email: 'nadie@example.com', password: 'intento-0' },
+      })
+      for (let i = 1; i < 20 && last.statusCode !== 429; i++) {
+        last = await app.inject({
+          method: 'POST',
+          url: '/api/auth/sign-in/email',
+          headers: { origin: BASE },
+          payload: { email: 'nadie@example.com', password: `intento-${i}` },
+        })
+      }
+      expect(last.statusCode).toBe(429)
+      const body = last.json() as Record<string, unknown>
+      expect(body).toMatchObject({ ok: false, error: 'demasiadas_peticiones' })
+      expect(typeof body.message).toBe('string')
+      expect(body.retryAfterS).toEqual(expect.any(Number))
+      const espera = body.retryAfterS as number
+      expect(Number.isInteger(espera)).toBe(true)
+      expect(espera).toBeGreaterThan(0)
+      expect(espera).toBeLessThanOrEqual(300)
+      // la cabecera dice lo mismo que el cuerpo
+      expect(Number(last.headers['retry-after'])).toBe(espera)
+    } finally {
+      await app.close()
+    }
+  }, 60_000)
 })
 
 /**

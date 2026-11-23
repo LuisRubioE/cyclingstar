@@ -1,7 +1,7 @@
 # Los encargos: qué pedirle a Fable, uno por documento
 
 Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño y con el método de `docs/tactica.md` y `docs/entrenamiento.md`.
-E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; E3 está EN IMPLEMENTACIÓN; E4 está DISEÑADO (`docs/cuenta.md`, 23 de noviembre de 2026, sin implementar); los demás no están empezados. El estado de cada uno va al principio de su sección.
+E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; E3 está EN IMPLEMENTACIÓN; E4 está EN IMPLEMENTACIÓN (`docs/cuenta.md`, desde el 23 de noviembre de 2026); los demás no están empezados. El estado de cada uno va al principio de su sección.
 
 **Los códigos van en el orden en que se van a desarrollar**: E2 primero, E13 último. No es una
 etiqueta arbitraria, es el plan.

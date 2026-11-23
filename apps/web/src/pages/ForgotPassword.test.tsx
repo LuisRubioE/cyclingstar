@@ -58,3 +58,18 @@ describe('la contraseña olvidada (§17.21; PR 21j)', () => {
     expect(html).not.toContain('rounded-2xl')
   })
 })
+
+describe('ForgotPassword en E4 (docs/cuenta.md §12.3; PR 1)', () => {
+  it('un 429 no se da por enviado: lo dice en alert, con el formulario y la cuenta atrás en el botón', () => {
+    const html = pinta({
+      error: 'Too many attempts from this connection. Try again in 4 minutes.',
+      waitS: 240,
+    })
+    expect(html).toMatch(
+      /<p role="alert"[^>]*>Too many attempts from this connection\. Try again in 4 minutes\.<\/p>/,
+    )
+    expect(html).toContain('<form')
+    expect(html).not.toContain('a link to choose a')
+    expect(html).toContain('You can try again in 4:00.')
+  })
+})

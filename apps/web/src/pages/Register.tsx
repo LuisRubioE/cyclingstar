@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
+import { authCall, useRetryWait } from '../auth/authCall'
 import { authClient } from '../auth/client'
+import { clearPendingEmail, readPendingEmail, writePendingEmail } from '../auth/pendingEmail'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -29,20 +31,31 @@ const SIN_REENVIO = 'Could not send it again. Try again in a few minutes.'
 export function CheckInbox({
   email,
   initialResend = 'idle',
+  initialWaitS,
+  onStartAgain,
 }: {
   email: string
   initialResend?: Resend
+  /** los segundos que quedan tras un 429: para los tests */
+  initialWaitS?: number
+  /** `Start again`: el correo deja de esperar y vuelve el formulario */
+  onStartAgain?: () => void
 }) {
   const [resend, setResend] = useState<Resend>(initialResend)
   const [fallo, setFallo] = useState(SIN_REENVIO)
+  const espera = useRetryWait(initialWaitS)
 
   async function onResend() {
     if (resend === 'sending') return
     setResend('sending')
-    const res = await authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' })
-    if (res.error) {
-      setFallo(res.error.message ?? SIN_REENVIO)
+    const res = await authCall(() =>
+      authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' }),
+    )
+    if (res !== null) {
+      // traducido por la tabla única, y tras un 429 el botón espera (docs/cuenta.md §12.3)
+      setFallo(res.text ?? SIN_REENVIO)
       setResend('failed')
+      if (res.retryAfterS !== null) espera.start(res.retryAfterS, () => setResend('idle'))
     } else setResend('sent')
   }
 
@@ -63,6 +76,7 @@ export function CheckInbox({
             busy={resend === 'sending'}
             busyLabel="Sending…"
             layout="justify-self-start"
+            {...espera.button}
           >
             Send it again
           </Button>
@@ -74,6 +88,22 @@ export function CheckInbox({
               {fallo}
             </p>
           )}
+          <div className="flex flex-wrap items-center gap-x-2">
+            <p className="text-meta text-ink-2">Wrong address?</p>
+            <Button
+              variant="quiet"
+              size="sm"
+              onClick={() => {
+                clearPendingEmail()
+                onStartAgain?.()
+              }}
+            >
+              Start again
+            </Button>
+          </div>
+          <p className="text-meta text-ink-2">
+            Already have an account with this email? Nothing is sent: log in or reset your password.
+          </p>
         </div>
       </Panel>
       <p className="text-meta text-ink-2">
@@ -89,6 +119,10 @@ export function CheckInbox({
 interface RegisterState {
   readonly problem: FieldProblem<'email' | 'password'> | null
   readonly error: string | null
+  /** el correo que espera confirmación: con él, `CheckInbox` */
+  readonly pending: string | null
+  /** los segundos que quedan tras un 429 */
+  readonly waitS: number
 }
 
 export function Register({ initial = {} }: { initial?: Partial<RegisterState> } = {}) {
@@ -97,7 +131,11 @@ export function Register({ initial = {} }: { initial?: Partial<RegisterState> } 
   const [problem, setProblem] = useState(initial.problem ?? null)
   const [error, setError] = useState<string | null>(initial.error ?? null)
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
+  // sobrevive a recargar y a volver atrás: el correo, en `cs.pendingEmail` (docs/cuenta.md §5.3)
+  const [pending, setPending] = useState<string | null>(() =>
+    initial.pending !== undefined ? initial.pending : readPendingEmail(),
+  )
+  const espera = useRetryWait(initial.waitS)
 
   // el foco, al campo que falta: su error se oye con él
   useEffect(() => {
@@ -116,23 +154,37 @@ export function Register({ initial = {} }: { initial?: Partial<RegisterState> } 
     const name = email.split('@')[0] ?? email
     // Confirmar el correo es OBLIGATORIO: el registro no abre sesión, la abre el enlace del correo.
     // (El servidor fija a dónde vuelve ese enlace; el callbackURL va por coherencia.)
-    const result = await authClient.signUp.email({
-      name,
-      email,
-      password,
-      callbackURL: '/verify-email',
-    })
+    const fallo = await authCall(() =>
+      authClient.signUp.email({
+        name,
+        email,
+        password,
+        callbackURL: '/verify-email',
+      }),
+    )
     setLoading(false)
-    if (result.error) {
-      setError(result.error.message ?? 'Could not create your account.')
+    if (fallo !== null) {
+      setError(fallo.text)
+      if (fallo.retryAfterS !== null) espera.start(fallo.retryAfterS, () => setError(null))
       return
     }
     // Aunque el correo ya tuviera cuenta, better-auth responde igual (para no revelar quién está
     // registrado), así que la pantalla también es la misma.
-    setDone(true)
+    writePendingEmail(email)
+    setPending(email)
   }
 
-  if (done) return <CheckInbox email={email} />
+  if (pending !== null)
+    return (
+      <CheckInbox
+        email={pending}
+        onStartAgain={() => {
+          // el formulario vuelve con la dirección de antes, para corregirla
+          setEmail(pending)
+          setPending(null)
+        }}
+      />
+    )
 
   const errorOf = (field: 'email' | 'password') =>
     problem?.field === field ? { error: problem.msg } : {}
@@ -161,6 +213,7 @@ export function Register({ initial = {} }: { initial?: Partial<RegisterState> } 
             id="register-password"
             label="Password"
             autoComplete="new-password"
+            reveal
             help="At least 8 characters."
             value={password}
             onChange={(v) => {
@@ -174,7 +227,13 @@ export function Register({ initial = {} }: { initial?: Partial<RegisterState> } 
               {error}
             </p>
           )}
-          <Button variant="primary" type="submit" busy={loading} busyLabel="Creating…">
+          <Button
+            variant="primary"
+            type="submit"
+            busy={loading}
+            busyLabel="Creating…"
+            {...espera.button}
+          >
             Create account
           </Button>
         </form>

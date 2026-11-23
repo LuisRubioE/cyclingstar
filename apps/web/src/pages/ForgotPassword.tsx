@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react'
+import { authCall, useRetryWait } from '../auth/authCall'
 import { authClient } from '../auth/client'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
@@ -23,6 +24,9 @@ interface ForgotState {
   readonly email: string
   readonly problem: FieldProblem<'email'> | null
   readonly sent: boolean
+  readonly error: string | null
+  /** los segundos que quedan tras un 429 */
+  readonly waitS: number
 }
 
 export function ForgotPassword({ initial = {} }: { initial?: Partial<ForgotState> } = {}) {
@@ -30,6 +34,8 @@ export function ForgotPassword({ initial = {} }: { initial?: Partial<ForgotState
   const [problem, setProblem] = useState(initial.problem ?? null)
   const [sent, setSent] = useState(initial.sent ?? false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(initial.error ?? null)
+  const espera = useRetryWait(initial.waitS)
 
   // el foco, al campo que falta: su error se oye con él
   useEffect(() => {
@@ -39,13 +45,22 @@ export function ForgotPassword({ initial = {} }: { initial?: Partial<ForgotState
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     if (loading) return
+    setError(null)
     const falta = emailProblem(email)
     setProblem(falta)
     if (falta !== null) return
     setLoading(true)
     // redirectTo es la página de esta misma web donde el servidor deja al usuario con el token.
-    await authClient.requestPasswordReset({ email, redirectTo: '/reset-password' })
+    const fallo = await authCall(() =>
+      authClient.requestPasswordReset({ email, redirectTo: '/reset-password' }),
+    )
     setLoading(false)
+    // un 429 (o sin red) no se da por enviado: dice cuánto esperar (docs/cuenta.md §12.3)
+    if (fallo !== null) {
+      setError(fallo.text)
+      if (fallo.retryAfterS !== null) espera.start(fallo.retryAfterS, () => setError(null))
+      return
+    }
     setSent(true)
   }
 
@@ -89,7 +104,18 @@ export function ForgotPassword({ initial = {} }: { initial?: Partial<ForgotState
                 }}
                 {...(problem !== null ? { error: problem.msg } : {})}
               />
-              <Button variant="primary" type="submit" busy={loading} busyLabel="Sending…">
+              {error !== null && (
+                <p role="alert" className="text-meta text-bad">
+                  {error}
+                </p>
+              )}
+              <Button
+                variant="primary"
+                type="submit"
+                busy={loading}
+                busyLabel="Sending…"
+                {...espera.button}
+              >
                 Send me a link
               </Button>
             </form>

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchAdminWhoami } from '../api/admin'
+import { type AuthFailure, authCall, useRetryWait } from '../auth/authCall'
 import { authClient } from '../auth/client'
 import { SpoilerSettings, useSpoilerProtection } from '../components/SpoilerSettings'
 import { Button } from '../components/ui/Button'
@@ -12,6 +13,7 @@ import { Panel } from '../components/ui/Panel'
 import { Segmented } from '../components/ui/Segmented'
 import { TextLink } from '../components/ui/TextLink'
 import { useTheme } from '../theme'
+import { storeArrival } from '../domain/arrivals'
 
 /**
  * AJUSTES DE LA CUENTA (SPEC 7): correo, contraseña, cerrar sesión y borrar la cuenta.
@@ -26,6 +28,19 @@ import { useTheme } from '../theme'
 /** Estado de un formulario de ajustes: mensaje de éxito o de error, más "enviando". */
 type Status =
   { kind: 'idle' } | { kind: 'saving' } | { kind: 'ok'; msg: string } | { kind: 'err'; msg: string }
+
+/**
+ * El fallo de un formulario, con el texto de la tabla única (docs/cuenta.md §12.3); tras un 429, el botón
+ * espera con su cuenta atrás y, al acabar, el fallo se va.
+ */
+function fallar(
+  f: AuthFailure,
+  setStatus: (s: Status) => void,
+  espera: ReturnType<typeof useRetryWait>,
+): void {
+  setStatus({ kind: 'err', msg: f.text ?? 'Something went wrong. Try again in a minute.' })
+  if (f.retryAfterS !== null) espera.start(f.retryAfterS, () => setStatus({ kind: 'idle' }))
+}
 
 /** Los dos modos, en pantalla (§3.3, D-00i). */
 const MODOS = [
@@ -85,9 +100,11 @@ function VerifyEmailNotice({ email }: { email: string }) {
     // mientras sale el primero, no sale otro
     if (status.kind === 'saving') return
     setStatus({ kind: 'saving' })
-    const res = await authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' })
-    if (res.error) {
-      setStatus({ kind: 'err', msg: res.error.message ?? 'Could not send the email.' })
+    const res = await authCall(() =>
+      authClient.sendVerificationEmail({ email, callbackURL: '/verify-email' }),
+    )
+    if (res !== null) {
+      setStatus({ kind: 'err', msg: res.text ?? 'Something went wrong. Try again in a minute.' })
     } else {
       setStatus({ kind: 'ok', msg: 'Link sent — check your inbox (and the spam folder).' })
     }
@@ -122,6 +139,7 @@ function ChangeEmail({
 }) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const espera = useRetryWait()
   const [fieldError, setFieldError] = useState<string | null>(null)
 
   async function onSubmit(e: FormEvent) {
@@ -136,9 +154,11 @@ function ChangeEmail({
     setFieldError(null)
     setStatus({ kind: 'saving' })
     // callbackURL: a dónde vuelve quien abre el enlace de confirmación.
-    const res = await authClient.changeEmail({ newEmail: email, callbackURL: '/verify-email' })
-    if (res.error) {
-      setStatus({ kind: 'err', msg: res.error.message ?? 'Could not change your email.' })
+    const res = await authCall(() =>
+      authClient.changeEmail({ newEmail: email, callbackURL: '/verify-email' }),
+    )
+    if (res !== null) {
+      fallar(res, setStatus, espera)
     } else {
       // La dirección nueva SIEMPRE se verifica antes de aplicarse. Si la actual está confirmada,
       // el primer correo va a ELLA (para aprobar el cambio) y sólo después sale el de la nueva.
@@ -179,6 +199,7 @@ function ChangeEmail({
           type="submit"
           busy={status.kind === 'saving'}
           layout="justify-self-start"
+          {...espera.button}
         >
           Update email
         </Button>
@@ -197,6 +218,7 @@ function ChangePassword({
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const espera = useRetryWait()
   const [fieldError, setFieldError] = useState<{
     field: 'next' | 'confirm'
     msg: string
@@ -217,13 +239,15 @@ function ChangePassword({
     }
     setFieldError(null)
     setStatus({ kind: 'saving' })
-    const res = await authClient.changePassword({
-      currentPassword: current,
-      newPassword: next,
-      revokeOtherSessions: true,
-    })
-    if (res.error) {
-      setStatus({ kind: 'err', msg: res.error.message ?? 'Could not change your password.' })
+    const res = await authCall(() =>
+      authClient.changePassword({
+        currentPassword: current,
+        newPassword: next,
+        revokeOtherSessions: true,
+      }),
+    )
+    if (res !== null) {
+      fallar(res, setStatus, espera)
     } else {
       setStatus({ kind: 'ok', msg: 'Password updated.' })
       setCurrent('')
@@ -247,6 +271,7 @@ function ChangePassword({
           id="cur-pw"
           label="Current password"
           autoComplete="current-password"
+          reveal
           value={current}
           onChange={setCurrent}
         />
@@ -256,6 +281,7 @@ function ChangePassword({
           id="new-pw"
           label="New password"
           autoComplete="new-password"
+          reveal
           help="At least 8 characters."
           value={next}
           onChange={(v) => {
@@ -270,6 +296,7 @@ function ChangePassword({
           id="confirm-pw"
           label="Confirm new password"
           autoComplete="new-password"
+          reveal
           value={confirm}
           onChange={(v) => {
             setConfirm(v)
@@ -283,6 +310,7 @@ function ChangePassword({
           type="submit"
           busy={status.kind === 'saving'}
           layout="justify-self-start"
+          {...espera.button}
         >
           Update password
         </Button>
@@ -298,6 +326,7 @@ function ChangePassword({
  * (`defaultOpen`).
  */
 export function DeleteAccount({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  const espera = useRetryWait()
   const [open, setOpen] = useState(defaultOpen)
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
@@ -313,12 +342,14 @@ export function DeleteAccount({ defaultOpen = false }: { defaultOpen?: boolean }
     }
     setFieldError(null)
     setStatus({ kind: 'saving' })
-    const res = await authClient.deleteUser({ password })
-    if (res.error) {
-      setStatus({ kind: 'err', msg: res.error.message ?? 'Could not delete your account.' })
+    const res = await authCall(() => authClient.deleteUser({ password }))
+    if (res !== null) {
+      fallar(res, setStatus, espera)
       return
     }
-    // Recarga completa: la sesión ya no existe y ninguna caché de la SPA debe sobrevivirla.
+    // Recarga completa: la sesión ya no existe y ninguna caché de la SPA debe sobrevivirla. La portada
+    // lo dice con su final, que cruza la recarga en `sessionStorage` (docs/cuenta.md §12.4).
+    storeArrival('account-deleted')
     window.location.assign('/')
   }
 
@@ -337,6 +368,7 @@ export function DeleteAccount({ defaultOpen = false }: { defaultOpen?: boolean }
               id="delete-pw"
               label="Password"
               autoComplete="current-password"
+              reveal
               value={password}
               onChange={(v) => {
                 setPassword(v)
@@ -346,7 +378,12 @@ export function DeleteAccount({ defaultOpen = false }: { defaultOpen?: boolean }
             />
             <Resultado status={status} />
             <div className="flex flex-wrap gap-3">
-              <Button variant="danger" type="submit" busy={status.kind === 'saving'}>
+              <Button
+                variant="danger"
+                type="submit"
+                busy={status.kind === 'saving'}
+                {...espera.button}
+              >
                 Delete my account for good
               </Button>
               <Button

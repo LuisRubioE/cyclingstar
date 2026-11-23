@@ -17,6 +17,7 @@ import { ApiError } from '../api/request'
 import type { DashboardAction } from '../domain/dashboard'
 import { horizonKey } from '../queryClient'
 import { Home, NextUp, PlayerHome } from './Home'
+import { pieza } from './__fixtures__/markup'
 import { healthWith, horizonWith } from './__fixtures__/world'
 
 /**
@@ -235,6 +236,22 @@ describe('el visitante (§17.21; PR 21g)', () => {
     const markup = pinta(<Home />, { health: healthWith('on', 'on'), horizon: null })
     expect(markup).not.toContain('Sign in to see results')
     expect(markup).not.toContain('data-ui="Notice"')
+  })
+
+  it('tras borrar la cuenta, el final: un Notice good en role="status", que llega por sessionStorage (docs/cuenta.md §12.4)', () => {
+    vi.stubGlobal('sessionStorage', {
+      getItem: (k: string) => (k === 'cs.arrival' ? 'account-deleted' : null),
+      setItem: () => undefined,
+      removeItem: () => undefined,
+    })
+    try {
+      const markup = pinta(<Home />)
+      const aviso = pieza(markup, 'Notice', 'Your account is deleted')
+      expect(aviso).toMatch(/data-variant="good"[^>]*role="status"/)
+      expect(aviso).toContain('Thanks for playing.')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
 

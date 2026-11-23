@@ -268,6 +268,7 @@ function Campos() {
   const [nombre, setNombre] = useState('Mistral Racing')
   const [semana, setSemana] = useState('build')
   const [nota, setNota] = useState('')
+  const [clave, setClave] = useState('')
   const semanas = [
     { value: 'build', label: 'Build' },
     { value: 'peak', label: 'Peak' },
@@ -303,6 +304,31 @@ function Campos() {
           value="Mistral Racing"
           onChange={nada}
           disabledReason="Only the manager can rename the team."
+        />
+      </Estado>
+      <Estado name="input · password, reveal">
+        <Field
+          kind="input"
+          type="password"
+          id="ui-password"
+          label="Password"
+          autoComplete="off"
+          value={clave}
+          onChange={setClave}
+          reveal
+        />
+      </Estado>
+      <Estado name="input · password, reveal · shown">
+        <Field
+          kind="input"
+          type="password"
+          id="ui-password-shown"
+          label="Password"
+          autoComplete="off"
+          value="correct horse"
+          onChange={nada}
+          reveal
+          defaultRevealed
         />
       </Estado>
       <Estado name="select">

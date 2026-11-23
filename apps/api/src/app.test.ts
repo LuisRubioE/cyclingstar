@@ -592,7 +592,13 @@ describe('api: rate limiting', () => {
       last = await rlApp.inject({ method: 'GET', url: '/api/riders/me' })
     }
     expect(last.statusCode).toBe(429)
-    expect(last.json()).toEqual({ ok: false, error: 'demasiadas_peticiones' })
+    // el formato uniforme, más cuánto esperar (docs/cuenta.md §7.2; D-25)
+    expect(last.json()).toEqual({
+      ok: false,
+      error: 'demasiadas_peticiones',
+      message: expect.any(String),
+      retryAfterS: expect.any(Number),
+    })
     await rlApp.close()
   })
 
