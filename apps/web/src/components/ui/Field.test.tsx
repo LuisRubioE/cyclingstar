@@ -103,4 +103,33 @@ describe('Field', () => {
     const f = input({ inline: true })
     expect(f).toContain('<label for="team-name"')
   })
+
+  it('reveal (docs/cuenta.md §12.5): Show y Hide cambian el type y el rótulo accesible, sin tocar autocomplete', () => {
+    const base = { type: 'password', autoComplete: 'current-password', reveal: true } as const
+    const oculta = input(base)
+    expect(oculta).toMatch(/<input [^>]*type="password"/)
+    expect(oculta).toContain('autoComplete="current-password"')
+    // el botón: dentro del campo, no envía, conmuta y gobierna el input, de 44 × 44
+    const boton = /<button [^>]*>.*?<\/button>/.exec(oculta)?.[0] ?? ''
+    expect(boton).toContain('type="button"')
+    expect(boton).toContain('aria-pressed="false"')
+    expect(boton).toContain('aria-controls="team-name"')
+    expect(boton).toContain('min-h-11')
+    expect(boton).toContain('min-w-11')
+    expect(boton).toContain('data-variant="quiet"')
+    expect(boton).toContain('>Show<')
+
+    const vista = input({ ...base, defaultRevealed: true })
+    expect(vista).toMatch(/<input [^>]*type="text"/)
+    expect(vista).toContain('autoComplete="current-password"')
+    const otro = /<button [^>]*>.*?<\/button>/.exec(vista)?.[0] ?? ''
+    expect(otro).toContain('aria-pressed="true"')
+    expect(otro).toContain('>Hide<')
+  })
+
+  it('sin reveal, ni botón ni type cambiado', () => {
+    const f = input({ type: 'password' })
+    expect(f).not.toContain('<button')
+    expect(f).toMatch(/<input [^>]*type="password"/)
+  })
 })

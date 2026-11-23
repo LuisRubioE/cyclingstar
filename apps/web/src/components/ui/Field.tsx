@@ -1,4 +1,5 @@
-import { type KeyboardEvent, type MouseEvent, useId } from 'react'
+import { type KeyboardEvent, type MouseEvent, useId, useState } from 'react'
+import { buttonClass } from './Button'
 import { Icon } from './Icon'
 import { FOCUS, withLayout } from './styles'
 import type { Layout } from './types'
@@ -40,6 +41,13 @@ export type FieldProps = FieldBase &
         readonly min?: number
         readonly max?: number
         readonly step?: number
+        /**
+         * solo con `password` (docs/cuenta.md §12.5; D-56): un botón `quiet` de 44 × 44 dentro del campo que
+         * alterna `Show` y `Hide`, con `aria-pressed`; cambia el `type` y no toca `autocomplete`
+         */
+        readonly reveal?: boolean
+        /** la contraseña a la vista al empezar: para el catálogo y los tests */
+        readonly defaultRevealed?: boolean
       }
     | {
         readonly kind: 'select'
@@ -68,6 +76,7 @@ export function Field(props: FieldProps) {
   const helpId = useId()
   const errorId = useId()
   const reasonId = useId()
+  const [revealed, setRevealed] = useState(props.kind === 'input' && props.defaultRevealed === true)
   const disabled = disabledReason !== undefined
   const describedBy = [
     help !== undefined ? helpId : null,
@@ -121,11 +130,13 @@ export function Field(props: FieldProps) {
         className={`${CONTROL} block min-h-24 py-3 ${borde} ${color}`}
       />
     )
-  else
-    control = (
+  else {
+    const reveal = props.reveal === true && props.type === 'password'
+    const tipo = reveal && revealed ? 'text' : (props.type ?? 'text')
+    const input = (
       <input
         {...comun}
-        type={props.type ?? 'text'}
+        type={tipo}
         value={props.value}
         readOnly={disabled}
         {...(props.autoComplete !== undefined ? { autoComplete: props.autoComplete } : {})}
@@ -134,9 +145,32 @@ export function Field(props: FieldProps) {
         max={props.max}
         step={props.step}
         onChange={(e) => props.onChange(e.target.value)}
-        className={`${CONTROL} min-h-12 fine:min-h-10 ${borde} ${color}`}
+        className={`${CONTROL} ${reveal ? 'min-h-12 pr-16' : 'min-h-12 fine:min-h-10'} ${borde} ${color}`}
       />
     )
+    // con `reveal`, el campo no baja de 48 en un puntero fino: dentro cabe el botón de 44
+    control = reveal ? (
+      <span className="relative block">
+        {input}
+        <span className="absolute inset-y-0 right-0.5 flex items-center">
+          <button
+            type="button"
+            data-ui="Button"
+            data-variant="quiet"
+            data-state={revealed ? 'active' : 'inactive'}
+            aria-pressed={revealed}
+            aria-controls={id}
+            onClick={() => setRevealed((v) => !v)}
+            className={`${buttonClass({ variant: 'quiet', size: 'default', iconOnly: true, disabled: false })} px-2`}
+          >
+            {revealed ? 'Hide' : 'Show'}
+          </button>
+        </span>
+      </span>
+    ) : (
+      input
+    )
+  }
 
   const rotulo =
     labelledBy !== undefined ? null : (
