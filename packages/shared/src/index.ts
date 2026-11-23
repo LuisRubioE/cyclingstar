@@ -9,6 +9,7 @@ import { switchModeSchema } from './contracts.js'
 export * from './contracts.js'
 export * from './account/constants.js'
 export * from './account/birthDate.js'
+export * from './account/deviceLabel.js'
 // La retransmisión (E2), detrás de contracts.js: desde el 3a importa en ejecución esquemas de
 // contracts.js (`wire.ts`), que tiene que estar ya cargado (14-a).
 export * from './broadcast/index.js'

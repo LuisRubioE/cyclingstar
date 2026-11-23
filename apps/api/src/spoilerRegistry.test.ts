@@ -67,6 +67,9 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'POST /api/auth/reset-password': ['safe', N],
   'POST /api/auth/change-password': ['safe', N],
   'POST /api/auth/delete-user': ['safe', N],
+  // las dos propias de Fastify bajo /api/auth, por el Path de cs_device (E4, PR 11; docs/cuenta.md §6.5)
+  'POST /api/auth/devices/sign-out-others': ['safe', N],
+  'POST /api/auth/devices/forget': ['safe', N],
   // routes/admin.ts
   'GET /api/admin/whoami': ['horizon', ADMIN], // l. 64-65
   'GET /api/admin/users': ['horizon', ADMIN], // l. 75-76
@@ -126,6 +129,9 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // la cuenta y la fecha de nacimiento (docs/cuenta.md §4.5; PR 9 de E4)
   'GET /api/me/account': ['safe', N],
   'PUT /api/me/birth-date': ['safe', N],
+  // los aparatos de la cuenta (docs/cuenta.md §6.4 y §6.5; PR 11 de E4)
+  'GET /api/me/devices': ['safe', N],
+  'DELETE /api/me/devices/:id': ['safe', N],
   'GET /api/me/horizon': ['horizon', N], // l. 207-208
   // routes/rankings.ts
   'GET /api/rankings': ['horizon', { by: ['R'] }], // l. 32-33

@@ -315,6 +315,25 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
   { id: '26-me-contract', path: '/me/contract', account: 'jugador', answer: 'Panel', tool: true },
   { id: '27-me-finances', path: '/me/finances', account: 'jugador', answer: 'Stat', tool: false },
   { id: '28-account', path: '/account', account: 'jugador', answer: 'Panel', tool: true },
+  // Las subpáginas de `Account` (docs/cuenta.md §12.6 y §17.3; PR 11 de E4), a 360 y a 320. Sin el velo
+  // para quien mira, `/account/spoilers` vuelve a `/account`, que también contesta con un `Panel`.
+  ...(
+    [
+      ['email', '28a'],
+      ['password', '28b'],
+      ['devices', '28c'],
+      ['data', '28d'],
+      ['delete', '28e'],
+      ['spoilers', '28f'],
+      ['appearance', '28g'],
+    ] as const
+  ).map(([tarea, n]): TelefonoPantalla => ({
+    id: `${n}-account-${tarea}`,
+    path: `/account/${tarea}`,
+    account: 'jugador',
+    answer: 'Panel',
+    tool: true,
+  })),
   {
     id: '29-me-training-manager',
     path: '/me/training',

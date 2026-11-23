@@ -239,6 +239,7 @@ export {
 // El modo del jugador (E3, docs/visual.md §3.3, D-00i; paso 23): en la cuenta.
 export { readTheme, setTheme } from './theme.js'
 export { hasBirthDate, setBirthDateOnce } from './birthDate.js'
+export { type AccountSummary, accountSummary } from './accountSummary.js'
 // Lo visto (E2, §10.3; paso 7a): las cuatro escrituras de race_watch, sus dos lecturas y la memoria del
 // proceso de lo alcanzado (D-55).
 export {

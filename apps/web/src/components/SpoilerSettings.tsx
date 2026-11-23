@@ -36,6 +36,11 @@ const SCOPES: readonly {
   { scope: 'off', label: 'Nothing', hint: 'Results show as soon as each stage is raced.' },
 ]
 
+/** La palabra corta de un alcance (`Only yours`): la de su opción, y el valor de su fila en `Account` (§12.1). */
+export function scopeLabel(scope: SpoilerScope): string {
+  return (SCOPES.find((s) => s.scope === scope) ?? SCOPES[0]!).label
+}
+
 const ASK = [
   { key: 'yes', label: 'Yes' },
   { key: 'no', label: 'No' },
@@ -68,7 +73,7 @@ export function useSpoilerProtection(): SpoilerProtection {
  * EL ALCANCE DEL VELO EN LOS AJUSTES (E2, docs/retransmision.md §10.4 y §11.11; DD-01, DD-17; paso 9b). Qué
  * carreras se protegen sin pedirlo (`guarded`, por defecto; `own_only`; u `off`), y si `Show result`
  * pregunta antes (`users.reveal_confirm`, que `Don't ask again` apaga). Es el destino de `Manage` en los
- * avisos de los agregados (`/account#spoilers`). Solo con el velo para quien mira: con `SPOILER_MODE`
+ * avisos de los agregados (`/account/spoilers` desde el PR 11 de E4). Solo con el velo para quien mira: con `SPOILER_MODE`
  * apagado, o en `admins` para un jugador, no sale, y la cuenta es la de hoy.
  *
  * CON EL SISTEMA (E3, docs/visual.md §17.21; PR 21f): el `Panel` que contesta a la 28 (§7.3). Las dos

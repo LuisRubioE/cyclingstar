@@ -43,6 +43,11 @@ export interface DeviceCookies {
    * saca a la más vieja, 7-e).
    */
   issue(entries: readonly DeviceEntry[], email: string, owner: DeviceOwner): string
+  /**
+   * La cabecera `Set-Cookie` sin la entrada de ese correo y con las otras intactas (`Forget this device`,
+   * §6.5; 6-h). Sin otras, la cookie se borra.
+   */
+  forget(entries: readonly DeviceEntry[], email: string): string
 }
 
 export function createDeviceCookies(secret: string, secure: boolean): DeviceCookies {
@@ -58,6 +63,11 @@ export function createDeviceCookies(secret: string, secure: boolean): DeviceCook
     return x.length === y.length && timingSafeEqual(x, y)
   }
   const texto = (e: DeviceEntry): string => `v1.${e.emailHash}.${e.nonce}.${e.sig}`
+  const cabecera = (todas: readonly DeviceEntry[]): string =>
+    `${DEVICE_COOKIE}=${todas.map(texto).join('~')}; Path=/api/auth; ` +
+    `Max-Age=${todas.length === 0 ? 0 : DEVICE_COOKIE_DAYS * 86_400}; HttpOnly; SameSite=Lax${
+      secure ? '; Secure' : ''
+    }`
 
   return {
     read(cookieHeader) {
@@ -86,10 +96,11 @@ export function createDeviceCookies(secret: string, secure: boolean): DeviceCook
       const todas = [...entries.filter((e) => e.emailHash !== h), nueva].slice(
         -DEVICE_COOKIE_MAX_ACCOUNTS,
       )
-      return (
-        `${DEVICE_COOKIE}=${todas.map(texto).join('~')}; Path=/api/auth; ` +
-        `Max-Age=${DEVICE_COOKIE_DAYS * 86_400}; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`
-      )
+      return cabecera(todas)
+    },
+    forget(entries, email) {
+      const h = hashDe(email)
+      return cabecera(entries.filter((e) => e.emailHash !== h))
     },
   }
 }

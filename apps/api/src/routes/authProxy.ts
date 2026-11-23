@@ -12,7 +12,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import { type Auth, resetRequests } from '../auth.js'
 import { clientIp, ipBucket } from '../clientIp.js'
 import { createDeviceCookies } from '../deviceCookie.js'
-import { apiError } from '../http.js'
+import { apiError, unauthorized } from '../http.js'
 import { limitKeys } from '../limitKeys.js'
 import { MAIL_BUDGET_EXHAUSTED_BODY, mailBudgetOpen } from '../mailBudget.js'
 import {
@@ -393,6 +393,73 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
   for (const url of CREDENTIAL_AUTH_PATHS) {
     app.post(url, { config: { rateLimit: CREDENTIAL_RATE_LIMIT, spoiler: 'safe' } }, forwardToAuth)
   }
+
+  /** La sesión de la petición, o null; la que pasó su techo de 90 días cuenta como ninguna (§6.1). */
+  const sesionDePeticion = async (request: FastifyRequest) => {
+    const sesion = await auth.api.getSession({ headers: toWebHeaders(request) })
+    if (sesion === null) return null
+    if (isPastSessionCeiling(sesion.session.createdAt)) {
+      await deleteSessionByToken(auth, sesion.session.token)
+      return null
+    }
+    return sesion
+  }
+
+  /**
+   * `POST /api/auth/devices/sign-out-others` (docs/cuenta.md §6.5; 6-c, 6-g): cierra las otras sesiones de
+   * la cuenta con `revokeOtherSessions`, sube `device_epoch` (las `cs_device` de los otros navegadores dejan
+   * de valer), borra las claves `pw:` de las sesiones cerradas y reemite la `cs_device` de este navegador
+   * con el epoch nuevo, sin tocar las entradas de las otras cuentas. Ruta propia de Fastify: vive bajo
+   * `/api/auth` porque la cookie lleva `Path=/api/auth`. Los `push_targets` de las otras sesiones se borrarán
+   * aquí cuando existan (PR 14; I-25).
+   */
+  app.post(
+    '/api/auth/devices/sign-out-others',
+    { config: { rateLimit: AUTH_RATE_LIMIT, spoiler: 'safe' } },
+    async (request, reply) => {
+      const sesion = await sesionDePeticion(request)
+      if (sesion === null) return unauthorized(reply)
+      const headers = toWebHeaders(request)
+      const otras = (await auth.api.listSessions({ headers })).filter(
+        (s) => s.token !== sesion.session.token,
+      )
+      await auth.api.revokeOtherSessions({ headers })
+      if (db !== undefined) {
+        await bumpDeviceEpoch(db, sesion.user.id)
+        // Solo las de las cerradas: borrar la de esta sesión dejaría reiniciar L3 a voluntad (§7.4).
+        await clearAttempts(
+          db,
+          otras.map((s) => keys.pw(s.id)),
+        )
+        const dueño = await deviceOwnerByEmail(db, sesion.user.email)
+        if (dueño !== null) {
+          reply.header(
+            'set-cookie',
+            devices.issue(devices.read(request.headers.cookie), sesion.user.email, dueño),
+          )
+        }
+      }
+      return { ok: true, closed: otras.length }
+    },
+  )
+
+  /**
+   * `POST /api/auth/devices/forget` (§6.5; 6-h): quita de la `cs_device` la entrada del correo de la sesión
+   * y deja las otras. No cierra la sesión: `Shared computer? Forget this device` llama después a `sign-out`.
+   */
+  app.post(
+    '/api/auth/devices/forget',
+    { config: { rateLimit: AUTH_RATE_LIMIT, spoiler: 'safe' } },
+    async (request, reply) => {
+      const sesion = await sesionDePeticion(request)
+      if (sesion === null) return unauthorized(reply)
+      reply.header(
+        'set-cookie',
+        devices.forget(devices.read(request.headers.cookie), sesion.user.email),
+      )
+      return { ok: true }
+    },
+  )
 
   app.route({
     method: ['GET', 'POST'],

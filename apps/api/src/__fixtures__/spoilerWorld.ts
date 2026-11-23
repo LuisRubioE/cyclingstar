@@ -474,12 +474,14 @@ export function strip(r: Swept, paths: readonly string[]): string {
 
 /**
  * Lo que difiere entre dos bases por construcción y no por la etapa: uuid aleatorios, por orden de aparición; marcas de tiempo;
- * y la cuenta atrás de `/health`, que sale de la hora real de creación del mundo (`nextTickAtMs`, routes/health.ts).
+ * y la cuenta atrás de `/health`, que sale de la hora real de creación del mundo (`nextTickAtMs`, routes/health.ts); y el id
+ * de una sesión en `GET /api/me/devices` (16 hex del SHA-256 de su token aleatorio; docs/cuenta.md §6.4).
  */
 export function normalize(s: string): string {
   const seen = new Map<string, string>()
   return s
     .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g, '<t>')
+    .replace(/"id":"[0-9a-f]{16}"/g, '"id":"<sesion>"')
     .replace(/"nextTickAtMs":\d+/g, '"nextTickAtMs":<t>')
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, (id) => {
       if (id.startsWith(FIXED)) return id // los ids fijos son los mismos en las dos bases

@@ -11,7 +11,8 @@ export interface Arrival {
   readonly tone?: 'good' | 'warn'
 }
 
-export type ArrivalKey = 'password-saved' | 'account-deleted' | 'signed-out-passwords'
+export type ArrivalKey =
+  'password-saved' | 'account-deleted' | 'signed-out-passwords' | 'device-forgotten'
 
 export const ARRIVALS: Readonly<Record<ArrivalKey, Arrival>> = {
   'password-saved': {
@@ -24,6 +25,11 @@ export const ARRIVALS: Readonly<Record<ArrivalKey, Arrival>> = {
     title: 'Signed out',
     body: 'You were signed out after too many wrong passwords.',
     tone: 'warn',
+  },
+  // `Shared computer? Forget this device` (docs/cuenta.md §12.1; 12-i): en `/login`
+  'device-forgotten': {
+    title: 'Signed out.',
+    body: 'This browser no longer counts as one of your devices.',
   },
 }
 
