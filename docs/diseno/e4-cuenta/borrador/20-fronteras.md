@@ -1,0 +1,60 @@
+## 20. Fronteras y documentos que hay que corregir
+
+### 20.1 Las fronteras
+
+| Con                   | Es de E4                                                                                                                                                                                              | No es de E4                                                                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| E2 · la retransmisión | cuándo, a quién, con qué tope y con qué baja sale el aviso de etapa; `stage_digest` y `stage_ready`; el canario mira `noticePayload`; `last_seen_at` en toda visita; la sesión de 30 días             | el texto (`stageReadyNotice`), `Ready to watch`, `While you were away`, `Watch`, el velo                                           |
+| E7 · el gobierno      | `away_since`, `away_until`, `inactiveSince`, `isAway`, `manual` como `mixto` mientras dura, `away_warning` y las frases de la regla; el sitio del moderador en `admin_audit` y `GET /api/admin/audit` | la regla del mes y su plazo, qué es «pasar a bot», la silla del mánager, G8, la ausencia larga o encadenada, el papel de moderador |
+| E8 · la economía      | nada: `premium` sigue en `users` y E4 no lo toca                                                                                                                                                      | vender el premium                                                                                                                  |
+| E9 · entre personas   | que un aviso nuevo entre por `NOTICE_CATALOG` con sus preferencias, su tope y su silencio                                                                                                             | el chat, la negociación y sus avisos; si una ausencia se ve desde fuera (O-07)                                                     |
+| E10 · el multiidioma  | `users.locale` de `Accept-Language` al registrarse; `users.time_zone` de los avisos; textos en inglés                                                                                                 | traducir la interfaz, los dos correos y los avisos                                                                                 |
+| W5 · `Watch`          | nada de `packages/shared/src/broadcast/` ni de `docs/visual.md`: lo que haya que cambiar allí se le pasa por escrito (§20.3)                                                                          | `Watch`, `pageTitle.ts`, `visual.md`, el CI                                                                                        |
+| La app                | `push_targets` con su canal, la carga con `path`, `POST /api/me/push-targets`, la misma cuenta y sus sesiones (§13.9)                                                                                 | construirla, su tecnología y su fecha (D-00d)                                                                                      |
+| El motor              | nada: `ENGINE_VERSION` sigue en 91                                                                                                                                                                    | todo                                                                                                                               |
+
+### 20.2 Los documentos que hay que corregir (PR 16)
+
+Cada frase que hoy declara un estado falso, con el texto que la **sustituye**, entero (D-59; I-17; O-03). Son cinco del correo de juego (X-17: el sexto, en `00-encargo.md` l. 202 y 206, ya está corregido), los de «no hay recuperación» y los de «no hay última visita». Las líneas son las de hoy; si se han movido, manda la frase citada.
+
+1. **`docs/agenda.md` l. 313 a 315**, «**avisar** (correo, y a medio plazo notificación web, con el flujo separado del transaccional según 3.2)». Sustituye: «**avisar** (por notificación del navegador y, cuando exista, de la app; nunca por correo, que se queda en lo transaccional de la cuenta, por decisión del dueño del 19 de noviembre de 2026: `docs/cuenta.md` §13)».
+2. **`docs/agenda.md` l. 665 a 668**, «Un correo a los veinte días diciendo […] son el mismo correo.» Sustituye: «Un aviso del navegador o de la app a los veinte días diciendo «si no entras, tu corredor pasa a manos del entrenador el día tal» es el mejor recordatorio que este juego puede mandar: no es publicidad, es una consecuencia real y suya. Solo llega a quien aceptó los avisos; para el resto, la regla se enseña en la web (`docs/cuenta.md` §14.5), y quien no aceptó avisos ni vuelve no recibe nada antes de que actúe (§14.6). No hay correo de juego.»
+3. **`docs/agenda.md` l. 615 a 616**, «**no hay ni un solo rastro de actividad**. Ni `last_seen`, ni `last_login`, ni nada equivalente en `users` ni en `riders`.» Sustituye: «Hasta E2 no había ni un solo rastro de actividad. Desde la migración 0048 existe `users.last_seen_at`, escrita como mucho una vez por hora, y desde E4 en toda visita con sesión (`docs/cuenta.md` §10.6).»
+4. **`docs/agenda.md` l. 688 a 691**, «empezar a **registrar la última visita**. Hoy no existe […]». Sustituye: «**registrar la última visita**, que ya se hace: `users.last_seen_at` desde E2 (0048) y en toda visita desde E4. El historial empieza el día que E2 entró en producción y no se reconstruye hacia atrás.»
+5. **`docs/encargos.md` l. 312 a 316**, «hoy una contraseña perdida es un corredor perdido […] el camino clásico para secuestrar una cuenta.» Sustituye: «cuando se escribió este encargo, una contraseña perdida era un corredor perdido. Hoy hay verificación obligatoria del correo, recuperación de la contraseña y solo dos correos de cuenta; el cambio de correo lo hace un administrador desde el panel y queda escrito (`docs/cuenta.md` §1, §5 y §8.5).»
+6. **`docs/encargos.md` l. 439 a 441**, «No existe ni un solo rastro de actividad en la base de datos […] así que **el mundo no sabe quién lo ha abandonado**.» Sustituye: «Desde E2 existe `users.last_seen_at` y desde E4 se escribe en toda visita, así que el mundo ya sabe cuándo entró cada uno por última vez; lo que no sabe es qué hacer con el que no vuelve.»
+7. **`docs/encargos.md` l. 446**, «que se **avise por correo antes** de que ocurra». Sustituye: «que se **avise antes** de que ocurra por notificación del navegador o de la app, nunca por correo (decisión del dueño del 19 de noviembre de 2026), y que quien no tenga avisos lo vea en la web al volver (`docs/cuenta.md` §14)».
+8. **`docs/encargos.md` l. 773 a 775**, el punto «**Empezar a registrar la última visita** (`last_seen`). Hoy no existe […]». Sustituye: «**Registrar la última visita**: hecho (`users.last_seen_at`, E2; en toda visita, E4).»
+9. **`docs/encargos.md` l. 776 a 778**, «porque hoy no hay recuperación de contraseña (E4)». Sustituye: «porque el correo va en el plan gratuito de Resend y el registro se abre por tandas pequeñas, y porque la edad mínima se confirma con un abogado antes de abrirlo (`docs/cuenta.md` §9.4 y §21.3)».
+10. **`docs/epics.md` l. 603 a 610** (G11), «**Lo que hay hoy, y es un agujero de verdad.** […] el camino clásico para secuestrar una cuenta.» Sustituye: «**Lo que había antes de E4.** `better-auth` corría sin enviar un solo correo: nadie verificaba el correo, una contraseña perdida era una cuenta perdida y el cambio de correo se aplicaba sin confirmar. Hoy salen dos correos (confirmar el registro y recuperar la contraseña) y el cambio de correo lo hace un administrador (`docs/cuenta.md` §1).»
+11. **`docs/captacion.md` l. 26 a 28**, «Hoy `better-auth` corre sin enviar un solo correo […] pierde su corredor y no hay nada que hacer.» Sustituye: «Hay verificación del correo y recuperación de la contraseña, pero el correo va en el plan gratuito de Resend (100 al día) y el registro se abre por tandas pequeñas (`docs/cuenta.md` §9.4).»
+12. **`docs/captacion.md` l. 214 a 216**, «hoy **no hay recuperación de contraseña**, así que con un grupo pequeño se resuelve a mano, pero conviene tener E4 antes de que sean cincuenta.» Sustituye: «la recuperación de la contraseña ya existe; lo que limita es el plan gratuito de correo, y por eso las invitaciones van por tandas de 25 a 50 al día (`docs/cuenta.md` §9.4).»
+13. **`docs/captacion.md` l. 263 a 264**, «**No abrir el registro directo** hasta que exista recuperación de contraseña (E4).» Sustituye: «**No abrir el registro directo** mientras el correo esté en el plan gratuito, ni antes de confirmar la edad mínima con un abogado (`docs/cuenta.md` §9.4 y §21.3).»
+14. **`docs/retransmision.md` l. 12895**, la fila DD-10: en la segunda columna, «El aviso de «lista para ver»»; en la tercera, «por notificación del navegador y de la app con `stageReadyNotice`; ningún correo de juego (E4, `docs/cuenta.md` §13)»; en la cuarta, «quien acepta los avisos recibe uno al día como mucho; quien no, lo ve en `Ready to watch`»; en la quinta, «E4, PR 14»; en la sexta, «`stageReadyEmail` se borró con sus tests; el canario mira `noticePayload`».
+15. **`docs/retransmision.md` l. 13004**, «**DD-10, el correo sin enviar.** […]». Sustituye: «**DD-10, el aviso de etapa lista.** E4 lo manda por notificación del navegador y de la app, nunca por correo (`docs/cuenta.md` §13.1); la decisión de enviar no mira el resultado (D-42) y el canario renderiza `noticePayload` (§13.8).»
+16. **`docs/ops.md` l. 106 a 109**, los registros de Resend. Sustituye la lista por lo que dice el DNS de hoy (§9.1): `send.cyclingstar.app` y `rsend.cyclingstar.app` como `CNAME` hacia Resend, el `TXT` de DKIM en `resend._domainkey` y DMARC en `_dmarc` con `p=none`, puesto y sin informes (DD-15 C). Lo hace el PR 17 y no el 16, porque es operación (§18.3).
+17. **`docs/ops.md` l. 271 a 272**, «(la IP transitoria de geolocalización no se persiste; el correo se usa para la cuenta)». Sustituye: «(la IP no se guarda con la cuenta, sí en los logs de Railway durante `<N>` días; el correo solo sirve para confirmar el registro y recuperar la contraseña: `docs/cuenta.md` §10.1)».
+
+### 20.3 Lo que se le pasa a W5 por escrito
+
+W5 edita `packages/shared/src/broadcast/`, `docs/visual.md` y el CI (`00-encargo.md` l. 298 a 300), y E4 no los toca (H-16). Si W5 ha terminado cuando llegue el PR 16, lo aplica el 16; si no, se le pasa esto:
+
+1. **`packages/shared/src/broadcast/pageTitle.ts` l. 5**, el comentario «y el correo de etapa lista (`stageReadyEmail`, 11-d)». Sustituye: «y el aviso de etapa lista (`noticePayload`, `docs/cuenta.md` §13.8)». Huérfano desde el PR 14.
+2. **`docs/visual.md` l. 3623**, la fila E4 de la tabla de fronteras. En la segunda columna: «un service worker solo de avisos, sin `fetch`, sin caché y sin manifiesto, que no hace la web instalable (`docs/cuenta.md` §13.5); en iPhone, el aviso llega a quien añade la web a la pantalla de inicio con iOS 26 o más, y la web se lo explica». En la tercera: «la notificación de E4 es la del navegador y, cuando exista, la de la app; nunca el correo».
+3. **`docs/visual.md` l. 3656**, «ni service worker». Sustituye: «ni service worker de caché o de instalación (E4 añade uno solo de avisos, sin `fetch` ni caché, que D-00p no prohíbe: `docs/cuenta.md` §13.5)».
+
+---
+
+**Injertos aplicados.** I-17 (§20.2).
+
+**Objeciones resueltas.** O-03 (§20.2), O-07 (§20.1: E9).
+
+**Huecos rellenados.** H-16 (§20.3, punto 1).
+
+**Contradicciones.** X-17 (§20.2: quedan cinco del correo de juego).
+
+**Decisiones de esta sección.**
+
+- **20-a**, `docs/ops.md` l. 106 a 109 la corrige el PR 17 (`operacion`) y no el 16, porque describe el DNS de hoy.
+- **20-b**, `captacion.md` l. 213 a 216 se cita desde l. 214, donde empieza la frase falsa.
+- **20-c**, el moderador entra en la fila de E7: E4 deja su sitio en `admin_audit` y en `GET /api/admin/audit` (§8.5).
