@@ -129,7 +129,7 @@ Cycling Star · a fictional cycling-manager game.
 This is an account email. Cycling Star never sends newsletters or game emails.
 ```
 
-`verify_signup` sale al aprobar la cuenta un administrador (o al registrarse con el correo de `ADMIN_EMAIL`), al pedir otro enlace y al entrar sin confirmar, siempre con la cuenta aprobada (§4.9); `reset_password`, al pedir recuperar para una cuenta que existe. Las plantillas son `verifyEmailEmail` y `resetPasswordEmail` de hoy (`emails.ts` l. 92 y 66) con el enlace y el texto nuevos. Se borran `changeEmailConfirmationEmail` (l. 118) y `stageReadyEmail` (l. 153) con sus tres tests (D-00c). Los ocho correos que llegaron a proponerse además de estos dos (`verify_new_address`, `approve_change`, `password_changed`, `email_changed`, `account_deleted`, `signup_existing`, `new_sign_in`, `change_to_taken`) no se escriben: `password_changed` y `new_sign_in` pasan a ser avisos (§13), y los demás desaparecen.
+`verify_signup` sale al aprobar la cuenta un administrador (o al registrarse con el correo de `ADMIN_EMAIL`), al pedir otro enlace y al entrar sin confirmar, siempre con la cuenta aprobada (§4.9); `reset_password`, al pedir recuperar para una cuenta aprobada que existe. Las plantillas son `verifyEmailEmail` y `resetPasswordEmail` de hoy (`emails.ts` l. 92 y 66) con el enlace y el texto nuevos. Se borran `changeEmailConfirmationEmail` (l. 118) y `stageReadyEmail` (l. 153) con sus tres tests (D-00c). Los ocho correos que llegaron a proponerse además de estos dos (`verify_new_address`, `approve_change`, `password_changed`, `email_changed`, `account_deleted`, `signup_existing`, `new_sign_in`, `change_to_taken`) no se escriben: `password_changed` y `new_sign_in` pasan a ser avisos (§13), y los demás desaparecen.
 
 ---
 

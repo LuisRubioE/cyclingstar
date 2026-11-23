@@ -1,7 +1,7 @@
 # Los encargos: qué pedirle a Fable, uno por documento
 
 Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño y con el método de `docs/tactica.md` y `docs/entrenamiento.md`.
-E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; E3 está EN IMPLEMENTACIÓN; los demás no están empezados. El estado de cada uno va al principio de su sección.
+E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; E3 está EN IMPLEMENTACIÓN; E4 está DISEÑADO (`docs/cuenta.md`, 23 de noviembre de 2026, sin implementar); los demás no están empezados. El estado de cada uno va al principio de su sección.
 
 **Los códigos van en el orden en que se van a desarrollar**: E2 primero, E13 último. No es una
 etiqueta arbitraria, es el plan.
@@ -308,6 +308,10 @@ y `docs/navegacion.md`.
 ## E4 · La cuenta y el contacto
 
 **Fichero:** `docs/cuenta.md` · **Tamaño esperado:** mediano, y la mitad es ejecución
+
+**Estado: DISEÑADO** el 23 de noviembre de 2026, sin implementar. El texto de abajo es anterior al
+correo y ya no es verdad en buena parte: manda `docs/cuenta.md` (su §1 hace el inventario, y su §0.1,
+lo que el dueño cambió).
 
 El agujero más feo del producto ahora mismo, porque **hoy una contraseña perdida es un corredor
 perdido**: `better-auth` corre con correo y contraseña sin enviar un solo correo, no hay recuperación,

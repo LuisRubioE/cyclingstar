@@ -1,6 +1,6 @@
 # E4 · Estado del proceso de diseño
 
-Estado: **fase 3a, el arquitecto, reanudada el 23 de noviembre de 2026 en modo ahorro** (el dueño: «despacito sin gastar mucho token»).
+Estado: **terminado** el 23 de noviembre de 2026: `docs/cuenta.md` ensamblado, a la espera de que el dueño apruebe el PR en borrador.
 Empezado el 19 de noviembre de 2026 sobre `2a29e6d` (`main`, con E2 en producción, E3 en
 implementación y el motor v91). El documento final será `docs/cuenta.md`. Se actualiza este fichero
 al terminar cada fase, con commit y push en la rama de desarrollo, para poder retomar el trabajo si la
@@ -75,7 +75,15 @@ sesión se corta.
   `jugador` 86, `atacante` 85, `incremental` 81.
 - `03-fase-sintesis.md`, las instrucciones de la síntesis.
 
-## Siguiente
+- Fase 3 (modo ahorro): el arquitecto (veredicto, glosario, decisiones, esqueleto), las respuestas
+  del dueño (`00-encargo.md` §9.2 a §9.5, con twilightstruggle y HIS como referencia) y dos redactores
+  (lotes §1 a §12 y §13 a §22).
+- Fases 4 a 6: dos refutadores (17 y 14 hallazgos, cinco altos, dos ya en producción), un corrector
+  (los 31 aplicados, más §9.4, §9.5 y la coherencia) y un auditor (41 bien y 5 en parte, cerrados por
+  el orquestador). La cabecera §0 y el ensamblado en `docs/cuenta.md` (2.873 l.). `main` avanzó a
+  `67a51ae` con #347, que hizo el PR 2 del plan.
+
+## Lo que quedaba, ya hecho
 
 1. Los cinco mapas, de dos en dos: 01 y 03 primero (cuenta y datos), luego 02 y
    04 (correo y corpus), y el 05 (pantallas) solo.

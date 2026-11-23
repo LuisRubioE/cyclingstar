@@ -105,7 +105,7 @@ Hoy cada línea `incoming request` lleva la URL entera: el JWT de verificación 
 
 ### 10.5 Exportar
 
-`POST /api/me/export` con `{ password }` (D-39; I-22; O-24). El proxy reserva L3 (`pw:`), comprueba la contraseña con `auth.api.verifyPassword` desde el servidor (donde `scope: "server"` sí vale), y con la contraseña buena borra L3 y reserva `exp:` (`EXPORTS_PER_DAY`, 3 al día). Responde `200` con `Content-Type: application/json`, `Content-Disposition: attachment; filename="cycling-star-<YYYY-MM-DD>.json"` y `Cache-Control: no-store`. Contraseña mala: 400 `INVALID_PASSWORD`, con el texto de §12.3.
+`POST /api/me/export` con `{ password }` (D-39; I-22; O-24). El proxy reserva L3 (`pw:` y `pwu:`), comprueba la contraseña con `auth.api.verifyPassword` desde el servidor (donde `scope: "server"` sí vale), y con la contraseña buena borra L3 y reserva `exp:` (`EXPORTS_PER_DAY`, 3 al día). Responde `200` con `Content-Type: application/json`, `Content-Disposition: attachment; filename="cycling-star-<YYYY-MM-DD>.json"` y `Cache-Control: no-store`. Contraseña mala: 400 `INVALID_PASSWORD`, con el texto de §12.3.
 
 ```ts
 // apps/api/src/routes/me.ts

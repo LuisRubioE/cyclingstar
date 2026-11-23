@@ -2778,4 +2778,3 @@ El texto cita las decisiones de la síntesis por su número (`D-nn`). Esta es ca
 - **22-a**, la tabla de lo desestimado gana dos filas: alargar la sesión en ausencia y el aviso de prueba.
 - **22-b**, los alias de `twilightstruggle` entran en 22.4.
 - **22-c**, 22.5 da cada `D-nn` citada en una línea, porque `00-decisiones.md` no entra en `docs/cuenta.md`.
-
