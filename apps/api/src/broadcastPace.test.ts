@@ -198,13 +198,16 @@ describe('B17 · el digest de cada etapa, a menos de un 40 % de su presupuesto (
 })
 
 describe('el perfil de la cabecera del adaptador da la duración anunciada de pace.test.ts', () => {
-  /** Las cinco etapas de §8.3 y lo que `pace.test.ts` mide sobre sus cotas congeladas. */
+  /**
+   * Las cinco etapas de §8.3 y lo que `pace.test.ts` mide sobre sus cotas congeladas. Re-selladas en el
+   * W5d-2 con las de allí, por el último km en dos (×2 hasta los 200 m y el sprint a ×1).
+   */
   it.each([
-    ['race-france', 7, '8:11'],
-    ['race-france', 13, '9:11'],
-    ['race-france', 18, '12:07'],
-    ['race-flanders', 1, '11:05'],
-    ['race-colombia', 5, '16:57'],
+    ['race-france', 7, '8:06'],
+    ['race-france', 13, '9:05'],
+    ['race-france', 18, '11:55'],
+    ['race-flanders', 1, '11:00'],
+    ['race-colombia', 5, '16:39'],
   ] as const)('%s e%i: %s', (raceId, day, expected) => {
     const strip = profileStripOf(stagesForSeason(raceId, 0)[day - 1]!.profile)
     expect(mmss(playbackEstimateS(strip, BROADCAST.pace))).toBe(expected)

@@ -123,7 +123,7 @@ describe('la cabeza de la pantalla (10a): lo que lee la capa fija del instante',
     }
   })
 
-  it('(a) segundo a segundo, en las cinco: lo poco que aún vuelve atrás es de la extrapolación de un grupo de una sola marca (3-a), menos de 50 m', () => {
+  it('(a) segundo a segundo, en las cinco: la capa fija no vuelve atrás nunca (W5d-1; antes, hasta 29 m por la extrapolación de un grupo de una sola marca, 3-a)', () => {
     for (const { name, tl, seconds } of STAGES) {
       let min = tl.lengthKm
       let worst = 0
@@ -131,7 +131,7 @@ describe('la cabeza de la pantalla (10a): lo que lee la capa fija del instante',
         worst = Math.max(worst, i.toGoKm - min)
         min = Math.min(min, i.toGoKm)
       }
-      expect(worst, name).toBeLessThan(0.05)
+      expect(worst, name).toBeLessThanOrEqual(1e-9)
     }
   })
 

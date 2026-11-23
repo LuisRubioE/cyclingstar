@@ -19,20 +19,26 @@ import type { CueClass, PaceZone } from './timeline.js' // los dos se declaran e
 export const BROADCAST = {
   // RITMO (§8.2, §9.4; D-19). Iniciales: B17 los mide en los pasos 0 y 10 y la prueba de lectura los acepta (D-60).
   /** Watch, sin pausas: s de carrera por s de pared mientras la cabeza tiene más de aboveKm km a meta.
-   *  M: 7:39-19:59 por etapa en línea (ejecutabilidad §2.1, juez-ejec/ritmo.mjs, 5 etapas × semillas 0 y 1). */
+   *  M: 7:39-19:59 por etapa en línea (ejecutabilidad §2.1, juez-ejec/ritmo.mjs, 5 etapas × semillas 0 y 1).
+   *  EL ÚLTIMO KM, EN DOS (W5d-2, decisión del dueño del 19-11-2026, «×2 y el sprint a ×1»): hasta los
+   *  200 m, ×2; los últimos 200 m, en tiempo real, para ver el sprint. Era ×1,5 entero. Medido en las 44
+   *  líneas del banco, el último km pasa de 57 a 52 s de pantalla de mediana (docs/balance.md, W5d). */
   pace: [
     { aboveKm: 50, x: 60 },
     { aboveKm: 20, x: 30 },
     { aboveKm: 5, x: 12 },
     { aboveKm: 1, x: 4 },
-    { aboveKm: 0, x: 1.5 },
+    { aboveKm: 0.2, x: 2 },
+    { aboveKm: 0, x: 1 },
   ] as const satisfies readonly PaceZone[],
-  /** Highlights, la misma forma. M: 2:12-6:37 (el mismo script). */
+  /** Highlights, la misma forma, y por eso con la zona de los 200 m (W5d-2), al ×3 de todo su último km:
+   *  Highlights no cambia. M: 2:12-6:37 (el mismo script). */
   summaryPace: [
     { aboveKm: 50, x: 300 },
     { aboveKm: 20, x: 120 },
     { aboveKm: 5, x: 40 },
     { aboveKm: 1, x: 10 },
+    { aboveKm: 0.2, x: 3 },
     { aboveKm: 0, x: 3 },
   ] as const satisfies readonly PaceZone[],
   /** s de pared por etapa en el digest de While you were away, por tipo de etapa: fijo, no mira lo que pasó. E (§15.3). */
@@ -147,6 +153,19 @@ export const BROADCAST = {
   liveClusters: false, // se enciende solo si B19 sigue en 0 con racimos: pide un banco verde, por eso no es interruptor (§15.8)
   liveClusterWindowKm: 5,
   liveClusterMin: 3, // la ventana de groupRuns en km y los descuelgues de corredores sin rótulo que hacen un racimo
+
+  // LA CAPA ENTRE DOS MARCAS (W5d-1, `instant.ts`). Antes del último km cada grupo deja una marca por km de foto, y la
+  // capa lo pinta entre una y la siguiente estirando su velocidad, sin pasar de la foto siguiente. Con la velocidad de
+  // las dos últimas marcas y sin mirar la pendiente se congelaba y saltaba: en las 44 líneas del banco, 1.094 paradas
+  // de más de 6 s (37.886 s de carrera) y saltos de hasta 650 m (docs/balance.md, W5d-1). M.
+  overlaySpeed: {
+    baseKm: 1, // la velocidad vista sale de la marca más reciente que queda al menos a este tramo por detrás (y ya se
+    // veía): una caza le pone al grupo el reloj del de delante, y dos marcas a 100 m daban 115 km/h
+    maxSpeedUp: 1.15, // con la pendiente, el tramo siguiente va como mucho estas veces más rápido que el visto: frenar
+    // de más solo retrasa la capa, y pasarse la obligaría a volver atrás cuando el grupo muere
+    catchUpS: 20, // s de carrera: la marca que trae al grupo más adelante de lo pintado no lo hace saltar; la capa
+    // recorta lo que le falta en este tiempo, por encima de su paso (W5d-1b). Con W5d-1, 524 saltos de más de 100 m
+  },
 
   // RELOJ ESTIMADO (§3, §14; D-07)
   estimatedClockMaxErrKm: 1, // km: si el p99 del error de la cabeza del adaptador pasa de esto (B22, paso 6), las etapas sin línea abren solo en Report. S/E

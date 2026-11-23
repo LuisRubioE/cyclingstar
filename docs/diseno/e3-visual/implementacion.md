@@ -73,6 +73,9 @@ La base de E3 es `912c5fa` (25-10-2026): `main` con el diseño fusionado (#306) 
 | W5a-2 · el final del primer grupo, guardado        | la meta del motor devuelve lo que ya calculaba del primer grupo que llega (`StageOutput.finalSprint`: el tren de cada uno por id, dónde abre el sprint y cuánto aguanta, su sitio al remate, si queda encerrado, su remate y su hueco), sin una tirada nueva ni una cuenta distinta; el grabador lo guarda en la meta y `TIMELINE.format` pasa a 2; `ENGINE_VERSION` sigue en 91; nada se sirve todavía                                                                                                                                                                                     | `finalSprint.test.ts`, nuevo (el final contra `results`, y grabado por RiderIx, también con trenes y encerrados); la huella de `attribution.test.ts`, sin tocar; el banco de la línea, 83 de 83; dieciocho mutantes, y mueren todos                                                                                                                              | `ENGINE_VERSION` no sube (el plan decía 92): ninguna carrera cambia; el grupo entero; el sitio de un grupo pequeño, su colocación sin más                                                                                                                                                                                                                                                                                                                                                                                                           |
 | W5b · los fotogramas del último km                 | el final del primer grupo puesto en escena (`sprint.ts`, puro): dónde va cada uno a cada metro del último km, con la llegada exacta en la línea y nada del resultado antes de los 300 m (antes, la aproximación: su sitio de salida y un vaivén con la fase de su RiderIx); los fotogramas, en cada marca de reloj del grupo del ganador y por su hora en los tramos (`BroadcastChunk.sprint`), nunca el de la línea, que va con la meta (`BroadcastFinish.photo`); la web los junta (`ServedLine.sprint`); nada se pinta todavía                                                           | `sprint.test.ts`, nuevo, con dos finales de otra llegada iguales y en el mismo orden antes de los 300 m; la ruta, con líneas grabadas: cada fotograma una vez y en su tramo, y la foto en el orden del resultado; `servedLine.test.ts`; veintiséis mutantes, y mueren todos                                                                                      | una puesta en escena y no una simulación nueva; los fotogramas en el servidor y no el final entero en la web (D-06); la foto, con la meta; nada del resultado antes de los 300 m, ni en el orden de la lista; las constantes, de pantalla, para W5d                                                                                                                                                                                                                                                                                                 |
 | W5c · el último km en Watch                        | en el último km de una etapa con su final y dos o más en el grupo de cabeza, el panel del sprint en el sitio de la barra (`SprintBoard`): la carretera y los de delante en su orden, con su bandera, su nombre, su maillot, lo que hacen y sus metros, a la hora del reloj y con la distancia de la capa fija; con una llegada apretada, `PHOTO FINISH` antes del ganador; los fotogramas, ahora del grupo de cabeza de la carretera; la pantalla 48                                                                                                                                        | `sprintView.test.ts` y `SprintBoard.test.tsx`, nuevos; la foto en `StageCards.test.tsx`; en `sprint.test.ts`, la fuga que cazan, el grupo que nace y ninguna marca de la línea; la prueba del teléfono, 146 de 146 a cero; sesenta y un mutantes, y mueren todos                                                                                                 | el panel en el sitio de la barra, como la crono; sin panel para quien va solo; el título por lo que se ve; la distancia de la capa fija; los fotogramas del grupo de cabeza y no del que gana, a la hora de la capa fija y sin la marca de la línea; la aproximación por lo público de antes de correr                                                                                                                                                                                                                                              |
+| W5d-2 · el ritmo del último km                     | el último km de `Watch`, en dos zonas: hasta los 200 m a ×2 y los últimos 200 m a ×1, en tiempo real (era ×1,5 entero); `Highlights` gana la zona de los 200 m al ×3 de siempre y no cambia                                                                                                                                                                                                                                                                                                                                                                                                 | `pace.test.ts`: las zonas nuevas, `Highlights` igual, y las cinco duraciones que anuncia la ficha, re-selladas                                                                                                                                                                                                                                                   | el dueño eligió entre cuatro opciones medidas en las 44 líneas del banco                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| W5d-1 · la capa sin parones ni retrocesos          | la capa estira la velocidad de cada grupo entre dos marcas con 1 km de base, no con las dos últimas marcas, y con la pendiente del perfil (`nominalKmS`, la de la ficha); acelera como mucho ×1,15; la primera marca de un grupo, igual; la cabeza que muere, con la misma cuenta; y nada vuelve atrás                                                                                                                                                                                                                                                                                      | nueve casos nuevos en `instant.test.ts`; `screenHead.test.ts` pide que la capa no vuelva atrás nunca; `groupRolesAt`, a las 10.440 s; la voz congelada y B5, re-selladas; quince mutantes, mueren catorce y el otro es equivalente                                                                                                                               | la capa de E2 cambia en toda la etapa, no solo en el último km                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| W5d-1b · la capa alcanza sin saltar                | la marca que trae a un grupo por delante de lo pintado no lo hace saltar: la capa lo alcanza en 20 s de carrera, más deprisa al principio; igual la primera marca cuando cambia el paso de su origen y la cabeza retenida; el que nace de un grupo que aún alcanza nace igual de atrás, y el reetiquetado, en la cabeza retenida; el último km no alcanza                                                                                                                                                                                                                                   |
 
 ## PR 1 · El clon
 
@@ -2879,7 +2882,7 @@ Bajo. Cambia la pantalla del último km de las etapas con su final y los fotogra
 
 ### Notas para el paso siguiente
 
-- **W5d, el ritmo**: el último km sigue a ×1,5 (`BROADCAST.pace`); con algo que mirar puede quedarse, o pasar a ×2 y los últimos 200 m a ×1. Se decide con el dueño viéndolo, y con él las constantes de la escena (`BROADCAST.sprint`).
+- **W5d, el ritmo**: el último km sigue a ×1,5 (`BROADCAST.pace`); con algo que mirar puede quedarse, o pasar a ×2 y los últimos 200 m a ×1. Se decide con el dueño viéndolo, y con él las constantes de la escena (`BROADCAST.sprint`). Decidido el 19 de noviembre: ×2 y el sprint a ×1 (W5d-2, abajo).
 - **Los fotogramas con la capa misma**: tomar la hora y el grupo de cada uno de `instantAt` (la primera hora en que la capa pone la cabeza a esa distancia) cierra el desfase de unos segundos en una caza.
 - **Para mirar, de antes de W5**: la segunda revisión vio, en relojes de juguete, que cuando el pelotón caza a una fuga el motor deja al grupo el reloj del de delante (`simulate.ts`, la caza), y la capa puede correr de 450 a 50 m en unos segundos y quedarse en 50 m hasta la meta. Hay que comprobarlo en una etapa grabada antes de tocar nada.
 
@@ -2905,3 +2908,113 @@ La pasada de cobertura de noche (`cobertura.yml`) cayó siete noches de noviembr
 
 - **El Teléfono de noche** sigue rojo algunas noches por sus umbrales de tiempo (`Watch` en frío, 5,7 a 6,6 s contra 5,0; la portada y el plan). Es informativo (D-19) y no tumba la pasada.
 - **La auditoría de dependencias** sigue como la dejó el 17d, con su PR propio pendiente. La crítica de `better-auth` (GHSA-965c-763c-88jm) pide a la vez el enlace mágico y un proveedor OAuth, y la API no usa ninguno de los dos.
+
+## W5d-2 · El ritmo del último km (la revisión de `Watch` del dueño)
+
+El dueño, viendo el último km nuevo: «bien de momento». Y para el ritmo eligió, entre cuatro opciones medidas, **×2 y el sprint a ×1**: hasta los 200 m el último km corre a ×2, y los últimos 200 m, en tiempo real, para ver el sprint. Era ×1,5 entero.
+
+### Lo que entró
+
+- **`BROADCAST.pace`**, con una zona más: `{ aboveKm: 0.2, x: 2 }` y `{ aboveKm: 0, x: 1 }` en lugar de `{ aboveKm: 0, x: 1.5 }`. En el borde manda la zona de más cerca de meta, como en las demás: a 200 m justos, ×1.
+- **`BROADCAST.summaryPace`**, con la misma zona, porque las dos tablas tienen las mismas zonas (`pace.test.ts`), al ×3 que ya tenía todo su último km: `Highlights` no cambia, y con él tampoco el resumen de «While you were away», que sale de esa tabla.
+
+### Las cifras
+
+- **Las opciones, medidas** en las 44 líneas del banco (el último km de la cabeza, del bloque de foto anterior a la meta): el último km dura en carrera 86 s de mediana, de 77 a 354; 30 son llegadas rápidas (40 km/h o más) y 12, en subida (menos de 30). En pantalla, de mediana, en llegada rápida y en subida: ×1,5 entero (lo de antes), 57, 55 y 145 s; ×2 y el sprint a ×1 (lo elegido), 52, 49 y 130 s; ×1 entero, 86, 82 y 218 s. La cuarta que vio el dueño, igualar la duración con la pendiente del perfil, no se midió: cerca de 1 min en las dos era una estimación. Los km 5 a 1, a ×4, duran 89 s de mediana.
+- **La duración que anuncia la ficha** (`playbackEstimateS`), re-sellada en `pace.test.ts` y en su copia de la API (`broadcastPace.test.ts`): 8:11 → 8:06, 9:11 → 9:05, 12:07 → 11:55, 11:05 → 11:00 y 16:57 → 16:39. Las llegadas en subida bajan más, porque su último km dura más.
+- `pace.test.ts`: las zonas nuevas en sus bordes (a 0,21 km ×2; a 0,2 km, en la línea y más allá ×1) y `Highlights` a ×3 en todo su último km. `pnpm test:rapido`, 5.776 en 380 ficheros, en verde con las cinco de la API re-selladas.
+
+### El riesgo del despliegue
+
+Bajo. Solo cambia la velocidad de `Watch` en el último km: un espectador que esté viéndolo cuando se despliegue sigue a la velocidad nueva desde la siguiente carga de la página. Nada de lo guardado cambia y `ENGINE_VERSION` sigue en 91.
+
+## W5d-1 · La capa sin parones ni retrocesos (la revisión de `Watch` del dueño)
+
+El dueño, del último km de antes: «baja más lento el tiempo». Midiendo el porqué salió algo de E2 que no era del último km: la capa fija (los km a meta y la barra) se congelaba y saltaba en toda la etapa, y a veces volvía atrás. En las 44 líneas del banco, mirando décima a décima, 1.148 paradas de más de 6 s (38.649 s de carrera congelados), y la capa fija volvía atrás 1.189 veces (hasta 319 m) y algún grupo, 373 (hasta 400 m). En el último km, a ×1,5, una parada de 70 s de carrera eran 47 s de pantalla con el contador quieto, justo cuando sale el panel del sprint. El dueño: «Arregla».
+
+### Las causas
+
+1. **La velocidad salía de las dos últimas marcas.** Cuando el pelotón caza a un grupo, el motor le deja el reloj del de delante (la caza de `simulate.ts`), y dos marcas a 100 m daban 115 km/h: la capa corría hasta la foto siguiente y esperaba allí su marca, 30 s.
+2. **La velocidad no miraba la pendiente.** Antes del último km cada grupo deja una marca por km, y la capa estiraba la del km anterior: al llegar a un puerto, la cabeza que subía a 5 m/s se pintaba a 8 y esperaba en la foto siguiente hasta 70 s; en la bajada, al revés, se quedaba atrás y saltaba 650 m.
+3. **Volver atrás**: un grupo de una sola marca se estira al paso de su origen (3-a), y cuando ese paso bajaba, lo pintado bajaba con él (la excepción que `screenHead.test.ts` acotaba en 50 m); y al morir la cabeza, la cuenta de lo que se había pintado (`paintedAtDeathOf`) no era la de en vida.
+
+### Lo que entró
+
+- **La base de 1 km** (`BROADCAST.overlaySpeed.baseKm`): desde la segunda marca, la velocidad vista de un grupo sale de la marca más reciente que queda al menos 1 km por detrás y que ya se veía cuando se vio la última; el paso de su origen, igual (`originPaceOf`).
+- **La pendiente** (`nominalClockOf`): un reloj nominal de la línea, lo que tarda en llegar a cada bloque quien va a la velocidad de la ficha (`nominalKmS`, por pendiente y por altitud; ahora exportada de `pace.ts`). Solo el perfil, que es público, y nunca la carrera. El grupo avanza en hora nominal al paso que lo hizo en su base, así que frena donde el perfil sube. La primera marca de un grupo, igual, al paso de su origen (`firstReachAt`).
+- **Acelerar, como mucho ×1,15** (`maxSpeedUp`): frenar de más solo retrasa la capa, y pasarse la obligaría a volver atrás.
+- **Nada vuelve atrás**: lo pintado por la primera marca es el máximo de lo que se pintó mientras era la única (`firstReachUpTo`), mientras lo es, cuando se ve la segunda y en la cabeza retenida si el grupo muere; y la cabeza que muere se cuenta con la misma cuenta que en vida (`reachOf`). Las marcas del origen, por bisección (B8).
+
+### Lo que se aparta del diseño, y por qué
+
+1. **§4.5 estiraba con la velocidad de las dos últimas marcas**; ahora, con 1 km de base y la pendiente. La regla de §4.5 que no se toca: nada pasa de la foto siguiente y nada se ve antes de su hora.
+2. **La excepción 3-a desaparece**: la capa fija no vuelve atrás nunca, y `screenHead.test.ts` lo pide así en las cinco etapas de prueba.
+
+### Las cifras
+
+- **Las 44 líneas del banco, décima a décima** (los scripts de la revisión, `mono44.mjs` y `jumps44b.mjs`, fuera del primer km), en `main` y con W5d-1:
+  - La capa fija vuelve atrás 1.189 veces (hasta 319 m) y ninguna; algún grupo, 373 (hasta 400 m) y ninguna.
+  - Las paradas de más de 6 s, de 1.148 a 750, y de 38.649 a 15.131 s congelados (un 61 % menos). En los últimos 3 km (cada 0,5 s), de 562 a 181,5 s congelados, y la parada más larga, de 68,5 a 40 s.
+  - **Los saltos suben**: de más de 100 m en una décima, de 336 a 524; de más de 300 m, de 110 a 145; al verse una muerte, de 6 a 19. Donde antes la capa esperaba parada en la foto, ahora va algo por detrás y alcanza al grupo cuando llega su marca. El más grande, el mismo en las dos (763 y 728 m, race-france e15).
+- **El tope de la aceleración, medido** (cada 0,5 s): con ×1,5, 16.192 s congelados; con ×2, 17.550 s y un retroceso de 1 m. Se queda en ×1,15: el único sin ningún retroceso y el de menos tiempo congelado.
+- **Las seis etapas de prueba** (`__fixtures__/broadcast`): el peor retroceso era de 29 m en race-colombia e5; ahora, 0 en las seis.
+- **La voz congelada (B5) cambia en 3 líneas**, todas hacia lo que dice la carrera: en la e18, un corte en el puerto a 6 km pone en cabeza al grupo del líder (la capa de antes pintaba delante a uno que pasó por allí 80 s después) y el parte de ventaja siguiente lo llama `lead` y no `chase`; en la e5 de Colombia, el grupo de cinco que se forma delante a 111 km va en cabeza. De las 1.020 líneas que se pintan cambian 2: «The race leader’s group stretches the lead» donde decía «The lead group», y «5 at the front now» donde decía «5 together now». Re-selladas `frozenVoice.test.ts` y `stageJournal.corpus.test.ts`, con la causa escrita.
+- **B8, el fotograma**: el p95 de las cinco etapas, de 0,058 a 0,046 ms; el del tramo denso de la e20, de 0,060 a 0,100 ms. El umbral es 0,25.
+- `pnpm test:rapido`: 5.785 en 380 ficheros, en verde; `pnpm test:latencia`, 47 en verde; `pnpm typecheck`, `eslint` y `prettier`, limpios. El motor no cambia: `ENGINE_VERSION` sigue en 91.
+- **Los tests**: nueve casos nuevos en `instant.test.ts` (el puerto, la caza, el tope al acelerar, el grupo que nace donde caza el pelotón, el grupo sin tiempo visto, la primera marca con la pendiente y con su tope, y las dos de la revisión); `groupRolesAt` pasa de las 10.200 a las 10.440 s, porque con la capa nueva la histéresis llega a `gruppetto` a las 10.380; y `screenHead.test.ts` pide que la capa no vuelva atrás nunca. **Los mutantes**: quince, y mueren catorce. El que vive, la base mirando también marcas que aún no se veían, es equivalente hoy: fuera de la de muerte, que es siempre la última de su grupo, las horas a las que se ven las marcas de un grupo no decrecen.
+- **La revisión**: una lectura del diff por otros ojos, con cada hallazgo comprobado. Alto: un grupo volvía atrás al ver su segunda marca o al morir, porque el máximo de la primera marca solo valía mientras era la única (arreglado; su reproducción, una línea con un puerto, es ahora un test de los nueve). Medio: los saltos que suben (medidos arriba; la primera marca toma ahora la pendiente, y lo que queda va en las notas). Sin hallazgos en lo que se ve antes de su hora (D-06 y B9, 15.076 horas de las 44 líneas y 3.728 de las congeladas, con la línea cortada y la entera), en el coste ni en los casos borde; una duda baja, sin fallo: en el último km parcial, `nominalKmS` reparte el desnivel sobre un km entero.
+
+### El riesgo del despliegue
+
+Bajo. Solo cambia dónde pinta la capa a cada grupo entre dos marcas, y con ello qué grupo va en cabeza en algunos momentos: nada de lo guardado ni la carrera. Lo que dicen las etapas ya vistas (B5) cambia donde la capa de antes ponía en cabeza a quien no iba: en las seis de prueba, 2 de 1.020 líneas, las dos hacia lo que de verdad pasó. Quien esté viendo una etapa cuando se despliegue verá la capa nueva en la siguiente carga de la página.
+
+### Notas para el paso siguiente
+
+- **Los saltos**: que la capa alcance al grupo en unos segundos cuando llega una marca atrasada, en vez de saltar, con cuidado de no cambiar el orden de la barra mientras tanto.
+- **Quedan paradas** (750 en las 44 líneas, la más larga de los últimos 3 km, 40 s): las de un grupo cuya base es corta y las de los finales en subida, donde la velocidad nominal de la ficha se aleja de la del grupo.
+
+## W5d-1b · La capa alcanza sin saltar (la revisión de `Watch` del dueño)
+
+W5d-1 dejó la capa sin retrocesos y con muchas menos paradas, pero los saltos subieron: al verse la marca de un grupo por delante de lo pintado, la capa saltaba a ella, 524 veces más de 100 m de una décima a otra y hasta 728 m. El dueño había pedido «Arregla» para el contador que se congelaba y saltaba; esta es la segunda mitad.
+
+### Las causas
+
+1. **La capa saltaba a la marca nueva.** De los 145 saltos de más de 300 m, 102 los dejaba el tope de ×1,15 en las bajadas: la velocidad vista en el puerto deja la capa muy por detrás, y la marca del km siguiente la traía de golpe.
+2. **Un grupo de una sola marca saltaba** cuando su origen dejaba una marca con otro paso (3-a): la cuenta entera cambia con el paso.
+3. **La cabeza retenida saltaba** a su bloque de muerte al morir el grupo de cabeza.
+
+### Lo que entró
+
+- **El alcance** (`catchUpOf`, `BROADCAST.overlaySpeed.catchUpS`, 20 s de carrera): si la marca trae al grupo por delante de lo pintado, la capa arranca de lo pintado y recorta lo que le falta por encima de su cuenta, más deprisa al principio (lo que falta baja con el cuadrado del tiempo que queda). Si lo deja por detrás, espera a que su cuenta pase, como antes. Lo pintado justo antes de verse cada marca se guarda por grupo (`floorOf`); las marcas que se ven a la vez comparten el de antes, y las que se ven con la primera no tienen ninguno: el grupo aparece en su última marca.
+- **La primera marca** (`firstReachUpTo`): en cada marca de su origen arranca de lo pintado y alcanza la cuenta nueva en vez de saltar.
+- **La cabeza retenida** (`paintedAtDeathOf`): con la misma cuenta que en vida y solo con las marcas que se veían al morir; desde ahí alcanza su bloque de muerte.
+- **Dónde nace un grupo** (`birthFloorOf`): el que nace de un grupo que la capa aún alcanza (el que se descuelga, el que ataca) nace igual de atrás de su marca; el que el motor reetiqueta al morir su grupo, donde se pinta la cabeza retenida de este. Sin esto, en la e18 a 3 km un corredor descolgado salía por delante del pelotón y la voz llamaba `chase` al pelotón, y en la e20 la cabeza saltaba 479 m al grupo reetiquetado. Lo de su origen sale de las marcas de este, con la primera en su bloque, para no depender del origen del origen.
+- **El último km no alcanza**: con marca en cada bloque no salta más de uno, y la meta no espera; sin esta regla la capa no llegaba a 50 m de meta antes del final (`readingTest.test.ts`).
+
+### Lo que se aparta del diseño, y por qué
+
+1. **§4.5 pintaba cada grupo en su marca en cuanto se veía**; ahora llega a ella en 20 s como mucho. Lo pintado nunca va por delante de la cuenta de §4.5, no pasa de la foto siguiente y nada se ve antes de su hora.
+2. **Un grupo que nace puede pintarse por detrás de su primera marca** mientras su origen alcanza la suya.
+
+### Las cifras
+
+- **Las 44 líneas del banco, décima a décima** (grabadas de nuevo con el motor de hoy; `main` da las mismas cifras que en W5d-1):
+  - Saltos de más de 100 m, de 524 a 79; de más de 300 m, de 145 a 0; el mayor, de 728 a 282 m.
+  - Retrocesos: ninguno, ni de la capa fija ni de un grupo.
+  - **Las paradas suben un poco**: de 750 a 790, y de 15.131 a 15.350 s congelados (un 1,4 % más). Es el precio de no saltar: donde la capa esperaba en la cabeza retenida y la marca del pelotón la hacía saltar por delante, ahora la alcanza unos segundos después.
+  - El alcance lineal, medido antes de los últimos arreglos: 79 saltos de más de 100 m, 2 de más de 300 m, el mayor de 361 m y 15.464 s congelados. Más deprisa al principio no deja ninguno de más de 300 m y congela menos.
+- **La voz congelada (B5) no cambia** en ninguna de las seis etapas.
+- **B8, el fotograma**: el p95 de las cinco etapas, de 0,057 a 0,060 ms; el del tramo denso de la e20, de 0,079 a 0,122 ms. El umbral es 0,25.
+- `pnpm test:rapido`: 5.791 en verde; `pnpm test:latencia`, 47 en verde; `pnpm typecheck`, `eslint` y `prettier`, limpios. El motor no cambia: `ENGINE_VERSION` sigue en 91.
+- **Los tests**: seis casos nuevos en `instant.test.ts` (la bajada, con la forma del alcance; la cabeza que muere mientras alcanza, en su marca y después; el reetiquetado; el que se descuelga del pelotón que alcanza; y el grupo de una sola marca cuando su origen cambia de paso). Los cinco primeros fallan en `main` con saltos de 580 a 630 m.
+- **Los mutantes**: 20, y mueren 16. Viven el suelo dentro del alcance (equivalente: la cuenta nunca baja de la marca, y el suelo queda como guarda), la caché que no mira si cambia lo de la primera marca, y la cabeza retenida con marcas vistas después de morir o a la vez (ninguna línea de prueba tiene un grupo de cabeza así).
+- **La revisión**: una lectura del diff por otros ojos, con cada hallazgo comprobado. Medio: el grupo reetiquetado nacía en la cabeza retenida entera, un bloque por detrás aunque no hubiera nada que alcanzar, y pasaba detrás de sus vecinos (en Colombia e5, la diferencia de un grupo de 17, de +5:17 a +6:37); arreglado: hereda solo lo que a la cabeza retenida le faltaba, y su test lo pide. Medio: un origen de una sola marca no pasa lo que le falta a los que nacen de él (solo en una línea de juguete, con un grupo que nace en el bloque siguiente al de su origen); queda anotado. Bajo: lo del origen sale de sus marcas con la primera en su bloque, exacto con el pelotón. Sin hallazgos en B9 (la línea cortada igual que la entera, décima a décima), en el orden de evaluación, en los retrocesos ni en el coste.
+
+### El riesgo del despliegue
+
+Bajo. Solo cambia dónde se pinta cada grupo en los 20 s que siguen a una marca atrasada, y dónde nace un grupo mientras su origen alcanza: ni la carrera ni lo guardado. La voz de las etapas ya vistas no cambia.
+
+### Notas para el paso siguiente
+
+- Quedan 79 saltos de más de 100 m, casi todos de 100 a 200 m al cambiar el grupo de cabeza (el bloque que salta un grupo reetiquetado, como en `main`), y 790 paradas.
+- Un origen de una sola marca no pasa lo que le falta a los que nacen de él: haría falta lo pintado del origen de su origen, que no está fijo mientras no se ven todos los que entraron en él.
