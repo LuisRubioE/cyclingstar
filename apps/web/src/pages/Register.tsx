@@ -281,17 +281,15 @@ export function Register({ initial = {} }: { initial?: Partial<RegisterState> } 
           >
             Create account
           </Button>
-          <p className="text-meta text-ink-2">
-            By creating an account you agree to the{' '}
-            <TextLink to="/terms" inline>
-              Terms
-            </TextLink>{' '}
-            and the{' '}
-            <TextLink to="/privacy" inline>
-              Privacy notice
-            </TextLink>
-            .
-          </p>
+          {/* Los dos enlaces, como controles de 44 px y no de frase: a 320 px la frase partía los dos
+              enlaces en líneas seguidas y quedaban demasiado juntos (prueba del teléfono, 5). */}
+          <div className="grid gap-1">
+            <p className="text-meta text-ink-2">By creating an account you agree to the:</p>
+            <div className="flex flex-wrap gap-x-6">
+              <TextLink to="/terms">Terms of use</TextLink>
+              <TextLink to="/privacy">Privacy notice</TextLink>
+            </div>
+          </div>
         </form>
       </Panel>
       <p className="text-meta text-ink-2">

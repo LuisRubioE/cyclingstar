@@ -131,8 +131,10 @@ describe('la edad en el registro (docs/cuenta.md §4.1, §4.4 y §4.8; PR 9 de E
   it('bajo el botón, las condiciones y la privacidad, sin casilla', () => {
     const html = pinta()
     expect(html).toContain('By creating an account you agree to the')
-    expect(pieza(html, 'TextLink', 'Terms')).toMatch(/href="\/terms"/)
+    expect(pieza(html, 'TextLink', 'Terms of use')).toMatch(/href="\/terms"/)
     expect(pieza(html, 'TextLink', 'Privacy notice')).toMatch(/href="\/privacy"/)
+    // como controles de 44 px y no de frase: a 320 px la frase los dejaba demasiado juntos
+    expect(pieza(html, 'TextLink', 'Terms of use')).not.toContain('data-inline-link')
     expect(html).not.toContain('type="checkbox"')
   })
 
