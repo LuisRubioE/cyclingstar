@@ -592,12 +592,17 @@ export async function touchLastSeen(
   if (lastSeenMemo.get(userId, nowMs) !== undefined) return
   lastSeenMemo.set(userId, true, nowMs)
   // `welcome_back_from` (§14.5; 14-d): la visita de hoy pisa `last_seen_at`, así que el `Welcome back` se
-  // queda en el mismo `UPDATE` con la anterior si tenía más de `RETURN_NOTICE_AFTER_DAYS` días.
+  // queda en el mismo `UPDATE` con la anterior si tenía más de `RETURN_NOTICE_AFTER_DAYS` días. Y, desde el
+  // PR 13, la primera visita tras una ausencia que acabó sola a su fecha (sin visita desde `away_until`) lo
+  // pone a `away_since`: el barrido de los avisos, que lo haría a la hora, llega con el PR 14.
   await db
     .update(users)
     .set({
       lastSeenAt: sql`now()`,
-      welcomeBackFrom: sql`case when ${users.lastSeenAt} < now() - make_interval(days => ${RETURN_NOTICE_AFTER_DAYS}) then ${users.lastSeenAt} else ${users.welcomeBackFrom} end`,
+      welcomeBackFrom: sql`case
+        when ${users.awayUntil} <= now() and coalesce(${users.lastSeenAt} < ${users.awayUntil}, true) then ${users.awaySince}
+        when ${users.lastSeenAt} < now() - make_interval(days => ${RETURN_NOTICE_AFTER_DAYS}) then ${users.lastSeenAt}
+        else ${users.welcomeBackFrom} end`,
     })
     .where(
       and(

@@ -15,7 +15,7 @@ import {
   seasonPosition,
   seededRng,
 } from '@cyclingstar/shared'
-import { and, eq, gte, inArray, lt, lte } from 'drizzle-orm'
+import { and, eq, gt, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { ridersTravellingBack, ridersTravellingOutbound } from './riderSchedule.js'
 import {
@@ -28,6 +28,7 @@ import {
   teams,
   trainingOrders,
   trainingPlans,
+  users,
 } from './schema.js'
 
 /**
@@ -68,6 +69,8 @@ export interface TrainingDayInputs {
   readonly ayerPorCorredor: ReadonlyMap<string, Session>
   /** cuántas veces apretó cada uno en los siete días anteriores */
   readonly fuertesRecientes: ReadonlyMap<string, number>
+  /** los corredores cuyo dueño está ausente ahora (`away_until > now()`, docs/cuenta.md §14.2) */
+  readonly ownersAway: ReadonlySet<string>
 }
 
 export async function readTrainingDayInputs(
@@ -168,6 +171,21 @@ export async function readTrainingDayInputs(
     }
   }
 
+  /**
+   * LOS CORREDORES DE DUEÑO AUSENTE (docs/cuenta.md §14.2; 14-c; PR 13 de E4): una unión más con `users` por
+   * día de juego. La ausencia se mira con el reloj real del tick (`now()`), no con el día de juego: dura
+   * días reales, y un tick que se pone al día corre todos sus días con la misma.
+   */
+  const ownersAway = new Set(
+    (
+      await tx
+        .select({ id: riders.id })
+        .from(riders)
+        .innerJoin(users, eq(users.id, riders.userId))
+        .where(and(eq(riders.worldId, worldId), gt(users.awayUntil, sql`now()`)))
+    ).map((r) => r.id),
+  )
+
   return {
     riderRows,
     travelByRider,
@@ -176,6 +194,7 @@ export async function readTrainingDayInputs(
     planByRider,
     ayerPorCorredor,
     fuertesRecientes,
+    ownersAway,
   }
 }
 
@@ -234,6 +253,7 @@ export function trainingDayContext(
       hardLast7: inputs.fuertesRecientes.get(rider.id) ?? 0,
       yesterday: inputs.ayerPorCorredor.get(rider.id) ?? null,
     },
+    ownerAway: inputs.ownersAway.has(rider.id),
   }
 }
 
@@ -309,7 +329,8 @@ export async function trainWorldDay(
    * LA SESIÓN DE CADA CORREDOR QUE ENTRENA HOY, con la precedencia de `resolveTrainingDay` (E3, §11.4;
    * PR 13a): el viaje; en `entrenador`, el entrenador; la orden; el bloque de esa semana del plan vivo;
    * el plan de equipo en `mixto` (los del equipo se alinean y ganan el bonus de grupo); y el
-   * entrenador, o en `manual` el descanso activo. Es la cadena que vivía aquí, escrita una vez para el
+   * entrenador, o en `manual` el descanso activo (con el dueño ausente, como `mixto`: docs/cuenta.md §14.2).
+   * Es la cadena que vivía aquí, escrita una vez para el
    * tick y la pantalla; `trainingDay.diff.test.ts` sella que elige lo mismo que la de antes.
    */
   const choiceByRider = new Map<string, TrainingChoice>()

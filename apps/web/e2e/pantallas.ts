@@ -326,6 +326,7 @@ export const TELEFONO_PANTALLAS: readonly TelefonoPantalla[] = [
       ['delete', '28e'],
       ['spoilers', '28f'],
       ['appearance', '28g'],
+      ['away', '28h'],
     ] as const
   ).map(([tarea, n]): TelefonoPantalla => ({
     id: `${n}-account-${tarea}`,

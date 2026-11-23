@@ -27,6 +27,8 @@ export interface DateFieldProps {
   onChange: (next: DateFieldValue) => void
   error?: string
   disabled?: boolean
+  /** `bday` (por defecto) rellena la fecha de nacimiento; `off` para cualquier otra (`Back on`, §14.1) */
+  autoComplete?: 'bday' | 'off'
 }
 
 export const EMPTY_DATE: DateFieldValue = { day: '', month: '', year: '' }
@@ -60,6 +62,7 @@ export function DateField({
   onChange,
   error,
   disabled = false,
+  autoComplete = 'bday',
 }: DateFieldProps) {
   const hintId = useId()
   const errorId = useId()
@@ -85,7 +88,7 @@ export function DateField({
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={p.max}
-              autoComplete={p.auto}
+              autoComplete={autoComplete === 'off' ? 'off' : p.auto}
               value={value[p.key]}
               disabled={disabled}
               {...(describedBy !== '' ? { 'aria-describedby': describedBy } : {})}

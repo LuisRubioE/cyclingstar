@@ -286,6 +286,9 @@ export async function projectTraining(
         hardLast7: semana.filter(apreto).length,
         yesterday: (ayer?.activity as Session | undefined) ?? null,
       },
+      // La vista previa proyecta lo guardado sin la ausencia (docs/cuenta.md §14.2): el día real de cada día
+      // de juego futuro es una estimación, y quien mira la pantalla está aquí.
+      ownerAway: false,
     })
     const kind = day.source === 'carrera' ? 'race' : day.source === 'viaje' ? 'travel' : 'train'
     const tss =

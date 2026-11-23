@@ -24,6 +24,8 @@ import { Disclosure } from '../../components/ui/Disclosure'
 import { Expander } from '../../components/ui/Expander'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { AwayBandView } from '../../components/AwayBand'
+import { WelcomeBackView } from '../../components/WelcomeBack'
 import { DateField, type DateFieldValue, EMPTY_DATE } from '../../components/ui/DateField'
 import { Field } from '../../components/ui/Field'
 import { Flag } from '../../components/ui/Flag'
@@ -357,6 +359,42 @@ function Campos() {
         <Field kind="textarea" id="ui-note" label="Note" value={nota} onChange={setNota} rows={3} />
       </Estado>
     </Demo>
+  )
+}
+
+/**
+ * La ausencia (docs/cuenta.md §14.3 y §14.5; 12-h; PR 13 de E4): `AwayBand` con su fecha, y `WelcomeBack`
+ * con corredor y sin él. Fechas fijas de un año que no cambia con el reloj.
+ */
+function Ausencia() {
+  const ahora = new Date(2026, 10, 23, 12)
+  const vuelta = {
+    from: new Date(2026, 10, 11).toISOString(),
+    days: 12,
+    gameDays: 48,
+    rider: { id: 'r1', name: 'Luca Bianchi', trainedDays: 41, stages: 3 },
+    offers: { expired: 2, open: 1, firstExpiresAt: new Date(2026, 10, 29, 12).toISOString() },
+  }
+  return (
+    <>
+      <Demo name="AwayBand">
+        <Estado name="away">
+          <AwayBandView awayUntil={new Date(2026, 11, 3).toISOString()} now={ahora} onEnd={nada} />
+        </Estado>
+      </Demo>
+      <Demo name="WelcomeBack">
+        <Estado name="rider">
+          <WelcomeBackView data={vuelta} now={ahora} onDismiss={nada} />
+        </Estado>
+        <Estado name="no-rider">
+          <WelcomeBackView
+            data={{ ...vuelta, rider: null, offers: { expired: 0, open: 0, firstExpiresAt: null } }}
+            now={ahora}
+            onDismiss={nada}
+          />
+        </Estado>
+      </Demo>
+    </>
   )
 }
 
@@ -1663,6 +1701,7 @@ export function UiPage() {
       <Barras />
       <Estructura />
       <Avisos />
+      <Ausencia />
       <Banderas />
       <Estrellas />
       <Etiquetas />

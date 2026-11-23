@@ -133,6 +133,12 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // los aparatos de la cuenta (docs/cuenta.md §6.4 y §6.5; PR 11 de E4)
   'GET /api/me/devices': ['safe', N],
   'DELETE /api/me/devices/:id': ['safe', N],
+  // la ausencia y Welcome back (docs/cuenta.md §14; PR 13 de E4)
+  'GET /api/me/away': ['safe', N],
+  'PUT /api/me/away': ['safe', N],
+  'DELETE /api/me/away': ['safe', N],
+  'GET /api/me/welcome-back': ['safe', N],
+  'DELETE /api/me/welcome-back': ['safe', N],
   'GET /api/me/horizon': ['horizon', N], // l. 207-208
   // routes/rankings.ts
   'GET /api/rankings': ['horizon', { by: ['R'] }], // l. 32-33

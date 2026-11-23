@@ -1,4 +1,5 @@
 import type {
+  AwayResponse,
   AdminWhoami,
   Health,
   HorizonSummary,
@@ -9,9 +10,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import { AWAY_KEY } from '../api/away'
 import { ME_ACCOUNT_KEY } from '../components/ProtectedRoute'
 import { THEME_QUERY_KEY } from '../theme'
-import { Account, devicesValue, passwordValue } from './Account'
+import { Account, awayValue, devicesValue, passwordValue } from './Account'
 import { healthWith, horizonWith } from './__fixtures__/world'
 import { pieza, respuestas, titulo } from './__fixtures__/markup'
 
@@ -44,6 +46,7 @@ function page({
   admin = false,
   theme,
   cuenta = CUENTA,
+  away,
 }: {
   veil?: boolean
   horizon?: Partial<HorizonSummary>
@@ -51,6 +54,8 @@ function page({
   theme?: Theme
   /** null: todavía sin llegar */
   cuenta?: MeAccountResponse | null
+  /** la vuelta de una ausencia viva, o null sin ella; sin la clave, todavía sin llegar */
+  away?: string | null
 } = {}): string {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const health: Health = healthWith('on', veil ? 'on' : 'off')
@@ -58,6 +63,13 @@ function page({
   client.setQueryData(['horizon'], horizonWith(horizon))
   if (theme !== undefined) client.setQueryData(THEME_QUERY_KEY, { theme })
   if (cuenta !== null) client.setQueryData(ME_ACCOUNT_KEY, cuenta)
+  if (away !== undefined)
+    client.setQueryData(AWAY_KEY, {
+      ok: true,
+      awaySince: away === null ? null : new Date().toISOString(),
+      awayUntil: away,
+      facts: { rider: null, managesTeam: false },
+    } satisfies AwayResponse)
   client.setQueryData(
     ['admin-whoami'],
     admin ? ({ ok: true, via: 'session', userId: 'u1' } as AdminWhoami) : null,
@@ -103,17 +115,27 @@ describe('Account como lista (§12.1; DD-07 A)', () => {
     ])
   })
 
-  it('The game: la protección (con el velo) y el modo; Notifications y Away todavía no', () => {
-    expect(filas(page({ horizon: { scope: 'own_only' }, theme: 'dark' }), 'The game')).toEqual([
+  it('The game: Away, la protección (con el velo) y el modo; Notifications todavía no', () => {
+    expect(
+      filas(page({ horizon: { scope: 'own_only' }, theme: 'dark', away: null }), 'The game'),
+    ).toEqual([
+      'Away → Not set → /account/away',
       'Spoiler protection → Only yours → /account/spoilers',
       'Appearance → Dark → /account/appearance',
     ])
-    expect(filas(page({ veil: false }), 'The game')).toEqual([
+    const vuelta = new Date(ESTE_AÑO, 11, 3).toISOString()
+    expect(filas(page({ veil: false, away: vuelta }), 'The game')).toEqual([
+      `Away → ${awayValue(vuelta, new Date())} → /account/away`,
       'Appearance → Light → /account/appearance',
     ])
-    const markup = page()
-    expect(markup).not.toContain('Notifications')
-    expect(markup).not.toContain('>Away<')
+    expect(page()).not.toContain('Notifications')
+  })
+
+  it('el valor de Away: Until con la fecha mientras dura, y Not set sin ella o acabada', () => {
+    const ahora = new Date(2026, 10, 23, 12)
+    expect(awayValue(new Date(2026, 11, 3).toISOString(), ahora)).toBe('Until 3 Dec')
+    expect(awayValue(new Date(2026, 10, 23, 11).toISOString(), ahora)).toBe('Not set')
+    expect(awayValue(null, ahora)).toBe('Not set')
   })
 
   it('los valores: Changed con la fecha o Set, y los aparatos', () => {

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { forgetDevice, getMeAccount } from '../api/account'
+import { AWAY_KEY, getAway } from '../api/away'
 import { fetchAdminWhoami } from '../api/admin'
 import { authClient } from '../auth/client'
 import { ME_ACCOUNT_KEY } from '../components/ProtectedRoute'
@@ -21,7 +22,7 @@ import { apiFailureText } from './account/AccountSubpage'
  * donde lo de la cuenta empezaba dos pantallas por debajo (mapa 05 §7); ahora cada tarea es una fila
  * (`ActionRow`) que abre su subpágina en `/account/<tarea>`, con su valor debajo, que sale de
  * `GET /api/me/account` (12-b). Dos grupos: `Your account` (lo que contesta la pantalla, §7.3) y `The game`.
- * `Notifications` y `Away` llegan con sus PR (13 y 14): sus filas no salen antes. Debajo, `Sign out` y
+ * `Away` llega con el PR 13 (§14.1) y `Notifications` con el 14: su fila no sale antes. Debajo, `Sign out` y
  * `Shared computer? Forget this device` (12-i), que quita la entrada de este navegador de la `cs_device` y
  * sale (§6.5).
  */
@@ -29,6 +30,13 @@ import { apiFailureText } from './account/AccountSubpage'
 /** El valor de la fila de la contraseña: `Changed 12 Nov`, o `Set` si la fecha no se sabe (§12.1). */
 export function passwordValue(changedAt: string | null, now: Date): string {
   return changedAt === null ? 'Set' : `Changed ${shortDate(changedAt, now)}`
+}
+
+/** El valor de la fila de la ausencia (§12.1): `Until 3 Dec` mientras dura, o `Not set`. */
+export function awayValue(awayUntil: string | null, now: Date): string {
+  return awayUntil !== null && new Date(awayUntil) > now
+    ? `Until ${shortDate(awayUntil, now)}`
+    : 'Not set'
 }
 
 /** El valor de la fila de los aparatos: `3 signed in`. */
@@ -54,6 +62,7 @@ export function Account() {
   const cuenta = useQuery({ queryKey: ME_ACCOUNT_KEY, queryFn: getMeAccount })
   // Sólo para enseñar el enlace: el servidor vuelve a decidir en cada petición del panel.
   const whoami = useQuery({ queryKey: ['admin-whoami'], queryFn: fetchAdminWhoami, retry: false })
+  const ausencia = useQuery({ queryKey: AWAY_KEY, queryFn: getAway })
   const proteccion = useSpoilerProtection()
   const { theme } = useTheme()
   const [saliendo, setSaliendo] = useState<'sign-out' | 'forget' | null>(null)
@@ -120,6 +129,11 @@ export function Account() {
 
       <Panel title="The game">
         <ul className="divide-y divide-line">
+          <ActionRow
+            title="Away"
+            meta={ausencia.data ? awayValue(ausencia.data.awayUntil, now) : ''}
+            href="/account/away"
+          />
           {/* solo con el velo para quien mira, como su panel (E2, §10.4) */}
           {proteccion.kind !== 'off' && (
             <ActionRow

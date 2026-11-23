@@ -7,6 +7,7 @@ import {
 } from '@cyclingstar/engine'
 import {
   HOUSING_RENT_PER_WEEK,
+  OFFER_TTL_GAME_DAYS,
   continentForCountry,
   residenceAfterSigning,
   seededRng,
@@ -32,9 +33,10 @@ const ROSTER_TARGET: Record<Division, number> = { WT: 14, PRS: 12, CON: 10 }
 /**
  * Días de juego que una oferta sigue en la mesa antes de caducar si el corredor no decide. Da frescura
  * al mercado (las ofertas viejas se retiran) y evita que un equipo cuya oferta se rechazó vuelva a
- * ofertar de inmediato (puede reintentar pasado este plazo).
+ * ofertar de inmediato (puede reintentar pasado este plazo). Vive en shared desde el PR 13 de E4, que la
+ * cuenta en `Welcome back` (docs/cuenta.md §14.5).
  */
-const OFFER_TTL_DAYS = 21
+const OFFER_TTL_DAYS = OFFER_TTL_GAME_DAYS
 /** Nivel del corredor como percentil [0,1]: media de sus 5 mejores atributos sobre 100. */
 async function riderRating(tx: Tx, riderId: string): Promise<number> {
   const rows = await tx

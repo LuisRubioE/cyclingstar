@@ -8,6 +8,16 @@ export { createDb, type Database, type DbClient } from './client.js'
 export { runMigrations } from './migrate.js'
 export { deleteUserVerifications } from './verifications.js'
 export {
+  type AwayState,
+  awayFacts,
+  dismissWelcomeBack,
+  endAway,
+  readAway,
+  setAway,
+  welcomeBack,
+} from './away.js'
+export { inactiveSince, isAway } from './inactivity.js'
+export {
   type AttemptResult,
   type AttemptRule,
   bumpDeviceEpoch,

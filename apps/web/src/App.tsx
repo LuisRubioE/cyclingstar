@@ -1,5 +1,6 @@
 import { type ReactNode, Suspense } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { AwayBand } from './components/AwayBand'
 import { BottomNav } from './components/BottomNav'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -94,6 +95,9 @@ const AccountSpoilers = lazyPage(() =>
 )
 const AccountAppearance = lazyPage(() =>
   import('./pages/account/AccountAppearance').then((m) => ({ default: m.AccountAppearance })),
+)
+const AccountAway = lazyPage(() =>
+  import('./pages/account/AccountAway').then((m) => ({ default: m.AccountAway })),
 )
 const Race = lazyPage(() => import('./pages/Race').then((m) => ({ default: m.Race })))
 const RaceOrders = lazyPage(() =>
@@ -230,6 +234,8 @@ export function App() {
       {/* Sin red, la franja que lo dice, con la hora de lo que se ve (§12.1; PR 4). */}
       <OfflineBanner />
       <main className="mx-auto max-w-page px-3 py-4 sm:px-4">
+        {/* La ausencia viva, bajo la cabecera en toda pantalla con sesión (docs/cuenta.md §14.3; PR 13 de E4). */}
+        <AwayBand />
         <RouteBoundary resetKey={pathname}>
           <Suspense fallback={<LoadingState label="the page" />}>
             <Routes>
@@ -399,6 +405,14 @@ export function App() {
                 element={
                   <Private>
                     <AccountDelete />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/away"
+                element={
+                  <Private>
+                    <AccountAway />
                   </Private>
                 }
               />
