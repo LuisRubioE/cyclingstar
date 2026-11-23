@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Database } from '@cyclingstar/db'
+import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S } from '@cyclingstar/shared'
 import { createAuth, trustedOriginsFor, withCallbackURL } from './auth.js'
 import type { MailMessage, Mailer } from './mailer.js'
 
@@ -220,5 +221,37 @@ describe('withCallbackURL', () => {
 
   it('deja intacto lo que no es una URL', () => {
     expect(withCallbackURL('no es una url', '/x')).toBe('no es una url')
+  })
+})
+
+/*
+  Las opciones del PR 3 de E4 (docs/cuenta.md §6.1, §6.2, §7.2; D-30): sin `cookieCache`, el
+  limitador propio apagado, la IP sin guardar, los enlaces por su hash y el registro en `warn`.
+*/
+describe('createAuth: las opciones de seguridad', () => {
+  const opciones = auth(spyMailer()).options
+
+  it('la sesión vive 30 días, se renueva una vez al día y no tiene caché', () => {
+    expect(opciones.session?.expiresIn).toBe(SESSION_EXPIRES_S)
+    expect(SESSION_EXPIRES_S).toBe(2_592_000)
+    expect(opciones.session?.updateAge).toBe(SESSION_UPDATE_AGE_S)
+    expect(SESSION_UPDATE_AGE_S).toBe(86_400)
+    expect(opciones.session).not.toHaveProperty('cookieCache')
+  })
+
+  it('recuperar la contraseña cierra todas las sesiones', () => {
+    expect(opciones.emailAndPassword?.revokeSessionsOnPasswordReset).toBe(true)
+    expect(opciones.emailAndPassword?.onPasswordReset).toEqual(expect.any(Function))
+  })
+
+  it('el limitador de better-auth, apagado; la IP, sin guardar; los enlaces, por su hash', () => {
+    expect(opciones.rateLimit).toEqual({ enabled: false })
+    expect(opciones.advanced?.ipAddress?.disableIpTracking).toBe(true)
+    expect(opciones.verification?.storeIdentifier).toBe('hashed')
+    expect(opciones.advanced?.backgroundTasks?.handler).toEqual(expect.any(Function))
+  })
+
+  it('el registro de better-auth, en warn (D-30)', () => {
+    expect(opciones.logger).toEqual({ level: 'warn' })
   })
 })

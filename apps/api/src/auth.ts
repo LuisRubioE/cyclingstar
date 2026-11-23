@@ -1,6 +1,7 @@
 import {
   type Database,
   accounts,
+  deleteUserVerifications,
   releaseUserToWorld,
   sessions,
   users,
@@ -9,8 +10,18 @@ import {
 import { betterAuth } from 'better-auth'
 import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S } from '@cyclingstar/shared'
 import { changeEmailConfirmationEmail, resetPasswordEmail, verifyEmailEmail } from './emails.js'
 import type { Mailer } from './mailer.js'
+import { type MailQueue, mailQueue as colaDelProceso } from './mailQueue.js'
+
+/**
+ * Las recuperaciones de contraseña que acaban de terminar bien, por petición: `onPasswordReset`
+ * apunta el correo de la cuenta en la misma `Request` que el proxy pasó a `auth.handler`
+ * (better-auth la reenvía como `ctx.request`), y el proxy lo lee al ver el 200 (docs/cuenta.md
+ * §5.4). Hoy solo se apunta; la cookie de aparato que se emite con él llega con el PR 6.
+ */
+export const resetRequests = new WeakMap<Request, string>()
 
 /**
  * A DÓNDE LLEVAN LOS ENLACES DE VERIFICACIÓN, DECIDIDO AQUÍ Y NO EN EL NAVEGADOR.
@@ -92,6 +103,8 @@ export function createAuth(
     baseURL: string
     mailer: Mailer
     extraTrustedOrigins?: string | undefined
+    /** Dónde esperan los correos que salen después de responder; por defecto, la del proceso. */
+    mailQueue?: MailQueue
   },
 ) {
   // Cookies seguras cuando la app se sirve por https (producción tras el proxy de Railway).
@@ -99,6 +112,7 @@ export function createAuth(
   // emitiendo la cookie de sesión sin el flag `secure`.
   const secureCookies = opts.baseURL.startsWith('https://')
   const { mailer } = opts
+  const cola = opts.mailQueue ?? colaDelProceso
   return betterAuth({
     secret: opts.secret,
     baseURL: opts.baseURL,
@@ -125,6 +139,14 @@ export function createAuth(
       // porque no había a dónde mandar el enlace.
       sendResetPassword: async ({ user, url }) => {
         await mailer.send({ to: user.email, ...resetPasswordEmail(url) })
+      },
+      // Quien recupera la contraseña cierra TODAS las sesiones: si alguien se había colado, sale
+      // (docs/cuenta.md §5.4; X-21). Y luego `onPasswordReset`: los otros enlaces de recuperación
+      // que sigan vivos en el buzón dejan de valer, y la petición queda apuntada para el proxy.
+      revokeSessionsOnPasswordReset: true,
+      onPasswordReset: async ({ user }, request) => {
+        await deleteUserVerifications(db, user.id)
+        if (request) resetRequests.set(request, user.email)
       },
     },
     emailVerification: {
@@ -171,6 +193,25 @@ export function createAuth(
         },
       },
     },
+    // La sesión (docs/cuenta.md §6.1; D-17): 30 días renovados una vez al día de uso, y SIN
+    // `cookieCache`, que dejaría valer hasta un minuto una sesión ya cerrada (también la que la
+    // recuperación acaba de cerrar). El techo de 90 días no es una opción de better-auth: lo
+    // aplican `createCurrentUserId` (routes/context.ts) y el proxy de `get-session`.
+    session: {
+      expiresIn: SESSION_EXPIRES_S,
+      updateAge: SESSION_UPDATE_AGE_S,
+    },
+    // Los enlaces de recuperación se guardan por su hash (SHA-256), no en claro: quien lea la
+    // tabla `verifications` no se lleva un enlace que funcione.
+    verification: {
+      storeIdentifier: 'hashed',
+    },
+    // El limitador propio de better-auth, apagado por escrito (docs/cuenta.md §7.2, capa 2): sin
+    // cabecera de IP mete a todo el mundo en el mismo cubo, y su clave no ve ni el correo ni el
+    // resultado. Los límites son los de Fastify (security.ts).
+    rateLimit: { enabled: false },
+    // Solo avisos y errores (D-30): lo de nivel `info` de better-auth puede llevar datos de la cuenta.
+    logger: { level: 'warn' },
     hooks: {
       /*
         Borrar una cuenta pide SIEMPRE la contraseña. Sin ella, better-auth lo permite con una
@@ -206,6 +247,12 @@ export function createAuth(
        * desplegando sin protección sin que nadie lo vea.
        */
       disableOriginCheck: false,
+      // La IP no se guarda con la sesión (docs/cuenta.md §6.2; D-18): nadie la lee, y los límites
+      // usan la de la petición.
+      ipAddress: { disableIpTracking: true },
+      // Los correos salen DESPUÉS de responder: el tiempo de la respuesta no dice si la cuenta
+      // existe. La cola los apunta para que un despliegue (`SIGTERM`) no los corte (mailQueue.ts).
+      backgroundTasks: { handler: cola.track },
       // Atributos de la cookie de sesión, explícitos en vez de heredados del defecto de la
       // librería: httpOnly (inaccesible desde JS, corta el robo por XSS), sameSite lax (la web y
       // la API comparten origen, así que lax basta y corta el CSRF de peticiones cruzadas),

@@ -1,4 +1,5 @@
 import type { Database, ProgressMemory, TickSummary } from '@cyclingstar/db'
+import { SESSION_MAX_AGE_DAYS } from '@cyclingstar/shared'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import type { Auth } from '../auth.js'
 import type { AdminGuard } from '../security.js'
@@ -49,12 +50,37 @@ export interface AdminRouteContext {
 /** Un plugin de rutas de dominio. */
 export type RoutePlugin = FastifyPluginAsync<RouteContext>
 
-/** Construye el lector de sesión que comparten todas las rutas autenticadas. */
+/**
+ * ¿Pasó la sesión su techo de `SESSION_MAX_AGE_DAYS` desde que se abrió? (docs/cuenta.md §6.1; I-11)
+ * better-auth la renueva con cada día de uso sin límite; una cookie robada no debe vivir más de un
+ * trimestre aunque se use cada día.
+ */
+export function isPastSessionCeiling(createdAt: Date | string, now: number = Date.now()): boolean {
+  return now - new Date(createdAt).getTime() > SESSION_MAX_AGE_DAYS * 86_400_000
+}
+
+/** Borra una sesión por su token, como hace better-auth al cerrarla. */
+export async function deleteSessionByToken(auth: Auth, token: string): Promise<void> {
+  const contexto = await auth.$context
+  await contexto.internalAdapter.deleteSession(token)
+}
+
+/**
+ * Construye el lector de sesión que comparten todas las rutas autenticadas. Una sesión que pasó su
+ * techo cuenta como ninguna y se borra (el otro sitio que lo aplica es el proxy de `get-session`).
+ */
 export function createCurrentUserId(
   auth: Auth,
 ): (request: FastifyRequest) => Promise<string | null> {
   return async (request) => {
     const session = await auth.api.getSession({ headers: toWebHeaders(request) })
-    return session?.user.id ?? null
+    if (!session) return null
+    // Los dobles de better-auth de los tests de rutas solo traen `user`: sin sesión no hay techo.
+    const sesion = session.session as typeof session.session | undefined
+    if (sesion && isPastSessionCeiling(sesion.createdAt)) {
+      await deleteSessionByToken(auth, sesion.token)
+      return null
+    }
+    return session.user.id
   }
 }
