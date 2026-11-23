@@ -1,0 +1,38 @@
+## 3. Principios
+
+Once reglas que deciden lo que el resto del documento no diga. Las ocho primeras son las de la base (jugador §2), con el principio 2 reescrito por lo que el dueño decidió el 23 de noviembre y el 5 corregido por I-03; las tres últimas vienen de `incremental` y de `atacante` (D-03).
+
+### 3.1 Los once, con su consecuencia
+
+| #   | Principio                                                                                                          | Consecuencia en el diseño                                                                                                                                                                                                                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Ningún final mudo                                                                                                  | toda acción que acaba en otra pantalla lleva allí un `Notice` `good` con `role="status"` (`docs/visual.md` §4.7): `Password saved`, `Your account is deleted`, `Email confirmed` (§12.4)                                                                                                                            |
+| 2   | El correo lleva dos enlaces y nada más; lo que cambia la cuenta se ve en la web y llega por aviso a quien lo tiene | salen `verify_signup` y `reset_password` y ningún otro (`00-encargo.md` §9.3); la contraseña cambiada y la entrada nueva van por push (§5.4, §13) y siempre se ven en `Devices` y en la fila `Password` de `Account` (§12.1), que son su gemelo en la web                                                           |
+| 3   | Un límite dice cuánto esperar y nunca se disfraza                                                                  | un traductor de errores único, `authErrorText`, que lee `retryAfterS` (§12.3)                                                                                                                                                                                                                                       |
+| 4   | La web dice todo; el aviso solo adelanta                                                                           | cada aviso tiene su gemelo en la web (§13), y quien no tiene avisos (el iPhone sin pantalla de inicio, quien dijo que no) no pierde nada salvo la prisa                                                                                                                                                             |
+| 5   | Un tercero nunca bloquea al dueño, y recuperar siempre lo saca                                                     | L1 solo cierra a los navegadores sin `cs_device`, y recuperar da esa cookie al navegador que recupera (I-03, §7.5)                                                                                                                                                                                                  |
+| 6   | Un campo menos vale más que una comprobación más                                                                   | `Show` en lugar de `Repeat it`; el correo que viaja de `Login` a `ForgotPassword`; la fecha con `autocomplete` (§4.1)                                                                                                                                                                                               |
+| 7   | Cada pantalla de la cuenta cabe sobre el teclado                                                                   | `Account` pasa a lista con subpáginas, el formulario arriba (DD-07 A, §12.1)                                                                                                                                                                                                                                        |
+| 8   | Lo que la web dice de los datos es verdad el día que sale                                                          | `Privacy.tsx` cambia en el PR que hace verdad cada frase, y `privacy.test.ts` crece con él (§10.2)                                                                                                                                                                                                                  |
+| 9   | Opción antes que gancho, gancho antes que ruta propia                                                              | lo que `better-auth` 1.7.26 ya trae se activa con su opción (`revokeSessionsOnPasswordReset`, `storeIdentifier`, `backgroundTasks`, `disableIpTracking`, `disabledPaths`); lo que no, con un gancho (`beforeDelete`, `databaseHooks`); una ruta propia solo donde no hay otra (`/api/me/devices`, `/api/me/export`) |
+| 10  | Lista blanca, nunca lista negra                                                                                    | el proxy deja pasar once rutas de `better-auth` y da 404 a las demás; una subida o un plugin no abren una ruta sin decidirlo (§8.1)                                                                                                                                                                                 |
+| 11  | Un enlace de correo nunca cambia nada por sí solo                                                                  | todo enlace aterriza en una página de botón y el token viaja en el fragmento, que no llega a ningún log (§5.2)                                                                                                                                                                                                      |
+
+El principio 2 sustituye a dos que la síntesis había escrito y que el dueño deshizo: «lo que cambia la cuenta se cuenta por correo a quien la tenía» (jugador §2) e «ninguno de seguridad va por aviso: la seguridad va por correo, que no depende de un permiso» (I-18). El dueño: «Solo correo para forgot password y para acabar el registro» y «Sin correo, solo notificación push» (`00-encargo.md` l. 386 y 398 a 399). El precio, escrito: quien no tiene avisos encendidos no se entera de una entrada nueva ni de un cambio de contraseña hasta que mira `Devices` o su contraseña deja de valer (§2.3).
+
+---
+
+**Injertos aplicados.** I-18 (§3.1, principio 2): aplicado al revés de como lo escribió el veredicto, porque el dueño decidió lo contrario después; la frontera que fijaba (qué va por correo y qué por aviso) queda escrita, con la seguridad del lado del aviso.
+
+**Objeciones resueltas.** Ninguna asignada.
+
+**Huecos rellenados.** Ninguno asignado.
+
+**Decisiones de esta sección.**
+
+- **3-a**, el principio 2 se reescribe con `00-encargo.md` §9.2, punto 9, y §9.3, punto 1: dos correos, y la seguridad por push con su gemelo en la web.
+- **3-b**, el principio 10 dice once rutas y no doce: `change-email` sale de la lista blanca con el cambio de correo de autoservicio (§8.1).
+
+**Dudas para el ensamblador.**
+
+- §13 (L2) escribe los avisos con D-42 («ninguno de seguridad», I-18). Tras `00-encargo.md` §9.2 y §9.3 hacen falta dos avisos de seguridad, `new_sign_in` y `password_changed` (propuestos en §5 y §7); el catálogo de §G.10 y `NoticeKind` tienen que recibirlos.
