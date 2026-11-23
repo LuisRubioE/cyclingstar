@@ -80,8 +80,8 @@ contradicción de hecho de `juicios/veredicto.json`; `R<foco>-nnn`, un hallazgo 
    entrenador, calla los avisos y congela la inactividad para E7.
 9. **Lo que la web dice de los datos es verdad**: `Privacy.tsx` nueva, la IP fuera de la base, logs sin
    tokens, borrado atómico y exportación con contraseña.
-10. **Diecisiete PR, tests primero, unas 134 horas (estimado)**, uno ya hecho en `main` (el 2). Nadie
-    se aprueba antes de que un abogado vea la lista de §21.3.
+10. **Diecisiete PR, tests primero, unas 134 horas (estimado)**, uno ya hecho en `main` (el 2). Sin abogado
+    (decisión del dueño): 16 años, y la lista de §21.3 queda escrita por si un día lo hay.
 
 ### 0.5 Mapa del documento
 

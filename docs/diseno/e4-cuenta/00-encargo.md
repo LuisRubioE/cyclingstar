@@ -428,3 +428,15 @@ dos entran en el plan de E4, en su primer PR de seguridad**, y el documento lo d
    solo para que el iPhone reciba avisos desde iOS 16.4 con la web en la pantalla de inicio. Sin
    nada más de lo que quitó D-00p: ni funcionar sin red, ni caché, ni ofrecer instalar.
 3. Lo demás del refutador de cobertura, lo arregla el corrector. «Ok».
+
+### 9.6 Sin abogado, sin copias y a programar (23 de noviembre de 2026)
+
+El dueño, al leer el PR del diseño (#349), textual: «no tengo abogado, y no voy a contratar uno en este
+punto, vayamos con tu recomendacion de 16. No tengo copias de seguridad en Railway porque tengo la
+version Hobby.. Adelante, empieza a programar».
+
+1. **Sin abogado**: la edad mínima de 16 se queda como la recomendó `agenda.md` §3.7, y la lista de
+   `docs/cuenta.md` §21.3 ya no condiciona ningún PR (el PR 9 deja de esperarla).
+2. **Sin copias de seguridad en Railway** (plan Hobby). `Privacy.tsx` no promete copias, y lo que se
+   borra se borra. Que el mundo entero no tenga copia es un riesgo de operación fuera de E4.
+3. **Se empieza a implementar**, por el orden de `docs/cuenta.md` §18.

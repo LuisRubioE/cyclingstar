@@ -49,7 +49,7 @@ We don't offer a contact channel yet.
 This notice will be reviewed against applicable law before public launch.
 ```
 
-**`<N>`**: cuánto guarda Railway los logs, **no lo sé** (mapa 03 §4). Se rellena con lo que diga el panel de Railway en el PR 4; si no se sabe, el PR no se fusiona. **Los 14 días** de copias son los 14 volcados de `scripts/backup.sh` (`docs/ops.md` l. 15) si su cron (l. 24) está puesto, que tampoco sé: el dueño lo comprueba antes del PR 12, y si no corre, la frase pasa a `Backups are not kept.` o se pone el cron. `respaldo_mundo_1` (l. 313) no rueda: guarda el mundo anterior al reinicio, sin cuentas creadas después.
+**`<N>`**: cuánto guarda Railway los logs, **no lo sé** (mapa 03 §4). Se rellena con lo que diga el panel de Railway en el PR 4; si no se sabe, el PR no se fusiona. **Los 14 días** de copias son los 14 volcados de `scripts/backup.sh` (`docs/ops.md` l. 15) si su cron (l. 24) está puesto, que tampoco sé: **contestado el 23 de noviembre**: no hay copias (plan Hobby, `00-encargo.md` §9.6), así que la frase es `Backups are not kept.` (pantalla) desde el PR 3, y lo borrado se borra. `respaldo_mundo_1` (l. 313) no rueda: guarda el mundo anterior al reinicio, sin cuentas creadas después.
 
 ### 10.2 De dónde sale cada frase y qué PR la hace verdad
 

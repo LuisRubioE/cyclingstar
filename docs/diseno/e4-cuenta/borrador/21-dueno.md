@@ -42,7 +42,7 @@ Y las tres del final del 23 de noviembre (`00-encargo.md` §9.4 y §9.5), contes
 
 ### 21.3 La lista para el abogado (H-17)
 
-Nada de esto se dictamina aquí. Va entera a un abogado antes de abrir el registro, es decir, antes de aprobar a nadie (§4.9; D-00a; `agenda.md` §3.7):
+**El dueño no la llevará a un abogado** (23 de noviembre de 2026, `00-encargo.md` §9.6: «no tengo abogado, y no voy a contratar uno en este punto, vayamos con tu recomendacion de 16»). Se queda como la lista de lo que este diseño no dictamina y de lo que se revisaría si un día hay abogado; no condiciona ningún PR:
 
 1. La edad mínima de 16 años, declarada con la fecha de nacimiento y sin comprobarla (§4).
 2. La línea bajo el botón frente a una casilla (DD-13), y el texto de `/terms`, que está en borrador (§4.6); y si hacen falta las dos reglas que el borrador quitó por ser de E7, «una cuenta por persona» y cerrar la cuenta que rompe las condiciones.

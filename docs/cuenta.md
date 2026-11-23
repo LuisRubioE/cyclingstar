@@ -80,8 +80,8 @@ contradicción de hecho de `juicios/veredicto.json`; `R<foco>-nnn`, un hallazgo 
    entrenador, calla los avisos y congela la inactividad para E7.
 9. **Lo que la web dice de los datos es verdad**: `Privacy.tsx` nueva, la IP fuera de la base, logs sin
    tokens, borrado atómico y exportación con contraseña.
-10. **Diecisiete PR, tests primero, unas 134 horas (estimado)**, uno ya hecho en `main` (el 2). Nadie
-    se aprueba antes de que un abogado vea la lista de §21.3.
+10. **Diecisiete PR, tests primero, unas 134 horas (estimado)**, uno ya hecho en `main` (el 2). Sin abogado
+    (decisión del dueño): 16 años, y la lista de §21.3 queda escrita por si un día lo hay.
 
 ### 0.5 Mapa del documento
 
@@ -1117,7 +1117,7 @@ We don't offer a contact channel yet.
 This notice will be reviewed against applicable law before public launch.
 ```
 
-**`<N>`**: cuánto guarda Railway los logs, **no lo sé** (mapa 03 §4). Se rellena con lo que diga el panel de Railway en el PR 4; si no se sabe, el PR no se fusiona. **Los 14 días** de copias son los 14 volcados de `scripts/backup.sh` (`docs/ops.md` l. 15) si su cron (l. 24) está puesto, que tampoco sé: el dueño lo comprueba antes del PR 12, y si no corre, la frase pasa a `Backups are not kept.` o se pone el cron. `respaldo_mundo_1` (l. 313) no rueda: guarda el mundo anterior al reinicio, sin cuentas creadas después.
+**`<N>`**: cuánto guarda Railway los logs, **no lo sé** (mapa 03 §4). Se rellena con lo que diga el panel de Railway en el PR 4; si no se sabe, el PR no se fusiona. **Los 14 días** de copias son los 14 volcados de `scripts/backup.sh` (`docs/ops.md` l. 15) si su cron (l. 24) está puesto, que tampoco sé: **contestado el 23 de noviembre**: no hay copias (plan Hobby, `00-encargo.md` §9.6), así que la frase es `Backups are not kept.` (pantalla) desde el PR 3, y lo borrado se borra. `respaldo_mundo_1` (l. 313) no rueda: guarda el mundo anterior al reinicio, sin cuentas creadas después.
 
 ### 10.2 De dónde sale cada frase y qué PR la hace verdad
 
@@ -2401,7 +2401,7 @@ Total: 134 horas (6 + 3 + 12 + 2 + 13 + 13 + 6 + 6 + 11 + 13 + 10 + 10 + 19 + 3 
 
 **PR 8 · `enlaces`.** La página de botón en `VerifyEmail` y `ResetPassword` (D-12; I-04), con `POST /api/account/verify-email` para que el token no viaje en una URL (5-h), `withCallbackURL` hacia `#token=`, los dos correos de §5.7 con su pie, `changeEmailConfirmationEmail` fuera con su test. `stageReadyEmail` **no** sale aquí: se queda hasta el PR 14, que mueve el canario. El PR 8 ya no lleva cambio de correo (§5.5).
 
-**PR 9 · `edad`. Condición para empezar a aprobar cuentas**: este PR, la lista de §21.3 vista por un abogado (D-00a) y el plan gratuito por tandas (DD-10 B, «de momento nos quedamos en el gratis y abrimos registro por tandas pequeñas», `00-encargo.md` l. 378), con la aprobación del PR 5 como mecanismo (§4.9). Entra §4 entero: `packages/shared/src/account/birthDate.ts`, `DateField` y su sitio en `/_ui`, el campo en `Register`, la pantalla del menor con `cs.ageGate`, la puerta de la fecha en `ProtectedRoute.tsx` l. 11 y en la API como gancho global (4-g), `GET /api/me/account` con `birthDateSet` y `birthDate` con `returned: false` (4-f), `PUT /api/me/birth-date`, `Terms` en `/terms` con su enlace en el pie, `terms_version` y `terms_accepted_at`, `databaseHooks.user.create.before` (`name`, `locale`) y el rechazo de `image`. Re-sella lo de §15.5. Lo que ve el dueño: al primer paso tras desplegar, `One more thing` con su fecha (§19.1).
+**PR 9 · `edad`. Condición para empezar a aprobar cuentas**: este PR y el plan gratuito por tandas (DD-10 B, «de momento nos quedamos en el gratis y abrimos registro por tandas pequeñas», `00-encargo.md` l. 378), con la aprobación del PR 5 como mecanismo (§4.9). Entra §4 entero: `packages/shared/src/account/birthDate.ts`, `DateField` y su sitio en `/_ui`, el campo en `Register`, la pantalla del menor con `cs.ageGate`, la puerta de la fecha en `ProtectedRoute.tsx` l. 11 y en la API como gancho global (4-g), `GET /api/me/account` con `birthDateSet` y `birthDate` con `returned: false` (4-f), `PUT /api/me/birth-date`, `Terms` en `/terms` con su enlace en el pie, `terms_version` y `terms_accepted_at`, `databaseHooks.user.create.before` (`name`, `locale`) y el rechazo de `image`. Re-sella lo de §15.5. Lo que ve el dueño: al primer paso tras desplegar, `One more thing` con su fecha (§19.1).
 
 **PR 11 · `account`.** `Account` como lista (DD-07 A) con `AccountEmail`, `AccountPassword`, `AccountDevices`, `AccountSpoilers`, `AccountAppearance` y `AccountDelete` en `apps/web/src/pages/account/`; `AccountData` llega vacía de acción hasta el PR 12, y `AccountNotifications` y `AccountAway` con sus PR (la fila no aparece antes). `GET /api/me/account` completa (12-b), `GET /api/me/devices`, `DELETE /api/me/devices/:id`, `POST /api/auth/devices/sign-out-others` con la reemisión de `cs_device` y `POST /api/auth/devices/forget` con `Shared computer? Forget this device` (§6.4 y §6.5). Es el PR que reescribe `Account.tsx` (417 líneas, mapa 05) y sus tests: por eso cuesta 12 horas (O-22). Pasa la prueba del teléfono a 360 y 320 (§17.3).
 
@@ -2645,7 +2645,7 @@ Y las tres del final del 23 de noviembre (`00-encargo.md` §9.4 y §9.5), contes
 
 ### 21.3 La lista para el abogado (H-17)
 
-Nada de esto se dictamina aquí. Va entera a un abogado antes de abrir el registro, es decir, antes de aprobar a nadie (§4.9; D-00a; `agenda.md` §3.7):
+**El dueño no la llevará a un abogado** (23 de noviembre de 2026, `00-encargo.md` §9.6: «no tengo abogado, y no voy a contratar uno en este punto, vayamos con tu recomendacion de 16»). Se queda como la lista de lo que este diseño no dictamina y de lo que se revisaría si un día hay abogado; no condiciona ningún PR:
 
 1. La edad mínima de 16 años, declarada con la fecha de nacimiento y sin comprobarla (§4).
 2. La línea bajo el botón frente a una casilla (DD-13), y el texto de `/terms`, que está en borrador (§4.6); y si hacen falta las dos reglas que el borrador quitó por ser de E7, «una cuenta por persona» y cerrar la cuenta que rompe las condiciones.
