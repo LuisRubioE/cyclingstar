@@ -17,6 +17,7 @@ import {
   char,
   check,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -113,7 +114,8 @@ export const users = pgTable(
     // Sin uso con better-auth (la contraseña cifrada vive en accounts.password). Se conserva
     // para no forzar una migración de borrado frágil; se puede retirar en un paso dedicado.
     passwordHash: text('password_hash'),
-    locale: text('locale').notNull().default('es'),
+    // El defecto pasa de 'es' a 'en' con la 0056 (docs/cuenta.md §15.1; D-07): la web está en inglés.
+    locale: text('locale').notNull().default('en'),
     isAdmin: boolean('is_admin').notNull().default(false),
     // Cuenta premium: a futuro de pago; al principio, admin y personas de confianza. Habilita tomar
     // el control de un equipo bot y convertirlo en equipo humano (SPEC 7).
@@ -138,10 +140,43 @@ export const users = pgTable(
     status: text('status').$type<UserStatus>().notNull().default('pending'),
     /** Cuándo se aprobó; nula en las pendientes. La purga de DD-17 cuenta desde aquí (§15.4). */
     approvedAt: timestamp('approved_at', { withTimezone: true }),
+    // LAS COLUMNAS DE E4, TODAS EN LA 0056 (docs/cuenta.md §15.1; 15-b): una sola reescritura de catálogo
+    // de `users`, aunque `birth_date` la use el PR 9, la ausencia y `welcome_back_from` el 13, y
+    // `time_zone` y `notice_prefs` el 14. Hasta entonces nadie las escribe.
+    /** Fecha de nacimiento declarada (D-05; DD-09 A). `mode: 'string'` para que no cruce zonas (4-b). */
+    birthDate: date('birth_date', { mode: 'string' }),
+    /** Versión de las condiciones aceptada al registrarse (`TERMS_VERSION`) y cuándo (D-10). */
+    termsVersion: text('terms_version'),
+    termsAcceptedAt: timestamp('terms_accepted_at', { withTimezone: true }),
+    /** La ausencia (§14): ausente es `away_until > now()`. Las dos o ninguna. */
+    awaySince: timestamp('away_since', { withTimezone: true }),
+    awayUntil: timestamp('away_until', { withTimezone: true }),
+    /** Desde cuándo cuenta el `Welcome back` pendiente; nula si no hay (§14.5, 14-d). */
+    welcomeBackFrom: timestamp('welcome_back_from', { withTimezone: true }),
+    /** Zona IANA del navegador al encender los avisos (§13.2). */
+    timeZone: text('time_zone'),
+    /**
+     * Solo lo que el jugador cambió; `{}` vale `NOTICE_DEFAULTS` (§13.1). La clave será `NoticeKind`,
+     * que llega con el PR 14; hasta entonces, una cadena.
+     */
+    noticePrefs: jsonb('notice_prefs')
+      .$type<Partial<Record<string, boolean>>>()
+      .notNull()
+      .default({}),
+    /** Último rebote, queja o supresión de Resend (§9.3). */
+    emailUndeliverableAt: timestamp('email_undeliverable_at', { withTimezone: true }),
+    /** Entra en la firma de `cs_device`; subirlo las invalida todas (§7.5). */
+    deviceEpoch: integer('device_epoch').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [check('users_status', sql`${t.status} in ('pending', 'approved')`)],
+  (t) => [
+    check('users_status', sql`${t.status} in ('pending', 'approved')`),
+    check(
+      'users_away_pair',
+      sql`(${t.awaySince} is null) = (${t.awayUntil} is null) and (${t.awayUntil} is null or ${t.awayUntil} > ${t.awaySince})`,
+    ),
+  ],
 )
 
 /** Sesiones de better-auth (cookies respaldadas en Postgres). */
@@ -1357,3 +1392,18 @@ export const adminAudit = pgTable(
   },
   (t) => [index('admin_audit_at').on(t.at.desc()), index('admin_audit_target').on(t.targetUserId)],
 )
+
+/**
+ * LOS LÍMITES DE INTENTO POR CUENTA, APARATO, SESIÓN E IP (docs/cuenta.md §7.3; D-22; la 0056). Una fila
+ * por clave: el prefijo (`acct:`, `dev:`, `pw:`, `pwu:`, `mailip:`, `rsv:` o `exp:`) y el HMAC de su
+ * valor, nunca el correo ni la IP en claro. La clave primaria es la que hace atómica la reserva
+ * (`INSERT … ON CONFLICT`, `authLimits.ts`).
+ */
+export const authLimits = pgTable('auth_limits', {
+  key: text('key').primaryKey(),
+  windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+  count: integer('count').notNull(),
+  dayStart: timestamp('day_start', { withTimezone: true }).notNull(),
+  dayCount: integer('day_count').notNull(),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
+})

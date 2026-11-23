@@ -1,11 +1,27 @@
+import {
+  type AttemptResult,
+  type Database,
+  bumpDeviceEpoch,
+  clearAttempts,
+  deviceOwnerByEmail,
+  reserveAttempt,
+} from '@cyclingstar/db'
 import type { UserStatus } from '@cyclingstar/shared'
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
-import type { Auth } from '../auth.js'
+import { type Auth, resetRequests } from '../auth.js'
+import { clientIp, ipBucket } from '../clientIp.js'
+import { createDeviceCookies } from '../deviceCookie.js'
 import { apiError } from '../http.js'
+import { limitKeys } from '../limitKeys.js'
 import {
+  ACCOUNT_FAILS,
+  ACCOUNT_PASSWORD_FAILS_DAY,
   AUTH_RATE_LIMIT,
   CREDENTIAL_AUTH_PATHS,
   CREDENTIAL_RATE_LIMIT,
+  DEVICE_FAILS,
+  MAIL_ROUTES_PER_IP_DAY,
+  SESSION_PASSWORD_FAILS,
   isAllowedAuthPath,
 } from '../security.js'
 import { viewerCookieHeader } from '../viewerCookie.js'
@@ -17,6 +33,8 @@ export interface AuthProxyContext {
   secureCookies?: boolean
   /** El estado de una cuenta por su correo, para el 403 `ACCOUNT_PENDING` (docs/cuenta.md §4.9). */
   statusByEmail?: (email: string) => Promise<UserStatus | null>
+  /** La base de `auth_limits` y de `device_epoch` (docs/cuenta.md §7). Sin ella, sin límites L1 a L4. */
+  db?: Database
 }
 
 /**
@@ -47,6 +65,32 @@ export const ACCOUNT_PENDING_BODY = JSON.stringify({
   code: 'ACCOUNT_PENDING',
   message: 'Your account is waiting for approval.',
 })
+
+/** Las rutas que mandan correo: L4 (docs/cuenta.md §7.4). */
+const MAIL_PATHS: ReadonlySet<string> = new Set([
+  SIGN_UP_PATH,
+  '/api/auth/request-password-reset',
+  '/api/auth/send-verification-email',
+])
+const RESET_PASSWORD_PATH = '/api/auth/reset-password'
+const CHANGE_PASSWORD_PATH = '/api/auth/change-password'
+/** Las que piden la contraseña con una sesión abierta: L3 (§7.4; 7-c). Exportar llega con el PR 12. */
+const SESSION_PASSWORD_PATHS: ReadonlySet<string> = new Set([
+  CHANGE_PASSWORD_PATH,
+  '/api/auth/delete-user',
+])
+
+/** Los 429 propios de la cuenta (§12.3): el texto lo pone la web por `code`; aquí va en inglés igual. */
+const ACCOUNT_LOCKED_MESSAGE =
+  'Too many failed attempts on this account. Try again in 15 minutes, or reset your password.'
+const PASSWORD_ATTEMPTS_LOCKED_MESSAGE = 'Too many wrong passwords. Try again in 15 minutes.'
+
+/** Responde un 429 con su espera en el cuerpo y en `retry-after` (§7.8). */
+function demasiados(reply: FastifyReply, retryAfterS: number, cuerpo: object): FastifyReply {
+  reply.header('retry-after', String(retryAfterS))
+  reply.header('content-type', 'application/json')
+  return reply.status(429).send(JSON.stringify({ ...cuerpo, retryAfterS }))
+}
 
 /** El correo del cuerpo de `sign-in/email`, si lo trae. */
 function correoDe(cuerpo: unknown): string | null {
@@ -116,6 +160,13 @@ export function isNormalAuthPath(rawUrl: string): boolean {
  */
 export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app, ctx) => {
   const { auth } = ctx
+  // Las dos claves salen del mismo `SESSION_SECRET` que firma la sesión, con HKDF y su etiqueta (7-a).
+  // Sin base o sin secreto (los dobles de better-auth de los tests de rutas), sin límites L1 a L4.
+  const secreto = (auth as { options?: { secret?: unknown } }).options?.secret
+  const db = typeof secreto === 'string' ? ctx.db : undefined
+  const clave = typeof secreto === 'string' ? secreto : 'sin-secreto'
+  const keys = limitKeys(clave)
+  const devices = createDeviceCookies(clave, ctx.secureCookies ?? false)
 
   // Antes del límite y del proxy: los ganchos del plugin van antes que los que @fastify/rate-limit
   // cuelga de cada ruta, así que el atajo ni gasta ni burla ningún contador.
@@ -143,8 +194,130 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
       init.body = JSON.stringify(request.body)
     }
     const webRequest = new Request(url, init)
+    const ruta = url.pathname
+
+    // LA RESERVA, ANTES DE REENVIAR (docs/cuenta.md §7.3; H-01; O-14): el intento cuenta antes de que
+    // better-auth mire la contraseña, así que una ráfaga no pasa del límite. Al 200 se borra.
+    const ahora = new Date()
+    /** Las claves que se borran si better-auth responde 200. */
+    const alAcertar: string[] = []
+    /** Las `Set-Cookie` propias que se añaden a la respuesta. */
+    const cookiesPropias: string[] = []
+    let correoEntrada: string | null = null
+    /** L3: la sesión que pide la contraseña y cuántas lleva hoy (para cerrarla al décimo fallo). */
+    let sesionL3: { token: string; userId: string; email: string; dayCount: number } | null = null
+
+    if (db !== undefined && ruta === SIGN_IN_PATH) {
+      correoEntrada = correoDe(request.body)
+      if (correoEntrada !== null) {
+        // L2 si el navegador trae una `cs_device` válida para ese correo; si no, o si L2 la cerró, L1.
+        const dueño = await deviceOwnerByEmail(db, correoEntrada)
+        const entrada = devices.validFor(devices.read(request.headers.cookie), correoEntrada, dueño)
+        let pasa = false
+        if (entrada !== null) {
+          const clave = keys.dev(entrada.nonce)
+          alAcertar.push(clave)
+          pasa = (await reserveAttempt(db, clave, DEVICE_FAILS, ahora)).allowed
+        }
+        const clave = keys.acct(correoEntrada)
+        alAcertar.push(clave)
+        if (!pasa) {
+          // L1 cuenta igual con un correo que no existe: el 429 no delata cuentas.
+          const r = await reserveAttempt(db, clave, ACCOUNT_FAILS, ahora)
+          if (!r.allowed) {
+            return demasiados(reply, r.retryAfterS, {
+              code: 'ACCOUNT_LOCKED',
+              message: ACCOUNT_LOCKED_MESSAGE,
+            })
+          }
+        }
+      }
+    } else if (db !== undefined && MAIL_PATHS.has(ruta)) {
+      const r = await reserveAttempt(
+        db,
+        keys.mailip(ipBucket(clientIp(request))),
+        MAIL_ROUTES_PER_IP_DAY,
+        ahora,
+      )
+      // L4 responde como el límite de Fastify (§7.4).
+      if (!r.allowed) {
+        return demasiados(reply, r.retryAfterS, {
+          ...apiError('demasiadas_peticiones'),
+          message: 'Too many requests. Try again later.',
+        })
+      }
+    } else if (db !== undefined && SESSION_PASSWORD_PATHS.has(ruta)) {
+      const sesion = await auth.api.getSession({ headers: toWebHeaders(request) })
+      if (sesion !== null) {
+        const porSesion = keys.pw(sesion.session.id)
+        const porCuenta = keys.pwu(sesion.user.id)
+        let r: AttemptResult = await reserveAttempt(db, porSesion, SESSION_PASSWORD_FAILS, ahora)
+        if (r.allowed) {
+          const dia = r.dayCount
+          r = await reserveAttempt(db, porCuenta, ACCOUNT_PASSWORD_FAILS_DAY, ahora)
+          if (r.allowed) {
+            sesionL3 = {
+              token: sesion.session.token,
+              userId: sesion.user.id,
+              email: sesion.user.email,
+              dayCount: dia,
+            }
+          }
+        } else if (r.byDay) {
+          // Pasado el tope diario de la sesión, se cierra esa sesión, no las otras del dueño (7-k).
+          await deleteSessionByToken(auth, sesion.session.token)
+          return demasiados(reply, r.retryAfterS, {
+            code: 'PASSWORD_ATTEMPTS_LOCKED',
+            message: PASSWORD_ATTEMPTS_LOCKED_MESSAGE,
+            signedOut: true,
+          })
+        }
+        if (!r.allowed) {
+          return demasiados(reply, r.retryAfterS, {
+            code: 'PASSWORD_ATTEMPTS_LOCKED',
+            message: PASSWORD_ATTEMPTS_LOCKED_MESSAGE,
+          })
+        }
+        alAcertar.push(porSesion, porCuenta)
+      }
+    }
 
     const response = await auth.handler(webRequest)
+
+    if (db !== undefined && response.status === 200) {
+      await clearAttempts(db, alAcertar)
+      // `cs_device` (§7.5): al entrar, la entrada de ese correo; al recuperar, la del correo que apuntó
+      // `onPasswordReset` (con el epoch ya subido); al cambiar la contraseña, se sube el epoch y se
+      // reemite la de este navegador (5-j).
+      let correoCookie: string | null = null
+      if (ruta === SIGN_IN_PATH) correoCookie = correoEntrada
+      else if (ruta === RESET_PASSWORD_PATH) correoCookie = resetRequests.get(webRequest) ?? null
+      else if (ruta === CHANGE_PASSWORD_PATH && sesionL3 !== null) {
+        await bumpDeviceEpoch(db, sesionL3.userId)
+        correoCookie = sesionL3.email
+      }
+      if (correoCookie !== null) {
+        const dueño = await deviceOwnerByEmail(db, correoCookie)
+        if (dueño !== null) {
+          cookiesPropias.push(
+            devices.issue(devices.read(request.headers.cookie), correoCookie, dueño),
+          )
+        }
+      }
+    } else if (
+      db !== undefined &&
+      sesionL3 !== null &&
+      response.status !== 429 &&
+      sesionL3.dayCount >= SESSION_PASSWORD_FAILS.dayMax
+    ) {
+      // El décimo fallo del día con esta sesión: se cierra y la web lleva a `/login` (§7.4; 7-k).
+      await deleteSessionByToken(auth, sesionL3.token)
+      return demasiados(reply, SESSION_PASSWORD_FAILS.lockS, {
+        code: 'PASSWORD_ATTEMPTS_LOCKED',
+        message: PASSWORD_ATTEMPTS_LOCKED_MESSAGE,
+        signedOut: true,
+      })
+    }
 
     reply.status(response.status)
     for (const [key, value] of response.headers.entries()) {
@@ -153,7 +326,7 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
       if (nombre === 'set-cookie' || nombre === 'content-length') continue
       reply.header(key, value)
     }
-    for (const cookie of response.headers.getSetCookie()) {
+    for (const cookie of [...response.headers.getSetCookie(), ...cookiesPropias]) {
       reply.header('set-cookie', cookie)
     }
     if (response.ok && CLEARS_VIEWER_COOKIE.has(url.pathname)) {

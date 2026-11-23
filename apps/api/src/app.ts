@@ -25,6 +25,7 @@ import type { Auth } from './auth.js'
 import type { GeoIpLookup } from './geoIp.js'
 import { apiError } from './http.js'
 import { adminRoutes, verificationSender } from './routes/admin.js'
+import { clientIp, ipBucket } from './clientIp.js'
 import { authProxyRoutes } from './routes/authProxy.js'
 import { broadcastRoutes } from './routes/broadcast.js'
 import { calendarRoutes } from './routes/calendar.js'
@@ -165,7 +166,10 @@ type RateLimitError = Error & { statusCode: number; retryAfterS: number }
 
 export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // trustProxy: detrás del proxy de Railway (TLS terminado), para resolver bien
-  // protocolo (https), host e IP de cliente a partir de las cabeceras X-Forwarded-*.
+  // protocolo (https), host e IP de cliente a partir de las cabeceras X-Forwarded-*. Se queda en
+  // `true` (docs/cuenta.md §7.1): el borde de Railway reescribe `X-Forwarded-For` con una sola IP (PR
+  // #348). `trustProxy: 1` está prohibido: desde Fastify 5.12.1 da siempre la del socket, que es
+  // Railway. Los límites no leen `request.ip` a pelo, sino `clientIp`, que la valida.
   const app = Fastify({ logger: deps.logger ?? false, trustProxy: true })
 
   // Zod como validador/serializador en los bordes: las rutas validan su entrada con esquemas Zod, y desde
@@ -216,7 +220,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   void app.register(fastifyRateLimit, {
     global: true,
     ...GLOBAL_RATE_LIMIT,
-    // trustProxy ya está activo: la clave es la IP real del cliente, no la del proxy de Railway.
+    // trustProxy ya está activo: la clave es la IP real del cliente, no la del proxy de Railway, y
+    // validada (`clientIp`); una IPv6 cuenta por su /64 (docs/cuenta.md §7.1; 7-i).
+    keyGenerator: (request) => ipBucket(clientIp(request)),
     // El plugin LANZA lo que devuelva este constructor, así que hay que devolver un Error con
     // statusCode; el manejador de errores lo traduce al formato uniforme `{ ok, error }`. Desde E4
     // lleva además cuánto esperar, en segundos (`retryAfterS`, lo mismo que la cabecera `retry-after`),
@@ -320,6 +326,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     const statusDb = deps.db
     void app.register(authProxyRoutes, {
       auth: deps.auth,
+      ...(statusDb ? { db: statusDb } : {}),
       ...(statusDb ? { statusByEmail: (email: string) => userStatusOf(statusDb, { email }) } : {}),
       ...(deps.secureCookies !== undefined ? { secureCookies: deps.secureCookies } : {}),
     })

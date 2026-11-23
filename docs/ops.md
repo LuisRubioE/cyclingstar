@@ -172,6 +172,7 @@ mundo (la reparación es idempotente). La comparación ignora mayúsculas y espa
   corto del contenedor, que Railway cobra por uso: si pesa en la factura, `*/15 * * * *` también
   vale (el día llega hasta un cuarto de hora tarde). Railway no baja de 5 minutos ni garantiza el
   minuto exacto.
+- Réplicas de `web`: 1 (`railway.json` no fija `numReplicas`, y el plan Hobby da una; H-03, E4 PR 6). Con más de una, los límites por cuenta, aparato, sesión e IP de correo (`auth_limits`, en Postgres) siguen valiendo; los de Fastify, en memoria, pasan a ser «por réplica».
 - Las migraciones son aditivas (Drizzle) y se aplican solas al arrancar; no hay pasos manuales. La
   excepción es la 0044, que reinicia el mundo (ver «Migración 0044» más abajo). La 0045 borra los
   datos de la vuelta de prueba (ver «Migración 0045»).
@@ -417,3 +418,5 @@ Dos topes cambian con la subida, por decisión del dueño. El del JS de arranque
 ## La IP del límite de peticiones, detrás de Railway (comprobado el 22/11/2026)
 
 La API arranca con `trustProxy: true` (`apps/api/src/app.ts`), así que la IP de cada petición, la clave de los límites de `apps/api/src/security.ts` (entre ellos el de las contraseñas, 10 intentos cada 5 minutos), es la primera de `X-Forwarded-For`. Si el proxy de Railway la dejara pasar tal cual, quien la falseara esquivaría el límite. Comprobado desde fuera, solo con GET sobre `/api/teams`: con un `X-Forwarded-For` inventado y fijo, el contador `x-ratelimit-remaining` no empieza en 299 ni baja de uno en uno, sino que sigue a las IP reales de quien pregunta. El borde de Railway (`server: railway-hikari`, sin CDN delante) reescribe la cabecera, y la IP falsa no llega a ser la clave. No hace falta cambiar nada; si algún día se pone otro proxy o una CDN delante, hay que volver a comprobarlo, y entonces `trustProxy` debería contar los saltos de confianza en lugar de fiarse de todos.
+
+Desde E4 (PR 6) los límites no leen `request.ip` a pelo sino `clientIp` (`apps/api/src/clientIp.ts`), que comprueba que sea una IP (si no, usa la del socket y apunta `xff_varias` en el log, como mucho una vez por hora), y una IPv6 cuenta por su /64. `trustProxy` sigue en `true`.

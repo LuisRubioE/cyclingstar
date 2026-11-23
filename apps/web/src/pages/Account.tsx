@@ -160,6 +160,7 @@ function ChangePassword({
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
+  const navigate = useNavigate()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const espera = useRetryWait()
   const [fieldError, setFieldError] = useState<{
@@ -189,7 +190,9 @@ function ChangePassword({
         revokeOtherSessions: true,
       }),
     )
-    if (res !== null) {
+    if (res?.signedOut === true) {
+      navigate('/login', { state: { arrival: 'signed-out-passwords' } })
+    } else if (res !== null) {
       fallar(res, setStatus, espera)
     } else {
       setStatus({ kind: 'ok', msg: 'Password updated.' })
@@ -269,6 +272,7 @@ function ChangePassword({
  * (`defaultOpen`).
  */
 export function DeleteAccount({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  const navigate = useNavigate()
   const espera = useRetryWait()
   const [open, setOpen] = useState(defaultOpen)
   const [password, setPassword] = useState('')
@@ -286,6 +290,10 @@ export function DeleteAccount({ defaultOpen = false }: { defaultOpen?: boolean }
     setFieldError(null)
     setStatus({ kind: 'saving' })
     const res = await authCall(() => authClient.deleteUser({ password }))
+    if (res?.signedOut === true) {
+      navigate('/login', { state: { arrival: 'signed-out-passwords' } })
+      return
+    }
     if (res !== null) {
       fallar(res, setStatus, espera)
       return

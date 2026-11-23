@@ -1094,3 +1094,66 @@ describe('db: la 0055 deja aprobadas las cuentas de antes', () => {
     expect(audit!.n).toBe(0)
   }, 120_000)
 })
+
+/**
+ * LA 0056 (docs/cuenta.md §15.2 y §19.1): las columnas de E4 en `users` (15-b), `auth_limits` y los dos
+ * `UPDATE` que no se pueden deshacer, la IP de las sesiones vaciada y el nombre de hoy, `'Player'`.
+ */
+describe('db: la 0056, con datos y vacía', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('con datos: la IP vaciada, el nombre Player, el locale como estaba y las columnas nuevas en su defecto', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0055_auditoria_admin')))
+    const [u] = await t.client<{ id: string }[]>`
+      insert into users (email, name, locale) values ('antes@example.com', 'Ana', 'es') returning id`
+    await t.client`insert into sessions (token, expires_at, ip_address, user_id)
+      values ('tok', now() + interval '1 day', '203.0.113.7', ${u!.id})`
+    await t.detached((url) => runMigrations(url))
+
+    const [antes] = await t.client<Record<string, unknown>[]>`
+      select name, locale, device_epoch, notice_prefs, birth_date, away_since, away_until,
+             welcome_back_from, time_zone, terms_version, terms_accepted_at, email_undeliverable_at
+      from users where email = 'antes@example.com'`
+    expect(antes).toEqual({
+      name: 'Player',
+      locale: 'es',
+      device_epoch: 0,
+      notice_prefs: {},
+      birth_date: null,
+      away_since: null,
+      away_until: null,
+      welcome_back_from: null,
+      time_zone: null,
+      terms_version: null,
+      terms_accepted_at: null,
+      email_undeliverable_at: null,
+    })
+    const [sesion] = await t.client<{ ip_address: string }[]>`select ip_address from sessions`
+    expect(sesion!.ip_address).toBe('')
+
+    // una cuenta nueva nace en inglés; la ausencia va en pareja y termina después de empezar
+    await t.client`insert into users (email) values ('nueva@example.com')`
+    const [nueva] = await t.client<{ locale: string; name: string }[]>`
+      select locale, name from users where email = 'nueva@example.com'`
+    expect(nueva).toEqual({ locale: 'en', name: '' })
+    await expect(
+      t.client`update users set away_since = now() where email = 'nueva@example.com'`,
+    ).rejects.toThrow(/users_away_pair/)
+    await expect(
+      t.client`update users set away_since = now(), away_until = now() - interval '1 day'
+        where email = 'nueva@example.com'`,
+    ).rejects.toThrow(/users_away_pair/)
+    await t.client`update users set away_since = now(), away_until = now() + interval '7 days'
+      where email = 'nueva@example.com'`
+    const [limites] = await t.client<{ n: number }[]>`select count(*)::int as n from auth_limits`
+    expect(limites!.n).toBe(0)
+  }, 120_000)
+})

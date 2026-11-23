@@ -8,6 +8,14 @@ export { createDb, type Database, type DbClient } from './client.js'
 export { runMigrations } from './migrate.js'
 export { deleteUserVerifications } from './verifications.js'
 export {
+  type AttemptResult,
+  type AttemptRule,
+  bumpDeviceEpoch,
+  clearAttempts,
+  deviceOwnerByEmail,
+  reserveAttempt,
+} from './authLimits.js'
+export {
   DEFAULT_MAX_DAYS_PER_RUN,
   POISON_PILL_ATTEMPTS,
   GENESIS_WORLD_SEED,

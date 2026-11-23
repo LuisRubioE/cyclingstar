@@ -1,6 +1,8 @@
 import {
   type Database,
   accounts,
+  bumpDeviceEpoch,
+  clearAttempts,
   deleteUserVerifications,
   forgetAuditEmails,
   releaseUserToWorld,
@@ -14,6 +16,7 @@ import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { SESSION_EXPIRES_S, SESSION_UPDATE_AGE_S, type UserStatus } from '@cyclingstar/shared'
 import { resetPasswordEmail, verifyEmailEmail } from './emails.js'
+import { limitKeys } from './limitKeys.js'
 import type { Mailer } from './mailer.js'
 import { type MailQueue, mailQueue as colaDelProceso } from './mailQueue.js'
 import { AUTH_ALLOWED_PATHS } from './security.js'
@@ -22,7 +25,7 @@ import { AUTH_ALLOWED_PATHS } from './security.js'
  * Las recuperaciones de contraseña que acaban de terminar bien, por petición: `onPasswordReset`
  * apunta el correo de la cuenta en la misma `Request` que el proxy pasó a `auth.handler`
  * (better-auth la reenvía como `ctx.request`), y el proxy lo lee al ver el 200 (docs/cuenta.md
- * §5.4). Hoy solo se apunta; la cookie de aparato que se emite con él llega con el PR 6.
+ * §5.4) y emite a ese navegador su `cs_device` (§7.5).
  */
 export const resetRequests = new WeakMap<Request, string>()
 
@@ -150,6 +153,7 @@ export function createAuth(
   // Se llena al acabar de construir, con `auth.api` delante (ver `disabledAuthPaths`). better-auth
   // la lee en cada petición de la misma referencia que recibe.
   const disabledPaths: string[] = []
+  const claves = limitKeys(opts.secret)
   const auth = betterAuth({
     secret: opts.secret,
     baseURL: opts.baseURL,
@@ -184,6 +188,11 @@ export function createAuth(
       revokeSessionsOnPasswordReset: true,
       onPasswordReset: async ({ user }, request) => {
         await deleteUserVerifications(db, user.id)
+        // L1 a cero y el techo de L3 por cuenta también (§7.4): quien recupera sale del cierre aunque el
+        // atacante lo siga gastando, porque además recibe su `cs_device` (la emite el proxy al ver el
+        // 200). Y `device_epoch` sube: todas las `cs_device` de esta cuenta dejan de valer (§7.5).
+        await clearAttempts(db, [claves.acct(user.email), claves.pwu(user.id)])
+        await bumpDeviceEpoch(db, user.id)
         if (request) resetRequests.set(request, user.email)
       },
     },

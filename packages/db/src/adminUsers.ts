@@ -1,5 +1,5 @@
 import type { UserStatus } from '@cyclingstar/shared'
-import { and, asc, desc, eq, ilike, inArray, isNull, ne } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { type AdminAuditEntry, forgetAuditEmails, writeAdminAudit } from './adminAudit.js'
 import { addBlocked, removeBlocked } from './blocklist.js'
 import type { Database } from './client.js'
@@ -239,9 +239,14 @@ export async function updateUserAsAdmin(
       .update(users)
       .set({ ...set, updatedAt: new Date() })
       .where(eq(users.id, userId))
-    // `Sign out everywhere` (§5.5): hasta el PR 6 solo cierra las sesiones.
+    // `Sign out everywhere` (§5.5): cierra las sesiones y, desde el PR 6, sube `device_epoch`, así que
+    // ningún navegador sigue contando como aparato conocido de esa cuenta (§7.5).
     if (cambiaCorreo && patch.signOutEverywhere !== false) {
       await tx.delete(sessions).where(eq(sessions.userId, userId))
+      await tx
+        .update(users)
+        .set({ deviceEpoch: sql`${users.deviceEpoch} + 1` })
+        .where(eq(users.id, userId))
     }
     await writeAdminAudit(tx as unknown as Database, opts.actor, filas)
     return { ok: true }

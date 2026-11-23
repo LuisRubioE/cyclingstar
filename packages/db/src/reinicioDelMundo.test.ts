@@ -86,6 +86,9 @@ const POSTERIORES: readonly string[] = [
   // 0055_auditoria_admin (E4, PR 5): el registro del panel. No cuelga de ninguna tabla (sin clave ajena,
   // sobrevive al borrado del objetivo) y es de las cuentas, no del mundo: un reinicio no la toca.
   'admin_audit',
+  // 0056_cuenta_e4 (E4, PR 6): los límites de intento. Sin clave ajena y de las cuentas, no del mundo:
+  // un reinicio no la toca.
+  'auth_limits',
 ]
 
 /**

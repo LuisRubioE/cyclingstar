@@ -94,7 +94,7 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
     <section className="mx-auto grid max-w-form gap-4">
       <PageHeader title="Log in" status="Welcome back." />
       {arrival !== null && (
-        <Notice tone="good" title={arrival.title} role="status">
+        <Notice tone={arrival.tone ?? 'good'} title={arrival.title} role="status">
           {arrival.body}
         </Notice>
       )}
