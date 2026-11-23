@@ -21,6 +21,8 @@ export const LOCK_CLASS = {
   raceRoster: 3,
   /** Recálculo absoluto de los puntos de temporada de un mundo. */
   seasonPoints: 4,
+  /** Los avisos de UN usuario (clave = hash de su id): el tope del día y `notice_log` (docs/cuenta.md §13.7). */
+  notices: 5,
 } as const
 
 export type LockClass = (typeof LOCK_CLASS)[keyof typeof LOCK_CLASS]

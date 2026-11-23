@@ -2,6 +2,8 @@ import { startTestDb, type TestDb } from '@cyclingstar/db/test'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from './app.js'
 import { createAuth } from './auth.js'
+import { createMailQueue } from './mailQueue.js'
+import { createNotifier } from './push/deliver.js'
 
 /**
  * EL PANEL DE ADMINISTRACIÓN, DE PUNTA A PUNTA: sesión de verdad, base de verdad (PGlite).
@@ -67,10 +69,24 @@ describe('panel de administración, contra una base real', () => {
       ...(payload !== undefined ? { payload: JSON.stringify(payload) } : {}),
     })
 
+  const avisos = createMailQueue()
+  const recibidos: { kind: string; body: string }[] = []
+  let notifier: ReturnType<typeof createNotifier>
+
   beforeAll(async () => {
     // PGlite admite UNA sesión (testDb.ts), y el correo de better-auth sale en segundo plano.
     process.env.DB_POOL_MAX = '1'
     tdb = await startTestDb()
+    // `email_changed` (docs/cuenta.md §13.1; PR 14): un servicio de push de mentira que apunta lo recibido.
+    notifier = createNotifier({
+      db: tdb.db,
+      vapid: { publicKey: 'B'.repeat(87), privateKey: 'p'.repeat(43), subject: 'https://x.test' },
+      queue: avisos,
+      sender: async (_s, payload) => {
+        recibidos.push(JSON.parse(payload) as { kind: string; body: string })
+        return { statusCode: 201 }
+      },
+    })
     const auth = createAuth(tdb.db, {
       secret: 's'.repeat(32),
       baseURL: BASE,
@@ -84,6 +100,7 @@ describe('panel de administración, contra una base real', () => {
       db: tdb.db,
       auth,
       serveWeb: false,
+      notifier,
       adminToken: ADMIN_TOKEN,
       adminEmail: ROOT,
       onAdminTick: async () => ({ ran: true, daysProcessed: 1, currentDay: 1, durationMs: 1 }),
@@ -275,10 +292,19 @@ describe('panel de administración, contra una base real', () => {
     expect(await sesionesDe(ids.tercero!)).toBe(2)
     // el buzón viejo rebotaba (§9.3): con el correo nuevo, la marca se va (9-d)
     await tdb.client`update users set email_undeliverable_at = now() where id = ${ids.tercero!}`
+    // un aparato con avisos (§13.1): recibe `email_changed` aunque las sesiones se cierren, sin el correo
+    await tdb.client`insert into push_targets (user_id, channel, endpoint_hash, credential, label)
+      values (${ids.tercero!}, 'webpush', 'h-tercero', ${JSON.stringify({
+        endpoint: 'https://fcm.googleapis.com/fcm/send/tercero',
+        keys: { p256dh: 'K'.repeat(87), auth: 'a'.repeat(22) },
+      })}::jsonb, 'Chrome on Android')`
     const res = await como('dueno', 'PATCH', `/api/admin/users/${ids.tercero}`, {
       email: '  Nuevo.Tercero@Example.com ',
     })
     expect(res.statusCode).toBe(200)
+    await avisos.drain()
+    expect(recibidos.map((r) => r.kind)).toEqual(['email_changed'])
+    expect(JSON.stringify(recibidos)).not.toMatch(/tercero@example\.com/i)
     const [fila] = await tdb.client<
       { email: string; email_verified: boolean; email_undeliverable_at: Date | null }[]
     >`select email, email_verified, email_undeliverable_at from users where id = ${ids.tercero!}`

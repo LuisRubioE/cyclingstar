@@ -133,6 +133,12 @@ describe('POST /api/me/export (§10.5)', () => {
     await tdb.client`
       insert into email_log (kind, recipient_hash, user_id, status, resend_id)
       values ('verify_signup', 'hash-del-buzon', ${c.userId}, 'delivered', 'resend-123')`
+    // Un aparato con avisos (PR 14; 10-g): sale su nombre, nunca la dirección del servicio de push ni las claves.
+    await tdb.client`
+      insert into push_targets (user_id, session_id, channel, endpoint_hash, credential, label)
+      values (${c.userId}, ${c.sessionId}, 'webpush', 'hash-del-endpoint',
+        ${JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/secreto', keys: { p256dh: 'clave-p256', auth: 'clave-auth' } })}::jsonb,
+        'Chrome on Android')`
 
     const res = await exportar(c.cookie, BUENA)
     expect(res.statusCode).toBe(200)
@@ -152,7 +158,14 @@ describe('POST /api/me/export (§10.5)', () => {
       expect(Object.keys(datos.account)).not.toContain(fuera)
     expect(datos.devices).toHaveLength(1)
     expect(datos.devices[0]).toMatchObject({ current: true })
-    expect(datos.notificationDevices).toEqual([])
+    expect(datos.notificationDevices).toHaveLength(1)
+    expect(datos.notificationDevices[0]).toMatchObject({
+      channel: 'webpush',
+      label: 'Chrome on Android',
+      lastOkAt: null,
+    })
+    for (const fuera of ['fcm.googleapis.com', 'clave-p256', 'clave-auth', 'hash-del-endpoint'])
+      expect(body).not.toContain(fuera)
     expect(datos.racesFollowed).toHaveLength(1)
     expect(datos.rider.rider.name).toBe('Corredor Exportado')
     expect(datos.rider).toMatchObject({ plans: [], log: [], transactions: [], contract: null })
@@ -208,6 +221,4 @@ describe('POST /api/me/export (§10.5)', () => {
       /^cs_device=; Path=\/api\/auth; Max-Age=0/,
     )
   })
-
-  it.todo('notificationDevices lista los aparatos con avisos, sin credential (PR 14; 10-g)')
 })

@@ -11,6 +11,7 @@ export * from './account/constants.js'
 export * from './account/away.js'
 export * from './account/birthDate.js'
 export * from './account/deviceLabel.js'
+export * from './account/notices.js'
 // La retransmisión (E2), detrás de contracts.js: desde el 3a importa en ejecución esquemas de
 // contracts.js (`wire.ts`), que tiene que estar ya cargado (14-a).
 export * from './broadcast/index.js'

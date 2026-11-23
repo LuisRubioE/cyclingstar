@@ -1,7 +1,7 @@
 import { and, eq, isNull, lt, lte, notExists, or, sql } from 'drizzle-orm'
 import { deleteAccount } from './adminUsers.js'
 import type { Database } from './client.js'
-import { authLimits, emailLog, riders, teams, users, verifications } from './schema.js'
+import { authLimits, emailLog, noticeLog, riders, teams, users, verifications } from './schema.js'
 
 /**
  * LA PURGA (docs/cuenta.md §15.4 y §16.1; D-34, DD-17 A, 9-g, 15-c). La lanza `runTick` una vez por pasada
@@ -12,12 +12,15 @@ import { authLimits, emailLog, riders, teams, users, verifications } from './sch
 export const AUTH_LIMITS_RETENTION_DAYS = 2
 /** `email_log`: los rebotes se miran por semanas (§19.4). */
 export const EMAIL_LOG_RETENTION_DAYS = 90
+/** `notice_log`: ninguna `ref` de aviso vive más de 28 días (15-e). */
+export const NOTICE_LOG_RETENTION_DAYS = 90
 /** Una cuenta aprobada que no confirma en 7 días desde `approved_at` no se queda (DD-17 A). */
 export const PURGE_UNCONFIRMED_DAYS = 7
 
 export interface PurgeSummary {
   authLimits: number
   emailLog: number
+  noticeLog: number
   verifications: number
   /** Cuentas aprobadas sin confirmar borradas con `deleteAccount`. */
   accounts: number
@@ -30,8 +33,7 @@ const antesDe = (now: Date, dias: number): Date => new Date(now.getTime() - dias
  * Borra, con `DELETE` idempotentes: `auth_limits` con `window_start` y `day_start` de más de 2 días y sin
  * cierre vivo; `email_log` de más de 90; las `verifications` caducadas; y las cuentas aprobadas y sin
  * confirmar con `approved_at` de más de 7 días, sin corredor ni equipo, una a una por `deleteAccount` (§10.4).
- * Las `pending` no se purgan: las decide un administrador (§4.9, 9-g). `notice_log` (90 días) llega con su
- * tabla, en el PR 14.
+ * Las `pending` no se purgan: las decide un administrador (§4.9, 9-g). Y `notice_log` de más de 90 días.
  */
 export async function purgeAccounts(db: Database, now: Date): Promise<PurgeSummary> {
   const limites = antesDe(now, AUTH_LIMITS_RETENTION_DAYS)
@@ -49,6 +51,10 @@ export async function purgeAccounts(db: Database, now: Date): Promise<PurgeSumma
     .delete(emailLog)
     .where(lt(emailLog.createdAt, antesDe(now, EMAIL_LOG_RETENTION_DAYS)))
     .returning({ id: emailLog.id })
+  const fueraAvisos = await db
+    .delete(noticeLog)
+    .where(lt(noticeLog.sentAt, antesDe(now, NOTICE_LOG_RETENTION_DAYS)))
+    .returning({ kind: noticeLog.kind })
   const fueraEnlaces = await db
     .delete(verifications)
     .where(lt(verifications.expiresAt, now))
@@ -82,6 +88,7 @@ export async function purgeAccounts(db: Database, now: Date): Promise<PurgeSumma
   return {
     authLimits: fueraLimites.length,
     emailLog: fueraCorreos.length,
+    noticeLog: fueraAvisos.length,
     verifications: fueraEnlaces.length,
     accounts: cuentas,
   }

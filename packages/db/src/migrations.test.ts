@@ -1220,3 +1220,53 @@ describe('db: la 0057, con datos y vacía', () => {
     }
   }, 120_000)
 })
+
+/**
+ * LA 0058 (docs/cuenta.md §13 y §15.2): `push_targets` y `notice_log` nacen vacías; la sesión que caduca deja
+ * su aparato con `session_id` nulo (D-49) y la cuenta que se borra se los lleva en cascada.
+ */
+describe('db: la 0058, con datos', () => {
+  let t: TestDb
+
+  beforeAll(async () => {
+    t = await startEmptyTestDb()
+  }, 120_000)
+
+  afterAll(async () => {
+    await t?.close()
+  })
+
+  it('nacen vacías, el endpoint es único, la sesión se suelta y la cuenta se las lleva', async () => {
+    await t.detached((url) => runMigrations(url, copiaCortada('0057_correo')))
+    const [u] = await t.client<{ id: string }[]>`
+      insert into users (email, status) values ('avisos@example.com', 'approved') returning id`
+    await t.detached((url) => runMigrations(url))
+    for (const tabla of ['push_targets', 'notice_log']) {
+      const [n] = await t.client<{ n: number }[]>`select count(*)::int as n from ${t.client(tabla)}`
+      expect(n!.n).toBe(0)
+    }
+    const [s] = await t.client<{ id: string }[]>`
+      insert into sessions (token, expires_at, user_id) values ('tok', now(), ${u!.id}) returning id`
+    await t.client`insert into push_targets (user_id, session_id, channel, endpoint_hash, credential, label)
+      values (${u!.id}, ${s!.id}, 'webpush', 'h1', '{}'::jsonb, 'Chrome on Android')`
+    await expect(
+      t.client`insert into push_targets (user_id, channel, endpoint_hash, credential, label)
+        values (${u!.id}, 'fcm', 'h1', '{}'::jsonb, 'x')`,
+    ).rejects.toThrow(/push_targets_endpoint_hash_unique/)
+    await t.client`insert into notice_log (user_id, kind, ref) values (${u!.id}, 'away_over', 'r')`
+    await expect(
+      t.client`insert into notice_log (user_id, kind, ref) values (${u!.id}, 'away_over', 'r')`,
+    ).rejects.toThrow(/notice_log_once/)
+
+    await t.client`delete from sessions where id = ${s!.id}`
+    const [fila] = await t.client<
+      { session_id: string | null }[]
+    >`select session_id from push_targets`
+    expect(fila!.session_id).toBeNull()
+
+    await t.client`delete from users where id = ${u!.id}`
+    const [quedan] = await t.client<{ n: number }[]>`
+      select (select count(*) from push_targets) + (select count(*) from notice_log) as n`
+    expect(Number(quedan!.n)).toBe(0)
+  }, 120_000)
+})

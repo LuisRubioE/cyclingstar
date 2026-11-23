@@ -20,6 +20,7 @@ import {
   setUserPremiumAsAdmin,
   teamOwnerOf,
   teamsOfTheDay,
+  pushTargetsOf,
   updateUserAsAdmin,
   worldHorizon,
   writeAdminAudit,
@@ -163,6 +164,12 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       ) {
         return sendError(reply, 409, 'es_el_admin_raiz')
       }
+      // `email_changed` (§13.1; 13-k): las suscripciones se leen antes de cambiar el correo, y el aviso sale
+      // a ellas, en segundo plano, si el cambio se hizo. No lleva el correo nuevo ni el viejo.
+      const avisar =
+        patch.data.email !== undefined && ctx.notifier?.enabled === true
+          ? await pushTargetsOf(db, id.data)
+          : null
       const out = await updateUserAsAdmin(db, id.data, patch.data, {
         actor: actorId(actor),
         rootEmail,
@@ -171,6 +178,8 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
         if (out.reason === 'no_existe') return notFound(reply)
         return sendError(reply, out.reason === 'admin_email_fijo' ? 400 : 409, out.reason)
       }
+      if (out.emailChanged === true && avisar !== null)
+        ctx.notifier?.security(id.data, { kind: 'email_changed' }, avisar)
       return { ok: true }
     },
   )

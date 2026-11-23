@@ -19,6 +19,55 @@ const MAIL_FROM_RE =
 const timelineRecordSchema = z.enum(['off', 'on']).default('on')
 
 /**
+ * LAS TRES DE LOS AVISOS (docs/cuenta.md §13.6; D-46, D-47): la clave pública VAPID (65 bytes en base64url,
+ * 87 caracteres), la privada (32 bytes, 43) y el sujeto (`https:` o `mailto:`). Opcionales y en trío: sin
+ * las tres no se envía nada, `GET /api/me/notices` dice `enabled: false` y la web oculta los avisos. Se
+ * generan una vez (`web-push generate-vapid-keys`) y no se rotan sin decirlo: cambiar la clave rompe todas
+ * las suscripciones (docs/ops.md). Las leen `web` y `tick`: el barrido corre en los dos.
+ */
+const vapidShape = {
+  VAPID_PUBLIC_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{87}$/, 'VAPID_PUBLIC_KEY debe ser la clave pública en base64url (87)')
+    .optional(),
+  VAPID_PRIVATE_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{43}$/, 'VAPID_PRIVATE_KEY debe ser la clave privada en base64url (43)')
+    .optional(),
+  VAPID_SUBJECT: z
+    .string()
+    .regex(/^(https:\/\/|mailto:)\S+$/, 'VAPID_SUBJECT debe empezar por https:// o mailto:')
+    .optional(),
+}
+type VapidVars = {
+  VAPID_PUBLIC_KEY?: string | undefined
+  VAPID_PRIVATE_KEY?: string | undefined
+  VAPID_SUBJECT?: string | undefined
+}
+/** Las tres o ninguna. */
+const vapidTrio = (env: VapidVars): boolean => {
+  const n = [env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY, env.VAPID_SUBJECT].filter(
+    (v) => v !== undefined,
+  ).length
+  return n === 0 || n === 3
+}
+const VAPID_TRIO = {
+  path: ['VAPID_PUBLIC_KEY'],
+  message: 'VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY y VAPID_SUBJECT van las tres juntas',
+}
+
+/** Las claves VAPID, o null sin ellas (los avisos apagados). */
+export interface Vapid {
+  readonly publicKey: string
+  readonly privateKey: string
+  readonly subject: string
+}
+export function vapidOf(env: VapidVars): Vapid | null {
+  const { VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_KEY: privateKey, VAPID_SUBJECT: subject } = env
+  return publicKey && privateKey && subject ? { publicKey, privateKey, subject } : null
+}
+
+/**
  * Validación Zod de las variables de entorno en el borde de arranque (CLAUDE.md).
  * PORT lo inyecta Railway; DATABASE_URL es obligatoria desde el Paso 6.
  * APP_URL y SESSION_SECRET los usa better-auth (Paso 9).
@@ -101,7 +150,9 @@ const envSchema = z
       .int()
       .min(MAIL_RESET_RESERVE + 1, `MAIL_DAILY_BUDGET debe ser al menos ${MAIL_RESET_RESERVE + 1}`)
       .default(MAIL_DAILY_BUDGET_DEFAULT),
+    ...vapidShape,
   })
+  .refine(vapidTrio, VAPID_TRIO)
   .refine((env) => !(env.RESEND_API_KEY && !env.MAIL_FROM), {
     path: ['MAIL_FROM'],
     message: 'MAIL_FROM es obligatoria cuando hay RESEND_API_KEY',
@@ -117,11 +168,14 @@ export type Env = z.infer<typeof envSchema>
  * Entorno mínimo del proceso de tick (servicio cron): no necesita APP_URL ni secretos de
  * sesión, así que su servicio en Railway solo requiere DATABASE_URL.
  */
-const tickEnvSchema = z.object({
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
-  TICK_INTERVAL_MINUTES: z.coerce.number().int().positive().default(360),
-  TIMELINE_RECORD: timelineRecordSchema,
-})
+const tickEnvSchema = z
+  .object({
+    DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
+    TICK_INTERVAL_MINUTES: z.coerce.number().int().positive().default(360),
+    TIMELINE_RECORD: timelineRecordSchema,
+    ...vapidShape,
+  })
+  .refine(vapidTrio, VAPID_TRIO)
 
 export type TickEnv = z.infer<typeof tickEnvSchema>
 

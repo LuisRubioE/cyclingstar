@@ -3,10 +3,15 @@ import {
   bumpDeviceEpoch,
   clearAttempts,
   type EmailKind,
+  type PushTargetRow,
+  deletePushTargetsById,
+  deletePushTargetsOfSessions,
   deviceOwnerByEmail,
+  pushTargetsOf,
   reserveAttempt,
+  takePushTargets,
 } from '@cyclingstar/db'
-import type { UserStatus } from '@cyclingstar/shared'
+import { type UserStatus, deviceLabel } from '@cyclingstar/shared'
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import { type Auth, resetRequests } from '../auth.js'
 import { clientIp, ipBucket } from '../clientIp.js'
@@ -14,6 +19,7 @@ import { createDeviceCookies } from '../deviceCookie.js'
 import { apiError, unauthorized } from '../http.js'
 import { limitKeys } from '../limitKeys.js'
 import { MAIL_BUDGET_EXHAUSTED_BODY, mailBudgetOpen } from '../mailBudget.js'
+import type { Notifier } from '../push/deliver.js'
 import {
   PASSWORD_ATTEMPTS_LOCKED_MESSAGE,
   failureClosesSession,
@@ -42,6 +48,8 @@ export interface AuthProxyContext {
   db?: Database
   /** `MAIL_DAILY_BUDGET` (§7.6), para el 503 `MAIL_BUDGET_EXHAUSTED`. Por defecto, 90. */
   mailDailyBudget?: number
+  /** Los avisos de seguridad (docs/cuenta.md §13.7; 13-k, 13-l): `new_sign_in` y `password_changed`. */
+  notifier?: Notifier
 }
 
 /**
@@ -220,8 +228,18 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
     /** Las `Set-Cookie` propias que se añaden a la respuesta. */
     const cookiesPropias: string[] = []
     let correoEntrada: string | null = null
+    /** Si el navegador traía una `cs_device` válida para ese correo: sin ella, `new_sign_in` (§7.5). */
+    let aparatoConocido = false
     /** L3: la sesión que pide la contraseña y cuántas lleva hoy (para cerrarla al décimo fallo). */
-    let sesionL3: { token: string; userId: string; email: string; dayCount: number } | null = null
+    let sesionL3: {
+      token: string
+      id: string
+      userId: string
+      email: string
+      dayCount: number
+    } | null = null
+    /** Al cambiar la contraseña, las suscripciones leídas antes de reenviar (13-l). */
+    let avisosAntes: readonly PushTargetRow[] = []
 
     if (db !== undefined && ruta === SIGN_IN_PATH) {
       correoEntrada = correoDe(request.body)
@@ -231,6 +249,7 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
         const entrada = devices.validFor(devices.read(request.headers.cookie), correoEntrada, dueño)
         let pasa = false
         if (entrada !== null) {
+          aparatoConocido = true
           const clave = keys.dev(entrada.nonce)
           alAcertar.push(clave)
           pasa = (await reserveAttempt(db, clave, DEVICE_FAILS, ahora)).allowed
@@ -289,11 +308,15 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
         }
         sesionL3 = {
           token: sesion.session.token,
+          id: sesion.session.id,
           userId: sesion.user.id,
           email: sesion.user.email,
           dayCount: r.dayCount,
         }
         alAcertar.push(...r.keys)
+        // Antes de reenviar: con el 200, better-auth borra las otras sesiones y sus filas quedarían con
+        // `session_id` nulo, sin poder distinguirlas de las de sesión caducada (13-l).
+        if (ruta === CHANGE_PASSWORD_PATH) avisosAntes = await pushTargetsOf(db, sesion.user.id)
       }
     }
 
@@ -321,7 +344,32 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
           cookiesPropias.push(
             devices.issue(devices.read(request.headers.cookie), correoCookie, dueño),
           )
+          // LOS AVISOS DE SEGURIDAD (§13.7; 13-k), en segundo plano. Al entrar sin `cs_device` válida para
+          // ese correo, `new_sign_in` a todas las filas de la cuenta. Al recuperar, se borran todas y
+          // `password_changed` sale a esa copia: quien recupera no hereda las de un intruso (5-d).
+          if (ruta === SIGN_IN_PATH && !aparatoConocido)
+            ctx.notifier?.security(dueño.id, {
+              kind: 'new_sign_in',
+              deviceLabel: deviceLabel(request.headers['user-agent']),
+            })
+          if (ruta === RESET_PASSWORD_PATH) {
+            const quitadas = await takePushTargets(db, dueño.id)
+            ctx.notifier?.security(dueño.id, { kind: 'password_changed' }, quitadas)
+          }
         }
+      }
+      // Al cambiar la contraseña (13-l): las de las otras sesiones se borran y reciben el aviso, las de sesión
+      // nula lo reciben y se quedan, y la de este navegador no lo recibe.
+      if (ruta === CHANGE_PASSWORD_PATH && sesionL3 !== null) {
+        const propia = sesionL3.id
+        const otras = avisosAntes.filter((t) => t.sessionId !== null && t.sessionId !== propia)
+        await deletePushTargetsById(
+          db,
+          otras.map((t) => t.id),
+        )
+        const reciben = avisosAntes.filter((t) => t.sessionId !== propia)
+        if (reciben.length > 0)
+          ctx.notifier?.security(sesionL3.userId, { kind: 'password_changed' }, reciben)
       }
     } else if (
       db !== undefined &&
@@ -409,8 +457,8 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
    * la cuenta con `revokeOtherSessions`, sube `device_epoch` (las `cs_device` de los otros navegadores dejan
    * de valer), borra las claves `pw:` de las sesiones cerradas y reemite la `cs_device` de este navegador
    * con el epoch nuevo, sin tocar las entradas de las otras cuentas. Ruta propia de Fastify: vive bajo
-   * `/api/auth` porque la cookie lleva `Path=/api/auth`. Los `push_targets` de las otras sesiones se borrarán
-   * aquí cuando existan (PR 14; I-25).
+   * `/api/auth` porque la cookie lleva `Path=/api/auth`. Antes borra los `push_targets` de las otras sesiones
+   * (I-25).
    */
   app.post(
     '/api/auth/devices/sign-out-others',
@@ -422,6 +470,12 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
       const otras = (await auth.api.listSessions({ headers })).filter(
         (s) => s.token !== sesion.session.token,
       )
+      // Sus avisos, antes que las sesiones: después quedarían con `session_id` nulo (I-25).
+      if (db !== undefined)
+        await deletePushTargetsOfSessions(
+          db,
+          otras.map((s) => s.id),
+        )
       await auth.api.revokeOtherSessions({ headers })
       if (db !== undefined) {
         await bumpDeviceEpoch(db, sesion.user.id)

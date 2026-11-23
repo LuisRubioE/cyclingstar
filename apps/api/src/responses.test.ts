@@ -149,6 +149,11 @@ const EN_SU_TEST: Readonly<Record<string, string>> = {
   'PUT /api/me/birth-date': 'birthDate.test.ts',
   // cerrar otra sesión pide una segunda sesión de la cuenta; su 200 lo pide el test de los aparatos (PR 11)
   'DELETE /api/me/devices/:id': 'devices.test.ts',
+  // los avisos piden las tres VAPID y un servicio de push de mentira; los cubre su test (PR 14)
+  'POST /api/me/push-targets': 'notices.test.ts',
+  'DELETE /api/me/push-targets/:id': 'notices.test.ts',
+  'PUT /api/me/notices': 'notices.test.ts',
+  'POST /api/me/notices/:kind/off': 'notices.test.ts',
   // la ausencia y Welcome back: sus 200 los pide su test, contra una base real (PR 13 de E4)
   'PUT /api/me/away': 'away.test.ts',
   'DELETE /api/me/away': 'away.test.ts',

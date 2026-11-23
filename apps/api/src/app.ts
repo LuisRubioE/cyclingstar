@@ -27,6 +27,8 @@ import type { Auth } from './auth.js'
 import type { GeoIpLookup } from './geoIp.js'
 import { registerBirthDateGate } from './birthDateGate.js'
 import { apiError } from './http.js'
+import { mailQueue } from './mailQueue.js'
+import { type Notifier, disabledNotifier } from './push/deliver.js'
 import { adminRoutes, verificationSender } from './routes/admin.js'
 import { clientIp, ipBucket } from './clientIp.js'
 import { accountVerifyRoutes } from './routes/accountVerify.js'
@@ -38,6 +40,7 @@ import { geoRoutes } from './routes/geo.js'
 import { healthRoutes } from './routes/health.js'
 import { meRoutes } from './routes/me.js'
 import { meAccountRoutes } from './routes/meAccount.js'
+import { noticeRoutes } from './routes/notices.js'
 import { raceRoutes } from './routes/races.js'
 import { rankingRoutes } from './routes/rankings.js'
 import { riderRoutes } from './routes/riders.js'
@@ -120,6 +123,11 @@ export interface AppDeps {
    * de la base. Los tests con una base fingida lo fingen.
    */
   hasBirthDate?: (userId: string) => Promise<boolean | null>
+  /**
+   * Quien manda los avisos (docs/cuenta.md §13.6): `index.ts` lo crea con las VAPID. Sin él, uno apagado: no
+   * se envía nada y `GET /api/me/notices` dice `enabled: false`.
+   */
+  notifier?: Notifier
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -329,6 +337,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // País por IP (Paso 14): sin sesión ni base de datos, la pide la pantalla de creación de corredor.
   void app.register(geoRoutes, { ...(deps.geoLookup ? { lookup: deps.geoLookup } : {}) })
 
+  // Los avisos (docs/cuenta.md §13): apagados sin las VAPID.
+  const notifier = deps.notifier ?? (deps.db ? disabledNotifier(deps.db, mailQueue) : undefined)
+
   // Rutas de admin: necesitan base de datos (lista de bloqueo, censo, premium) y el token.
   if (deps.db) {
     void app.register(adminRoutes, {
@@ -339,6 +350,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       ...(deps.onAdminAdvance ? { onAdminAdvance: deps.onAdminAdvance } : {}),
       ...(deps.auth ? { sendVerification: verificationSender(deps.auth) } : {}),
       ...(deps.mailDailyBudget !== undefined ? { mailDailyBudget: deps.mailDailyBudget } : {}),
+      ...(notifier ? { notifier } : {}),
     })
   }
 
@@ -362,6 +374,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       ...(statusDb ? { statusByEmail: (email: string) => userStatusOf(statusDb, { email }) } : {}),
       ...(deps.secureCookies !== undefined ? { secureCookies: deps.secureCookies } : {}),
       ...(deps.mailDailyBudget !== undefined ? { mailDailyBudget: deps.mailDailyBudget } : {}),
+      ...(notifier ? { notifier } : {}),
     })
     // El botón de `VerifyEmail`: el token en el cuerpo, no en la URL (docs/cuenta.md §5.2; 5-h).
     void app.register(accountVerifyRoutes, { auth: deps.auth })
@@ -374,6 +387,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       auth: deps.auth,
       currentUserId: currentUserId ?? createCurrentUserId(deps.auth),
       requireAdmin,
+      ...(notifier ? { notifier } : {}),
       // La memoria de lo alcanzado de este proceso (D-55, §10.3): una por app. Lo que el barrido escribe
       // sin esperar, si falla, se apunta y no tumba el proceso (10-k).
       progress: new ProgressMemory({
@@ -395,6 +409,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     void app.register(meRoutes, ctx)
     // La cuenta: `birthDateSet` y dar la fecha (docs/cuenta.md §4.5; PR 9 de E4).
     void app.register(meAccountRoutes, ctx)
+    // Los avisos (§13.6): los aparatos, las casillas y la baja de un toque. PR 14 de E4.
+    void app.register(noticeRoutes, ctx)
     void app.register(calendarRoutes, ctx)
     void app.register(rankingRoutes, ctx)
     if (deps.onAdminAdvance) {

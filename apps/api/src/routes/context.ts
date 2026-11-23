@@ -2,6 +2,7 @@ import type { Database, ProgressMemory, TickSummary } from '@cyclingstar/db'
 import { SESSION_MAX_AGE_DAYS } from '@cyclingstar/shared'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import type { Auth } from '../auth.js'
+import type { Notifier } from '../push/deliver.js'
 import type { AdminGuard } from '../security.js'
 
 /** Convierte las cabeceras de una petición Fastify en un objeto Headers estándar. */
@@ -35,6 +36,11 @@ export interface RouteContext {
    * los tramos. Una por app, con el umbral de `PROGRESS_MIN_DELTA_S`.
    */
   progress: ProgressMemory
+  /**
+   * Quien manda los avisos (docs/cuenta.md §13.6). Sin las tres VAPID, apagado: `GET /api/me/notices` dice
+   * `enabled: false` y nadie se suscribe.
+   */
+  notifier?: Notifier
 }
 
 /** Contexto de las rutas de admin: base de datos y la guarda (que ya resuelve token o sesión). */
@@ -52,6 +58,8 @@ export interface AdminRouteContext {
   sendVerification?: (email: string) => Promise<void>
   /** `MAIL_DAILY_BUDGET` (§7.6): aprobar con el día gastado da 503 y no cambia nada. Por defecto, 90. */
   mailDailyBudget?: number
+  /** El aviso `email_changed` al cambiar el correo de una cuenta (§5.5; 13-k). */
+  notifier?: Notifier
 }
 
 /** Un plugin de rutas de dominio. */
