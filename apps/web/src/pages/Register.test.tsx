@@ -117,3 +117,36 @@ describe('mirar el correo (§17.21; PR 21j)', () => {
     expect(pieza(fallo, 'Button', 'Send it again')).toMatch(/data-state="ready"/)
   })
 })
+
+describe('Register y CheckInbox en E4 (docs/cuenta.md §5.3 y §12.3; PR 1)', () => {
+  it('con el correo que espera (cs.pendingEmail), CheckInbox y no el formulario: sobrevive a recargar', () => {
+    const html = pinta({ pending: 'ana@example.com' })
+    expect(titulo(html)).toBe('Check your inbox')
+    expect(html).toContain('ana@example.com')
+    expect(html).not.toContain('<form')
+  })
+
+  it('CheckInbox: Start again, y la línea de quien ya tenía cuenta', () => {
+    const html = pintaEn('/register', <CheckInbox email="ana@example.com" />)
+    expect(html).toContain('Wrong address?')
+    expect(pieza(html, 'Button', 'Start again')).toMatch(/data-variant="quiet"/)
+    expect(html).toContain(
+      'Already have an account with this email? Nothing is sent: log in or reset your password.',
+    )
+  })
+
+  it('reenviar tras un 429: el botón espera con su cuenta atrás', () => {
+    const html = pintaEn(
+      '/register',
+      <CheckInbox email="ana@example.com" initialResend="failed" initialWaitS={238} />,
+    )
+    expect(html).toContain('You can try again in 3:58.')
+  })
+
+  it('crear la cuenta tras un 429: el botón deshabilitado con su cuenta atrás; la contraseña con Show', () => {
+    const html = pinta({ waitS: 60 })
+    expect(html).toContain('You can try again in 1:00.')
+    expect(html).toMatch(/<button [^>]*type="submit"[^>]*aria-disabled="true"/)
+    expect(campo(pinta(), 'register-password')).toMatch(/aria-pressed="false"[^>]*>Show</)
+  })
+})

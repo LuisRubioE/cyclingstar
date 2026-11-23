@@ -296,6 +296,8 @@ describe('borrar la cuenta, abierto (§17.21; PR 21f)', () => {
     const markup = abierto()
     expect(markup).toMatch(/<form[^>]*>[\s\S]*data-ui="Field"[\s\S]*<\/form>/)
     expect(markup).toMatch(/<label for="delete-pw"[^>]*>Password<\/label>/)
+    // con Show (docs/cuenta.md §12.5)
+    expect(markup).toMatch(/aria-controls="delete-pw"[^>]*>Show</)
     expect(markup).toMatch(
       /<input id="delete-pw"[^>]*type="password"[^>]*autoComplete="current-password"/,
     )

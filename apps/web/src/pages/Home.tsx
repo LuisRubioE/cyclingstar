@@ -4,6 +4,7 @@ import {
   seasonPosition,
   stageRouteText,
 } from '@cyclingstar/shared'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
@@ -32,6 +33,7 @@ import { LoadingState, QueryView, type QueryViewProps } from '../components/ui/Q
 import { StarRating } from '../components/ui/StarRating'
 import { Stat } from '../components/ui/Stat'
 import { TextLink } from '../components/ui/TextLink'
+import { clearStoredArrival, readStoredArrival } from '../domain/arrivals'
 import { conditionLabel, conditionLevel } from '../domain/condition'
 import { type DashboardAction, buildDashboard } from '../domain/dashboard'
 import { gapToWinnerText, raceVerdict } from '../domain/narration'
@@ -96,10 +98,20 @@ function SystemStatus() {
  */
 function GuestHome() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
+  // el final de borrar la cuenta, que llega tras una recarga entera (docs/cuenta.md §12.4)
+  const [arrival] = useState(readStoredArrival)
+  useEffect(() => {
+    if (arrival !== null) clearStoredArrival()
+  }, [arrival])
   return (
     <section className="space-y-4">
       <Logo size={96} />
       <PageHeader title="Race. Train. Rise." />
+      {arrival !== null && (
+        <Notice tone="good" title={arrival.title} role="status">
+          {arrival.body}
+        </Notice>
+      )}
       {/* Bajo la cabecera, como todo aviso de página (4-e). Solo con el velo para todos: con `admins`, un
           invitado no lo tiene, y preguntar por su cookie sería una petición más en cada portada de invitado. */}
       {health.data?.features?.spoilerMode === 'on' && <CookieReaderNotice />}

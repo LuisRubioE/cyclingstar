@@ -31,6 +31,9 @@ describe('la contraseña nueva (§17.21; PR 21j)', () => {
     expect(campo(html, 'reset-confirm')).toMatch(
       />Repeat it<\/label>[\s\S]*autoComplete="new-password"/,
     )
+    // las dos, con Show (docs/cuenta.md §12.5)
+    expect(nueva).toMatch(/aria-pressed="false"[^>]*>Show</)
+    expect(campo(html, 'reset-confirm')).toMatch(/aria-pressed="false"[^>]*>Show</)
     expect(pieza(html, 'Button', 'Save my new password')).toMatch(
       /^<button [^>]*type="submit"[^>]*data-variant="primary" data-state="ready"/,
     )
@@ -56,7 +59,9 @@ describe('la contraseña nueva (§17.21; PR 21j)', () => {
   it('el enlace que ya no vale: lo que pasó, en role="alert", y pedir otro, un Button primary que enlaza', () => {
     const html = pinta('?error=TOKEN_EXPIRED')
     expect(respuestas(html)).toBe(1)
-    expect(html).toMatch(/<p role="alert"[^>]*>That link has expired/)
+    expect(html).toMatch(
+      /<p role="alert"[^>]*>This link has expired or has already been used\.<\/p>/,
+    )
     expect(pieza(html, 'Button', 'Ask for a new link')).toMatch(
       /^<a [^>]*data-variant="primary"[^>]*href="\/forgot-password"/,
     )

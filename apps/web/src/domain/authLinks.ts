@@ -1,3 +1,5 @@
+import { authErrorText } from './authErrors'
+
 /**
  * Lectura de los enlaces que llegan POR CORREO.
  *
@@ -21,10 +23,10 @@ export type LinkOutcome =
  */
 export function authErrorMessage(code: string): string {
   switch (code) {
+    // el caducado y el ya usado, con el texto de la tabla única (docs/cuenta.md §12.3)
     case 'TOKEN_EXPIRED':
-      return 'That link has expired — they are only valid for one hour. Ask for a new one.'
     case 'INVALID_TOKEN':
-      return 'That link is not valid any more. Ask for a new one.'
+      return authErrorText({ code }, 400, null) ?? ''
     case 'USER_NOT_FOUND':
       return 'That account no longer exists.'
     case 'EMAIL_ALREADY_VERIFIED':

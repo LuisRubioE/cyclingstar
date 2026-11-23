@@ -96,3 +96,37 @@ describe('entrar (§17.21; PR 21j)', () => {
     expect(html).not.toContain('rounded-2xl')
   })
 })
+
+describe('Login en E4 (docs/cuenta.md §12.3 y §12.4; PR 1)', () => {
+  it('tras un 429: lo que dice el traductor, y el botón deshabilitado con su cuenta atrás', () => {
+    const html = pinta({
+      error: 'Too many attempts from this connection. Try again in 45 seconds.',
+      waitS: 45,
+    })
+    expect(html).toMatch(
+      /<p role="alert"[^>]*>Too many attempts from this connection\. Try again in 45 seconds\.<\/p>/,
+    )
+    expect(html).not.toContain('Wrong email or password.')
+    expect(html).toContain('You can try again in 0:45.')
+    expect(html).toMatch(/<button [^>]*type="submit"[^>]*aria-disabled="true"/)
+  })
+
+  it('llegando de guardar la contraseña nueva: el final, un Notice good en role="status"', () => {
+    const html = pinta({
+      arrival: {
+        title: 'Password saved',
+        body: 'Log in with your new password. You have been signed out everywhere else.',
+      },
+    })
+    const aviso = pieza(html, 'Notice', 'Password saved')
+    expect(aviso).toMatch(/data-variant="good"[^>]*role="status"/)
+    expect(aviso).toContain(
+      'Log in with your new password. You have been signed out everywhere else.',
+    )
+    expect(pinta()).not.toContain('Password saved')
+  })
+
+  it('la contraseña, con Show (reveal)', () => {
+    expect(campo(pinta(), 'login-password')).toMatch(/<button [^>]*aria-pressed="false"[^>]*>Show</)
+  })
+})

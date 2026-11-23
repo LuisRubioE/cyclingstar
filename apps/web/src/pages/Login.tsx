@@ -1,12 +1,15 @@
 import { type FormEvent, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { authCall, useRetryWait } from '../auth/authCall'
 import { authClient } from '../auth/client'
+import { clearPendingEmail } from '../auth/pendingEmail'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
 import { Notice } from '../components/ui/Notice'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { TextLink } from '../components/ui/TextLink'
+import { type Arrival, arrivalOf } from '../domain/arrivals'
 import { type FieldProblem, loginProblem } from '../domain/entryForms'
 
 /**
@@ -24,10 +27,17 @@ interface LoginState {
   readonly error: string | null
   /** el correo al que fue el enlace nuevo, el del envío; null, sin aviso */
   readonly unverified: string | null
+  /** el aviso de llegada (docs/cuenta.md §12.4): el de la contraseña nueva; si no, el del estado del router */
+  readonly arrival: Arrival | null
+  /** los segundos que quedan tras un 429 */
+  readonly waitS: number
 }
 
 export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const arrival = initial.arrival ?? arrivalOf(location.state)
+  const espera = useRetryWait(initial.waitS)
   const [email, setEmail] = useState(initial.email ?? '')
   const [password, setPassword] = useState('')
   const [problem, setProblem] = useState(initial.problem ?? null)
@@ -49,18 +59,22 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
     setProblem(falta)
     if (falta !== null) return
     setLoading(true)
-    const result = await authClient.signIn.email({ email, password })
+    const fallo = await authCall(() => authClient.signIn.email({ email, password }))
     setLoading(false)
-    if (result.error) {
+    if (fallo !== null) {
       // Sin correo confirmado no se entra. El servidor ya ha mandado un enlace nuevo al rechazar
       // el intento (`sendOnSignIn`), así que aquí sólo hay que decirlo.
-      if (result.error.code === 'EMAIL_NOT_VERIFIED') {
+      if (fallo.code === 'EMAIL_NOT_VERIFIED') {
         setUnverified(email)
         return
       }
-      setError(result.error.message ?? 'Wrong email or password.')
+      // un 429 dice cuánto esperar, nunca «contraseña mala» (§12.3, captura 35)
+      setError(fallo.text)
+      if (fallo.retryAfterS !== null) espera.start(fallo.retryAfterS, () => setError(null))
       return
     }
+    // ya entró: el correo que esperaba confirmación deja de esperar (CheckInbox)
+    clearPendingEmail()
     navigate('/me/profile')
   }
 
@@ -70,6 +84,11 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
   return (
     <section className="mx-auto grid max-w-form gap-4">
       <PageHeader title="Log in" status="Welcome back." />
+      {arrival !== null && (
+        <Notice tone="good" title={arrival.title} role="status">
+          {arrival.body}
+        </Notice>
+      )}
       <Panel ariaLabel="Your email and password" answer>
         <form onSubmit={onSubmit} className="grid gap-3">
           <Field
@@ -91,6 +110,7 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
             id="login-password"
             label="Password"
             autoComplete="current-password"
+            reveal
             value={password}
             onChange={(v) => {
               setPassword(v)
@@ -111,7 +131,13 @@ export function Login({ initial = {} }: { initial?: Partial<LoginState> } = {}) 
           <TextLink to="/forgot-password" layout="justify-self-end">
             Forgot your password?
           </TextLink>
-          <Button variant="primary" type="submit" busy={loading} busyLabel="Logging in…">
+          <Button
+            variant="primary"
+            type="submit"
+            busy={loading}
+            busyLabel="Logging in…"
+            {...espera.button}
+          >
             Log in
           </Button>
         </form>

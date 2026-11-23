@@ -53,14 +53,13 @@ describe('authErrorMessage', () => {
     expect(authErrorMessage('ALGO_NUEVO')).toContain('Ask for a new one')
   })
 
+  it('el enlace caducado y el ya usado, con el texto de authErrorText (docs/cuenta.md §12.3)', () => {
+    for (const code of ['TOKEN_EXPIRED', 'INVALID_TOKEN'])
+      expect(authErrorMessage(code)).toBe('This link has expired or has already been used.')
+  })
+
   it('cada código conocido dice algo distinto', () => {
-    const codes = [
-      'TOKEN_EXPIRED',
-      'INVALID_TOKEN',
-      'USER_NOT_FOUND',
-      'EMAIL_ALREADY_VERIFIED',
-      'INVALID_USER',
-    ]
+    const codes = ['INVALID_TOKEN', 'USER_NOT_FOUND', 'EMAIL_ALREADY_VERIFIED', 'INVALID_USER']
     expect(new Set(codes.map(authErrorMessage)).size).toBe(codes.length)
   })
 })

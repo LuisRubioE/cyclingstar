@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { authCall, useRetryWait } from '../auth/authCall'
 import { authClient } from '../auth/client'
 import { Button } from '../components/ui/Button'
 import { Field } from '../components/ui/Field'
@@ -22,6 +23,8 @@ import { type FieldProblem, newPasswordProblem } from '../domain/entryForms'
 interface ResetState {
   readonly problem: FieldProblem<'password' | 'confirm'> | null
   readonly error: string | null
+  /** los segundos que quedan tras un 429 */
+  readonly waitS: number
 }
 
 export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> } = {}) {
@@ -32,6 +35,7 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
   const [problem, setProblem] = useState(initial.problem ?? null)
   const [error, setError] = useState<string | null>(initial.error ?? null)
   const [loading, setLoading] = useState(false)
+  const espera = useRetryWait(initial.waitS)
 
   // el foco, al campo que falta: su error se oye con él
   useEffect(() => {
@@ -46,14 +50,18 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
     setProblem(falta)
     if (falta !== null) return
     setLoading(true)
-    const result = await authClient.resetPassword({ newPassword: password, token: link.token })
+    const fallo = await authCall(() =>
+      authClient.resetPassword({ newPassword: password, token: link.token }),
+    )
     setLoading(false)
-    if (result.error) {
-      setError(result.error.message ?? 'Could not change your password.')
+    if (fallo !== null) {
+      setError(fallo.text)
+      if (fallo.retryAfterS !== null) espera.start(fallo.retryAfterS, () => setError(null))
       return
     }
-    // Sin sesión automática a propósito: se acaba de cambiar la contraseña, que la estrene.
-    navigate('/login')
+    // Sin sesión automática a propósito: se acaba de cambiar la contraseña, que la estrene. `Login`
+    // lo dice con su final (docs/cuenta.md §12.4).
+    navigate('/login', { state: { arrival: 'password-saved' } })
   }
 
   const errorOf = (field: 'password' | 'confirm') =>
@@ -80,6 +88,7 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
               id="reset-password"
               label="New password"
               autoComplete="new-password"
+              reveal
               help="At least 8 characters."
               value={password}
               onChange={(v) => {
@@ -94,6 +103,7 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
               id="reset-confirm"
               label="Repeat it"
               autoComplete="new-password"
+              reveal
               value={confirm}
               onChange={(v) => {
                 setConfirm(v)
@@ -106,7 +116,13 @@ export function ResetPassword({ initial = {} }: { initial?: Partial<ResetState> 
                 {error}
               </p>
             )}
-            <Button variant="primary" type="submit" busy={loading} busyLabel="Saving…">
+            <Button
+              variant="primary"
+              type="submit"
+              busy={loading}
+              busyLabel="Saving…"
+              {...espera.button}
+            >
               Save my new password
             </Button>
           </form>
