@@ -193,6 +193,7 @@ export async function updateUserAsAdmin(
 
     const set: {
       email?: string
+      emailUndeliverableAt?: Date | null
       emailVerified?: boolean
       isAdmin?: boolean
       premium?: boolean
@@ -218,6 +219,8 @@ export async function updateUserAsAdmin(
         .limit(1)
       if (ocupado.length > 0) return { ok: false, reason: 'correo_ocupado' }
       set.email = email
+      // El correo nuevo no ha rebotado: la marca del buzón que no recibe se va con el viejo (§9.3; 9-d).
+      set.emailUndeliverableAt = null
       apunta('user.email', 'email', antes.email, email)
     }
     const verificado = cambiaCorreo ? true : patch.emailVerified

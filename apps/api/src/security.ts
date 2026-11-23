@@ -68,6 +68,23 @@ export const MAIL_ROUTES_PER_IP_DAY = {
   lockS: 900,
 } as const
 
+/** L5: correos a un mismo buzón por hora, sin tope diario (§7.4; D-24). */
+export const MAIL_PER_RECIPIENT_HOUR = 3
+/**
+ * L6: el presupuesto del día UTC por defecto, el de `MAIL_DAILY_BUDGET` sin poner (§7.6; D-26, 7-f). El
+ * plan gratuito de Resend da 100 al día y 3.000 al mes; 90 × 31 = 2.790.
+ */
+export const MAIL_DAILY_BUDGET_DEFAULT = 90
+/** Lo que queda solo para `reset_password`: `verify_signup` para a los 60 de 90 (§7.6; 7-f). */
+export const MAIL_RESET_RESERVE = 30
+/** La reserva se gasta una vez por destinatario y día (`rsv:`, 7-m): 1 en 86.400 s. */
+export const MAIL_RESERVE_PER_RECIPIENT = {
+  windowS: 86_400,
+  max: 1,
+  dayMax: null,
+  lockS: 0,
+} as const
+
 /** Vida de `cs_device`: sobrevive a `Sign out` (§7.5; D-23). */
 export const DEVICE_COOKIE_DAYS = 180
 /** Cuentas por navegador en `cs_device`; la sexta saca a la más vieja (7-e). */

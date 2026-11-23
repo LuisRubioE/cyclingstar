@@ -10,6 +10,9 @@
  * de cinco campos, y el SDK añadiría una dependencia (y su cadena de actualizaciones) para
  * envolver un `fetch`. A cambio, `fetchImpl` se inyecta y las pruebas no salen a la red.
  *
+ * Desde E4 (docs/cuenta.md §9.2) cada envío pasa por `email_log`: `send` recibe el `kind` y el `userId`,
+ * apunta `queued` antes de llamar a Resend y guarda después el `id` que devuelve Resend y `sent`, o `failed`.
+ *
  * REGLA DE ORO: `send` NUNCA lanza. Quien lo llama es un callback de better-auth dentro de la
  * petición de un usuario; si el envío fallara hacia arriba, «he olvidado mi contraseña»
  * respondería 500 —y de paso diría, por la diferencia de respuesta, qué correos existen—. Un fallo
@@ -25,9 +28,32 @@ export interface MailMessage {
   html: string
 }
 
+/** Los dos correos del juego (§5.7): `verify_signup` y `reset_password`. */
+export type EmailKind = 'verify_signup' | 'reset_password'
+
+/** Un correo con lo que necesita `email_log` (docs/cuenta.md §9.2): qué es y de qué cuenta. */
+export interface OutgoingMail extends MailMessage {
+  kind: EmailKind
+  userId: string | null
+}
+
 /** `true` si el proveedor aceptó el correo; `false` si no se pudo enviar (ya registrado). */
 export interface Mailer {
-  send(message: MailMessage): Promise<boolean>
+  send(message: OutgoingMail): Promise<boolean>
+}
+
+/**
+ * EL REGISTRO DE CADA ENVÍO (`email_log`, docs/cuenta.md §9.2 y §5.6). `open` apunta la fila `queued`
+ * ANTES de llamar a Resend, si el envío cabe en L5 y en el presupuesto del día (§7.4 y §7.6); si no cabe,
+ * devuelve `null` y el correo no sale. `settle` guarda lo que contestó Resend. Un correo perdido en un
+ * despliegue se ve como `queued` que nunca pasó a `sent`.
+ */
+export interface MailJournal {
+  open(mail: OutgoingMail): Promise<string | null>
+  settle(
+    id: string,
+    outcome: { status: 'sent'; resendId: string | null } | { status: 'failed' },
+  ): Promise<void>
 }
 
 /** Traza mínima del envío, compatible con la forma de pino (`log(datos, mensaje)`). */
@@ -40,6 +66,8 @@ export interface ResendMailerOptions {
   /** Inyectable en pruebas; por defecto el fetch global de Node. */
   fetchImpl?: typeof fetch
   log?: MailLog
+  /** Sin él no hay `email_log`, ni L5, ni presupuesto (los tests de unidad del envío). */
+  journal?: MailJournal
 }
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
@@ -77,12 +105,51 @@ async function detailOf(response: Response): Promise<string> {
   }
 }
 
+/** El `id` del JSON de Resend (`{ "id": "…" }`), para casar después los eventos del webhook. */
+async function idOf(response: Response): Promise<string | null> {
+  try {
+    const cuerpo: unknown = await response.json()
+    if (cuerpo !== null && typeof cuerpo === 'object' && 'id' in cuerpo) {
+      return typeof cuerpo.id === 'string' && cuerpo.id !== '' ? cuerpo.id : null
+    }
+  } catch {
+    /* sin JSON: salió igual, sin id que casar */
+  }
+  return null
+}
+
 export function createResendMailer(opts: ResendMailerOptions): Mailer {
   const doFetch = opts.fetchImpl ?? globalThis.fetch
   const log = opts.log ?? defaultLog
   return {
     async send(message) {
-      const traza = { to: maskEmail(message.to), subject: message.subject }
+      const traza = { to: maskEmail(message.to), subject: message.subject, kind: message.kind }
+      const journal = opts.journal
+      let id: string | null = null
+      if (journal) {
+        try {
+          id = await journal.open(message)
+        } catch (err) {
+          // Sin registro no hay presupuesto que mirar: no sale (y sigue sin lanzar).
+          log('error', { ...traza, err: String(err) }, 'correo NO enviado: email_log falló')
+          return false
+        }
+        if (id === null) {
+          log('info', traza, 'correo NO enviado: L5 o el presupuesto del día')
+          return false
+        }
+      }
+      // Lo que contestó Resend, a `email_log`; si eso falla, el correo ya salió o no: solo se registra.
+      const apuntar = async (
+        outcome: { status: 'sent'; resendId: string | null } | { status: 'failed' },
+      ): Promise<void> => {
+        if (!journal || id === null) return
+        try {
+          await journal.settle(id, outcome)
+        } catch (err) {
+          log('error', { ...traza, err: String(err) }, 'email_log no se actualizó')
+        }
+      }
       try {
         const response = await doFetch(RESEND_ENDPOINT, {
           method: 'POST',
@@ -105,12 +172,16 @@ export function createResendMailer(opts: ResendMailerOptions): Mailer {
             { ...traza, status: response.status, detail: await detailOf(response) },
             'correo rechazado por Resend',
           )
+          await apuntar({ status: 'failed' })
           return false
         }
-        log('info', traza, 'correo enviado')
+        const resendId = await idOf(response)
+        await apuntar({ status: 'sent', resendId })
+        log('info', { ...traza, resendId }, 'correo enviado')
         return true
       } catch (err) {
         log('error', { ...traza, err: String(err) }, 'fallo al enviar el correo')
+        await apuntar({ status: 'failed' })
         return false
       }
     },
@@ -140,7 +211,7 @@ export function createNullMailer(log: MailLog = defaultLog): Mailer {
  */
 export function createMailer(
   env: { RESEND_API_KEY?: string | undefined; MAIL_FROM?: string | undefined },
-  extra: { fetchImpl?: typeof fetch; log?: MailLog } = {},
+  extra: { fetchImpl?: typeof fetch; log?: MailLog; journal?: MailJournal } = {},
 ): Mailer {
   if (!env.RESEND_API_KEY || !env.MAIL_FROM) return createNullMailer(extra.log)
   return createResendMailer({
@@ -148,5 +219,6 @@ export function createMailer(
     from: env.MAIL_FROM,
     ...(extra.fetchImpl ? { fetchImpl: extra.fetchImpl } : {}),
     ...(extra.log ? { log: extra.log } : {}),
+    ...(extra.journal ? { journal: extra.journal } : {}),
   })
 }

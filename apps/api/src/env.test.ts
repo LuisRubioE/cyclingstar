@@ -118,6 +118,36 @@ describe('loadEnv: la grabación de la línea y el tick dentro de web (E2, §14.
   })
 })
 
+describe('loadEnv: el webhook de Resend y el presupuesto (docs/cuenta.md §9.2 y §7.6; PR 7)', () => {
+  it('RESEND_WEBHOOK_SECRET es opcional: sin ella el webhook no se monta', () => {
+    expect(loadEnv(BASE as NodeJS.ProcessEnv).RESEND_WEBHOOK_SECRET).toBeUndefined()
+    const secreto = `whsec_${Buffer.from('x'.repeat(24)).toString('base64')}`
+    expect(
+      loadEnv({ ...BASE, RESEND_WEBHOOK_SECRET: secreto } as NodeJS.ProcessEnv)
+        .RESEND_WEBHOOK_SECRET,
+    ).toBe(secreto)
+  })
+
+  it('un secreto sin la forma whsec_<base64> no deja arrancar', () => {
+    expect(() =>
+      loadEnv({ ...BASE, RESEND_WEBHOOK_SECRET: 'secreto' } as NodeJS.ProcessEnv),
+    ).toThrow(/RESEND_WEBHOOK_SECRET/)
+  })
+
+  it('MAIL_DAILY_BUDGET vale 90 si no está, y no baja de la reserva de 30 más uno', () => {
+    expect(loadEnv(BASE as NodeJS.ProcessEnv).MAIL_DAILY_BUDGET).toBe(90)
+    expect(
+      loadEnv({ ...BASE, MAIL_DAILY_BUDGET: '1500' } as NodeJS.ProcessEnv).MAIL_DAILY_BUDGET,
+    ).toBe(1500)
+    expect(() => loadEnv({ ...BASE, MAIL_DAILY_BUDGET: '30' } as NodeJS.ProcessEnv)).toThrow(
+      /MAIL_DAILY_BUDGET/,
+    )
+    expect(() => loadEnv({ ...BASE, MAIL_DAILY_BUDGET: 'mucho' } as NodeJS.ProcessEnv)).toThrow(
+      /MAIL_DAILY_BUDGET/,
+    )
+  })
+})
+
 describe('loadTickEnv', () => {
   /*
     El servicio cron no manda correo: añadirle variables de correo sería configurarlo para nada.

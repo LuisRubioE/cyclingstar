@@ -46,6 +46,7 @@ import { badRequest, notFound, sendError } from '../http.js'
 import type { AdminActor } from '../security.js'
 import { ADMIN_VEIL } from '../spoiler.js'
 import type { AdminRouteContext } from './context.js'
+import { mailBudgetOpen } from '../mailBudget.js'
 import { isCalendarRaceId, parseRaceId, parseStageDay } from './params.js'
 
 const kindSchema = z.enum(['team', 'rider'])
@@ -200,7 +201,10 @@ export const adminRoutes: FastifyPluginAsync<AdminRouteContext> = async (app, ct
       if (!actor) return
       const id = userIdSchema.safeParse(request.params.id)
       if (!id.success) return badRequest(reply)
-      // Hasta el PR 7 no hay presupuesto de correo que mirar (el 503 `MAIL_BUDGET_EXHAUSTED`).
+      // El presupuesto de `verify_signup` (§7.6): con el día gastado, 503 y la cuenta sigue pendiente.
+      if (!(await mailBudgetOpen(db, 'verify_signup', ctx.mailDailyBudget))) {
+        return sendError(reply, 503, 'MAIL_BUDGET_EXHAUSTED')
+      }
       const out = await approvePendingUser(db, id.data, actorId(actor))
       if (!out.ok) {
         return out.reason === 'no_existe' ? notFound(reply) : sendError(reply, 409, out.reason)

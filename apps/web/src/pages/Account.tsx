@@ -128,6 +128,21 @@ function VerifyEmailNotice({ email }: { email: string }) {
 }
 
 /**
+ * EL CORREO QUE NO LLEGA (docs/cuenta.md §9.3; 9-c, 9-d). Resend dejó de mandar a este buzón tras un
+ * rebote duro, una queja o una supresión, y el webhook lo apuntó en la cuenta. Sin acción: el jugador ya no
+ * cambia su correo (§5.5). Se va cuando un administrador lo cambia o llega un correo entregado después.
+ */
+function UndeliverableNotice({ email }: { email: string }) {
+  return (
+    <Notice tone="warn" title={`We can't deliver email to ${email}`}>
+      {
+        "Without it you can't reset your password if you forget it. Only an administrator can change the email of an account."
+      }
+    </Notice>
+  )
+}
+
+/**
  * `Account › Email` (docs/cuenta.md §5.5 y §12.2; 12-a): el correo, sin formulario. El jugador ya no lo cambia;
  * lo cambia un administrador desde el panel, y `change-email` da 404 desde el PR 5.
  */
@@ -379,6 +394,8 @@ export function Account() {
   return (
     <section className="mx-auto max-w-form space-y-4">
       <PageHeader title="Account settings" status="Manage your login details." />
+
+      {email && data?.user.emailUndeliverableAt && <UndeliverableNotice email={email} />}
 
       {whoami.data?.via === 'session' && <TextLink to="/admin">Admin panel</TextLink>}
 

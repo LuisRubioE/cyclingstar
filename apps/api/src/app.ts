@@ -8,6 +8,7 @@ import fastifyStatic from '@fastify/static'
 import {
   type Database,
   ProgressMemory,
+  applyEmailEvent,
   type TickSummary,
   isUserAdmin,
   userStatusOf,
@@ -38,6 +39,7 @@ import { rankingRoutes } from './routes/rankings.js'
 import { riderRoutes } from './routes/riders.js'
 import { teamRoutes } from './routes/teams.js'
 import { worldRoutes } from './routes/world.js'
+import { resendWebhookRoutes } from './routes/resendWebhook.js'
 import { GLOBAL_RATE_LIMIT, createAdminGuard } from './security.js'
 import {
   type ViteManifest,
@@ -105,6 +107,10 @@ export interface AppDeps {
   webManifest?: ViteManifest
   /** La carpeta de la web compilada. Lo pasan los tests; sin él, `apps/web/dist`. */
   webRoot?: string
+  /** `MAIL_DAILY_BUDGET` (docs/cuenta.md §7.6): los 503 de presupuesto. Sin él, 90. */
+  mailDailyBudget?: number
+  /** `RESEND_WEBHOOK_SECRET` (§9.2): sin él, `POST /api/webhooks/resend` no se monta y da 404. */
+  resendWebhookSecret?: string
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -318,6 +324,18 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       ...(deps.onAdminTick ? { onAdminTick: deps.onAdminTick } : {}),
       ...(deps.onAdminAdvance ? { onAdminAdvance: deps.onAdminAdvance } : {}),
       ...(deps.auth ? { sendVerification: verificationSender(deps.auth) } : {}),
+      ...(deps.mailDailyBudget !== undefined ? { mailDailyBudget: deps.mailDailyBudget } : {}),
+    })
+  }
+
+  // El webhook de Resend (docs/cuenta.md §9.2), en su propio contexto con el cuerpo crudo (9-f).
+  if (deps.db && deps.resendWebhookSecret) {
+    const webhookDb = deps.db
+    void app.register(resendWebhookRoutes, {
+      secret: deps.resendWebhookSecret,
+      onEvent: async (resendId, status) => {
+        await applyEmailEvent(webhookDb, resendId, status, new Date())
+      },
     })
   }
 
@@ -329,6 +347,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       ...(statusDb ? { db: statusDb } : {}),
       ...(statusDb ? { statusByEmail: (email: string) => userStatusOf(statusDb, { email }) } : {}),
       ...(deps.secureCookies !== undefined ? { secureCookies: deps.secureCookies } : {}),
+      ...(deps.mailDailyBudget !== undefined ? { mailDailyBudget: deps.mailDailyBudget } : {}),
     })
   }
 

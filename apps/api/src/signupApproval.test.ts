@@ -245,5 +245,26 @@ describe('registro por aprobación, contra una base real', () => {
     ])
   })
 
-  it.todo('con el presupuesto de verify_signup gastado, aprobar da 503 y no cambia nada (PR 7)')
+  it('con el presupuesto de verify_signup gastado, aprobar da 503 y no cambia nada (§7.6; PR 7)', async () => {
+    await authPost('/sign-up/email', { name: '', email: 'tarde@example.com', password: PASSWORD })
+    const id = await idDe('tarde@example.com')
+    // el día UTC lleva 60 envíos: los de `verify_signup` se acabaron
+    await tdb.client`insert into email_log (kind, recipient_hash, status)
+      select 'verify_signup', 'relleno-' || g, 'sent' from generate_series(1, 60) g`
+    try {
+      const res = await adminPost(`/api/admin/users/${id}/approve`)
+      expect(res.statusCode).toBe(503)
+      expect(res.json()).toEqual({ ok: false, error: 'MAIL_BUDGET_EXHAUSTED' })
+      expect(await estadoDe('tarde@example.com')).toEqual({ status: 'pending', approved_at: null })
+      expect(
+        await tdb.client`select id from admin_audit where target_user_id = ${id}`,
+      ).toHaveLength(0)
+      expect(await salidos()).toEqual([])
+    } finally {
+      await tdb.client`delete from email_log`
+    }
+    // con el día de vuelta, se aprueba
+    expect((await adminPost(`/api/admin/users/${id}/approve`)).statusCode).toBe(200)
+    expect((await salidos()).map((m) => m.to)).toEqual(['tarde@example.com'])
+  })
 })

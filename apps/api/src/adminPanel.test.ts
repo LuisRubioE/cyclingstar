@@ -268,13 +268,20 @@ describe('panel de administración, contra una base real', () => {
     await alta('tercero', 'tercero@example.com')
     await authPost('/sign-in/email', { email: 'tercero@example.com', password: 'contrasena-larga' })
     expect(await sesionesDe(ids.tercero!)).toBe(2)
+    // el buzón viejo rebotaba (§9.3): con el correo nuevo, la marca se va (9-d)
+    await tdb.client`update users set email_undeliverable_at = now() where id = ${ids.tercero!}`
     const res = await como('dueno', 'PATCH', `/api/admin/users/${ids.tercero}`, {
       email: '  Nuevo.Tercero@Example.com ',
     })
     expect(res.statusCode).toBe(200)
-    const [fila] = await tdb.client<{ email: string; email_verified: boolean }[]>`
-      select email, email_verified from users where id = ${ids.tercero!}`
-    expect(fila).toEqual({ email: 'nuevo.tercero@example.com', email_verified: true })
+    const [fila] = await tdb.client<
+      { email: string; email_verified: boolean; email_undeliverable_at: Date | null }[]
+    >`select email, email_verified, email_undeliverable_at from users where id = ${ids.tercero!}`
+    expect(fila).toEqual({
+      email: 'nuevo.tercero@example.com',
+      email_verified: true,
+      email_undeliverable_at: null,
+    })
     expect(await sesionesDe(ids.tercero!)).toBe(0)
     expect(await auditDe(ids.tercero!, 'user.email')).toEqual([
       {

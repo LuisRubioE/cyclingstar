@@ -89,6 +89,9 @@ const POSTERIORES: readonly string[] = [
   // 0056_cuenta_e4 (E4, PR 6): los límites de intento. Sin clave ajena y de las cuentas, no del mundo:
   // un reinicio no la toca.
   'auth_limits',
+  // 0057_correo (E4, PR 7): el registro de los correos. Cuelga de `users` con `on delete set null`, no del
+  // mundo: un reinicio no la toca.
+  'email_log',
 ]
 
 /**

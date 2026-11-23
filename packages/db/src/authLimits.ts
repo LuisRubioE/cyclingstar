@@ -32,7 +32,7 @@ export type AttemptResult =
  * `now + lockS`.
  */
 export async function reserveAttempt(
-  db: Database,
+  db: Pick<Database, 'execute'>,
   key: string,
   rule: AttemptRule,
   now: Date,

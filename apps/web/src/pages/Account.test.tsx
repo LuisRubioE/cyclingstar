@@ -20,6 +20,7 @@ const sesion = vi.hoisted(() => ({
     id: string
     email: string
     emailVerified: boolean
+    emailUndeliverableAt?: string | null
   } | null,
 }))
 
@@ -240,6 +241,35 @@ describe('la cuenta con el sistema (§17.21; PR 21f)', () => {
     )
     sesion.user = { id: 'u1', email: 'luis@example.com', emailVerified: true }
     expect(page()).not.toContain('Your email is not confirmed')
+  })
+
+  it('el correo que no llega abre la cuenta con un Notice warn, el texto de 9-c y sin acción (§9.3)', () => {
+    sesion.user = {
+      id: 'u1',
+      email: 'luis@example.com',
+      emailVerified: true,
+      emailUndeliverableAt: '2026-11-23T12:00:00.000Z',
+    }
+    const markup = page()
+    const notice =
+      /<[^>]*data-ui="Notice" data-variant="warn"[\s\S]*?We can&#x27;t deliver email to luis@example.com[\s\S]*?<\/div><\/div>/.exec(
+        markup,
+      )?.[0] ?? ''
+    expect(notice).toContain(
+      'Without it you can&#x27;t reset your password if you forget it. Only an administrator can change the email of an account.',
+    )
+    expect(notice).not.toContain('<button')
+    // abre la pantalla: antes que cualquier Panel
+    expect(markup.indexOf('We can&#x27;t deliver email')).toBeLessThan(
+      markup.indexOf('data-ui="Panel"'),
+    )
+    sesion.user = {
+      id: 'u1',
+      email: 'luis@example.com',
+      emailVerified: true,
+      emailUndeliverableAt: null,
+    }
+    expect(page()).not.toContain('deliver email')
   })
 
   it('el panel de administración, un enlace de 44 sin la flecha, y solo con sesión de admin', () => {

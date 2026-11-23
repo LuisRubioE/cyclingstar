@@ -3,6 +3,7 @@ import {
   type Database,
   bumpDeviceEpoch,
   clearAttempts,
+  type EmailKind,
   deviceOwnerByEmail,
   reserveAttempt,
 } from '@cyclingstar/db'
@@ -13,6 +14,7 @@ import { clientIp, ipBucket } from '../clientIp.js'
 import { createDeviceCookies } from '../deviceCookie.js'
 import { apiError } from '../http.js'
 import { limitKeys } from '../limitKeys.js'
+import { MAIL_BUDGET_EXHAUSTED_BODY, mailBudgetOpen } from '../mailBudget.js'
 import {
   ACCOUNT_FAILS,
   ACCOUNT_PASSWORD_FAILS_DAY,
@@ -35,6 +37,8 @@ export interface AuthProxyContext {
   statusByEmail?: (email: string) => Promise<UserStatus | null>
   /** La base de `auth_limits` y de `device_epoch` (docs/cuenta.md §7). Sin ella, sin límites L1 a L4. */
   db?: Database
+  /** `MAIL_DAILY_BUDGET` (§7.6), para el 503 `MAIL_BUDGET_EXHAUSTED`. Por defecto, 90. */
+  mailDailyBudget?: number
 }
 
 /**
@@ -65,6 +69,15 @@ export const ACCOUNT_PENDING_BODY = JSON.stringify({
   code: 'ACCOUNT_PENDING',
   message: 'Your account is waiting for approval.',
 })
+
+/**
+ * Las rutas que se cortan con el presupuesto del día gastado (§7.6), con el `kind` que mandarían. El
+ * registro no está: ya no manda correo (§4.9) y no se corta.
+ */
+const BUDGET_PATHS: ReadonlyMap<string, EmailKind> = new Map([
+  ['/api/auth/send-verification-email', 'verify_signup'],
+  ['/api/auth/request-password-reset', 'reset_password'],
+])
 
 /** Las rutas que mandan correo: L4 (docs/cuenta.md §7.4). */
 const MAIL_PATHS: ReadonlySet<string> = new Set([
@@ -245,6 +258,13 @@ export const authProxyRoutes: FastifyPluginAsync<AuthProxyContext> = async (app,
           ...apiError('demasiadas_peticiones'),
           message: 'Too many requests. Try again later.',
         })
+      }
+      // L6 (§7.6): con el día gastado, 503 antes de llegar a better-auth, sin espera. Es el mismo para
+      // cualquier correo, exista la cuenta o no.
+      const kind = BUDGET_PATHS.get(ruta)
+      if (kind !== undefined && !(await mailBudgetOpen(db, kind, ctx.mailDailyBudget, ahora))) {
+        reply.header('content-type', 'application/json')
+        return reply.status(503).send(MAIL_BUDGET_EXHAUSTED_BODY)
       }
     } else if (db !== undefined && SESSION_PASSWORD_PATHS.has(ruta)) {
       const sesion = await auth.api.getSession({ headers: toWebHeaders(request) })

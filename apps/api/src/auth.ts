@@ -180,7 +180,12 @@ export function createAuth(
       // porque no había a dónde mandar el enlace.
       sendResetPassword: async ({ user, url }) => {
         if (!(await aprobada(user.id))) return
-        await mailer.send({ to: user.email, ...resetPasswordEmail(url) })
+        await mailer.send({
+          to: user.email,
+          kind: 'reset_password',
+          userId: user.id,
+          ...resetPasswordEmail(url),
+        })
       },
       // Quien recupera la contraseña cierra TODAS las sesiones: si alguien se había colado, sale
       // (docs/cuenta.md §5.4; X-21). Y luego `onPasswordReset`: los otros enlaces de recuperación
@@ -203,6 +208,8 @@ export function createAuth(
         if (!(await aprobada(user.id))) return
         await mailer.send({
           to: user.email,
+          kind: 'verify_signup',
+          userId: user.id,
           ...verifyEmailEmail(withCallbackURL(url, VERIFY_EMAIL_PATH)),
         })
       },
@@ -222,6 +229,9 @@ export function createAuth(
       additionalFields: {
         status: { type: 'string', input: false, returned: false, defaultValue: 'pending' },
         approvedAt: { type: 'date', input: false, returned: false, required: false },
+        // El buzón que no recibe (§9.3): `Account` abre con su `Notice` mientras esté puesta. Solo la
+        // escriben el webhook de Resend y el cambio de correo del administrador.
+        emailUndeliverableAt: { type: 'date', input: false, returned: true, required: false },
       },
       // Borrar la cuenta desde ajustes. El corredor y el equipo NO se borran: pasan a NPC antes de
       // que el usuario desaparezca (ver `releaseUserToWorld`), porque son las dos referencias a

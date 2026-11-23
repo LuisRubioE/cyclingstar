@@ -4,6 +4,8 @@ import type { MailLog } from './mailer.js'
 
 const MAIL = {
   to: 'luis@example.com',
+  kind: 'reset_password' as const,
+  userId: null,
   subject: 'Reset your password',
   text: 'link',
   html: '<p>link</p>',

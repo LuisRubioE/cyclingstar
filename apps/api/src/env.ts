@@ -1,5 +1,6 @@
 import { switchModeSchema } from '@cyclingstar/shared'
 import { z } from 'zod'
+import { MAIL_DAILY_BUDGET_DEFAULT, MAIL_RESET_RESERVE } from './security.js'
 
 /**
  * Remitente del correo transaccional: `correo@dominio` o `Nombre <correo@dominio>`.
@@ -82,6 +83,24 @@ const envSchema = z
      * síncrono, y mientras corre una etapa la web no contesta (§18.3). No es un interruptor de pantalla.
      */
     AUTO_TICK: z.enum(['off', 'on']).default('on'),
+    /**
+     * EL SECRETO DEL WEBHOOK DE RESEND (docs/cuenta.md §9.2), `whsec_<base64>`, el que da Resend al dar de
+     * alta el webhook. Opcional: sin él, `POST /api/webhooks/resend` no se monta y da 404.
+     */
+    RESEND_WEBHOOK_SECRET: z
+      .string()
+      .regex(/^whsec_[A-Za-z0-9+/]+={0,2}$/, 'RESEND_WEBHOOK_SECRET debe ser "whsec_<base64>"')
+      .optional(),
+    /**
+     * EL PRESUPUESTO DE CORREO DEL DÍA UTC (docs/cuenta.md §7.6; 7-f): 90 con el plan gratuito de Resend
+     * (100 al día, 3.000 al mes). `verify_signup` para 30 antes (`MAIL_RESET_RESERVE`), así que no baja de
+     * 31. Con el plan Pro, 1.500 (DD-10 A).
+     */
+    MAIL_DAILY_BUDGET: z.coerce
+      .number()
+      .int()
+      .min(MAIL_RESET_RESERVE + 1, `MAIL_DAILY_BUDGET debe ser al menos ${MAIL_RESET_RESERVE + 1}`)
+      .default(MAIL_DAILY_BUDGET_DEFAULT),
   })
   .refine((env) => !(env.RESEND_API_KEY && !env.MAIL_FROM), {
     path: ['MAIL_FROM'],

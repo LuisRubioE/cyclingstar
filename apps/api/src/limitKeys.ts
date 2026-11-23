@@ -29,17 +29,24 @@ export interface LimitKeys {
   pwu(userId: string): string
   /** L4: las rutas de correo, por IP (o su /64). */
   mailip(ipBucket: string): string
+  /** La reserva de recuperar, una vez por destinatario y día (7-m). */
+  rsv(email: string): string
+  /** `email_log.recipient_hash`: el HMAC del correo normalizado, sin prefijo (L5, §9.2). */
+  rcpt(email: string): string
 }
 
 export function limitKeys(secret: string): LimitKeys {
   const clave = deriveKey(secret, 'cs-auth-limits')
-  const h = (prefijo: string, valor: string): string =>
-    `${prefijo}:${createHmac('sha256', clave).update(valor).digest('base64url')}`
+  const hmac = (valor: string): string =>
+    createHmac('sha256', clave).update(valor).digest('base64url')
+  const h = (prefijo: string, valor: string): string => `${prefijo}:${hmac(valor)}`
   return {
     acct: (email) => h('acct', normalizeEmail(email)),
     dev: (nonce) => h('dev', nonce),
     pw: (sessionId) => h('pw', sessionId),
     pwu: (userId) => h('pwu', userId),
     mailip: (ip) => h('mailip', ip),
+    rsv: (email) => h('rsv', normalizeEmail(email)),
+    rcpt: (email) => hmac(normalizeEmail(email)),
   }
 }

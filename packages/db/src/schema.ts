@@ -1407,3 +1407,31 @@ export const authLimits = pgTable('auth_limits', {
   dayCount: integer('day_count').notNull(),
   lockedUntil: timestamp('locked_until', { withTimezone: true }),
 })
+
+/**
+ * EL REGISTRO DE CADA CORREO QUE SALE (docs/cuenta.md §9.2; D-33; la 0057). `mailer.send` apunta la fila
+ * `queued` antes de llamar a Resend y guarda después el `resend_id` y `sent` (o `failed`); el webhook de
+ * Resend la mueve hacia `delivered`, `bounced`, `complained` o `suppressed`. Sin el correo en claro, sin
+ * asunto ni cuerpo: el destinatario va por su HMAC, el mismo que usa L5 (§7.4). El presupuesto del día
+ * (L6, §7.6) se cuenta aquí.
+ */
+export const emailLog = pgTable(
+  'email_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    resendId: text('resend_id').unique(),
+    /** `verify_signup` o `reset_password`. */
+    kind: text('kind').notNull(),
+    /** HMAC del correo normalizado, como `auth_limits`: L5 sin guardar el buzón. */
+    recipientHash: text('recipient_hash').notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    /** `queued`, `sent`, `delivered`, `bounced`, `complained`, `suppressed`, `failed`. */
+    status: text('status').notNull().default('queued'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('email_log_recipient').on(t.recipientHash, t.createdAt),
+    index('email_log_created').on(t.createdAt),
+  ],
+)

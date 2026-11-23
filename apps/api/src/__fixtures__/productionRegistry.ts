@@ -27,6 +27,8 @@ export function productionDeps(serveWeb: boolean): AppDeps {
     onAdminTick: async () => summary,
     onAdminAdvance: async () => summary,
     switches: { broadcastWatch: 'off', spoilerMode: 'off' },
+    mailDailyBudget: 90,
+    resendWebhookSecret: `whsec_${Buffer.from('x'.repeat(24)).toString('base64')}`,
     serveWeb,
   }
 }

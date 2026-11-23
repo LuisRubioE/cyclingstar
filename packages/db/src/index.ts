@@ -16,6 +16,20 @@ export {
   reserveAttempt,
 } from './authLimits.js'
 export {
+  EMAIL_KINDS,
+  EMAIL_STATUSES,
+  applyEmailEvent,
+  dailyCapFor,
+  emailsToday,
+  queueEmail,
+  settleEmail,
+  type EmailEventStatus,
+  type EmailKind,
+  type EmailStatus,
+  type MailBudgetRule,
+  type QueueEmailResult,
+} from './emailLog.js'
+export {
   DEFAULT_MAX_DAYS_PER_RUN,
   POISON_PILL_ATTEMPTS,
   GENESIS_WORLD_SEED,
