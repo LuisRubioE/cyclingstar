@@ -73,6 +73,28 @@ const Terms = lazyPage(() => import('./pages/Terms').then((m) => ({ default: m.T
 const AccountBirthDate = lazyPage(() =>
   import('./pages/AccountBirthDate').then((m) => ({ default: m.AccountBirthDate })),
 )
+// Las subpáginas de `Account` (docs/cuenta.md §12.2; DD-07 A; PR 11 de E4).
+const AccountEmail = lazyPage(() =>
+  import('./pages/account/AccountEmail').then((m) => ({ default: m.AccountEmail })),
+)
+const AccountPassword = lazyPage(() =>
+  import('./pages/account/AccountPassword').then((m) => ({ default: m.AccountPassword })),
+)
+const AccountDevices = lazyPage(() =>
+  import('./pages/account/AccountDevices').then((m) => ({ default: m.AccountDevices })),
+)
+const AccountData = lazyPage(() =>
+  import('./pages/account/AccountData').then((m) => ({ default: m.AccountData })),
+)
+const AccountDelete = lazyPage(() =>
+  import('./pages/account/AccountDelete').then((m) => ({ default: m.AccountDelete })),
+)
+const AccountSpoilers = lazyPage(() =>
+  import('./pages/account/AccountSpoilers').then((m) => ({ default: m.AccountSpoilers })),
+)
+const AccountAppearance = lazyPage(() =>
+  import('./pages/account/AccountAppearance').then((m) => ({ default: m.AccountAppearance })),
+)
 const Race = lazyPage(() => import('./pages/Race').then((m) => ({ default: m.Race })))
 const RaceOrders = lazyPage(() =>
   import('./pages/RaceOrders').then((m) => ({ default: m.RaceOrders })),
@@ -329,9 +351,8 @@ export function App() {
                 }
               />
               {/*
-                La puerta de la fecha (docs/cuenta.md §4.5; PR 9 de E4), y borrar la cuenta, que la puerta no
-                cierra: hasta que el PR 11 parta `Account` en subpáginas, `/account/delete` es `Account`, que
-                lleva `Delete account`.
+                La puerta de la fecha (docs/cuenta.md §4.5; PR 9 de E4), y las subpáginas de `Account`
+                (§12.2; PR 11): `/account/delete` está fuera de la puerta (`SIN_PUERTA`), para el menor.
               */}
               <Route
                 path="/account/birth-date"
@@ -342,10 +363,58 @@ export function App() {
                 }
               />
               <Route
+                path="/account/email"
+                element={
+                  <Private>
+                    <AccountEmail />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/password"
+                element={
+                  <Private>
+                    <AccountPassword />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/devices"
+                element={
+                  <Private>
+                    <AccountDevices />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/data"
+                element={
+                  <Private>
+                    <AccountData />
+                  </Private>
+                }
+              />
+              <Route
                 path="/account/delete"
                 element={
                   <Private>
-                    <Account />
+                    <AccountDelete />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/spoilers"
+                element={
+                  <Private>
+                    <AccountSpoilers />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/appearance"
+                element={
+                  <Private>
+                    <AccountAppearance />
                   </Private>
                 }
               />

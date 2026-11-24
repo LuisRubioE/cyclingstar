@@ -43,8 +43,16 @@ const NOW = new Date('2026-01-01T00:00:00.000Z')
 describe('db: runTick registra fallos y respeta el tope de días', () => {
   let t: TestDb
 
+  /** Una clave de `auth_limits` de hace un mes: la purga (docs/cuenta.md §15.4; 15-c) la borra tras procesar días. */
+  const LIMITE_VIEJO = 'acct:de-hace-un-mes'
+  const limiteViejo = async () =>
+    (await t.client`select count(*)::int as n from auth_limits where key = ${LIMITE_VIEJO}`)[0]!.n
+
   beforeAll(async () => {
     t = await startTestDb()
+    await t.client`
+      insert into auth_limits (key, window_start, count, day_start, day_count)
+      values (${LIMITE_VIEJO}, '2025-12-01T00:00:00Z', 1, '2025-12-01T00:00:00Z', 1)`
   }, 180_000)
 
   afterAll(async () => {
@@ -88,6 +96,8 @@ describe('db: runTick registra fallos y respeta el tope de días', () => {
     // Ninguna nota de reparación; desde el 17b de E3, delante, la traducción de los maillots de la
     // génesis (docs/visual.md §8.6), que en un mundo nuevo es la primera vez de `ensureKits`.
     expect(log?.notes).toMatch(/^maillots: \d+ traducidos \([\d,]+ s\) · sin días pendientes$/)
+    // Sin días procesados, la purga no corre (15-c).
+    expect(await limiteViejo()).toBe(1)
   }, 180_000)
 
   it('registra el fallo con el día que reventó y cuenta los intentos seguidos (poison pill)', async () => {
@@ -123,6 +133,8 @@ describe('db: runTick registra fallos y respeta el tope de días', () => {
     const [log] = await lastTicks(1)
     expect(log?.ok).toBe(true)
     expect(log?.failedDay).toBeNull()
+    // Con un día procesado, la purga corre después del último (docs/cuenta.md §15.4; 15-c).
+    expect(await limiteViejo()).toBe(0)
   }, 300_000)
 
   it('respeta maxDaysPerRun y deja constancia de los días que quedan', async () => {

@@ -24,6 +24,7 @@ import {
   type GuardReason,
   type HealthState,
   type HorizonSummary,
+  RETURN_NOTICE_AFTER_DAYS,
   SPOILER,
   type SpoilerScope,
   type StageGate,
@@ -577,7 +578,8 @@ export async function horizonSummary(
 }
 
 /**
- * `users.last_seen_at`, como mucho una vez por hora (§10.7, D-33): la condición del `where` hace que
+ * `users.last_seen_at`, como mucho una vez por hora (§10.7, D-33). Desde el PR 12 de E4 la lanza también el
+ * gancho `after` de `get-session` (docs/cuenta.md §10.6; D-40), así que cuenta toda visita con sesión: la condición del `where` hace que
  * dos instancias no escriban dos veces, y el memo del proceso evita hasta la consulta dentro de la
  * hora. La lanza el registro de rutas sin esperarla; quien la lanza le pone su `.catch` (10-k: en
  * Node 22 un rechazo sin atender tumba el proceso). El dato no sirve al horizonte: lo pide E7.
@@ -589,9 +591,14 @@ export async function touchLastSeen(
 ): Promise<void> {
   if (lastSeenMemo.get(userId, nowMs) !== undefined) return
   lastSeenMemo.set(userId, true, nowMs)
+  // `welcome_back_from` (§14.5; 14-d): la visita de hoy pisa `last_seen_at`, así que el `Welcome back` se
+  // queda en el mismo `UPDATE` con la anterior si tenía más de `RETURN_NOTICE_AFTER_DAYS` días.
   await db
     .update(users)
-    .set({ lastSeenAt: sql`now()` })
+    .set({
+      lastSeenAt: sql`now()`,
+      welcomeBackFrom: sql`case when ${users.lastSeenAt} < now() - make_interval(days => ${RETURN_NOTICE_AFTER_DAYS}) then ${users.lastSeenAt} else ${users.welcomeBackFrom} end`,
+    })
     .where(
       and(
         eq(users.id, userId),

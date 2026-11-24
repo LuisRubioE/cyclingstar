@@ -27,6 +27,8 @@ export interface LimitKeys {
   pw(sessionId: string): string
   /** L3, el techo por cuenta (7-k). */
   pwu(userId: string): string
+  /** Las exportaciones de los datos de una cuenta, 3 al día (§10.5; D-39). */
+  exp(userId: string): string
   /** L4: las rutas de correo, por IP (o su /64). */
   mailip(ipBucket: string): string
   /** La reserva de recuperar, una vez por destinatario y día (7-m). */
@@ -45,6 +47,7 @@ export function limitKeys(secret: string): LimitKeys {
     dev: (nonce) => h('dev', nonce),
     pw: (sessionId) => h('pw', sessionId),
     pwu: (userId) => h('pwu', userId),
+    exp: (userId) => h('exp', userId),
     mailip: (ip) => h('mailip', ip),
     rsv: (email) => h('rsv', normalizeEmail(email)),
     rcpt: (email) => hmac(normalizeEmail(email)),

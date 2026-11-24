@@ -3,10 +3,10 @@ import {
   accounts,
   bumpDeviceEpoch,
   clearAttempts,
+  deleteAccount,
   deleteUserVerifications,
-  forgetAuditEmails,
-  releaseUserToWorld,
   sessions,
+  touchLastSeen,
   userStatusOf,
   users,
   verifications,
@@ -276,14 +276,14 @@ export function createAuth(
         termsVersion: { type: 'string', input: false, returned: false, required: false },
         termsAcceptedAt: { type: 'date', input: false, returned: false, required: false },
       },
-      // Borrar la cuenta desde ajustes. El corredor y el equipo NO se borran: pasan a NPC antes de
-      // que el usuario desaparezca (ver `releaseUserToWorld`), porque son las dos referencias a
-      // `users` que no caen en cascada y porque el mundo necesita su historial.
+      // Borrar la cuenta desde ajustes (docs/cuenta.md §10.4; D-38): `deleteAccount`, la misma función que el
+      // panel, en UNA transacción. El corredor y el equipo NO se borran: pasan a la máquina, y el equipo conserva
+      // su nombre (10-b). La fila de `users` ya no existe cuando better-auth la borra después: su `delete` no
+      // encuentra nada y sigue, y el 200 es el mismo.
       deleteUser: {
         enabled: true,
         beforeDelete: async (user) => {
-          await releaseUserToWorld(db, user.id)
-          await forgetAuditEmails(db, user.id)
+          await deleteAccount(db, user.id)
         },
       },
     },
@@ -360,6 +360,22 @@ export function createAuth(
             message: 'Enter your password to delete your account.',
           })
         }
+      }),
+      /*
+        LA ÚLTIMA VISITA EN TODA VISITA (docs/cuenta.md §10.6; D-40, 14-d): la web pide `get-session` al cargar
+        cualquier página, así que con sesión se apunta `last_seen_at` (y `welcome_back_from`, §14.5), como
+        mucho una vez por hora. Sin esperarla, y un fallo se apunta sin tumbar el proceso (10-k).
+      */
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/get-session') return
+        const devuelto: unknown = ctx.context.returned
+        if (devuelto === null || typeof devuelto !== 'object' || !('user' in devuelto)) return
+        const user: unknown = devuelto.user
+        if (user === null || typeof user !== 'object' || !('id' in user)) return
+        if (typeof user.id !== 'string') return
+        touchLastSeen(db, user.id).catch((err: unknown) => {
+          console.warn('touchLastSeen en get-session', err)
+        })
       }),
     },
     advanced: {

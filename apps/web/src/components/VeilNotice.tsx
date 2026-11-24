@@ -10,7 +10,7 @@ import { Notice } from './ui/Notice'
  * ranking y `Results from 3 stages you haven't watched are hidden` en los demás (los premios, el salón, los
  * récords, las naciones, los equipos, las fichas y el libro de cuentas). El número es el del velo de quien
  * mira, el mismo en todas las páginas, salga o no ese corredor en esas etapas. `Manage` lleva a los ajustes
- * del alcance (`/account#spoilers`).
+ * del alcance (`/account/spoilers`, docs/cuenta.md §12.2).
  *
  * Sin velo (`SPOILER_MODE` apagado, o en `admins` para un jugador), nada: la página es la de hoy. Quien lee
  * con `cs_viewer` sin sesión no recibe la lista de lo que tiene por ver (14-i), así que su aviso no lleva
@@ -45,7 +45,7 @@ export function VeilNoticeView({
         tone="info"
         title={text}
         role="note"
-        action={{ label: 'Manage', to: '/account#spoilers' }}
+        action={{ label: 'Manage', to: '/account/spoilers' }}
       />
     )
   return (

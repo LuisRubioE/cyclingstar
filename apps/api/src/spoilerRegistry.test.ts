@@ -67,6 +67,9 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   'POST /api/auth/reset-password': ['safe', N],
   'POST /api/auth/change-password': ['safe', N],
   'POST /api/auth/delete-user': ['safe', N],
+  // las dos propias de Fastify bajo /api/auth, por el Path de cs_device (E4, PR 11; docs/cuenta.md §6.5)
+  'POST /api/auth/devices/sign-out-others': ['safe', N],
+  'POST /api/auth/devices/forget': ['safe', N],
   // routes/admin.ts
   'GET /api/admin/whoami': ['horizon', ADMIN], // l. 64-65
   'GET /api/admin/users': ['horizon', ADMIN], // l. 75-76
@@ -126,6 +129,10 @@ const TABLE: Readonly<Record<string, readonly [SpoilerPolicy, VeilSpec]>> = {
   // la cuenta y la fecha de nacimiento (docs/cuenta.md §4.5; PR 9 de E4)
   'GET /api/me/account': ['safe', N],
   'PUT /api/me/birth-date': ['safe', N],
+  'POST /api/me/export': ['safe', N],
+  // los aparatos de la cuenta (docs/cuenta.md §6.4 y §6.5; PR 11 de E4)
+  'GET /api/me/devices': ['safe', N],
+  'DELETE /api/me/devices/:id': ['safe', N],
   'GET /api/me/horizon': ['horizon', N], // l. 207-208
   // routes/rankings.ts
   'GET /api/rankings': ['horizon', { by: ['R'] }], // l. 32-33
@@ -371,7 +378,7 @@ async function appWith(url: string, options: RouteShorthandOptions, body: unknow
 }
 
 describe('E3 · la frontera: toda ruta dice qué devuelve (§13.2; PR 19a)', () => {
-  it('toda ruta de /api y /health lleva su esquema; sin él solo las de better-auth y las dos de /admin', async () => {
+  it('toda ruta de /api y /health lleva su esquema; sin él solo las de better-auth, las dos de /admin y el fichero de exportar', async () => {
     const registry = await registryOf(productionDeps(false))
     const sin = sinHead(registry)
       .filter((e) => e.response === null)
@@ -382,9 +389,11 @@ describe('E3 · la frontera: toda ruta dice qué devuelve (§13.2; PR 19a)', () 
         ...Object.keys(TABLE).filter((k) => k.split(' ')[1]!.startsWith('/api/auth/')),
         'POST /admin/advance',
         'POST /admin/tick',
+        // el adjunto de docs/cuenta.md §10.5 (PR 12 de E4), que comprueba `exportData.test.ts`
+        'POST /api/me/export',
       ].sort(),
     )
-    expect([...RESPONSE_EXEMPT.keys()]).toEqual(['/api/auth/*'])
+    expect([...RESPONSE_EXEMPT.keys()]).toEqual(['/api/auth/*', '/api/me/export'])
   })
 
   it('con responseCheck tests solo van el acta y la meta: las de más de 20 ms de p95 (§13.4; medido en el 19a)', async () => {

@@ -92,6 +92,10 @@ export type ResponseCheck = 'runtime' | 'tests'
 /** Las únicas rutas de /api sin esquema de respuesta, con su porqué (13-c). */
 export const RESPONSE_EXEMPT: ReadonlyMap<string, string> = new Map([
   ['/api/auth/*', 'la sirve el manejador de better-auth, con sus propias respuestas'],
+  [
+    '/api/me/export',
+    'un fichero adjunto que la web no pinta: su forma es `AccountExport` (docs/cuenta.md §10.5), y la prueba `exportData.test.ts`',
+  ],
 ])
 
 /** Si una ruta tiene que declarar su respuesta: las de /api y /health, salvo las exentas (§13.2). */

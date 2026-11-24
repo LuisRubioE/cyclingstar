@@ -25,7 +25,7 @@ describe('VeilNotice', () => {
     expect(s).toContain(
       '<p class="text-body font-semibold text-ink">Results from 3 stages you haven&#x27;t watched are hidden</p>',
     )
-    expect(s).toMatch(/<a [^>]*href="\/account#spoilers"[^>]*>(?:(?!<\/a>)[\s\S])*Manage/)
+    expect(s).toMatch(/<a [^>]*href="\/account\/spoilers"[^>]*>(?:(?!<\/a>)[\s\S])*Manage/)
     expect(s).not.toContain('Sign in')
     expect(s).not.toContain('>·<')
     expect(s).not.toMatch(PALETA)

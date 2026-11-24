@@ -70,11 +70,51 @@ export const okResponseSchema = z.object({ ok: z.boolean() })
 export type OkResponse = z.infer<typeof okResponseSchema>
 
 /**
- * `GET /api/me/account` (docs/cuenta.md §4.5; 4-f): nace en el PR 9 de E4 con `birthDateSet`, que la web lee
- * en lugar de la sesión porque la fecha ya no viaja en ella (`returned: false`). El PR 11 le añade el resto.
+ * `GET /api/me/account` (docs/cuenta.md §4.5 y §12.1; 4-f, 12-b): nace en el PR 9 de E4 con `birthDateSet`,
+ * que la web lee en lugar de la sesión porque la fecha ya no viaja en ella (`returned: false`), y el PR 11
+ * la completa con los valores de la lista de `Account`. `passwordChangedAt` es `accounts.updated_at` de la
+ * fila `credential`; `devices`, las sesiones vivas de la cuenta. Fechas en ISO 8601 UTC.
  */
-export const meAccountResponseSchema = z.object({ ok: z.literal(true), birthDateSet: z.boolean() })
+export const meAccountResponseSchema = z.object({
+  ok: z.literal(true),
+  email: z.string(),
+  joinedAt: z.string().datetime(),
+  birthDateSet: z.boolean(),
+  passwordChangedAt: z.string().datetime().nullable(),
+  devices: z.number().int().nonnegative(),
+  emailUndeliverableAt: z.string().datetime().nullable(),
+})
 export type MeAccountResponse = z.infer<typeof meAccountResponseSchema>
+
+/**
+ * Una sesión de la cuenta en `GET /api/me/devices` (docs/cuenta.md §6.4; DD-06 A): sin IP, sin agente crudo
+ * y sin token. El `id` son 16 caracteres hex del SHA-256 del token: identifica la fila y no sirve como cookie.
+ */
+export const deviceRowSchema = z.object({
+  id: z.string().regex(/^[0-9a-f]{16}$/),
+  /** `deviceLabel(userAgent)`, calculado en la API */
+  label: z.string().min(1).max(60),
+  /** la sesión de esta petición */
+  current: z.boolean(),
+  /** `sessions.created_at` */
+  createdAt: z.string().datetime(),
+  /** `sessions.updated_at` */
+  lastActiveAt: z.string().datetime(),
+})
+export type DeviceRow = z.infer<typeof deviceRowSchema>
+
+export const devicesResponseSchema = z.object({
+  ok: z.literal(true),
+  devices: z.array(deviceRowSchema),
+})
+export type DevicesResponse = z.infer<typeof devicesResponseSchema>
+
+/** `POST /api/auth/devices/sign-out-others` (§6.5; 6-c): cuántas sesiones cerró, para su `Notice`. */
+export const signOutOthersResponseSchema = z.object({
+  ok: z.literal(true),
+  closed: z.number().int().nonnegative(),
+})
+export type SignOutOthersResponse = z.infer<typeof signOutOthersResponseSchema>
 
 /** `PUT /api/me/birth-date` (§4.5): la fecha en `YYYY-MM-DD`; la regla es `birthDateSchema`. */
 export const birthDateBodySchema = z.object({ birthDate: z.string().max(10) }).strict()

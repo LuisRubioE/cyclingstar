@@ -145,6 +145,14 @@ describe('Login en E4 (docs/cuenta.md §12.3 y §12.4; PR 1)', () => {
     expect(arrivalOf({ arrival: 'signed-out-passwords' })).toBe(ARRIVALS['signed-out-passwords'])
   })
 
+  it('llegando de Forget this device: Notice good, Signed out. y que este navegador ya no cuenta (§12.1; 12-i)', () => {
+    const html = pinta({ arrival: ARRIVALS['device-forgotten'] })
+    const aviso = pieza(html, 'Notice', 'Signed out.')
+    expect(aviso).toMatch(/data-variant="good"[^>]*role="status"/)
+    expect(aviso).toContain('This browser no longer counts as one of your devices.')
+    expect(arrivalOf({ arrival: 'device-forgotten' })).toBe(ARRIVALS['device-forgotten'])
+  })
+
   it('la contraseña, con Show (reveal)', () => {
     expect(campo(pinta(), 'login-password')).toMatch(/<button [^>]*aria-pressed="false"[^>]*>Show</)
   })

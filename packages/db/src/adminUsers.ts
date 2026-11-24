@@ -3,7 +3,7 @@ import { and, asc, desc, eq, ilike, inArray, isNull, ne, sql } from 'drizzle-orm
 import { type AdminAuditEntry, forgetAuditEmails, writeAdminAudit } from './adminAudit.js'
 import { addBlocked, removeBlocked } from './blocklist.js'
 import type { Database } from './client.js'
-import { blockedNames, riders, sessions, teams, users } from './schema.js'
+import { blockedNames, riders, sessions, teams, users, verifications } from './schema.js'
 import { releaseUserToWorld, teamNameProblem } from './teamControl.js'
 
 /**
@@ -340,10 +340,29 @@ export async function rejectPendingUser(
 }
 
 /**
- * Borra una cuenta desde el panel. Lo mismo que el borrado desde ajustes: corredor y equipo pasan
- * a NPC y la cuenta desaparece, con sus sesiones y credenciales (van en cascada). Todo en una
- * transacción, con su fila `user.delete`: o se va entera, o no se toca nada. Devuelve `false` si la
- * cuenta no existía.
+ * BORRAR UNA CUENTA (docs/cuenta.md §10.4; D-38, 10-b, 10-d): lo que hacen el borrado de ajustes
+ * (`user.deleteUser.beforeDelete` de better-auth), el del panel y la purga de las cuentas sin confirmar, en
+ * UNA transacción: corredor y equipo pasan a la máquina (`releaseUserToWorld`), se borran sus enlaces de
+ * `verifications` (`value` = id), sus filas `user.email` de `admin_audit` se quedan sin correos y se borra la
+ * fila de `users`. Caen en cascada `sessions`, `accounts` y `race_watch` (y `push_targets` y `notice_log`
+ * cuando existan); `email_log.user_id` pasa a nulo. El equipo conserva el nombre que puso el jugador (10-b):
+ * si es inapropiado, lo cambia un administrador. O se va entera, o no se toca nada. Devuelve `false` si la
+ * cuenta no existía. Dentro de otra transacción, Drizzle la abre como punto de guardado.
+ */
+export async function deleteAccount(db: Database, userId: string): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const t = tx as unknown as Database
+    await releaseUserToWorld(t, userId)
+    await tx.delete(verifications).where(eq(verifications.value, userId))
+    await forgetAuditEmails(t, userId)
+    const out = await tx.delete(users).where(eq(users.id, userId)).returning({ id: users.id })
+    return out.length > 0
+  })
+}
+
+/**
+ * Borra una cuenta desde el panel: `deleteAccount` y su fila `user.delete`, en la misma transacción.
+ * Devuelve `false` si la cuenta no existía.
  */
 export async function deleteUserAsAdmin(
   db: Database,
@@ -351,10 +370,7 @@ export async function deleteUserAsAdmin(
   actor: string,
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
-    await releaseUserToWorld(tx as unknown as Database, userId)
-    const out = await tx.delete(users).where(eq(users.id, userId)).returning({ id: users.id })
-    if (out.length === 0) return false
-    await forgetAuditEmails(tx as unknown as Database, userId)
+    if (!(await deleteAccount(tx as unknown as Database, userId))) return false
     await writeAdminAudit(tx as unknown as Database, actor, [
       {
         action: 'user.delete',

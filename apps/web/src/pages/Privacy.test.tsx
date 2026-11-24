@@ -58,6 +58,9 @@ describe('la privacidad de E4: lo que dice y lo que ya no', () => {
     "Your date of birth, only to check you're 16 or over, and the version of the terms you accepted. Nobody else sees them.",
     'The language your browser asked for when you signed up.',
     "Your rider, your team and everything you do in the game: training, plans, the races you follow and how far you've watched them, and your settings.",
+    // el PR 12: la última visita, la copia de los datos (§10.2)
+    "When you last visited, so the game knows if you've been away.",
+    'Download a copy of everything we keep about you: Account, Your data.',
     "For each device you're signed in on: the browser and system it reported, and when you signed in and last used it.",
     'When you create a rider we may ask a public service (ipinfo.io, ipwho.is or ipapi.co) for your country to pre-select a flag; our server keeps the answer in memory for a few hours.',
     'Our hosting provider keeps server logs with your full IP address for 7 days, to investigate attacks.',

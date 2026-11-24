@@ -10,6 +10,8 @@ import { runMarket } from './contracts.js'
 import { runPayroll, runTeamFinances } from './economy.js'
 import { LOCK_CLASS, TICK_LOCK_KEY } from './locks.js'
 import { backfillRosters, runRollover } from './rollover.js'
+import type { Database } from './client.js'
+import { purgeAccounts } from './purge.js'
 import { gameState, riderAttrLog, tickLog, worlds } from './schema.js'
 import { timelineTickLog } from './timelines.js'
 import { trainWorldDay } from './train.js'
@@ -243,6 +245,18 @@ async function transicionE1(
   }
 }
 
+/** `purgeAccounts` sin romper el tick: devuelve la nota del fallo, o null si fue bien. */
+async function purga(db: Database, now: Date): Promise<string | null> {
+  try {
+    await purgeAccounts(db, now)
+    return null
+  } catch (err) {
+    console.error('tick: la purga falló (se reintentará en la próxima pasada)', err)
+    const message = err instanceof Error ? err.message : String(err)
+    return `purga fallida, se reintentará: ${message}`.slice(0, 500)
+  }
+}
+
 export async function runTick(databaseUrl: string, opts: RunTickOptions): Promise<TickSummary> {
   const startedAtMs = Date.now()
   const client = postgres(databaseUrl, { max: 1 })
@@ -355,6 +369,11 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         failingDay = null
       }
 
+      // LA PURGA (docs/cuenta.md §15.4; 15-c): una vez por pasada que procesó días, después del último, como
+      // `purgeAttrLog`. Fuera de las transacciones de los días: un fallo aquí no deshace ningún día y no rompe
+      // el tick; se apunta en `tick_log` y la próxima pasada lo vuelve a intentar.
+      const notaPurga = daysProcessed > 0 ? await purga(db as unknown as Database, opts.now) : null
+
       // Re-ancla el reloj si un avance manual (o avances previos) dejó el mundo desincronizado del
       // tiempo real, para que el próximo tick automático caiga a un intervalo justo y la cuenta
       // atrás nunca supere un intervalo (ver reanchorClock).
@@ -406,6 +425,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
             notaE1,
             notaClon,
             notaKits,
+            notaPurga,
             // `timeline: 312 grabadas, 1 sin línea` y sus notas (§5.5); null si no se corrió ninguna etapa.
             timelineLog?.summary() ?? null,
             capped

@@ -147,6 +147,8 @@ const EN_SU_TEST: Readonly<Record<string, string>> = {
   'PUT /api/me/spoiler-scope': 'routes/me.test.ts',
   // la fecha se da una vez (409 `already_set` a quien ya la tiene, como el jugador de aquí)
   'PUT /api/me/birth-date': 'birthDate.test.ts',
+  // cerrar otra sesión pide una segunda sesión de la cuenta; su 200 lo pide el test de los aparatos (PR 11)
+  'DELETE /api/me/devices/:id': 'devices.test.ts',
   'POST /api/races/:raceId/stages/:day/broadcast/finish': 'routes/broadcast.test.ts',
   'POST /api/races/:raceId/stages/:day/broadcast/seek': 'routes/broadcast.test.ts',
   // sin cuenta por confirmar en este mundo; su 200 lo pide el test de los enlaces (E4, PR 8)

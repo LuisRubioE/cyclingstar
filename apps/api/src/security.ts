@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
+import { EXPORTS_PER_DAY } from '@cyclingstar/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { clientIp, ipBucket } from './clientIp.js'
 import { unauthorized } from './http.js'
@@ -68,6 +69,17 @@ export const MAIL_ROUTES_PER_IP_DAY = {
   lockS: 900,
 } as const
 
+/**
+ * Exportar los datos (docs/cuenta.md §7.4 y §10.5; D-39): `EXPORTS_PER_DAY` en 24 horas por cuenta, contadas
+ * solo las servidas (se reserva con la contraseña ya comprobada). La espera es la de la ventana.
+ */
+export const EXPORT_RULE = {
+  windowS: 86_400,
+  max: EXPORTS_PER_DAY,
+  dayMax: null,
+  lockS: 900,
+} as const
+
 /** L5: correos a un mismo buzón por hora, sin tope diario (§7.4; D-24). */
 export const MAIL_PER_RECIPIENT_HOUR = 3
 /**
@@ -110,8 +122,19 @@ export const AUTH_ALLOWED_PATHS = [
   { method: 'POST', path: '/delete-user' },
 ] as const satisfies readonly { method: 'GET' | 'POST'; path: string }[]
 
+/**
+ * LAS DOS RUTAS PROPIAS BAJO `/api/auth` (docs/cuenta.md §6.5 y §8.1; 6-g, 6-h): las atiende Fastify sin
+ * pasar por better-auth, y viven bajo `/api/auth` porque `cs_device` lleva `Path=/api/auth`: en `/api/me/*`
+ * el navegador no la manda. Ganan al comodín como las de `CREDENTIAL_AUTH_PATHS`.
+ */
+export const OWN_AUTH_PATHS = [
+  { method: 'POST', path: '/devices/sign-out-others' },
+  { method: 'POST', path: '/devices/forget' },
+] as const satisfies readonly { method: 'POST'; path: string }[]
+
 /** ¿Sirve el proxy esta ruta? `ruta` es la de después de `/api/auth`, ya normalizada y sin `?`. */
 export function isAllowedAuthPath(method: string, ruta: string): boolean {
+  if (OWN_AUTH_PATHS.some((r) => r.method === method && r.path === ruta)) return true
   return AUTH_ALLOWED_PATHS.some((r) => {
     if (r.method !== method) return false
     if (!r.path.includes('/:')) return r.path === ruta

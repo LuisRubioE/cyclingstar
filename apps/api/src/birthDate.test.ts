@@ -194,12 +194,12 @@ describe('la edad, contra una base real', () => {
 
   describe('la cuenta de hoy, sin fecha', () => {
     it('GET /api/me/account dice birthDateSet', async () => {
-      expect((await conSesion('GET', '/api/me/account')).json()).toEqual({
+      expect((await conSesion('GET', '/api/me/account')).json()).toMatchObject({
         ok: true,
         birthDateSet: true,
       })
       await tdb.client`update users set birth_date = null where email = ${ROOT}`
-      expect((await conSesion('GET', '/api/me/account')).json()).toEqual({
+      expect((await conSesion('GET', '/api/me/account')).json()).toMatchObject({
         ok: true,
         birthDateSet: false,
       })

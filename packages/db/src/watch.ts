@@ -23,7 +23,7 @@
  * `revealFree.test.ts`): ningún premio, logro, moral ni dinero lee lo visto (D-38).
  */
 import { BROADCAST, type SpoilerScope, type WatchMode } from '@cyclingstar/shared'
-import { and, eq, sql } from 'drizzle-orm'
+import { type InferSelectModel, and, eq, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { type KnowledgeLetter, stageCountOf } from './horizon.js'
 import { raceWatch, users } from './schema.js'
@@ -487,4 +487,15 @@ export class ProgressMemory {
   get size(): number {
     return this.entries.size
   }
+}
+
+/**
+ * Todas las filas de lo visto de una cuenta, tal cual, para la copia de sus datos (docs/cuenta.md §10.5; D-39).
+ * Solo la lee `accountExportData`: es lo que guardamos del jugador, no una decisión del juego (D-38).
+ */
+export async function watchRowsOfUser(
+  db: Database,
+  userId: string,
+): Promise<InferSelectModel<typeof raceWatch>[]> {
+  return db.select().from(raceWatch).where(eq(raceWatch.userId, userId))
 }
