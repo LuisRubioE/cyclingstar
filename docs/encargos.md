@@ -311,6 +311,15 @@ y `docs/navegacion.md`.
 
 **Fichero:** `docs/cuenta.md` · **Tamaño esperado:** mediano, y la mitad es ejecución
 
+**Lo que E4 deja pendiente en sí mismo** (`docs/cuenta.md` §21.4 y §18):
+
+- **El PR 19**, cerrar los enlaces de correo viejos: 7 días después de desplegar el PR 8.
+- **El canal de contacto**, aparcado por el dueño el 19 de noviembre (§11): se retoma cuando él lo pida.
+- **Comprobar qué autoridad firma los certificados** de `cyclingstar.app` antes de poner un registro
+  `CAA` en el DNS (`docs/ops.md`).
+- **Cinco frases de `docs/visual.md` y `docs/retransmision.md`, y un comentario de `pageTitle.ts`**,
+  que hablan del correo de juego: son de W5 y están escritas en `docs/diseno/e4-cuenta/ESTADO.md`.
+
 **Estado: IMPLEMENTADO** (diseñado el 23 de noviembre de 2026 y programado el 24: los PR 1 a 9,
 11 a 14, 16 y 17 de `docs/cuenta.md` §18; el 10 y el 18 los retiró el dueño), salvo dos PR que
 esperan: el 15 (la regla del mes, tras E7) y el 19 (cerrar los enlaces viejos, 7 días después de
@@ -391,6 +400,14 @@ donde muere el punto de «tutoriales» de la lista original).
 ## E7 · La integridad y el gobierno del mundo
 
 **Fichero:** `docs/integridad.md` · **Tamaño esperado:** grande
+
+**Lo que E4 le deja a E7** (`docs/cuenta.md` §20.1 y §14): el PR 15 de E4, el aviso `away_warning`
+antes de que actúe la regla del mes, que se programa cuando E7 fije la regla y su plazo; la regla del
+mes en sí, qué es «pasar a bot», la silla del mánager ausente, G8, la ausencia larga o encadenada; el
+papel de moderador (E4 deja el sitio en `admin_audit` y `GET /api/admin/audit`), suspender una cuenta
+(el `disabled` de twilightstruggle), «una cuenta por persona» y cerrar la cuenta que rompe las
+condiciones. E4 ya da `away_since`, `away_until`, `inactiveSince` e `isAway`, y que `manual` entrene
+como `mixto` mientras dura la ausencia.
 
 Lo que hace habitable todo lo anterior, y la ausencia más seria de la lista original. Dos mitades.
 La primera es **la integridad competitiva**: multicuentas, que en este juego no son trampa al margen
@@ -530,6 +547,10 @@ una.
 
 **Fichero:** `docs/personas.md` · **Tamaño esperado:** el más grande de todos
 
+**Lo que E4 le deja a E9** (`docs/cuenta.md` §20.1): todo aviso nuevo (el chat, la negociación)
+entra por `NOTICE_CATALOG`, con sus preferencias, su tope y su silencio; y decidir si la ausencia de
+un jugador se ve desde fuera.
+
 El mánager humano y todo lo que arrastra, que `epics.md` ya desglosó en quince componentes bajo G2 y
 que **no se puede partir en tres encargos sin que se noten las costuras**: un mánager sin canal de
 comunicación es un tirano mudo, un canal sin nada que negociar es un chat vacío, y lo que se negocia
@@ -581,6 +602,10 @@ tope que ya existe. Y antes de construir nada nuevo, **revivir lo que ya hay**.
 ## E10 · El multiidioma
 
 **Fichero:** `docs/idiomas.md` · **Tamaño esperado:** mediano
+
+**Lo que E4 le deja a E10** (`docs/cuenta.md` §20.1): traducir la interfaz, los dos correos y los
+avisos. E4 ya guarda `users.locale` desde `Accept-Language` al registrarse y la zona horaria de los
+avisos.
 
 Y no es el encargo que parece, porque el problema no es traducir sino **el texto que el juego
 escribe solo**. Medido: 48 tipos de suceso de crónica, 54 redacciones en `narration.ts` y 616
