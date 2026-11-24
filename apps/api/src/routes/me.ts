@@ -1,25 +1,37 @@
 import {
   type WatchKey,
   type WorldRef,
+  awayFacts,
+  dismissWelcomeBack,
+  endAway,
   getRunStageDays,
   horizonSummary,
   lastRunStages,
   raceExpired,
+  readAway,
   readSpoilerPrefs,
   readTheme,
   revealStage,
+  setAway,
   setFollow,
   setSpoilerScope,
   setTheme,
   stageGateOf,
+  welcomeBack,
   worldHorizon,
 } from '@cyclingstar/db'
 import {
+  type AwayResponse,
   type HorizonSummary,
+  type WelcomeBackResponse,
+  awayBodySchema,
+  awayResponseSchema,
+  awayWindow,
   followBodySchema,
   fromDs,
   horizonSummarySchema,
   instantAt,
+  okResponseSchema,
   photoBlocksOf,
   revResponseSchema,
   revealBodySchema,
@@ -30,6 +42,7 @@ import {
   visibilityOf,
   watchProgressBodySchema,
   watchResponseSchema,
+  welcomeBackResponseSchema,
 } from '@cyclingstar/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { z } from 'zod'
@@ -61,6 +74,10 @@ import { parseRaceKey, parseStageDay } from './params.js'
  * Y, desde E3 (docs/visual.md §3.3, D-00i; paso 23), `GET` y `PUT /api/me/theme`: el modo del jugador, en
  * la cuenta para que lo siga de un aparato a otro. No nace de ninguna etapa (`safe`) ni cambia lo
  * conocido, así que no lleva `rev`; sin sesión, 401 los dos.
+ *
+ * Y, desde el PR 13 de E4 (docs/cuenta.md §14; 14-b, 14-d, 14-e), la ausencia: `GET`, `PUT` y `DELETE
+ * /api/me/away`, y `GET` y `DELETE /api/me/welcome-back`. Todas `safe` y con sesión; las escrituras, tras la
+ * puerta de la fecha (403 `BIRTH_DATE_REQUIRED`, D-09). Leer o entrar no termina la ausencia.
  */
 
 type WatchResponse = z.infer<typeof watchResponseSchema>
@@ -300,6 +317,96 @@ export const meRoutes: RoutePlugin = async (app, routeCtx) => {
         },
       )
       return { ...summary, ...(await prefsOf()) } satisfies HorizonSummary
+    },
+  )
+
+  /** El día del mundo, para las cuentas en días de juego; 0 sin mundo. */
+  const diaDe = async (request: FastifyRequest): Promise<number> =>
+    (await request.world())?.currentDay ?? 0
+
+  /** La respuesta de la ausencia: la viva, o las dos a null, y los datos de las líneas (§14.1). */
+  async function awayOf(request: FastifyRequest, userId: string): Promise<AwayResponse | null> {
+    const now = new Date()
+    const a = await readAway(db, userId, now)
+    if (a === null) return null
+    return {
+      ok: true,
+      awaySince: a.awaySince?.toISOString() ?? null,
+      awayUntil: a.awayUntil?.toISOString() ?? null,
+      facts: await awayFacts(db, userId, await diaDe(request), now),
+    }
+  }
+
+  app.get(
+    '/api/me/away',
+    { config: { response: { 200: awayResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await sessionUser(request, reply)
+      if (userId === null) return reply
+      return (await awayOf(request, userId)) ?? unauthorized(reply)
+    },
+  )
+
+  /**
+   * Declarar la ausencia o cambiar su fecha (§14.1; 14-e): la vuelta entre `AWAY_MIN_HOURS` y `AWAY_MAX_DAYS`
+   * desde ahora, o 400 `fecha_fuera_de_rango` con la ventana; con ausencia viva, `away_since` se queda.
+   */
+  app.put(
+    '/api/me/away',
+    { config: { response: { 200: awayResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await sessionUser(request, reply)
+      if (userId === null) return reply
+      const body = awayBodySchema.safeParse(request.body)
+      if (!body.success) return badRequest(reply, 'VALIDATION_ERROR')
+      const until = new Date(body.data.until)
+      const { min, max } = awayWindow(new Date())
+      if (until < min || until > max)
+        return reply.status(400).send({
+          ok: false,
+          error: 'fecha_fuera_de_rango',
+          min: min.toISOString(),
+          max: max.toISOString(),
+        })
+      if ((await setAway(db, userId, until)) === null) return unauthorized(reply)
+      return (await awayOf(request, userId)) ?? unauthorized(reply)
+    },
+  )
+
+  /** `End now` (§14.3): sin confirmación; sin ausencia viva, 200 igual. */
+  app.delete(
+    '/api/me/away',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await sessionUser(request, reply)
+      if (userId === null) return reply
+      await endAway(db, userId)
+      return { ok: true }
+    },
+  )
+
+  app.get(
+    '/api/me/welcome-back',
+    { config: { response: { 200: welcomeBackResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await sessionUser(request, reply)
+      if (userId === null) return reply
+      return {
+        ok: true,
+        welcomeBack: await welcomeBack(db, userId, await diaDe(request)),
+      } satisfies WelcomeBackResponse
+    },
+  )
+
+  /** Cerrar `Welcome back` (§14.5): `welcome_back_from` a nula. */
+  app.delete(
+    '/api/me/welcome-back',
+    { config: { response: { 200: okResponseSchema }, spoiler: 'safe' } },
+    async (request, reply) => {
+      const userId = await sessionUser(request, reply)
+      if (userId === null) return reply
+      await dismissWelcomeBack(db, userId)
+      return { ok: true }
     },
   )
 }

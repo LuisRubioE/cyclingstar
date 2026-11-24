@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { forgetDevice, getMeAccount } from '../api/account'
+import { AWAY_KEY, getAway } from '../api/away'
+import { NOTICES_KEY, getNotices } from '../api/notices'
 import { fetchAdminWhoami } from '../api/admin'
 import { authClient } from '../auth/client'
 import { ME_ACCOUNT_KEY } from '../components/ProtectedRoute'
@@ -13,6 +15,12 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { Panel } from '../components/ui/Panel'
 import { TextLink } from '../components/ui/TextLink'
 import { shortDate } from '../domain/accountDates'
+import {
+  type BrowserState,
+  browserState,
+  forgetPushBeforeSignOut,
+  notificationsValue,
+} from '../notifications/push'
 import { useTheme } from '../theme'
 import { apiFailureText } from './account/AccountSubpage'
 
@@ -21,7 +29,8 @@ import { apiFailureText } from './account/AccountSubpage'
  * donde lo de la cuenta empezaba dos pantallas por debajo (mapa 05 §7); ahora cada tarea es una fila
  * (`ActionRow`) que abre su subpágina en `/account/<tarea>`, con su valor debajo, que sale de
  * `GET /api/me/account` (12-b). Dos grupos: `Your account` (lo que contesta la pantalla, §7.3) y `The game`.
- * `Notifications` y `Away` llegan con sus PR (13 y 14): sus filas no salen antes. Debajo, `Sign out` y
+ * `Away` llega con el PR 13 (§14.1) y `Notifications` con el 14 (sin las VAPID no sale). Debajo, `Sign out`, que
+ * borra antes la suscripción de este navegador (§13.4; D-49), y
  * `Shared computer? Forget this device` (12-i), que quita la entrada de este navegador de la `cs_device` y
  * sale (§6.5).
  */
@@ -29,6 +38,13 @@ import { apiFailureText } from './account/AccountSubpage'
 /** El valor de la fila de la contraseña: `Changed 12 Nov`, o `Set` si la fecha no se sabe (§12.1). */
 export function passwordValue(changedAt: string | null, now: Date): string {
   return changedAt === null ? 'Set' : `Changed ${shortDate(changedAt, now)}`
+}
+
+/** El valor de la fila de la ausencia (§12.1): `Until 3 Dec` mientras dura, o `Not set`. */
+export function awayValue(awayUntil: string | null, now: Date): string {
+  return awayUntil !== null && new Date(awayUntil) > now
+    ? `Until ${shortDate(awayUntil, now)}`
+    : 'Not set'
 }
 
 /** El valor de la fila de los aparatos: `3 signed in`. */
@@ -54,6 +70,19 @@ export function Account() {
   const cuenta = useQuery({ queryKey: ME_ACCOUNT_KEY, queryFn: getMeAccount })
   // Sólo para enseñar el enlace: el servidor vuelve a decidir en cada petición del panel.
   const whoami = useQuery({ queryKey: ['admin-whoami'], queryFn: fetchAdminWhoami, retry: false })
+  const ausencia = useQuery({ queryKey: AWAY_KEY, queryFn: getAway })
+  const avisos = useQuery({ queryKey: NOTICES_KEY, queryFn: getNotices })
+  const [navegador, setNavegador] = useState<BrowserState | null>(null)
+  useEffect(() => {
+    if (!avisos.data) return
+    let vivo = true
+    void browserState(avisos.data).then((s) => {
+      if (vivo) setNavegador(s)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [avisos.data])
   const proteccion = useSpoilerProtection()
   const { theme } = useTheme()
   const [saliendo, setSaliendo] = useState<'sign-out' | 'forget' | null>(null)
@@ -62,6 +91,7 @@ export function Account() {
   async function onLogout() {
     if (saliendo !== null) return
     setSaliendo('sign-out')
+    await forgetPushBeforeSignOut()
     await authClient.signOut()
     void navigate('/login')
   }
@@ -78,6 +108,7 @@ export function Account() {
       setFallo(apiFailureText(err))
       return
     }
+    await forgetPushBeforeSignOut()
     await authClient.signOut()
     void navigate('/login', { state: { arrival: 'device-forgotten' } })
   }
@@ -120,6 +151,19 @@ export function Account() {
 
       <Panel title="The game">
         <ul className="divide-y divide-line">
+          {/* sin las tres VAPID en el servidor, la web oculta los avisos (§13.6) */}
+          {avisos.data?.enabled === true && (
+            <ActionRow
+              title="Notifications"
+              meta={notificationsValue(navegador)}
+              href="/account/notifications"
+            />
+          )}
+          <ActionRow
+            title="Away"
+            meta={ausencia.data ? awayValue(ausencia.data.awayUntil, now) : ''}
+            href="/account/away"
+          />
           {/* solo con el velo para quien mira, como su panel (E2, §10.4) */}
           {proteccion.kind !== 'off' && (
             <ActionRow

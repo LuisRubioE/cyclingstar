@@ -8,6 +8,16 @@ export { createDb, type Database, type DbClient } from './client.js'
 export { runMigrations } from './migrate.js'
 export { deleteUserVerifications } from './verifications.js'
 export {
+  type AwayState,
+  awayFacts,
+  dismissWelcomeBack,
+  endAway,
+  readAway,
+  setAway,
+  welcomeBack,
+} from './away.js'
+export { inactiveSince, isAway } from './inactivity.js'
+export {
   type AttemptResult,
   type AttemptRule,
   bumpDeviceEpoch,
@@ -317,11 +327,36 @@ export {
 export {
   AUTH_LIMITS_RETENTION_DAYS,
   EMAIL_LOG_RETENTION_DAYS,
+  NOTICE_LOG_RETENTION_DAYS,
   PURGE_UNCONFIRMED_DAYS,
   purgeAccounts,
   type PurgeSummary,
 } from './purge.js'
 export { accountExportData, type AccountExportData } from './accountExport.js'
+// Los avisos (docs/cuenta.md §13), del PR 14 de E4.
+export {
+  claimNotice,
+  deletePushTarget,
+  deletePushTargetsById,
+  deletePushTargetsOfSessions,
+  listPushTargets,
+  noticeSweep,
+  pushTargetsOf,
+  readNoticeSettings,
+  recordDelivery,
+  savePushTarget,
+  setNoticePrefs,
+  takePushTargets,
+  type ClaimResult,
+  type DeliveryResult,
+  type NoticeSend,
+  type NoticeSettings,
+  type PushChannel,
+  type PushTargetRow,
+  type SavePushTarget,
+  type SweepDeps,
+  type SweepSummary,
+} from './notices.js'
 export {
   ADMIN_AUDIT_MAX_ROWS,
   forgetAuditEmails,

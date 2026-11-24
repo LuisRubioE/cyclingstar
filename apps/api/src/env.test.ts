@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadEnv, loadTickEnv } from './env.js'
+import { loadEnv, loadTickEnv, vapidOf } from './env.js'
 
 const BASE = {
   DATABASE_URL: 'postgres://localhost:5432/cs',
@@ -171,5 +171,41 @@ describe('loadTickEnv', () => {
     expect(() =>
       loadTickEnv({ DATABASE_URL: 'postgres://x', TIMELINE_RECORD: 'no' } as NodeJS.ProcessEnv),
     ).toThrow(/TIMELINE_RECORD/)
+  })
+})
+
+describe('loadEnv y loadTickEnv: las tres VAPID (docs/cuenta.md §13.6; PR 14)', () => {
+  const VAPID = {
+    VAPID_PUBLIC_KEY: 'B'.repeat(87),
+    VAPID_PRIVATE_KEY: 'p'.repeat(43),
+    VAPID_SUBJECT: 'https://www.cyclingstar.app',
+  }
+  it('sin ninguna arranca, con los avisos apagados', () => {
+    expect(vapidOf(loadEnv(BASE as NodeJS.ProcessEnv))).toBeNull()
+  })
+  it('con las tres, en web y en tick, se encienden', () => {
+    expect(vapidOf(loadEnv({ ...BASE, ...VAPID } as NodeJS.ProcessEnv))).toEqual({
+      publicKey: VAPID.VAPID_PUBLIC_KEY,
+      privateKey: VAPID.VAPID_PRIVATE_KEY,
+      subject: VAPID.VAPID_SUBJECT,
+    })
+    const tick = loadTickEnv({ DATABASE_URL: 'postgres://x', ...VAPID } as NodeJS.ProcessEnv)
+    expect(vapidOf(tick)?.subject).toBe(VAPID.VAPID_SUBJECT)
+  })
+  it('una o dos de las tres, o una clave mal formada, no dejan arrancar', () => {
+    const dos = {
+      VAPID_PUBLIC_KEY: VAPID.VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY: VAPID.VAPID_PRIVATE_KEY,
+    }
+    expect(() => loadEnv({ ...BASE, ...dos } as NodeJS.ProcessEnv)).toThrow(/VAPID/)
+    expect(() =>
+      loadTickEnv({ DATABASE_URL: 'postgres://x', ...dos } as NodeJS.ProcessEnv),
+    ).toThrow(/VAPID/)
+    expect(() =>
+      loadEnv({ ...BASE, ...VAPID, VAPID_PUBLIC_KEY: 'corta' } as NodeJS.ProcessEnv),
+    ).toThrow(/VAPID_PUBLIC_KEY/)
+    expect(() =>
+      loadEnv({ ...BASE, ...VAPID, VAPID_SUBJECT: 'http://x' } as NodeJS.ProcessEnv),
+    ).toThrow(/VAPID_SUBJECT/)
   })
 })

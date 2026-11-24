@@ -1,4 +1,4 @@
-import { type ReactNode, Suspense } from 'react'
+import { type ReactNode, Suspense, lazy } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
 import { Header } from './components/Header'
@@ -14,6 +14,10 @@ import { pageKindOfPath, usePageTitle } from './domain/pageTitle'
 import { lazyPage } from './lazyPage'
 import { ThemeSync } from './theme'
 import type { PageKind } from '@cyclingstar/shared'
+
+// Las franjas de la ausencia y de los avisos, fuera del JS de arranque (E4, PR 13 y 14): solo las ve
+// quien tiene sesión, y metidas en la entrada la pasaban del tope de peso (165 KB).
+const SessionBands = lazy(() => import('./components/SessionBands'))
 
 /**
  * Mapa de rutas (docs/navegacion.md §3.7). Tres esferas y la URL dice cuál es:
@@ -94,6 +98,14 @@ const AccountSpoilers = lazyPage(() =>
 )
 const AccountAppearance = lazyPage(() =>
   import('./pages/account/AccountAppearance').then((m) => ({ default: m.AccountAppearance })),
+)
+const AccountAway = lazyPage(() =>
+  import('./pages/account/AccountAway').then((m) => ({ default: m.AccountAway })),
+)
+const AccountNotifications = lazyPage(() =>
+  import('./pages/account/AccountNotifications').then((m) => ({
+    default: m.AccountNotifications,
+  })),
 )
 const Race = lazyPage(() => import('./pages/Race').then((m) => ({ default: m.Race })))
 const RaceOrders = lazyPage(() =>
@@ -230,6 +242,10 @@ export function App() {
       {/* Sin red, la franja que lo dice, con la hora de lo que se ve (§12.1; PR 4). */}
       <OfflineBanner />
       <main className="mx-auto max-w-page px-3 py-4 sm:px-4">
+        {/* La ausencia viva y el `Don't want these?` de los avisos (docs/cuenta.md §14.3 y §13.3; PR 13 y 14 de E4). */}
+        <Suspense fallback={null}>
+          <SessionBands />
+        </Suspense>
         <RouteBoundary resetKey={pathname}>
           <Suspense fallback={<LoadingState label="the page" />}>
             <Routes>
@@ -399,6 +415,22 @@ export function App() {
                 element={
                   <Private>
                     <AccountDelete />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/away"
+                element={
+                  <Private>
+                    <AccountAway />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/notifications"
+                element={
+                  <Private>
+                    <AccountNotifications />
                   </Private>
                 }
               />

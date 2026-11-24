@@ -28,6 +28,7 @@ import {
   smallint,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
@@ -155,10 +156,7 @@ export const users = pgTable(
     welcomeBackFrom: timestamp('welcome_back_from', { withTimezone: true }),
     /** Zona IANA del navegador al encender los avisos (§13.2). */
     timeZone: text('time_zone'),
-    /**
-     * Solo lo que el jugador cambió; `{}` vale `NOTICE_DEFAULTS` (§13.1). La clave será `NoticeKind`,
-     * que llega con el PR 14; hasta entonces, una cadena.
-     */
+    /** Solo lo que el jugador cambió; `{}` vale `NOTICE_DEFAULTS` (§13.1). Las claves son `NoticeKind`. */
     noticePrefs: jsonb('notice_prefs')
       .$type<Partial<Record<string, boolean>>>()
       .notNull()
@@ -1433,5 +1431,56 @@ export const emailLog = pgTable(
   (t) => [
     index('email_log_recipient').on(t.recipientHash, t.createdAt),
     index('email_log_created').on(t.createdAt),
+  ],
+)
+
+/** El canal de un aparato con avisos (§13.9; 15-a): solo crece con la app. */
+export const pushChannelEnum = pgEnum('push_channel', ['webpush', 'fcm', 'apns'])
+
+/**
+ * LOS APARATOS CON AVISOS (docs/cuenta.md §13.6 y §15.2; 0058). Una fila por suscripción de Web Push (o, el
+ * día que haya app, por token de FCM o APNs). La credencial no sale nunca de la API: ni en la exportación
+ * ni en `GET /api/me/notices`.
+ */
+export const pushTargets = pgTable(
+  'push_targets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** La sesión que la creó; nula cuando la sesión caduca, y la fila se queda (D-49). */
+    sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
+    channel: pushChannelEnum('channel').notNull(),
+    /** SHA-256 hex del endpoint (Web Push) o del token (FCM, APNs). */
+    endpointHash: text('endpoint_hash').notNull().unique(),
+    /** `{ endpoint, keys }`, `{ token }` o `{ token, environment }`, según el canal (§13.6). */
+    credential: jsonb('credential').notNull(),
+    /** `deviceLabel` del agente al suscribir (`Chrome on Android`). */
+    label: text('label').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastOkAt: timestamp('last_ok_at', { withTimezone: true }),
+    failures: smallint('failures').notNull().default(0),
+  },
+  (t) => [index('push_targets_user').on(t.userId)],
+)
+
+/**
+ * LO AVISADO (§13.7): una fila por aviso y `ref`, escrita antes de enviar; el único `(user_id, kind, ref)` es
+ * lo que impide que dos barridos a la vez manden dos. Se purga a los 90 días (15-e).
+ */
+export const noticeLog = pgTable(
+  'notice_log',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    ref: text('ref').notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('notice_log_once').on(t.userId, t.kind, t.ref),
+    index('notice_log_sent').on(t.sentAt),
   ],
 )

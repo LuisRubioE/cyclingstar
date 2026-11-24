@@ -164,7 +164,11 @@ export interface AdminUserPatch {
 }
 
 export type AdminUserPatchResult =
-  { ok: true } | { ok: false; reason: 'no_existe' | 'admin_email_fijo' | 'correo_ocupado' }
+  | {
+      ok: true
+      /** El correo cambió: la ruta manda `email_changed` (§13.1). */ emailChanged?: true
+    }
+  | { ok: false; reason: 'no_existe' | 'admin_email_fijo' | 'correo_ocupado' }
 
 /** ¿Es `email` el de `ADMIN_EMAIL`? Confirmado o no: aquí manda la dirección. */
 function isAdminEmail(email: string, rootEmail: string | undefined): boolean {
@@ -264,7 +268,7 @@ export async function updateUserAsAdmin(
         .where(eq(users.id, userId))
     }
     await writeAdminAudit(tx as unknown as Database, opts.actor, filas)
-    return { ok: true }
+    return cambiaCorreo ? { ok: true, emailChanged: true } : { ok: true }
   })
 }
 

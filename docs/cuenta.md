@@ -1,7 +1,8 @@
 # La cuenta y el contacto: cerrar la identidad por los bordes, avisar sin correo e irse sin perder (diseño final)
 
-Estado: **diseño escrito, sin implementar**, del 19 al 23 de noviembre de 2026. El dueño contestó todas
-sus decisiones (§21) y el código no se abre hasta que él lo diga.
+Estado: **implementado** el 24 de noviembre de 2026, salvo los PR 15 (la regla del mes, tras E7) y 19
+(cerrar los enlaces viejos, 7 días después de desplegar el PR 8). El diseño se escribió del 19 al 23 de
+noviembre de 2026 y el dueño contestó todas sus decisiones (§21).
 
 ## 0. Cabecera y resumen
 

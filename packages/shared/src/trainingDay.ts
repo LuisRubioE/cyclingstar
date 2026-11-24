@@ -18,6 +18,10 @@ import {
  * El orden, el de siempre: la carrera; el viaje (`viaje`, `normal`); en `entrenador`, el entrenador y nada
  * más; la orden del día; el bloque de esa semana del plan vivo, si no es `null`; el plan de equipo, solo en
  * `mixto`; y el entrenador, salvo en `manual`, donde el hueco es `descanso_activo`.
+ *
+ * Mientras el dueño está ausente (docs/cuenta.md §14.2; 14-c; PR 13 de E4), `manual` se resuelve como `mixto`:
+ * el hueco lo llena el plan de equipo o el entrenador, no el descanso. Es una regla del mundo y no del motor
+ * (el motor no ve `training_mode`), así que `ENGINE_VERSION` no cambia.
  */
 
 /** Los siete orígenes de un día, en el orden en que se miran. */
@@ -54,6 +58,8 @@ export interface TrainingDayContext {
   readonly teamPlan: TrainingChoice | null
   /** lo que mira el entrenador ese día; la vista previa le pondrá el TSB proyectado (13b) */
   readonly coach: CoachContext
+  /** el dueño del corredor está ausente (`isAway`, docs/cuenta.md §14.2): `manual` cuenta como `mixto` */
+  readonly ownerAway: boolean
 }
 
 export interface ResolvedTrainingDay {
@@ -91,7 +97,10 @@ const elige = (
 })
 
 /** LA PRECEDENCIA (D-38), la de `train.ts` escrita una vez. */
-export function resolveTrainingDay(ctx: TrainingDayContext): ResolvedTrainingDay {
+export function resolveTrainingDay(contexto: TrainingDayContext): ResolvedTrainingDay {
+  // Ausente el dueño, decide el entrenador: `manual` se lee como `mixto` (§14.2; 14-c).
+  const mode = contexto.mode === 'manual' && contexto.ownerAway ? 'mixto' : contexto.mode
+  const ctx: TrainingDayContext = mode === contexto.mode ? contexto : { ...contexto, mode }
   if (ctx.race !== null) {
     return {
       session: null,

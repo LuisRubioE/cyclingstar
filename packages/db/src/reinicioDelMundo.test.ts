@@ -92,6 +92,10 @@ const POSTERIORES: readonly string[] = [
   // 0057_correo (E4, PR 7): el registro de los correos. Cuelga de `users` con `on delete set null`, no del
   // mundo: un reinicio no la toca.
   'email_log',
+  // 0058_avisos (E4, PR 14): los aparatos con avisos y lo avisado. Cuelgan de `users` (y `push_targets` de
+  // `sessions`), no del mundo: un reinicio no las toca.
+  'push_targets',
+  'notice_log',
 ]
 
 /**

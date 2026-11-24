@@ -2,10 +2,12 @@ import { GENESIS_WORLD_SEED, createDb, runMigrations, runTick } from '@cyclingst
 import { ENGINE_VERSION } from '@cyclingstar/engine'
 import { buildApp } from './app.js'
 import { createAuth } from './auth.js'
-import { loadEnv } from './env.js'
+import { loadEnv, vapidOf } from './env.js'
 import { createMailJournal } from './mailBudget.js'
 import { createMailer } from './mailer.js'
 import { mailQueue } from './mailQueue.js'
+import { createNotifier } from './push/deliver.js'
+import { runNoticeSweep } from './push/sweep.js'
 import { loggerOptions } from './redact.js'
 
 /** Lo más que espera el apagado a los correos en cola antes de salir. */
@@ -40,6 +42,32 @@ async function main(): Promise<void> {
     ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
   })
   const msPerGameDay = env.TICK_INTERVAL_MINUTES * 60_000
+  // Los avisos (docs/cuenta.md §13.6): con las tres VAPID; sin ellas, apagados y la web los oculta.
+  const notifier = createNotifier({
+    db,
+    vapid: vapidOf(env),
+    queue: mailQueue,
+    log: (msg, data) => console.warn(msg, JSON.stringify(data)),
+  })
+  /**
+   * El barrido de los avisos después de cada `runTick` de `web` (§13.7), en segundo plano por la cola que
+   * espera el cierre: con `AUTO_TICK=on` los días los procesa `web` y el cron sale con cero días, y el barrido
+   * no depende de quién los procese. Uno a la vez en el proceso; dos procesos no duplican (`notice_log`).
+   */
+  let barriendo = false
+  const sweepNotices = (): void => {
+    if (!notifier.enabled || barriendo) return
+    barriendo = true
+    mailQueue.track(
+      runNoticeSweep(db, notifier, msPerGameDay)
+        .catch((err: unknown) => console.error('notice sweep failed', err))
+        .finally(() => {
+          barriendo = false
+        }),
+    )
+  }
+  /** `runTick` y, pase lo que pase, el barrido detrás. */
+  const tickAndSweep: typeof runTick = (url, opts) => runTick(url, opts).finally(sweepNotices)
 
   const app = buildApp({
     db,
@@ -60,8 +88,9 @@ async function main(): Promise<void> {
     ...(env.PROGRESS_MIN_DELTA_S !== undefined
       ? { progressMinDeltaS: env.PROGRESS_MIN_DELTA_S }
       : {}),
+    notifier,
     onAdminTick: () =>
-      runTick(env.DATABASE_URL, {
+      tickAndSweep(env.DATABASE_URL, {
         now: new Date(),
         msPerGameDay,
         worldSeed: GENESIS_WORLD_SEED,
@@ -69,7 +98,7 @@ async function main(): Promise<void> {
         timelineRecord: env.TIMELINE_RECORD,
       }),
     onAdminAdvance: (days) =>
-      runTick(env.DATABASE_URL, {
+      tickAndSweep(env.DATABASE_URL, {
         now: new Date(),
         msPerGameDay,
         worldSeed: GENESIS_WORLD_SEED,
@@ -118,7 +147,7 @@ async function main(): Promise<void> {
     if (ticking) return
     ticking = true
     try {
-      const summary = await runTick(env.DATABASE_URL, {
+      const summary = await tickAndSweep(env.DATABASE_URL, {
         now: new Date(),
         msPerGameDay,
         worldSeed: GENESIS_WORLD_SEED,

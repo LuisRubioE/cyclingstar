@@ -1,8 +1,7 @@
 import { anonHorizon, computeHorizon } from '@cyclingstar/db'
 import { fitnessFactor } from '@cyclingstar/engine'
-import { pageTitle } from '@cyclingstar/shared'
+import { noticePayload, pageTitle } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { stageReadyEmail } from './emails.js'
 import { preStageInfoFor, shellMetaFor } from './spaShell.js'
 import {
   CANARY_POST_READS,
@@ -29,9 +28,9 @@ import { excused } from './frontera.js'
  * respuesta puede llevarlos. Hasta el 8b, las rutas que aún destripaban iban en `PENDING_ROUTES` y su
  * `it` comprobaba que lo seguían haciendo; vacía desde el 8b, la constante y su `it` se borraron en el 9b
  * (§16.3, 17-n). No se busca el nombre del ganador en las respuestas JSON, que sale
- * con razón en la lista de salida: eso es B1c. Sí se busca en el título, las `og:` y el correo, que no
+ * con razón en la lista de salida: eso es B1c. Sí se busca en el título, las `og:` y los avisos, que no
  * llevan ninguna lista (§11.8, §11.9): es el tercer `it`, que entra en el 9a con `spaShell.ts` y
- * `stageReadyEmail`.
+ * `stageReadyEmail`, y desde el PR 14 de E4 mira `noticePayload` (docs/cuenta.md §13.8).
  *
  * Los tres primeros `it` miran el MISMO estado del mundo (la etapa corrida y velada) y comparten un
  * barrido. Con el de `reveal`, cuatro barridos de 62 peticiones serían 248 en unos segundos, cerca de
@@ -202,8 +201,15 @@ describe('B1a · el canario', () => {
     expect(robot?.ogDescription).toContain(`Spoiler · Winner: ${winnerName}`)
     const info = await preStageInfoFor(w.t.db, RACE_ID, VEILED, 0)
     expect(info).not.toBeNull()
-    // el locale delante (12-q)
-    expect(JSON.stringify(stageReadyEmail('en', info!, true, watch.href))).not.toContain(winnerName)
+    // los avisos de etapa (docs/cuenta.md §13.8; X-18): el canario renderiza `noticePayload`, el único
+    // constructor de avisos, en sus dos formas de etapa y con el resumen de varias
+    const lista = { info: info!, raceId: RACE_ID, ownRiderOnStartlist: true }
+    for (const aviso of [
+      noticePayload({ kind: 'stage_ready', stage: lista }),
+      noticePayload({ kind: 'stage_digest', stages: [lista] }),
+      noticePayload({ kind: 'stage_digest', stages: [lista, lista] }),
+    ])
+      expect(JSON.stringify(aviso)).not.toContain(winnerName)
     for (const page of ['watch', 'report', 'race'] as const)
       expect(pageTitle('en', info, page)).not.toContain(winnerName)
   })

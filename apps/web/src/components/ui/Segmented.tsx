@@ -42,6 +42,7 @@ export function Segmented<K extends string>({
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
     if (disabled) return
     const i = options.findIndex((o) => o.key === value)
+    // sin ninguna elegida, las flechas no eligen: se elige con un toque o con espacio
     if (i < 0) return
     const n = options.length
     let j = i
@@ -76,6 +77,8 @@ export function Segmented<K extends string>({
       >
         {options.map((o, i) => {
           const activa = o.key === value
+          // sin ninguna elegida (los atajos de `Away`, docs/cuenta.md §14.1), la primera recibe el foco
+          const enfocable = activa || (i === 0 && !options.some((x) => x.key === value))
           const color = disabled
             ? 'bg-disabled-bg text-disabled-ink'
             : activa
@@ -90,7 +93,7 @@ export function Segmented<K extends string>({
               type="button"
               role="radio"
               aria-checked={activa}
-              tabIndex={activa ? 0 : -1}
+              tabIndex={enfocable ? 0 : -1}
               data-state={activa ? 'active' : 'inactive'}
               onClick={() => {
                 if (!disabled && !activa) onChange(o.key)

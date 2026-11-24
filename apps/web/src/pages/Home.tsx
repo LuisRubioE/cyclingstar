@@ -21,6 +21,8 @@ import { LastRaceReady } from '../components/LastRaceReady'
 import { Logo } from '../components/Logo'
 import { StageRoute } from '../components/StageRoute'
 import { WatchBlocks } from '../components/WatchBlocks'
+import { NoticeAsk } from '../components/NoticeAsk'
+import { WelcomeBack } from '../components/WelcomeBack'
 import { ActionRow } from '../components/ui/ActionRow'
 import { Button } from '../components/ui/Button'
 import { Chip } from '../components/ui/Chip'
@@ -153,6 +155,8 @@ function NewPlayerHome() {
     <section className="space-y-4">
       <Logo size={80} />
       <PageHeader title="Welcome to Cycling Star" />
+      {/* Quien vuelve sin corredor, solo los días (docs/cuenta.md §14.5; PR 13 de E4). */}
+      <WelcomeBack />
       {/* Sin corredor, el vacío dice por qué y qué hacer (E3, PR 10): la respuesta de la pantalla 44. */}
       <EmptyState
         icon="rider"
@@ -433,6 +437,12 @@ export function PlayerHome({ name }: { name: string }) {
 
       {/* Lo siguiente, la respuesta de la 17 (§7.3), arriba: lo que se decide antes de que caduque. */}
       <NextUp actions={actions} pending={pending} />
+
+      {/* `Welcome back` (docs/cuenta.md §14.5; PR 13 de E4): encima de `While you were away`, sin repetirlo. */}
+      <WelcomeBack />
+
+      {/* El permiso de los avisos, tras crear el corredor (docs/cuenta.md §13.3; DD-03 A): solo con un toque. */}
+      <NoticeAsk variant="home" />
 
       {/* Lo que tiene por ver (E2, §11.4; 9b): a medias, listo para ver y lo que pasó mientras no
           estaba. Sin velo para él, nada. Encima de la última carrera, como en E2. */}

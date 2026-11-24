@@ -70,6 +70,7 @@ const contexto = (
   plan: null,
   teamPlan: null,
   coach: COACH,
+  ownerAway: false,
   ...over,
 })
 

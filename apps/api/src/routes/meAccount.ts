@@ -4,6 +4,8 @@ import {
   accountExportData,
   accountSummary,
   clearAttempts,
+  deletePushTargetsOfSessions,
+  listPushTargets,
   reserveAttempt,
   setBirthDateOnce,
 } from '@cyclingstar/db'
@@ -55,7 +57,7 @@ export const deviceId = (token: string): string =>
  *   vieja, con `deviceLabel` calculado aquí; sin IP, sin agente crudo y sin token (DD-06 A).
  * - `DELETE /api/me/devices/:id`: cierra otra sesión de la cuenta (`auth.api.revokeSession`), sin
  *   confirmación; 404 `no_encontrado` si el id no es de una sesión suya, 409 `usa_sign_out` si es la
- *   propia (6-b). Sus `push_targets` se borrarán antes cuando existan (PR 14; I-25).
+ *   propia (6-b). Antes borra sus `push_targets` (I-25).
  */
 /**
  * EL FICHERO DE `POST /api/me/export` (docs/cuenta.md §10.5; D-39, 10-f, 10-g). Sin la contraseña ni su hash,
@@ -64,7 +66,7 @@ export const deviceId = (token: string): string =>
 export interface AccountExport extends AccountExportData {
   exportedAt: string
   devices: DeviceRow[]
-  /** Aparatos con avisos, sin la dirección ni las claves del servicio de push. `[]` fijo hasta el PR 14, que crea `push_targets` (10-g). */
+  /** Aparatos con avisos, sin la dirección ni las claves del servicio de push (10-g). */
   notificationDevices: {
     id: string
     channel: 'webpush' | 'fcm' | 'apns'
@@ -163,6 +165,8 @@ export const meAccountRoutes: RoutePlugin = async (app, { db, auth }) => {
       const objetivo = s.todas.find((x) => deviceId(x.token) === request.params.id)
       if (objetivo === undefined) return notFound(reply)
       if (objetivo.token === s.token) return sendError(reply, 409, 'usa_sign_out')
+      // Sus avisos, antes que la sesión: con la sesión borrada quedarían con `session_id` nulo (I-25).
+      await deletePushTargetsOfSessions(db, [objetivo.id])
       await auth.api.revokeSession({ headers: s.headers, body: { token: objetivo.token } })
       return { ok: true }
     },
@@ -249,7 +253,13 @@ export const meAccountRoutes: RoutePlugin = async (app, { db, auth }) => {
         exportedAt: ahora.toISOString(),
         ...datos,
         devices: deviceRows(todas, sesion.session.token),
-        notificationDevices: [],
+        notificationDevices: (await listPushTargets(db, sesion.user.id)).map((t) => ({
+          id: t.id,
+          channel: t.channel,
+          label: t.label,
+          createdAt: t.createdAt.toISOString(),
+          lastOkAt: t.lastOkAt?.toISOString() ?? null,
+        })),
       }
       const dia = ahora.toISOString().slice(0, 10)
       reply.header('content-type', 'application/json; charset=utf-8')

@@ -6,6 +6,21 @@ implementación y el motor v91). El documento final será `docs/cuenta.md`. Se a
 al terminar cada fase, con commit y push en la rama de desarrollo, para poder retomar el trabajo si la
 sesión se corta.
 
+## Pendiente para W5
+
+E4 está programado (PR 1 a 9, 11 a 14, 16 y 17; esperan el 15 y el 19). Estas frases son de ficheros de
+W5, que E4 no toca (`docs/cuenta.md` §20.1); el texto que las sustituye, entero, está en §20.2
+(puntos 14 y 15) y §20.3:
+
+1. `packages/shared/src/broadcast/pageTitle.ts` l. 5: el comentario de `stageReadyEmail`, huérfano
+   desde el PR 14, pasa a `noticePayload` (§20.3, punto 1).
+2. `docs/visual.md` l. 3623: la fila E4 de la tabla de fronteras (§20.3, punto 2).
+3. `docs/visual.md` l. 3656: «ni service worker» (§20.3, punto 3).
+4. `docs/visual.md` l. 3616, 3658 y 3679: el aviso al teléfono «a la app» llega ya por el navegador
+   (§20.3, puntos 4 a 6).
+5. `docs/retransmision.md` l. 12895, la fila DD-10, y l. 13004, «DD-10, el correo sin enviar»: el aviso
+   de etapa lista va por el navegador y la app, nunca por correo (§20.2, puntos 14 y 15).
+
 ## Hecho
 
 - **Fase 0, el reconocimiento** (19 de noviembre de 2026): `00-encargo.md`, el brief de todos los

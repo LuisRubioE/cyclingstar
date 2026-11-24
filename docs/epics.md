@@ -600,14 +600,10 @@ caso, pero el generador entero está sin revisar y produce recorridos que nadie 
 > dominio hereistand.app que uso en mi otro proyecto (le puedo crear un email llamado
 > cyclingstar@hereistand.app), y así usarlo en Resend».
 
-**Lo que hay hoy, y es un agujero de verdad.** `better-auth` corre con email + contraseña y **sin
-enviar un solo correo**: `apps/api/src/auth.ts` deja `sendChangeEmailVerification` como no-op con el
-comentario «sin envío de emails». De ahí cuelgan tres cosas:
-
-1. **Nadie verifica que el correo sea suyo.** Cualquiera se registra con el correo de otro.
-2. **Una contraseña perdida es una cuenta perdida.** No hay recuperación posible.
-3. **El cambio de correo desde ajustes se aplica a pelo**, sin confirmar el nuevo ni avisar al viejo,
-   que es el camino clásico para secuestrar una cuenta.
+**Lo que había antes de E4.** `better-auth` corría sin enviar un solo correo: nadie verificaba el
+correo, una contraseña perdida era una cuenta perdida y el cambio de correo se aplicaba sin
+confirmar. Hoy salen dos correos (confirmar el registro y recuperar la contraseña) y el cambio de
+correo lo hace un administrador (`docs/cuenta.md` §1).
 
 Para un juego con temporadas de meses, perder la cuenta es perder el corredor. Esto es infraestructura
 y no una mejora.
