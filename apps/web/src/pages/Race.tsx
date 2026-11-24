@@ -6,7 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { Fragment, Suspense, lazy, useMemo } from 'react'
+import { Fragment, Suspense, lazy, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { RaceClass, RaceFormat } from '../api/calendar'
 import { fetchRacePrefs, setRacePref } from '../api/objectives'
@@ -22,6 +22,7 @@ import {
   raceViewKey,
 } from '../api/race'
 import { putFollow } from '../api/watch'
+import { NoticeAsk } from '../components/NoticeAsk'
 import { authClient } from '../auth/client'
 import { Altimetry } from '../components/Altimetry'
 import { RiderName } from '../components/RiderName'
@@ -576,9 +577,12 @@ function RaceSections({
  */
 function FollowRace({ raceKey, protecting }: { raceKey: string; protecting: boolean }) {
   const queryClient = useQueryClient()
+  // Al seguirla, el permiso de los avisos de cada etapa (docs/cuenta.md §13.3; DD-03 A, 13-f).
+  const [seguida, setSeguida] = useState(false)
   const follow = useMutation({
     mutationFn: () => putFollow(raceKey, protecting ? 'drop' : 'follow'),
     onSuccess: ({ rev }) => {
+      setSeguida(!protecting)
       queryClient.setQueryData<HorizonSummary | null>(['horizon'], (old) =>
         old == null ? old : { ...old, rev },
       )
@@ -594,6 +598,11 @@ function FollowRace({ raceKey, protecting }: { raceKey: string; protecting: bool
       {follow.isError && (
         <span role="alert" className="text-caption text-bad">
           Could not change this race.
+        </span>
+      )}
+      {seguida && (
+        <span className="basis-full">
+          <NoticeAsk variant="race" />
         </span>
       )}
     </span>

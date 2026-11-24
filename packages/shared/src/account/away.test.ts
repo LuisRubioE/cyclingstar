@@ -56,10 +56,11 @@ describe('shared: las constantes de la ausencia (§16)', () => {
 describe('shared: las líneas de Away (§14.1)', () => {
   const base: AwayFacts = { rider: LUCA, managesTeam: false }
 
-  it('con contrato y plan vivo: el plan, el equipo y el correo; sin la de los avisos (18-c)', () => {
+  it('con contrato y plan vivo: el plan, el equipo, los avisos (18-c) y el correo', () => {
     expect(awayLines(base, fecha)).toEqual([
       "Your plan runs until 2026-11-25. After that your coach picks Luca Bianchi's training.",
       'Luca Bianchi races when his team picks him, with automatic orders.',
+      'Notifications stay quiet, except a changed password or a new sign-in.',
       'Emails to reset your password still arrive.',
     ])
   })
@@ -91,14 +92,14 @@ describe('shared: las líneas de Away (§14.1)', () => {
     )
   })
 
-  it('el mánager, su línea; sin corredor, solo el correo', () => {
+  it('el mánager, su línea; sin corredor, solo los avisos y el correo', () => {
     expect(awayLines({ ...base, managesTeam: true }, fecha)).toContain(
       'Your team keeps its natural calendar. Nobody signs riders or changes plans for you.',
     )
     expect(awayLines({ rider: null, managesTeam: false }, fecha)).toEqual([
+      'Notifications stay quiet, except a changed password or a new sign-in.',
       'Emails to reset your password still arrive.',
     ])
-    expect(awayLines(base, fecha).join(' ')).not.toContain('Notifications')
   })
 })
 

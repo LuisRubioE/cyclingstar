@@ -11,7 +11,7 @@ import { AccountAway, AwayBody, backOnProblem, localMidnight, shortcutDate } fro
 /**
  * `Account › Away` (docs/cuenta.md §14.1; DD-05 A; PR 13 de E4), en estático y en sus estados: sin ausencia,
  * los atajos, `Back on` y las líneas con los datos del jugador; con `Back on` en error; y con la ausencia
- * viva, la fecha, `Change date` y `End now`. Sin la frase de los avisos hasta el PR 14 (18-c).
+ * viva, la fecha, `Change date` y `End now`. Con la frase de los avisos desde el PR 14 (18-c).
  */
 
 vi.mock('../../auth/client', () => ({
@@ -68,7 +68,7 @@ describe('Away sin ausencia (§14.1)', () => {
     expect(markup).toContain('>Set away</')
   })
 
-  it('las líneas con los datos del jugador, sin la de los avisos (18-c)', () => {
+  it('las líneas con los datos del jugador, con la de los avisos (18-c)', () => {
     const markup = renderToStaticMarkup(
       <QueryClientProvider client={new QueryClient()}>
         <AwayBody away={SIN} now={AHORA} />
@@ -78,9 +78,9 @@ describe('Away sin ausencia (§14.1)', () => {
     expect([...panel.matchAll(/<li>([^<]+)<\/li>/g)].map((m) => m[1])).toEqual([
       'Your plan runs until 25 Nov. After that your coach picks Luca Bianchi&#x27;s training.',
       'Luca Bianchi races when his team picks him, with automatic orders.',
+      'Notifications stay quiet, except a changed password or a new sign-in.',
       'Emails to reset your password still arrive.',
     ])
-    expect(markup).not.toContain('Notifications')
   })
 
   it('con una fecha elegida, el botón la dice; con Back on en error, el error en el campo', () => {
@@ -114,7 +114,9 @@ describe('Away con la ausencia viva (§14.1)', () => {
     expect(markup).toContain('>Change date</')
     expect(markup).toContain('>End now</')
     expect(markup).not.toContain('<form')
-    expect(markup).not.toContain('Notifications')
+    expect(markup).toContain(
+      'Notifications stay quiet until then, except a changed password or a new sign-in.',
+    )
   })
 
   it('Change date vuelve al formulario con la fecha puesta', () => {

@@ -15,7 +15,7 @@ import { AccountSubpage, apiFailureText } from './AccountSubpage'
  * (`Segmented`, `AWAY_SHORTCUT_DAYS`) rellenan `Back on` con hoy más 7, 14 o 28 días, y tocar la fecha
  * deselecciona el atajo; debajo, `While you're away` con las líneas calculadas con los datos de cada
  * jugador, y el botón con la fecha. La web manda las 00:00 locales del día elegido. Con la ausencia viva,
- * la fecha de vuelta, `Change date` y `End now`. Las frases de los avisos llegan con el PR 14 (18-c), y la
+ * la fecha de vuelta, `Change date` y `End now`. Las frases de los avisos salen desde el PR 14 (18-c); la
  * de la regla del mes, con el 15.
  */
 
@@ -112,6 +112,9 @@ export function AwayBody({
     return (
       <Panel title={`You're away until ${fecha(away.awayUntil!)}.`} answer>
         <div className="grid gap-2">
+          <p className="text-body text-ink">
+            Notifications stay quiet until then, except a changed password or a new sign-in.
+          </p>
           <div className="flex flex-wrap gap-3">
             <Button
               onClick={() => {

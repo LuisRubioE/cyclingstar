@@ -124,8 +124,7 @@ const objeto = (gender: 'M' | 'F'): string => (gender === 'F' ? 'her' : 'him')
 
 /**
  * LAS LÍNEAS DE `While you're away` (§14.1, la tabla), en su orden y con los textos del diseño. `fecha`
- * escribe `25 Nov`. `Notifications stay quiet…` no sale hasta el PR 14 (18-c), ni la de la regla del mes
- * hasta el 15.
+ * escribe `25 Nov`. `Notifications stay quiet…` sale desde el PR 14 (18-c); la de la regla del mes, con el 15.
  */
 export function awayLines(f: AwayFacts, fecha: (iso: string) => string): string[] {
   const lineas: string[] = []
@@ -150,6 +149,8 @@ export function awayLines(f: AwayFacts, fecha: (iso: string) => string): string[
     lineas.push(
       'Your team keeps its natural calendar. Nobody signs riders or changes plans for you.',
     )
+  // los avisos de seguridad salen también durante la ausencia (13-a, 14-f); desde el PR 14 (18-c)
+  lineas.push('Notifications stay quiet, except a changed password or a new sign-in.')
   lineas.push('Emails to reset your password still arrive.')
   return lineas
 }

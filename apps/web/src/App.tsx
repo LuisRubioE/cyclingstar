@@ -1,6 +1,7 @@
 import { type ReactNode, Suspense } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { AwayBand } from './components/AwayBand'
+import { NoticeOptOut } from './components/NoticeOptOut'
 import { BottomNav } from './components/BottomNav'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -98,6 +99,11 @@ const AccountAppearance = lazyPage(() =>
 )
 const AccountAway = lazyPage(() =>
   import('./pages/account/AccountAway').then((m) => ({ default: m.AccountAway })),
+)
+const AccountNotifications = lazyPage(() =>
+  import('./pages/account/AccountNotifications').then((m) => ({
+    default: m.AccountNotifications,
+  })),
 )
 const Race = lazyPage(() => import('./pages/Race').then((m) => ({ default: m.Race })))
 const RaceOrders = lazyPage(() =>
@@ -236,6 +242,8 @@ export function App() {
       <main className="mx-auto max-w-page px-3 py-4 sm:px-4">
         {/* La ausencia viva, bajo la cabecera en toda pantalla con sesión (docs/cuenta.md §14.3; PR 13 de E4). */}
         <AwayBand />
+        {/* `Don't want these?`, al llegar desde un aviso sin botones (docs/cuenta.md §13.3; PR 14 de E4). */}
+        <NoticeOptOut />
         <RouteBoundary resetKey={pathname}>
           <Suspense fallback={<LoadingState label="the page" />}>
             <Routes>
@@ -413,6 +421,14 @@ export function App() {
                 element={
                   <Private>
                     <AccountAway />
+                  </Private>
+                }
+              />
+              <Route
+                path="/account/notifications"
+                element={
+                  <Private>
+                    <AccountNotifications />
                   </Private>
                 }
               />

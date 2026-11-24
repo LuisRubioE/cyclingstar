@@ -1,0 +1,10 @@
+{
+  "name": "Cycling Star",
+  "short_name": "Cycling Star",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#123a5c",
+  "theme_color": "#123a5c"
+}

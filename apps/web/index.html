@@ -11,6 +11,11 @@
     <script src="/assets/theme-12588923.js"></script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!--
+      El manifiesto mínimo (docs/cuenta.md §13.5; 13-g): solo para que el iPhone abra la web como app desde la
+      pantalla de inicio y así reciba avisos (iOS 16.4 o más). Sin iconos, sin caché y sin ofrecer instalar.
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!--
       El marco (E3, docs/visual.md §12.4; PR 11): con viewport-fit=cover, env(safe-area-inset-*) vale algo
       en WebKit y el hueco de la barra de abajo sirve en un iPhone con la barra de inicio; theme-color,
       el navy de la cabecera, para la barra del navegador en Android.

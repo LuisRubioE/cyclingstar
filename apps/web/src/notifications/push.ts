@@ -214,3 +214,11 @@ export function otherDevices(info: Pick<NoticesResponse, 'targets'>): NoticesRes
     .filter((t) => !t.current && t.id !== id)
     .sort((a, b) => cuando(b).localeCompare(cuando(a)))
 }
+
+/** El valor de la fila de `Account`: `On for this browser` u `Off`. */
+export function notificationsValue(state: BrowserState | null): string {
+  if (state === null) return ''
+  if (state === 'on') return 'On for this browser'
+  if (state === 'ios-home' || state === 'unsupported') return 'Not on this browser'
+  return 'Off'
+}
