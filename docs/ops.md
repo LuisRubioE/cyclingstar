@@ -3,7 +3,40 @@
 Runbook de operación de Cycling Star. Cubre respaldos, restauración (probada), variables de
 entorno, despliegue y las tareas manuales pendientes (legal, monitorización).
 
+## Tras desplegar E4: lo que tiene que hacer el dueño
+
+Una sola vez y en este orden. Nada de esto está en el código: son tus paneles de Railway y de Resend,
+el DNS del dominio y tu buzón.
+
+1. **Las claves de los avisos.** En tu ordenador, dentro del repositorio, ejecuta una vez
+   `pnpm --filter @cyclingstar/api exec web-push generate-vapid-keys`. Salen dos claves. Ponlas en
+   Railway, en los servicios `web` y `tick`: `VAPID_PUBLIC_KEY` (la pública), `VAPID_PRIVATE_KEY` (la
+   privada) y `VAPID_SUBJECT=https://www.cyclingstar.app`. Guárdalas en tu gestor de contraseñas y
+   **no las cambies nunca**: con claves nuevas, dejan de llegar todos los avisos que la gente ya
+   aceptó (ver «Los avisos del navegador»).
+2. **El webhook de Resend.** Dalo de alta como dice «El webhook de Resend» y pon su secreto en
+   `RESEND_WEBHOOK_SECRET`, solo en `web`. Con él, el juego sabe qué correos rebotan.
+3. **El presupuesto de correo.** No pongas `MAIL_DAILY_BUDGET`: sin ella vale 90 al día, lo que cabe
+   en el plan gratuito de Resend. Solo se toca si pasas al plan Pro (entonces, 1.500).
+4. **El DNS.** Mira si Resend deja una clave DKIM de 2.048 bits y, si deja, cámbiala; y añade el
+   registro `CAA` (ver «Tareas del DNS»).
+5. **Tu buzón.** Activa el segundo factor en el buzón de `ADMIN_EMAIL`: quien entre en él puede
+   recuperar tu contraseña y tiene el panel de administración.
+6. **Aprueba por tandas.** En **Account → Admin panel**, `Waiting for approval`: 25 al día los tres
+   primeros días, 40 hasta el séptimo y 50 como mucho después (ver «El ritmo de las aprobaciones»).
+   Las invitaciones de la lista de espera las mandas tú desde tu buzón, no Resend.
+7. **Pruébalo.** Pide una cuenta con un correo tuyo que no sea el de `ADMIN_EMAIL`, apruébala, abre
+   el enlace que llega y, ya dentro, en **Account → Notifications**, pulsa `Turn on`.
+
+Y dos cosas que no tienes que hacer, pero conviene saber: no hay copias de seguridad de la base (el
+plan Hobby de Railway no las da, así que lo que se borra se borra), y Railway guarda los logs 7 días.
+
 ## Respaldos de Postgres
+
+**Hoy no hay copias de seguridad.** El plan Hobby de Railway no las incluye y el cron de abajo no
+está puesto (el dueño, el 23 de noviembre de 2026: `docs/diseno/e4-cuenta/00-encargo.md` §9.6). Lo
+que se borra se borra, y `Privacy` lo dice (`Backups are not kept.`). Lo que sigue es cómo se
+harían el día que se quieran.
 
 Dos capas, según el plan de Railway:
 
@@ -89,29 +122,37 @@ para dominios de verdad distintos.
 
 ## Correo transaccional (Resend)
 
-La app manda tres correos, todos de better-auth: recuperar contraseña, verificar la dirección y
-confirmar un cambio de correo. Salen por la API HTTP de Resend (`apps/api/src/mailer.ts`), sin SDK.
+La app manda dos correos, los dos de better-auth: confirmar la dirección al terminar el registro y
+recuperar la contraseña. Salen por la API HTTP de Resend (`apps/api/src/mailer.ts`), sin SDK. Ningún
+correo de juego: los avisos van por el navegador (ver «Los avisos del navegador»).
 
-**Confirmar el correo es obligatorio para entrar** (`requireEmailVerification`). El registro no
-abre sesión: manda el enlace, y abrirlo confirma la dirección y abre la sesión. Quien intenta entrar
-sin haber confirmado recibe un 403 y, en ese momento, un enlace nuevo. Las cuentas anteriores a
-este cambio conservan la sesión que tuvieran; al volver a entrar se les pide confirmar. Por eso,
-**sin Resend configurado nadie nuevo puede entrar**: en local, el enlace no sale y hay que marcar
-`users.email_verified` a mano.
+**El registro es por aprobación**: quien se registra queda pendiente y no recibe nada hasta que un
+administrador lo aprueba en el panel; al aprobar sale el correo para confirmar la dirección, y
+abrirlo confirma y abre la sesión. **Confirmar el correo es obligatorio para entrar**
+(`requireEmailVerification`): quien intenta entrar con una cuenta aprobada sin haber confirmado
+recibe un 403 y, en ese momento, un enlace nuevo. Por eso, **sin Resend configurado nadie nuevo
+puede entrar**: en local, el enlace no sale y hay que marcar `users.email_verified` a mano. El
+jugador no cambia su correo: lo cambia un administrador desde el panel, sin mandar correo, y queda
+escrito (`docs/cuenta.md` §4.9, §5.5 y §8.5).
 
-El cambio de correo siempre verifica la dirección nueva antes de aplicarse; si la actual ya estaba
-confirmada, antes se pide aprobarlo desde ella. A dónde vuelve cada enlace lo fija el servidor
-(`withCallbackURL` en `apps/api/src/auth.ts`), no el navegador.
+Las invitaciones de la lista de espera no son un tercer correo: las manda el dueño a mano desde su
+buzón, fuera de Resend (`docs/cuenta.md` §4.9).
 
 Puesta en marcha, una sola vez:
 
 1. **Resend → Domains → Add domain**: `cyclingstar.app` (el dominio raíz, no el `www`; el remitente
    será `no-reply@cyclingstar.app` y el correo se manda desde el dominio, no desde el subdominio de
    la web).
-2. Copiar los registros que da Resend al DNS del dominio y esperar a que los marque verificados:
-   - `MX` y `TXT` de **SPF** en el subdominio de envío (`send.cyclingstar.app`),
-   - `TXT` de **DKIM** (`resend._domainkey`),
-   - opcionalmente el `TXT` de **DMARC** (`_dmarc`), recomendado: `v=DMARC1; p=none;`.
+2. Copiar los registros que da Resend al DNS del dominio y esperar a que los marque verificados.
+   Lo que hay puesto hoy (consultado el 19 de noviembre de 2026, `docs/cuenta.md` §9.1):
+   - el return path de Resend en dos `CNAME` hacia Resend: `send.cyclingstar.app` y
+     `rsend.cyclingstar.app`,
+   - el `TXT` de **DKIM** en `resend._domainkey` (una clave RSA de 1.024 bits; ver «Tareas del DNS»),
+   - el `TXT` de **DMARC** en `_dmarc`, `v=DMARC1; p=none;`, puesto y sin informes (sin `rua` ni
+     `ruf`), por decisión del dueño (DD-15 C).
+
+   El SPF del dominio raíz es solo para el alojamiento; Resend no lo necesita.
+
 3. **Resend → API Keys → Create**, permiso de sólo envío.
 4. En Railway, servicio `web`: `RESEND_API_KEY=re_…` y
    `MAIL_FROM=Cycling Star <no-reply@cyclingstar.app>`. El servicio `tick` NO las necesita: no manda
@@ -129,6 +170,73 @@ Comprobaciones:
   `correo rechazado por Resend` (trae el código y el motivo) o `fallo al enviar el correo`.
 - El log lleva el buzón oculto (`l***@example.com`), nunca la dirección entera.
 
+### El webhook de Resend
+
+Cada envío queda en `email_log` con su estado; el webhook le dice al juego si el correo llegó, rebotó
+o acabó en spam (`docs/cuenta.md` §9.2). Con un rebote o una queja, `Account` avisa al jugador de
+que su correo no recibe. El plan gratuito permite un webhook, y basta. Alta, una sola vez:
+
+1. **Resend → Webhooks → Add Webhook.**
+2. URL: `https://www.cyclingstar.app/api/webhooks/resend` (el `APP_URL` de producción más
+   `/api/webhooks/resend`).
+3. Eventos: `email.delivered`, `email.bounced`, `email.complained`, `email.suppressed` y
+   `email.failed`. Los demás no hacen nada.
+4. Guardar y copiar el secreto de firma, que empieza por `whsec_`.
+5. En Railway, servicio `web`: `RESEND_WEBHOOK_SECRET=whsec_…`. El servicio `tick` no lo necesita.
+6. Comprobar en Resend, en la página del webhook, que el siguiente correo que salga deja una entrega
+   con respuesta 200. Un 401 es un secreto equivocado; un 404, que la variable no está puesta (sin
+   ella la ruta no existe).
+
+Si algún día se rota el secreto en Resend, se cambia la variable a la vez: con el viejo, cada evento
+da 401 y `email_log` deja de saber de rebotes.
+
+### El presupuesto del día y el ritmo de las aprobaciones
+
+`MAIL_DAILY_BUDGET` (por defecto 90) es el tope de correos del día UTC. El plan gratuito de Resend
+da 100 al día y 3.000 al mes, y 90 por 31 días son 2.790. Los últimos 30 de cada día quedan para
+recuperar contraseñas: a partir de 60, aprobar una cuenta da 503 `MAIL_BUDGET_EXHAUSTED` y no
+cambia nada, y se vuelve a intentar al día siguiente (`docs/cuenta.md` §7.6). Solo se cambia con el
+plan Pro (20 USD al mes, sin tope diario): entonces, 1.500.
+
+Cada aprobación gasta un correo, y otro si la persona pide un enlace nuevo: entre 1 y 2 por cuenta.
+Las tandas son además el calentamiento del dominio (`docs/cuenta.md` §9.4):
+
+| Día desde la primera aprobación | Aprobaciones al día | Para pasar al siguiente                                                  |
+| ------------------------------- | ------------------- | ------------------------------------------------------------------------ |
+| 1 a 3                           | 25                  | rebotes en `email_log` por debajo del 4 % y quejas por debajo del 0,08 % |
+| 4 a 7                           | 40                  | lo mismo, y el día no pasa de 63 envíos (el 70 % de 90)                  |
+| desde el 8                      | hasta 50, nunca más | lo mismo; si el día pasa del 70 % dos días seguidos, se vuelve a 25      |
+
+### Tareas del DNS
+
+- **DKIM de 2.048 bits.** La clave de hoy es de 1.024. Google pide 1.024 o más y recomienda 2.048. Si
+  el panel de Resend deja elegir la longitud al regenerarla, pasar a 2.048 y cambiar el `TXT` de
+  `resend._domainkey`; si no deja, se queda y se apunta aquí.
+- **`CAA`.** Hoy no hay, así que cualquier autoridad puede emitir un certificado para el dominio.
+  Añadir `cyclingstar.app CAA 0 issue "letsencrypt.org"` y uno igual por cada otra autoridad que
+  firme hoy los certificados de `www.cyclingstar.app` y de `cyclingstar.app` (se ve en el candado
+  del navegador). Mirarlo antes: un `CAA` sin la autoridad de Railway impide renovar el certificado
+  de la web.
+- **DMARC con informes**, si algún día se quieren: añadir `rua=mailto:<buzón>` al `TXT` de `_dmarc`.
+  Sin informes nadie sabe si un tercero manda correo en nombre de `cyclingstar.app`.
+
+## Los avisos del navegador
+
+E4 avisa por notificación del navegador, nunca por correo (`docs/cuenta.md` §13). Los mandan `web`
+y `tick` con `web-push` y las tres variables VAPID. Sin las tres no sale nada, `Account` no enseña
+`Notifications` y nadie se suscribe; con una o dos, el servicio no arranca. Quitar las tres apaga
+los avisos sin desplegar.
+
+Las claves se generan **una sola vez**:
+
+```sh
+pnpm --filter @cyclingstar/api exec web-push generate-vapid-keys
+```
+
+**No se rotan.** Cada suscripción del navegador va atada a la clave pública con que se hizo: con
+claves nuevas, todas las suscripciones dejan de valer y cada jugador tiene que volver a pulsar
+`Turn on`. Si una clave se filtra y hay que cambiarla, se apunta aquí con la fecha.
+
 ## Panel de administración (`/admin`)
 
 Entra quien tenga sesión y sea administrador, sin token:
@@ -139,10 +247,20 @@ Entra quien tenga sesión y sea administrador, sin token:
   no da nada.
 - **Los que el panel haga admin** (columna `users.is_admin`).
 
-Desde **Account → Admin panel** (el enlace sólo aparece a los admins): lista de cuentas con buscador
-por correo; por cuenta, confirmar el correo a mano, dar o quitar premium, dar o quitar admin, y
-borrarla (su corredor y su equipo pasan a NPC). La API impide quitarse el admin a uno mismo,
-borrarse desde el panel (eso se hace en Account, con contraseña) y borrar al raíz.
+Desde **Account → Admin panel** (el enlace sólo aparece a los admins): arriba, la cola de cuentas
+que esperan aprobación, con `Approve` y `Reject`; después, la lista de cuentas con buscador por
+correo; por cuenta, confirmar el correo a mano, dar o quitar premium, dar o quitar admin, cambiar el
+correo, cambiar la fecha de nacimiento, cambiar el nombre del equipo (también desde la página del
+equipo, para los equipos sin dueño) y borrarla (su corredor y su equipo pasan a NPC). Debajo,
+`Recent changes`: cada edición de un administrador queda en `admin_audit` con el valor viejo y el
+nuevo. La API impide quitarse el admin a uno mismo, borrarse desde el panel (eso se hace en Account,
+con contraseña), borrar al raíz, cambiarle el correo, la confirmación, el papel o la fecha, y dar a
+otra cuenta el correo de `ADMIN_EMAIL` (`docs/cuenta.md` §8.5).
+
+**El panel no tiene segundo factor** (`docs/cuenta.md` §8.6): quien tenga el buzón de `ADMIN_EMAIL`
+puede recuperar la contraseña del raíz y tiene el panel. Lo que lo frena es el segundo factor del
+propio buzón. **Tarea del dueño:** tenerlo activado en ese buzón (y en el de cualquier otra cuenta
+que el panel haga admin).
 
 El `ADMIN_TOKEN` sigue valiendo para todas las rutas de admin: es la puerta de las máquinas (cron,
 scripts). Un token presente y equivocado se rechaza aunque la sesión sea de admin.
@@ -267,6 +385,8 @@ propósito, con la causa en la nota de balance.
   de entorno e inicializarlo en el arranque de la API. Capturar errores del tick y de la API.
 - `tick_log` en la base registra cada avance del mundo (días procesados, duración, ok) para auditoría.
 - `/health` expone estado del servidor, versión del motor, día de juego y si las migraciones se aplicaron.
+- **Los logs de Railway** se guardan 7 días (plan Hobby): lo que pasó antes no se puede mirar. Llevan
+  la IP entera de cada petición, y `Privacy` lo dice.
 
 ## Tareas manuales pendientes (requieren cuentas/gestiones externas)
 
@@ -274,8 +394,9 @@ propósito, con la causa en la nota de balance.
   «Cycling Star» y los nombres «Race + Geografía» del calendario antes del lanzamiento (SPEC 8).
   La marca protegida es el nombre comercial, no la geografía ni el formato; no imitar logotipos,
   tipografías ni identidades visuales reales.
-- **Aviso de privacidad** — publicado en `/privacy` (la IP transitoria de geolocalización no se
-  persiste; el correo se usa para la cuenta). Revisar con la legislación aplicable antes del
+- **Aviso de privacidad**: publicado en `/privacy` (la IP no se guarda con la cuenta, sí en los
+  logs de Railway durante 7 días; el correo solo sirve para confirmar el registro y recuperar la
+  contraseña: `docs/cuenta.md` §10.1). Revisar con la legislación aplicable antes del
   lanzamiento público.
 - **Sentry** — ver arriba.
 
