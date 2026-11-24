@@ -23,9 +23,9 @@ no se mide con gente que lo abre una vez.
 
 Publicar sin esto es gastar el único disparo que se tiene en cada comunidad.
 
-**1.1 Recoger correos, NO registros.** Hoy `better-auth` corre sin enviar un solo correo: no hay
-verificación, **no hay recuperación de contraseña** y el cambio de correo se aplica sin confirmar. Un
-probador que pierda su contraseña pierde su corredor y no hay nada que hacer. Así que la llamada no
+**1.1 Recoger correos, NO registros.** Hay verificación del correo y recuperación de la
+contraseña, pero el correo va en el plan gratuito de Resend (100 al día): quien se registra espera a
+que un administrador lo apruebe, y se aprueba por tandas pequeñas (`docs/cuenta.md` §4.9 y §9.4). Así que la llamada no
 lleva a la pantalla de registro: lleva a un **formulario de lista de espera** (basta un formulario de
 Google) con tres campos y nada más:
 
@@ -212,8 +212,9 @@ en grupo.
 **Cuándo publicarlo, que es lo único que queda por decidir.** El permiso no caduca y el post sí: un
 mensaje que lleva a un juego que todavía se está moviendo se gasta una sola vez. Conviene publicarlo
 **cuando la línea del motor esté en producción y el enlace lleve a algo jugable**. Y un aviso
-operativo: hoy **no hay recuperación de contraseña**, así que con un grupo pequeño se resuelve a mano,
-pero conviene tener E4 antes de que sean cincuenta.
+operativo: la recuperación de la contraseña ya existe; lo que limita es el plan gratuito de correo, y
+por eso las aprobaciones van por tandas de 25 a 50 al día; las invitaciones las mando yo desde mi
+buzón (`docs/cuenta.md` §4.9 y §9.4).
 
 ### 3.5 Foro de ciclismo en español
 
@@ -260,5 +261,7 @@ Una comunidad por semana, empezando por las que menos duelen si el mensaje no fu
   invitación en un anuncio.
 - **No exagerar lo que hay.** El juego está a medias y decirlo juega a favor: quien se apunta a una
   alfa sabiendo que está rota es exactamente quien reporta fallos.
-- **No abrir el registro directo** hasta que exista recuperación de contraseña (E4). Invitar desde la
-  lista de espera es más lento y es lo correcto.
+- **El registro es por aprobación**: quien se registra espera a que un administrador lo apruebe, por
+  tandas mientras el correo esté en el plan gratuito, y al entrar declara su fecha de nacimiento (16
+  años como mínimo, sin abogado, por decisión del dueño del 23 de noviembre de 2026; `docs/cuenta.md`
+  §4.9 y §9.4). Invitar desde la lista de espera es más lento y es lo correcto.

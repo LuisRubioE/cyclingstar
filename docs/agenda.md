@@ -153,8 +153,9 @@ Quedan dos matices, y ninguno cambia el plan:
    dominio unas semanas antes del lanzamiento y empezar a enviar volumen pequeño (tus propias
    pruebas, los probadores) en vez de estrenarlo el mismo día que llegan mil registros.
 
-Y sigue en pie lo único que de verdad importa aquí: **separar el correo transaccional del de
-notificación** desde el primer día, aunque al principio solo exista el primero.
+La separación del correo transaccional y el de notificación ya no es urgente: no habrá correo de
+notificación (decisión del dueño del 19 de noviembre de 2026). Lo que haría falta el día que lo
+hubiera, en `docs/cuenta.md` §9.6.
 
 ### 3.3 La economía es INTERNA: lo que eso simplifica y lo que no
 
@@ -311,8 +312,9 @@ hablar. Es la pregunta de retención del proyecto y no está en ninguna lista.
 ### 4.3 Notificaciones y modo ausencia
 
 Cuatro días de juego por día real significa que el jugador se pierde cosas dormido. Hacen falta dos
-mecanismos que hoy no existen: **avisar** (correo, y a medio plazo notificación web, con el flujo
-separado del transaccional según 3.2) y **ausentarse sin perder** (que las políticas de N1 gobiernen
+mecanismos que no existían antes de E4: **avisar** (por notificación del navegador y, cuando exista,
+de la app; nunca por correo, que se queda en lo transaccional de la cuenta, por decisión del dueño
+del 19 de noviembre de 2026: `docs/cuenta.md` §13) y **ausentarse sin perder** (que las políticas de N1 gobiernen
 cuando no estás, y que una semana de vacaciones no arruine una temporada). Sin lo segundo, el juego
 castiga tener vida.
 
@@ -565,7 +567,9 @@ de los jugadores entran desde el teléfono y piden app, se construye con criteri
 que quita la web instalable» (D-00p de `docs/visual.md`). No hay web instalable, porque habrá app: E3
 no hace el manifiesto, el service worker ni el aviso de instalar, y se queda con lo que vale sin
 ellos (la conducta sin red, el peso y el teléfono como criterio de aceptación). El aviso al teléfono
-de E4 llegará con la app, y la comisión de las tiendas, la advertencia de E8, deja de ser hipotética.
+de E4 llega por el navegador, también en iPhone con la web en la pantalla de inicio
+(`docs/cuenta.md` §13), y llegará por la app cuando exista; la comisión de las tiendas, la
+advertencia de E8, deja de ser hipotética.
 
 #### 4.15.2 Amistades y enemistades entre corredores: sí, pero NO como bonificación
 
@@ -612,9 +616,10 @@ y el jugador no tiene por qué notar la diferencia.
 
 #### 4.15.3 El que se va y no vuelve: el mundo no lo sabe
 
-Comprobado en el esquema: **no hay ni un solo rastro de actividad**. Ni `last_seen`, ni `last_login`,
-ni nada equivalente en `users` ni en `riders`. En un mundo único y permanente eso es un agujero de
-verdad, y no uno estético:
+Hasta E2 no había ni un solo rastro de actividad. Desde la migración 0048 existe
+`users.last_seen_at`, escrita como mucho una vez por hora, y desde E4 en toda visita con sesión
+(`docs/cuenta.md` §10.6). En un mundo único y permanente, no hacer nada con el que se va es un
+agujero de verdad, y no uno estético:
 
 - Un corredor humano abandonado **sigue ocupando una plaza de plantilla** para siempre, cobrando
   salario, apareciendo en convocatorias y bloqueando el sitio de alguien que sí juega.
@@ -662,10 +667,12 @@ sigue su carrera donde la dejó. Si «pasar a bot» fuera irreversible, la regla
 mantenimiento del mundo y sería una pena de muerte por ausencia, que es exactamente lo que hace que
 alguien que dudaba si volver ya no vuelva.
 
-**3. Avisar antes, que es donde la regla se convierte en retención.** Un correo a los veinte días
-diciendo «si no entras, tu corredor pasa a manos del entrenador el día tal» es, en la práctica, el
-mejor recordatorio que este juego puede mandar: no es publicidad, es una consecuencia real y suya. La
-regla de mantenimiento y el mecanismo de recuperar jugadores son el mismo correo.
+**3. Avisar antes, que es donde la regla se convierte en retención.** Un aviso del navegador o de la
+app a los veinte días diciendo «si no entras, tu corredor pasa a manos del entrenador el día tal» es
+el mejor recordatorio que este juego puede mandar: no es publicidad, es una consecuencia real y suya.
+Solo llega a quien aceptó los avisos; para el resto, la regla se enseña en la web (`docs/cuenta.md`
+§14.5), y quien no aceptó avisos ni vuelve no recibe nada antes de que actúe (§14.6). No hay correo
+de juego.
 
 **4. El MÁNAGER es otro caso y necesita reloj propio.** Un corredor ausente se perjudica a sí mismo;
 **un mánager ausente perjudica a otras personas**, que se quedan sin quien decida convocatorias,
@@ -685,10 +692,9 @@ ausencia larga, el contrato no se renueva y el corredor queda libre, que libera 
 sin borrar a nadie; y solo después de mucho tiempo, la retirada, que es reversible en el sentido que
 importa, porque el jugador siempre puede empezar otra carrera deportiva.
 
-**Lo que hay que hacer ya, y es barato:** empezar a **registrar la última visita**. Hoy no existe (ni
-`last_seen` ni equivalente), y es un dato que no se reconstruye hacia atrás: el día que se quiera
-aplicar la regla hará falta un mes de historial que solo existe si se empezó a guardar un mes antes.
-Va en la lista de tareas, no en E7, porque no necesita esperar a ningún diseño.
+**Lo que había que hacer ya, y era barato:** **registrar la última visita**, que ya se hace:
+`users.last_seen_at` desde E2 (0048) y en toda visita desde E4. El historial empieza el día que E2
+entró en producción y no se reconstruye hacia atrás.
 
 ### 4.16 Los tres detalles del dueño, que no son tan pequeños
 

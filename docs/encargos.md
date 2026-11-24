@@ -1,7 +1,7 @@
 # Los encargos: qué pedirle a Fable, uno por documento
 
 Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño y con el método de `docs/tactica.md` y `docs/entrenamiento.md`.
-E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; E3 está EN IMPLEMENTACIÓN; E4 está EN IMPLEMENTACIÓN (`docs/cuenta.md`, desde el 23 de noviembre de 2026); los demás no están empezados. El estado de cada uno va al principio de su sección.
+E1 está IMPLEMENTADO; E2 está EN IMPLEMENTACIÓN; E3 está EN IMPLEMENTACIÓN; E4 está IMPLEMENTADO desde el 24 de noviembre de 2026, salvo los PR 15 y 19, que esperan (`docs/cuenta.md`); los demás no están empezados. El estado de cada uno va al principio de su sección.
 
 **Los códigos van en el orden en que se van a desarrollar**: E2 primero, E13 último. No es una
 etiqueta arbitraria, es el plan.
@@ -251,7 +251,9 @@ app**: sin barra de navegador, con su icono, arrancando rápido y sin romperse c
 Eso es trabajo de este documento, no de otro, y es además el requisito previo para que la
 notificación de E4 funcione en iPhone. **El dueño la retiró el 22 de octubre de 2026** («pronto
 haremos app, así que quita la web instalable»; D-00p de `docs/visual.md`): no hay web instalable,
-porque habrá app, y el aviso al teléfono de E4 llegará con ella. De este párrafo se queda lo que no
+porque habrá app. El aviso al teléfono de E4 llega ya por el navegador (en iPhone, con la web en la
+pantalla de inicio, gracias a un manifiesto mínimo que no la hace instalable) y llegará también por la
+app cuando exista (`docs/cuenta.md` §13). De este párrafo se queda lo que no
 depende de instalar: arrancar rápido y no romperse cuando la red va mal (§12 del documento).
 
 **Y el encargo lleva un examen práctico obligatorio: el cuadro de entrenamiento.** No como apéndice
@@ -309,28 +311,29 @@ y `docs/navegacion.md`.
 
 **Fichero:** `docs/cuenta.md` · **Tamaño esperado:** mediano, y la mitad es ejecución
 
-**Estado: DISEÑADO** el 23 de noviembre de 2026, sin implementar. El texto de abajo es anterior al
-correo y ya no es verdad en buena parte: manda `docs/cuenta.md` (su §1 hace el inventario, y su §0.1,
-lo que el dueño cambió).
+**Estado: IMPLEMENTADO** (diseñado el 23 de noviembre de 2026 y programado el 24: los PR 1 a 9,
+11 a 14, 16 y 17 de `docs/cuenta.md` §18; el 10 y el 18 los retiró el dueño), salvo dos PR que
+esperan: el 15 (la regla del mes, tras E7) y el 19 (cerrar los enlaces viejos, 7 días después de
+desplegar el PR 8). El texto de abajo es el encargo de antes y no es verdad en buena parte: manda
+`docs/cuenta.md` (su §1 hace el inventario, y su §0.1, lo que el dueño cambió).
 
-El agujero más feo del producto ahora mismo, porque **hoy una contraseña perdida es un corredor
-perdido**: `better-auth` corre con correo y contraseña sin enviar un solo correo, no hay recuperación,
-nadie verifica que la dirección sea suya y el cambio de correo desde ajustes se aplica sin confirmar
-el nuevo ni avisar al viejo, que es el camino clásico para secuestrar una cuenta. El documento cubre
+El agujero más feo del producto, porque cuando se escribió este encargo, una contraseña perdida era
+un corredor perdido. Hoy hay verificación obligatoria del correo, recuperación de la contraseña y solo
+dos correos de cuenta; el cambio de correo lo hace un administrador desde el panel y queda escrito
+(`docs/cuenta.md` §1, §5 y §8.5). El documento cubre
 el ciclo entero de la identidad (registro con **fecha de nacimiento**, que hoy no se pide y hace falta
 para la edad mínima de 16, verificación, recuperación, cambio de correo, sesiones, límites de intento)
 y su continuación natural, que son **las notificaciones**: qué se avisa, por dónde, con qué baja, y
 sobre todo el **modo ausencia**, porque con cuatro días de juego por día real un juego sin ausencia
-castiga tener vida. Dos decisiones de infraestructura van dentro y no se saltan: separar el correo
-TRANSACCIONAL del de NOTIFICACIÓN en subdominios distintos desde el primer día (las quejas de spam de
-quien se cansó del juego degradarían la entrega de la recuperación de contraseña, que es el correo que
-menos se puede permitir caer), y calentar el dominio de envío antes del lanzamiento en vez de
-estrenarlo con mil registros de golpe.
+castiga tener vida. Dos decisiones de infraestructura iban dentro: separar el correo
+transaccional del de notificación y calentar el dominio. La primera ya no hace falta, porque no hay
+correo de notificación (decisión del dueño del 19 de noviembre de 2026); lo que haría falta el día
+que lo hubiera está en `docs/cuenta.md` §9.6. La segunda se hace con las tandas de aprobación (§9.4).
 
 **Dos añadidos que cierran huecos detectados en la segunda pasada.** El primero: la notificación no
-es solo correo, es también **aviso al teléfono**, que llegará con la app (el dueño retiró la web
-instalable de E3, D-00p de `docs/visual.md`), y es lo que de
-verdad se pedía cuando se pidió una app. El segundo, pequeño y hoy inexistente: **por dónde se queja
+es correo: es el **aviso del navegador**, que E4 manda también al teléfono (en iPhone, con la web en
+la pantalla de inicio), y el de la app cuando exista (`docs/cuenta.md` §13), y es lo que de verdad se
+pedía cuando se pidió una app. El segundo, pequeño y hoy inexistente: **por dónde se queja
 un jugador**. Sin correo de contacto, sin formulario y sin canal, alguien con un problema no tiene a
 dónde ir, y el primero que se quede fuera de su cuenta lo va a descubrir de la peor manera.
 
@@ -440,14 +443,16 @@ puesto donde toca**: primero los roles y el registro de auditoría, después las
 más cosas pueda hacer el token compartido de hoy, peor es que sea uno solo y que no deje rastro de
 quién lo usó.
 
-**Y una tercera mitad que apareció comprobando el esquema: la POBLACIÓN del mundo.** No existe ni un
-solo rastro de actividad en la base de datos (ni `last_seen`, ni `last_login`, ni equivalente en
-`users` ni en `riders`), así que **el mundo no sabe quién lo ha abandonado**. **La regla ya está
+**Y una tercera mitad que apareció comprobando el esquema: la POBLACIÓN del mundo.** Desde E2 existe
+`users.last_seen_at` y desde E4 se escribe en toda visita, así que el mundo ya sabe cuándo entró cada
+uno por última vez; lo que no sabe es qué hacer con el que no vuelve. **La regla ya está
 decidida por el dueño: un mes real sin entrar ni una vez y el corredor pasa a bot.** Lo que el
 documento tiene que precisar es lo que la regla no dice, que está desarrollado en §4.15.5 de
 `agenda.md` y se resume en cuatro puntos: que «pasar a bot» signifique **que el entrenador y el equipo
 deciden en tu lugar y nunca que el corredor cambia de dueño**, porque el que vuelve tiene que
-recuperar los mandos en el acto; que se **avise por correo antes** de que ocurra, que es donde la
+recuperar los mandos en el acto; que se **avise antes** de que ocurra por notificación del navegador o de la app, nunca por correo
+(decisión del dueño del 19 de noviembre de 2026), y que quien no tenga avisos lo vea en la web al
+volver (`docs/cuenta.md` §14), que es donde la
 regla de mantenimiento se convierte en el mejor recordatorio que este juego puede mandar; que el
 **mánager tenga reloj propio y más corto**, porque un corredor ausente se perjudica a sí mismo y un
 mánager ausente perjudica a otras personas, con la silla reservada y la decisión incómoda de qué pasa
@@ -774,12 +779,11 @@ Son tareas, y varias tienen fecha límite en el reset:
 - **Guardar país y `Accept-Language` en el registro**, que cuesta una tarde y decide E10 con datos.
 - **Analítica de producto**: cuántos se registran, cuántos crean corredor, cuántos vuelven al
   séptimo día. Sin esto, E6 se diseña a ciegas.
-- **Empezar a registrar la última visita** (`last_seen`). Hoy no existe, y es un dato que **no se
-  reconstruye hacia atrás**: el día que se quiera aplicar la regla del mes hará falta un mes de
-  historial, que solo existe si se empezó a guardar un mes antes. No depende de ningún diseño.
+- **Registrar la última visita**: hecho (`users.last_seen_at`, E2; en toda visita, E4).
 - **Captar los primeros probadores**: dónde publicar, con qué mensaje y en qué orden está en
   [docs/captacion.md](./captacion.md). La única dependencia es que la llamada lleve a una lista de
-  espera y no al registro, porque hoy no hay recuperación de contraseña (E4).
+  espera y no al registro, porque el correo va en el plan gratuito de Resend y las cuentas
+  nuevas las aprueba un administrador por tandas pequeñas (`docs/cuenta.md` §4.9 y §9.4).
 - **La comunidad externa NO hay que decidirla todavía.** Durante la beta por invitación, un grupo de
   WhatsApp está perfectamente bien: son pocos, se conocen y el dueño está dentro. La decisión pesa el
   día que la comunidad la formen desconocidos, y entonces WhatsApp es mala opción por tres razones
